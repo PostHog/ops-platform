@@ -1,0 +1,23 @@
+{
+  "projectName": "ops-platform",
+  "mode": "file-router",
+  "typescript": true,
+  "tailwind": true,
+  "packageManager": "pnpm",
+  "git": true,
+  "version": 1,
+  "framework": "react-cra",
+  "chosenAddOns": [
+    "eslint",
+    "start",
+    "db",
+    "form",
+    "neon",
+    "shadcn",
+    "store",
+    "t3env",
+    "tRPC",
+    "table",
+    "tanstack-query"
+  ]
+}
