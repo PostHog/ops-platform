@@ -34,6 +34,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { createServerFn } from '@tanstack/react-start'
+import prisma from '@/db'
+import { useQuery } from '@tanstack/react-query'
 
 export const Route = createFileRoute("/")({
   component: App,
@@ -53,7 +56,11 @@ export interface Employee {
   reviewd: boolean
 }
 
-const data: Employee[] = []
+const getEmployees = createServerFn({
+  method: 'GET',
+}).handler(async () => {
+  return await prisma.employee.findMany()
+})
 
 const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -169,6 +176,10 @@ export const columns: ColumnDef<Employee>[] = [
 ]
 
 function App() {
+  const { data } = useQuery({
+    queryKey: ['employees'],
+    queryFn: getEmployees,
+  })
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []

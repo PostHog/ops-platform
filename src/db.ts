@@ -1,13 +1,5 @@
-import { neon } from '@neondatabase/serverless'
+import { PrismaClient } from "../generated/prisma/client.js";
 
-let client: ReturnType<typeof neon>
+const prisma = new PrismaClient();
 
-export async function getClient() {
-  if (!process.env.VITE_DATABASE_URL) {
-    return undefined
-  }
-  if (!client) {
-    client = await neon(process.env.VITE_DATABASE_URL!)
-  }
-  return client
-}
+export default prisma;
