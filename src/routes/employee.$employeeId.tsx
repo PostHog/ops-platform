@@ -9,12 +9,6 @@ import { Priority } from 'generated/prisma/enums'
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import "vercel-toast/dist/vercel-toast.css";
 import { createToast } from "vercel-toast";
 import { months } from '.'
@@ -24,7 +18,6 @@ import {
     getCoreRowModel,
     useReactTable,
 } from "@tanstack/react-table"
-import { MoreHorizontal } from "lucide-react"
 import {
     Table,
     TableBody,
@@ -33,7 +26,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { useState } from 'react'
 
 export const Route = createFileRoute('/employee/$employeeId')({
     component: EmployeeOverview,
@@ -74,9 +68,22 @@ const updateEmployee = createServerFn({
         })
     })
 
-export function EmployeeOverview() {
+const updateSalary = createServerFn({
+    method: 'POST',
+})
+    .inputValidator((d: Omit<Salary, 'id' | 'timestamp'>) => d)
+    .handler(async ({ data }) => {
+        return await prisma.salary.create({
+            data: {
+                ...data,
+            },
+        })
+    })
+
+function EmployeeOverview() {
     const router = useRouter()
     const employee: Employee & { salaries: Salary[] } = Route.useLoaderData()
+    const [updateSalaryModalOpen, setUpdateSalaryModalOpen] = useState(false)
 
     const form = useForm({
         defaultValues: employee,
@@ -126,14 +133,14 @@ export function EmployeeOverview() {
             cell: ({ row }) => <div>{row.original.totalSalary}</div>,
         },
         {
-            accessorKey: "lastChangeAmount",
+            accessorKey: "changeAmount",
             header: "Change ($)",
-            cell: ({ row }) => <div>{row.original.lastChangeAmount}</div>,
+            cell: ({ row }) => <div>{row.original.changeAmount}</div>,
         },
         {
-            accessorKey: "lastChangePercentage",
+            accessorKey: "changePercentage",
             header: "Change (%)",
-            cell: ({ row }) => <div>{row.original.lastChangePercentage * 100}%</div>,
+            cell: ({ row }) => <div>{row.original.changePercentage * 100}%</div>,
         },
         {
             accessorKey: "exchangeRate",
@@ -165,29 +172,29 @@ export function EmployeeOverview() {
             header: "Notes",
             cell: ({ row }) => <div>{row.original.notes}</div>,
         },
-        {
-            id: "actions",
-            enableHiding: false,
-            cell: ({ row }) => {
-                const salary = row.original
+        // {
+        //     id: "actions",
+        //     enableHiding: false,
+        //     cell: ({ row }) => {
+        //         const salary = row.original
 
-                return (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                                Edit salary
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )
-            },
-        },
+        //         return (
+        //             <DropdownMenu>
+        //                 <DropdownMenuTrigger asChild>
+        //                     <Button variant="ghost" className="h-8 w-8 p-0">
+        //                         <span className="sr-only">Open menu</span>
+        //                         <MoreHorizontal />
+        //                     </Button>
+        //                 </DropdownMenuTrigger>
+        //                 <DropdownMenuContent align="end">
+        //                     <DropdownMenuItem>
+        //                         Edit salary
+        //                     </DropdownMenuItem>
+        //                 </DropdownMenuContent>
+        //             </DropdownMenu>
+        //         )
+        //     },
+        // },
     ]
 
     const table = useReactTable({
@@ -271,7 +278,10 @@ export function EmployeeOverview() {
 
                 </div>
 
-                <span className="text-md font-bold">Salary history</span>
+                <div className="flex flex-row gap-2 justify-between items-center">
+                    <span className="text-md font-bold">Salary history</span>
+                    <Button type="button" variant="outline" onClick={() => setUpdateSalaryModalOpen(true)}>Update salary</Button>
+                </div>
 
                 <div className="w-full flex-grow">
                     <div className="overflow-hidden rounded-md border">
@@ -326,10 +336,294 @@ export function EmployeeOverview() {
                     </div>
                 </div>
                 <div className='flex gap-2 justify-end'>
-                    <Button variant="outline">Cancel</Button>
+                    <Button variant="outline" onClick={() => router.navigate({ to: '/' })}>Back to overview</Button>
                     <Button type="submit">Save changes</Button>
                 </div>
             </form>
+
+            <SalaryUpdateModal open={updateSalaryModalOpen} salary={employee.salaries[0]} handleClose={() => setUpdateSalaryModalOpen(false)} />
         </div>
+    )
+}
+
+export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean, salary: Salary, handleClose: () => void }) {
+    const router = useRouter()
+
+    const form = useForm({
+        defaultValues: {
+            locationFactor: salary.locationFactor,
+            level: salary.level,
+            step: salary.step,
+            benchmark: salary.benchmark,
+            totalSalary: salary.totalSalary,
+            changePercentage: 0,
+            changeAmount: 0,
+            exchangeRate: salary.exchangeRate,
+            totalSalaryLocal: salary.totalSalaryLocal,
+            amountTakenInOptions: salary.amountTakenInOptions,
+            actualSalary: salary.actualSalary,
+            actualSalaryLocal: salary.actualSalaryLocal,
+            notes: salary.notes,
+            employeeId: salary.employeeId
+        },
+        onSubmit: async ({ value }) => {
+            console.log('abc')
+            await updateSalary({ data: value })
+            router.invalidate()
+            createToast("Salary updated successfully.", {
+                timeout: 3000,
+            });
+        },
+        listeners: {
+            onChange: ({ formApi, fieldApi }) => {
+                if (['locationFactor', 'level', 'step', 'benchmark', 'exchangeRate', 'amountTakenInOptions'].includes(fieldApi.name)) {
+                    const totalSalary = formApi.getFieldValue('locationFactor') * formApi.getFieldValue('level') * formApi.getFieldValue('step') * formApi.getFieldValue('benchmark')
+                    formApi.setFieldValue('totalSalary', Number(totalSalary.toFixed(2)))
+
+                    const changePercentage = (totalSalary / salary.totalSalary) - 1
+                    formApi.setFieldValue('changePercentage', Number(changePercentage.toFixed(4)))
+
+                    const totalSalaryLocal = totalSalary * formApi.getFieldValue('exchangeRate')
+                    formApi.setFieldValue('totalSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
+
+                    const changeAmount = totalSalary - salary.totalSalary
+                    formApi.setFieldValue('changeAmount', Number(changeAmount.toFixed(2)))
+
+                    const actualSalary = totalSalary - formApi.getFieldValue('amountTakenInOptions')
+                    formApi.setFieldValue('actualSalary', Number(actualSalary.toFixed(2)))
+
+                    const actualSalaryLocal = actualSalary * formApi.getFieldValue('exchangeRate')
+                    formApi.setFieldValue('actualSalaryLocal', Number(actualSalaryLocal.toFixed(2)))
+                }
+            }
+        }
+    })
+
+    return (
+        <Dialog open={open} onOpenChange={handleClose}>
+            <DialogContent className="sm:max-w-[425px]">
+                <form
+                    className="grid gap-4"
+                    onSubmit={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    form.handleSubmit()
+                }}>
+                    <DialogHeader>
+                        <DialogTitle>Edit salary</DialogTitle>
+                    </DialogHeader>
+
+                    <div className="grid gap-4">
+                        <form.Field
+                            name="locationFactor"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="locationFactor">Location Factor</Label>
+                                    <Input
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='number'
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="level"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="level">Level</Label>
+                                    <Input
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='number'
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="step"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="step">Step</Label>
+                                    <Input
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='number'
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="benchmark"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="benchmark">Benchmark</Label>
+                                    <Input
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='number'
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="totalSalary"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="totalSalary">Total Salary</Label>
+                                    <Input
+                                        readOnly
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='number'
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="changePercentage"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="changePercentage">Change (%)</Label>
+                                    <Input
+                                        readOnly
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='number'
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="changeAmount"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="changeAmount">Change ($)</Label>
+                                    <Input
+                                        readOnly
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='number'
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="exchangeRate"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="exchangeRate">Exchange Rate</Label>
+                                    <Input
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='number'
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="totalSalaryLocal"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="totalSalaryLocal">Total Salary (local)</Label>
+                                    <Input
+                                        readOnly
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='number'
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="amountTakenInOptions"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="amountTakenInOptions">Amount Taken In Options ($)</Label>
+                                    <Input
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='number'
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="actualSalary"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="actualSalary">Actual Salary ($)</Label>
+                                    <Input
+                                        readOnly
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='number'
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="actualSalaryLocal"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="actualSalaryLocal">Actual Salary (local)</Label>
+                                    <Input
+                                        readOnly
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='number'
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="notes"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="notes">Notes</Label>
+                                    <Input
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        onChange={(e) => field.handleChange(e.target.value)}
+                                    />
+                                </div>
+                            )}
+                        />
+                    </div>
+
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Button type="submit">Submit</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     )
 }

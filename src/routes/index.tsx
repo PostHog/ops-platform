@@ -73,7 +73,6 @@ function App() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
-  console.log(employees)
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
@@ -132,14 +131,14 @@ function App() {
       cell: ({ row }) => <div>{row.original.salaries[0].totalSalary}</div>,
     },
     {
-      accessorKey: "lastChangePercentage",
+      accessorKey: "changePercentage",
       header: "Last Change (%)",
-      cell: ({ row }) => <div>{row.original.salaries[0].lastChangePercentage * 100}%</div>,
+      cell: ({ row }) => <div>{row.original.salaries[0].changePercentage * 100}%</div>,
     },
     {
-      accessorKey: "lastChangeAmount",
+      accessorKey: "changeAmount",
       header: "Last Change ($)",
-      cell: ({ row }) => <div>{row.original.salaries[0].lastChangeAmount}</div>,
+      cell: ({ row }) => <div>{row.original.salaries[0].changeAmount}</div>,
     },
     {
       accessorKey: "priority",
