@@ -7,46 +7,6 @@ export default function Header() {
         <div className="px-2 font-bold">
           <Link to="/">Ops Platform</Link>
         </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/start/server-funcs">Start - Server Functions</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/start/api-request">Start - API Request</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/db-chat">DB Chat</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/form/simple">Simple Form</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/form/address">Address Form</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/neon">Neon</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/store">Store</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/trpc-todo">tRPC Todo</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/table">TanStack Table</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/tanstack-query">TanStack Query</Link>
-        </div>
       </nav>
     </header>
   )
