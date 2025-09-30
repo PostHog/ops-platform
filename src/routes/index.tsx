@@ -1,19 +1,17 @@
 import React from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import {
   flexRender,
   getCoreRowModel,
+  VisibilityState,
   useReactTable,
-} from '@tanstack/react-table'
-import type { ColumnDef } from '@tanstack/react-table'
-import {
   ColumnFiltersState,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   SortingState,
-  VisibilityState,
-} from "@tanstack/react-table"
+} from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import { ChevronDown, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -35,33 +33,24 @@ import {
 } from "@/components/ui/table"
 import { createServerFn } from '@tanstack/react-start'
 import prisma from '@/db'
+import { Prisma } from "@/../generated/prisma/client.js";
 
 export const Route = createFileRoute("/")({
   component: App,
   loader: async () => await getEmployees(),
 })
 
-type Employee = {
-  id: number
-  name: string
-  priority: string
-  reviewer: string
-  reviewd: boolean
-  salaries: Salary[]
-}
+type Employee = Prisma.EmployeeGetPayload<{
+  include: {
+    salaries: {
+      orderBy: {
+        timestamp: 'desc'
+      }
+    }
+  }
+}>
 
-type Salary = {
-  id: number
-  timestamp: string
-  level: number
-  step: number
-  totalSalary: number
-  lastChangePercentage: number
-  lastChangeAmount: number
-  notes: string
-}
-
-const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+export const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const getEmployees = createServerFn({
   method: 'GET',
@@ -77,118 +66,9 @@ const getEmployees = createServerFn({
   })
 })
 
-export const columns: ColumnDef<Employee>[] = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "name",
-    header: "Name",
-    cell: ({ row }) => (
-      <div>{row.original.name}</div>
-    ),
-  },
-  {
-    accessorKey: "lastChangeTimestamp",
-    header: "Last Change (date)",
-    cell: ({ row }) => {
-      const date = new Date(row.original.salaries[0].timestamp)
-      return <div>{months[date.getMonth()]} {date.getFullYear()}</div>
-    },
-  },
-  {
-    accessorKey: "level",
-    header: "Level",
-    cell: ({ row }) => <div>{row.original.salaries[0].level}</div>,
-  },
-  {
-    accessorKey: "step",
-    header: "Step",
-    cell: ({ row }) => <div>{row.original.salaries[0].step}</div>,
-  },
-  {
-    accessorKey: "totalSalary",
-    header: "Total Salary",
-    cell: ({ row }) => <div>{row.original.salaries[0].totalSalary}</div>,
-  },
-  {
-    accessorKey: "lastChangePercentage",
-    header: "Last Change (%)",
-    cell: ({ row }) => <div>{row.original.salaries[0].lastChangePercentage * 100}%</div>,
-  },
-  {
-    accessorKey: "lastChangeAmount",
-    header: "Last Change ($)",
-    cell: ({ row }) => <div>{row.original.salaries[0].lastChangeAmount}</div>,
-  },
-  {
-    accessorKey: "priority",
-    header: "Priority",
-    cell: ({ row }) => <div>{row.original.priority}</div>,
-  },
-  {
-    accessorKey: "reviewer",
-    header: "Reviewer",
-    cell: ({ row }) => <div>{row.original.reviewer}</div>,
-  },
-  {
-    accessorKey: "notes",
-    header: "Notes",
-    cell: ({ row }) => <div>{row.original.salaries[0].notes}</div>,
-  },
-  {
-    accessorKey: "reviewd",
-    header: "Reviewd",
-    cell: ({ row }) => <div>{row.original.reviewd ? "Yes" : "No"}</div>,
-  },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const employee = row.original
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(employee.name)}
-            >
-              Edit person
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    },
-  },
-]
-
 function App() {
-  const employees = Route.useLoaderData()
+  const router = useRouter()
+  const employees: Employee[] = Route.useLoaderData()
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -197,6 +77,116 @@ function App() {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
+
+  const columns: ColumnDef<Employee>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }) => (
+        <div>{row.original.name}</div>
+      ),
+    },
+    {
+      accessorKey: "lastChangeTimestamp",
+      header: "Last Change (date)",
+      cell: ({ row }) => {
+        const date = new Date(row.original.salaries?.[0]?.timestamp)
+        return <div>{months[date.getMonth()]} {date.getFullYear()}</div>
+      },
+    },
+    {
+      accessorKey: "level",
+      header: "Level",
+      cell: ({ row }) => <div>{row.original.salaries[0].level}</div>,
+    },
+    {
+      accessorKey: "step",
+      header: "Step",
+      cell: ({ row }) => <div>{row.original.salaries[0].step}</div>,
+    },
+    {
+      accessorKey: "totalSalary",
+      header: "Total Salary",
+      cell: ({ row }) => <div>{row.original.salaries[0].totalSalary}</div>,
+    },
+    {
+      accessorKey: "lastChangePercentage",
+      header: "Last Change (%)",
+      cell: ({ row }) => <div>{row.original.salaries[0].lastChangePercentage * 100}%</div>,
+    },
+    {
+      accessorKey: "lastChangeAmount",
+      header: "Last Change ($)",
+      cell: ({ row }) => <div>{row.original.salaries[0].lastChangeAmount}</div>,
+    },
+    {
+      accessorKey: "priority",
+      header: "Priority",
+      cell: ({ row }) => <div>{row.original.priority}</div>,
+    },
+    {
+      accessorKey: "reviewer",
+      header: "Reviewer",
+      cell: ({ row }) => <div>{row.original.reviewer}</div>,
+    },
+    {
+      accessorKey: "notes",
+      header: "Notes",
+      cell: ({ row }) => <div>{row.original.salaries[0].notes}</div>,
+    },
+    {
+      accessorKey: "reviewd",
+      header: "Reviewd",
+      cell: ({ row }) => <div>{row.original.reviewd ? "Yes" : "No"}</div>,
+    },
+    {
+      id: "actions",
+      enableHiding: false,
+      cell: ({ row }) => {
+        const employee = row.original
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => router.navigate({ to: '/employee/$employeeId', params: { employeeId: employee.id } })}
+              >
+                Edit person
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
+    },
+  ]
 
   const table = useReactTable({
     data: employees,
@@ -270,9 +260,9 @@ function App() {
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                       </TableHead>
                     )
                   })}

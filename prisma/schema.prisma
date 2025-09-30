@@ -15,7 +15,7 @@ datasource db {
 }
 
 model Employee {
-  id       Int      @id @default(autoincrement())
+  id       String   @id @default(cuid())
   name     String
   priority Priority
   reviewer String
@@ -30,21 +30,21 @@ enum Priority {
 }
 
 model Salary {
-  id                   Int      @id @default(autoincrement())
+  id                   String   @id @default(cuid())
   timestamp            DateTime
   locationFactor       Float
   level                Float
   step                 Float
   benchmark            Int
   totalSalary          Int
-  lastChangePercentage Float
-  lastChangeAmount     Int
+  changePercentage     Float
+  changeAmount         Int
   exchangeRate         Float
   totalSalaryLocal     Int
   amountTakenInOptions Int
   actualSalary         Int
   actualSalaryLocal    Int
-  notes    String
-  employeeId           Int
+  notes                String
+  employeeId           String
   employee             Employee @relation(fields: [employeeId], references: [id])
 }
