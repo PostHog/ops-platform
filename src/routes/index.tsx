@@ -22,7 +22,6 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -36,33 +35,47 @@ import {
 } from "@/components/ui/table"
 import { createServerFn } from '@tanstack/react-start'
 import prisma from '@/db'
-import { useQuery } from '@tanstack/react-query'
 
 export const Route = createFileRoute("/")({
   component: App,
+  loader: async () => await getEmployees(),
 })
 
-export interface Employee {
+type Employee = {
+  id: number
   name: string
-  lastChangeTimestamp: number
+  priority: string
+  reviewer: string
+  reviewd: boolean
+  salaries: Salary[]
+}
+
+type Salary = {
+  id: number
+  timestamp: string
   level: number
   step: number
   totalSalary: number
   lastChangePercentage: number
   lastChangeAmount: number
-  priority: string
-  reviewer: string
   notes: string
-  reviewd: boolean
 }
+
+const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const getEmployees = createServerFn({
   method: 'GET',
 }).handler(async () => {
-  return await prisma.employee.findMany()
+  return await prisma.employee.findMany({
+    include: {
+      salaries: {
+        orderBy: {
+          timestamp: 'desc',
+        },
+      }
+    }
+  })
 })
-
-const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export const columns: ColumnDef<Employee>[] = [
   {
@@ -91,61 +104,61 @@ export const columns: ColumnDef<Employee>[] = [
     accessorKey: "name",
     header: "Name",
     cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("name")}</div>
+      <div>{row.original.name}</div>
     ),
   },
   {
     accessorKey: "lastChangeTimestamp",
     header: "Last Change (date)",
     cell: ({ row }) => {
-      const date = new Date(row.getValue("lastChangeTimestamp"))
-      return <div className="lowercase">{months[date.getMonth()]} {date.getFullYear()}</div>
+      const date = new Date(row.original.salaries[0].timestamp)
+      return <div>{months[date.getMonth()]} {date.getFullYear()}</div>
     },
   },
   {
     accessorKey: "level",
     header: "Level",
-    cell: ({ row }) => <div className="lowercase">{row.getValue("level")}</div>,
+    cell: ({ row }) => <div>{row.original.salaries[0].level}</div>,
   },
   {
     accessorKey: "step",
     header: "Step",
-    cell: ({ row }) => <div className="lowercase">{row.getValue("step")}</div>,
+    cell: ({ row }) => <div>{row.original.salaries[0].step}</div>,
   },
   {
     accessorKey: "totalSalary",
     header: "Total Salary",
-    cell: ({ row }) => <div className="lowercase">{row.getValue("totalSalary")}</div>,
+    cell: ({ row }) => <div>{row.original.salaries[0].totalSalary}</div>,
   },
   {
     accessorKey: "lastChangePercentage",
     header: "Last Change (%)",
-    cell: ({ row }) => <div className="lowercase">{row.getValue("lastChangePercentage") as number * 100}%</div>,
+    cell: ({ row }) => <div>{row.original.salaries[0].lastChangePercentage * 100}%</div>,
   },
   {
     accessorKey: "lastChangeAmount",
     header: "Last Change ($)",
-    cell: ({ row }) => <div className="lowercase">{row.getValue("lastChangeAmount")}</div>,
+    cell: ({ row }) => <div>{row.original.salaries[0].lastChangeAmount}</div>,
   },
   {
     accessorKey: "priority",
     header: "Priority",
-    cell: ({ row }) => <div className="lowercase">{row.getValue("priority")}</div>,
+    cell: ({ row }) => <div>{row.original.priority}</div>,
   },
   {
     accessorKey: "reviewer",
     header: "Reviewer",
-    cell: ({ row }) => <div className="lowercase">{row.getValue("reviewer")}</div>,
+    cell: ({ row }) => <div>{row.original.reviewer}</div>,
   },
   {
     accessorKey: "notes",
     header: "Notes",
-    cell: ({ row }) => <div className="lowercase">{row.getValue("notes")}</div>,
+    cell: ({ row }) => <div>{row.original.salaries[0].notes}</div>,
   },
   {
     accessorKey: "reviewd",
     header: "Reviewd",
-    cell: ({ row }) => <div className="lowercase">{row.getValue("reviewd") ? "Yes" : "No"}</div>,
+    cell: ({ row }) => <div>{row.original.reviewd ? "Yes" : "No"}</div>,
   },
   {
     id: "actions",
@@ -162,7 +175,6 @@ export const columns: ColumnDef<Employee>[] = [
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem
               onClick={() => navigator.clipboard.writeText(employee.name)}
             >
@@ -176,20 +188,18 @@ export const columns: ColumnDef<Employee>[] = [
 ]
 
 function App() {
-  const { data } = useQuery({
-    queryKey: ['employees'],
-    queryFn: getEmployees,
-  })
+  const employees = Route.useLoaderData()
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
+  console.log(employees)
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
 
   const table = useReactTable({
-    data,
+    data: employees,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,

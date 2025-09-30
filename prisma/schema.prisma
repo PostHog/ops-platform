@@ -17,21 +17,34 @@ datasource db {
 model Employee {
   id       Int      @id @default(autoincrement())
   name     String
-  priority String
+  priority Priority
   reviewer String
-  notes    String
   reviewd  Boolean
   salaries Salary[]
 }
 
+enum Priority {
+  low
+  high
+  medium
+}
+
 model Salary {
   id                   Int      @id @default(autoincrement())
-  timestamp            Int
-  level                Int
-  step                 Int
+  timestamp            DateTime
+  locationFactor       Float
+  level                Float
+  step                 Float
+  benchmark            Int
   totalSalary          Int
-  lastChangePercentage Int
+  lastChangePercentage Float
   lastChangeAmount     Int
+  exchangeRate         Float
+  totalSalaryLocal     Int
+  amountTakenInOptions Int
+  actualSalary         Int
+  actualSalaryLocal    Int
+  notes    String
   employeeId           Int
   employee             Employee @relation(fields: [employeeId], references: [id])
 }
