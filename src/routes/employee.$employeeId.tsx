@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import "vercel-toast/dist/vercel-toast.css";
 import { createToast } from "vercel-toast";
 import { getEmployees, months } from '.'
+import { useEffect } from 'react'
 import {
     ColumnDef,
     flexRender,
@@ -88,7 +89,6 @@ function EmployeeOverview() {
       queryKey: ['employees'],
       queryFn: () => getEmployeesFn(),
     })
-    console.log(employees)
     const router = useRouter()
     const employee: Employee & { salaries: Salary[] } = Route.useLoaderData()
     const [updateSalaryModalOpen, setUpdateSalaryModalOpen] = useState(false)
@@ -387,7 +387,6 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
             employeeId: salary.employeeId
         },
         onSubmit: async ({ value }) => {
-            console.log('abc')
             await updateSalary({ data: value })
             router.invalidate()
             handleClose()
@@ -419,6 +418,25 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
             }
         }
     })
+
+    useEffect(() => {
+        form.reset({
+            locationFactor: salary.locationFactor,
+            level: salary.level,
+            step: salary.step,
+            benchmark: salary.benchmark,
+            totalSalary: salary.totalSalary,
+            changePercentage: 0,
+            changeAmount: 0,
+            exchangeRate: salary.exchangeRate,
+            totalSalaryLocal: salary.totalSalaryLocal,
+            amountTakenInOptions: salary.amountTakenInOptions,
+            actualSalary: salary.actualSalary,
+            actualSalaryLocal: salary.actualSalaryLocal,
+            notes: salary.notes,
+            employeeId: salary.employeeId
+        })
+    }, [open])
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
