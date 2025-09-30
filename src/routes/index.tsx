@@ -62,6 +62,9 @@ export const getEmployees = createServerFn({
           timestamp: 'desc',
         },
       }
+    },
+    orderBy: {
+      name: 'asc',
     }
   })
 })
