@@ -3,7 +3,7 @@ import prisma from '@/db'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useForm } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
+import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { Employee, Salary } from 'generated/prisma/client'
 import { Priority } from 'generated/prisma/enums'
 import { Label } from "@/components/ui/label"
@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import "vercel-toast/dist/vercel-toast.css";
 import { createToast } from "vercel-toast";
-import { months } from '.'
+import { getEmployees, months } from '.'
 import {
     ColumnDef,
     flexRender,
@@ -26,8 +26,9 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
 export const Route = createFileRoute('/employee/$employeeId')({
     component: EmployeeOverview,
@@ -81,6 +82,13 @@ const updateSalary = createServerFn({
     })
 
 function EmployeeOverview() {
+    const getEmployeesFn = useServerFn(getEmployees)
+
+    const { data: employees } = useQuery({
+      queryKey: ['employees'],
+      queryFn: () => getEmployeesFn(),
+    })
+    console.log(employees)
     const router = useRouter()
     const employee: Employee & { salaries: Salary[] } = Route.useLoaderData()
     const [updateSalaryModalOpen, setUpdateSalaryModalOpen] = useState(false)
@@ -336,7 +344,19 @@ function EmployeeOverview() {
                     </div>
                 </div>
                 <div className='flex gap-2 justify-end'>
-                    <Button variant="outline" onClick={() => router.navigate({ to: '/' })}>Back to overview</Button>
+                    <Button variant="outline" type='button' onClick={() => router.navigate({ to: '/' })}>Back to overview</Button>
+                    <Button variant="outline" type='button' onClick={() => {
+                        const currentIndex = employees?.findIndex(e => e.id === employee.id) ?? -1;
+                        const nextEmployee = employees?.[currentIndex + 1];
+                        if (nextEmployee) {
+                            router.navigate({ to: '/employee/$employeeId', params: { employeeId: nextEmployee.id } });
+                        } else {
+                            createToast("No more employees found, navigating to overview.", {
+                                timeout: 3000,
+                            });
+                            router.navigate({ to: '/' });
+                        }
+                    }}>Move to next employee</Button>
                     <Button type="submit">Save changes</Button>
                 </div>
             </form>
@@ -370,6 +390,7 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
             console.log('abc')
             await updateSalary({ data: value })
             router.invalidate()
+            handleClose()
             createToast("Salary updated successfully.", {
                 timeout: 3000,
             });

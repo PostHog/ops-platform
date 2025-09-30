@@ -52,7 +52,7 @@ type Employee = Prisma.EmployeeGetPayload<{
 
 export const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-const getEmployees = createServerFn({
+export const getEmployees = createServerFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.employee.findMany({
