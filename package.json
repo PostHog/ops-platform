@@ -52,7 +52,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.476.0",
-    "nitro-nightly": "3.0.0-20250930-153306-9d847e4f",
+    "nitro": "npm:nitro-nightly@latest",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "superjson": "^2.2.2",
