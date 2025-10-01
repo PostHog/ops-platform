@@ -16,7 +16,10 @@ const config = defineConfig({
     tanstackStart(),
     nitroV2Plugin({
       preset: 'vercel',
-      compatibilityDate: '2025-10-01'
+      compatibilityDate: '2025-10-01',
+      replace: {
+        'import * as process': 'import * as processUnused',
+      },
     }),
     // netlify(),
     viteReact(),
