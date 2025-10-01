@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/table"
 import { createServerFn } from '@tanstack/react-start'
 import prisma from '@/db'
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/../generated/prisma/client.js";
 
 export const Route = createFileRoute("/")({
   component: App,
