@@ -17,12 +17,8 @@ const config = defineConfig({
     nitroV2Plugin({
       preset: 'vercel',
       compatibilityDate: '2025-10-01',
-      externals: {
-        external: [
-          ".prisma", // ignore Prisma internals
-          "@prisma/client", // don't bundle Prisma
-          "process", // don't bundle "process"
-        ],
+      replace: {
+        'import * as process': 'import * as processUnused',
       },
     }),
     // netlify(),
