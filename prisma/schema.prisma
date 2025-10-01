@@ -46,5 +46,6 @@ model Salary {
   actualSalaryLocal    Float
   notes                String
   employeeId           String
+  communicated         Boolean @default(false)
   employee             Employee @relation(fields: [employeeId], references: [id])
 }

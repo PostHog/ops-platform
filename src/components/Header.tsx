@@ -7,6 +7,9 @@ export default function Header() {
         <div className="px-2 font-bold">
           <Link to="/">Ops Platform</Link>
         </div>
+        <div className="px-2 font-bold">
+          <Link to="/actions">Actions</Link>
+        </div>
       </nav>
     </header>
   )

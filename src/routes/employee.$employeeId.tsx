@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import "vercel-toast/dist/vercel-toast.css";
 import { createToast } from "vercel-toast";
 import { getEmployees, months } from '.'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import {
     ColumnDef,
     flexRender,
@@ -73,7 +73,7 @@ const updateEmployee = createServerFn({
 const updateSalary = createServerFn({
     method: 'POST',
 })
-    .inputValidator((d: Omit<Salary, 'id' | 'timestamp'>) => d)
+    .inputValidator((d: Omit<Salary, 'id' | 'timestamp' | 'communicated'>) => d)
     .handler(async ({ data }) => {
         return await prisma.salary.create({
             data: {
@@ -106,7 +106,7 @@ function EmployeeOverview() {
 
     if (!employee) return null
 
-    const columns: ColumnDef<Salary>[] = [
+    const columns: ColumnDef<Salary>[] = useMemo(() => [
         {
             accessorKey: "timestamp",
             header: "Last Change (date)",
@@ -203,7 +203,7 @@ function EmployeeOverview() {
         //         )
         //     },
         // },
-    ]
+    ], [])
 
     const table = useReactTable({
         data: employee.salaries,
