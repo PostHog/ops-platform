@@ -13,5 +13,5 @@ todos.json
 
 /generated/prisma
 
-# Local Netlify folder
 .netlify
+.vercel
