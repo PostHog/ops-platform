@@ -32,14 +32,18 @@ enum Priority {
 model Salary {
   id                   String   @id @default(cuid())
   timestamp            DateTime @default(now())
+  country              String
+  area                 String
   locationFactor       Float
   level                Float
   step                 Float
-  benchmark            Float
+  benchmark            String
+  benchmarkFactor      Float
   totalSalary          Float
   changePercentage     Float
   changeAmount         Float
   exchangeRate         Float
+  localCurrency        String
   totalSalaryLocal     Float
   amountTakenInOptions Float
   actualSalary         Float

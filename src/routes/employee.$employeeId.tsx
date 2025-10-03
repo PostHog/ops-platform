@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input'
 import prisma from '@/db'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { useForm } from '@tanstack/react-form'
+import { useForm, useStore } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { Employee, Salary } from 'generated/prisma/client'
@@ -30,6 +30,7 @@ import {
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { currencyData, getAreasByCountry, getCountries, locationFactor, sfBenchmark, stepModifier } from '@/lib/utils'
 
 export const Route = createFileRoute('/employee/$employeeId')({
     component: EmployeeOverview,
@@ -86,8 +87,8 @@ function EmployeeOverview() {
     const getEmployeesFn = useServerFn(getEmployees)
 
     const { data: employees } = useQuery({
-      queryKey: ['employees'],
-      queryFn: () => getEmployeesFn(),
+        queryKey: ['employees'],
+        queryFn: () => getEmployeesFn(),
     })
     const router = useRouter()
     const employee: Employee & { salaries: Salary[] } = Route.useLoaderData()
@@ -371,13 +372,17 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
 
     const form = useForm({
         defaultValues: {
+            country: salary.country,
+            area: salary.area,
             locationFactor: salary.locationFactor,
             level: salary.level,
             step: salary.step,
             benchmark: salary.benchmark,
+            benchmarkFactor: salary.benchmarkFactor,
             totalSalary: salary.totalSalary,
             changePercentage: 0,
             changeAmount: 0,
+            localCurrency: salary.localCurrency,
             exchangeRate: salary.exchangeRate,
             totalSalaryLocal: salary.totalSalaryLocal,
             amountTakenInOptions: salary.amountTakenInOptions,
@@ -396,18 +401,27 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
         },
         listeners: {
             onChange: ({ formApi, fieldApi }) => {
-                if (['locationFactor', 'level', 'step', 'benchmark', 'exchangeRate', 'amountTakenInOptions'].includes(fieldApi.name)) {
-                    const totalSalary = formApi.getFieldValue('locationFactor') * formApi.getFieldValue('level') * formApi.getFieldValue('step') * formApi.getFieldValue('benchmark')
+                if (['country', 'area', 'level', 'step', 'benchmark', 'amountTakenInOptions'].includes(fieldApi.name)) {
+                    const location = locationFactor.find(l => l.country === formApi.getFieldValue('country') && l.area === formApi.getFieldValue('area'))
+                    formApi.setFieldValue('locationFactor', Number(location?.locationFactor?.toFixed(2)))
+
+                    const benchmarkFactor = sfBenchmark[formApi.getFieldValue('benchmark') as keyof typeof sfBenchmark]
+                    formApi.setFieldValue('benchmarkFactor', Number(benchmarkFactor.toFixed(2)))
+
+                    const totalSalary = formApi.getFieldValue('locationFactor') * formApi.getFieldValue('level') * formApi.getFieldValue('step') * benchmarkFactor
                     formApi.setFieldValue('totalSalary', Number(totalSalary.toFixed(2)))
 
                     const changePercentage = (totalSalary / salary.totalSalary) - 1
                     formApi.setFieldValue('changePercentage', Number(changePercentage.toFixed(4)))
 
-                    const totalSalaryLocal = totalSalary * formApi.getFieldValue('exchangeRate')
-                    formApi.setFieldValue('totalSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
-
                     const changeAmount = totalSalary - salary.totalSalary
                     formApi.setFieldValue('changeAmount', Number(changeAmount.toFixed(2)))
+
+                    formApi.setFieldValue('exchangeRate', currencyData[location?.currency ?? ''])
+                    formApi.setFieldValue('localCurrency', location?.currency ?? '')
+
+                    const totalSalaryLocal = totalSalary * formApi.getFieldValue('exchangeRate')
+                    formApi.setFieldValue('totalSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
 
                     const actualSalary = totalSalary - formApi.getFieldValue('amountTakenInOptions')
                     formApi.setFieldValue('actualSalary', Number(actualSalary.toFixed(2)))
@@ -421,13 +435,17 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
 
     useEffect(() => {
         form.reset({
+            country: salary.country,
+            area: salary.area,
             locationFactor: salary.locationFactor,
             level: salary.level,
             step: salary.step,
             benchmark: salary.benchmark,
+            benchmarkFactor: salary.benchmarkFactor,
             totalSalary: salary.totalSalary,
             changePercentage: 0,
             changeAmount: 0,
+            localCurrency: salary.localCurrency,
             exchangeRate: salary.exchangeRate,
             totalSalaryLocal: salary.totalSalaryLocal,
             amountTakenInOptions: salary.amountTakenInOptions,
@@ -438,27 +456,70 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
         })
     }, [open])
 
+    const country = useStore(form.store, (state) => state.values.country)
+
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-lg">
                 <form
                     className="grid gap-4"
                     onSubmit={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    form.handleSubmit()
-                }}>
+                        e.preventDefault()
+                        e.stopPropagation()
+                        form.handleSubmit()
+                    }}>
                     <DialogHeader>
                         <DialogTitle>Edit salary</DialogTitle>
                     </DialogHeader>
 
-                    <div className="grid gap-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <form.Field
+                            name="country"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="country">Country</Label>
+                                    <Select name={field.name} defaultValue={field.state.value} onValueChange={(value) => field.handleChange(value)}>
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select a country" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {getCountries().map((country) => (
+                                                <SelectItem key={country} value={country}>
+                                                    {country}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="area"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="area">Area</Label>
+                                    <Select name={field.name} defaultValue={field.state.value} onValueChange={(value) => field.handleChange(value)} disabled={!country}>
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select an area" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {getAreasByCountry(country).map((area) => (
+                                                <SelectItem key={area} value={area}>
+                                                    {area}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+                        />
                         <form.Field
                             name="locationFactor"
                             children={(field) => (
                                 <div className="grid gap-3">
                                     <Label htmlFor="locationFactor">Location Factor</Label>
                                     <Input
+                                        readOnly
                                         name={field.name}
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
@@ -473,18 +534,35 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
                             children={(field) => (
                                 <div className="grid gap-3">
                                     <Label htmlFor="level">Level</Label>
-                                    <Input
-                                        name={field.name}
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        type='number'
-                                        onChange={(e) => field.handleChange(Number(e.target.value))}
-                                    />
+                                    <Select name={field.name} defaultValue={field.state.value.toString()} onValueChange={(value) => field.handleChange(Number(value))}>
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select a level" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="0.59">Junior (0.59)</SelectItem>
+                                            <SelectItem value="0.78">Intermediate (0.78)</SelectItem>
+                                            <SelectItem value="1">Senior (1)</SelectItem>
+                                            <SelectItem value="1.2">Staff (1.2)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             )}
                         />
                         <form.Field
                             name="step"
+                            validators={{
+                                onChange: ({ value }) => {
+                                    const isValid = Object.values(stepModifier).some(range =>
+                                        value >= range[0] && value <= range[1]
+                                    )
+                                    if (!isValid) {
+                                        const ranges = Object.entries(stepModifier)
+                                            .map(([name, range]) => `${name} (${range[0]}-${range[1]})`)
+                                            .join(', ')
+                                        return `Step must be within one of these ranges: ${ranges}`
+                                    }
+                                }
+                            }}
                             children={(field) => (
                                 <div className="grid gap-3">
                                     <Label htmlFor="step">Step</Label>
@@ -492,9 +570,13 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
                                         name={field.name}
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
+                                        step={0.01}
                                         type='number'
                                         onChange={(e) => field.handleChange(Number(e.target.value))}
                                     />
+                                    {!field.state.meta.isValid && (
+                                        <span className="text-red-500 text-sm">{field.state.meta.errors.join(', ')}</span>
+                                    )}
                                 </div>
                             )}
                         />
@@ -503,7 +585,28 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
                             children={(field) => (
                                 <div className="grid gap-3">
                                     <Label htmlFor="benchmark">Benchmark</Label>
+                                    <Select name={field.name} defaultValue={field.state.value} onValueChange={(value) => field.handleChange(value)}>
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select a benchmark" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.keys(sfBenchmark).map((benchmark) => (
+                                                <SelectItem key={benchmark} value={benchmark}>
+                                                    {benchmark} ({sfBenchmark[benchmark as keyof typeof sfBenchmark]})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="benchmarkFactor"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="benchmarkFactor">Benchmark Factor</Label>
                                     <Input
+                                        readOnly
                                         name={field.name}
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
@@ -567,11 +670,28 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
                                 <div className="grid gap-3">
                                     <Label htmlFor="exchangeRate">Exchange Rate</Label>
                                     <Input
+                                        readOnly
                                         name={field.name}
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
                                         type='number'
                                         onChange={(e) => field.handleChange(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <form.Field
+                            name="localCurrency"
+                            children={(field) => (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="localCurrency">Local Currency</Label>
+                                    <Input
+                                        readOnly
+                                        name={field.name}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        type='text'
+                                        onChange={(e) => field.handleChange(e.target.value)}
                                     />
                                 </div>
                             )}
@@ -642,7 +762,7 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
                         <form.Field
                             name="notes"
                             children={(field) => (
-                                <div className="grid gap-3">
+                                <div className="grid gap-3 col-span-2">
                                     <Label htmlFor="notes">Notes</Label>
                                     <Input
                                         name={field.name}
