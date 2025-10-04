@@ -32,7 +32,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { currencyData, getAreasByCountry, getCountries, locationFactor, sfBenchmark, stepModifier } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertCircle, Terminal } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 export const Route = createFileRoute('/employee/$employeeId')({
     component: EmployeeOverview,
@@ -371,6 +371,7 @@ function EmployeeOverview() {
 
 export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean, salary: Salary, handleClose: () => void }) {
     const router = useRouter()
+    const benchmarkUpdated = sfBenchmark[salary.benchmark as keyof typeof sfBenchmark] !== salary.benchmarkFactor
 
     const form = useForm({
         defaultValues: {
@@ -459,7 +460,6 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
     }, [open])
 
     const country = useStore(form.store, (state) => state.values.country)
-    const benchmarkUpdated = sfBenchmark[salary.benchmark as keyof typeof sfBenchmark] !== salary.benchmarkFactor
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
