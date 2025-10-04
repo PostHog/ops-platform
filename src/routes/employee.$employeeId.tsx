@@ -31,6 +31,8 @@ import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogT
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { currencyData, getAreasByCountry, getCountries, locationFactor, sfBenchmark, stepModifier } from '@/lib/utils'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle, Terminal } from 'lucide-react'
 
 export const Route = createFileRoute('/employee/$employeeId')({
     component: EmployeeOverview,
@@ -378,7 +380,7 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
             level: salary.level,
             step: salary.step,
             benchmark: salary.benchmark,
-            benchmarkFactor: salary.benchmarkFactor,
+            benchmarkFactor: salary.benchmark.includes('(old)') ? salary.benchmarkFactor : sfBenchmark[salary.benchmark as keyof typeof sfBenchmark],
             totalSalary: salary.totalSalary,
             changePercentage: 0,
             changeAmount: 0,
@@ -405,7 +407,7 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
                     const location = locationFactor.find(l => l.country === formApi.getFieldValue('country') && l.area === formApi.getFieldValue('area'))
                     formApi.setFieldValue('locationFactor', Number(location?.locationFactor?.toFixed(2)))
 
-                    const benchmarkFactor = sfBenchmark[formApi.getFieldValue('benchmark') as keyof typeof sfBenchmark]
+                    const benchmarkFactor = formApi.getFieldValue('benchmark').includes('(old)') ? salary.benchmarkFactor : sfBenchmark[formApi.getFieldValue('benchmark').replace(' (old)', '') as keyof typeof sfBenchmark]
                     formApi.setFieldValue('benchmarkFactor', Number(benchmarkFactor.toFixed(2)))
 
                     const totalSalary = formApi.getFieldValue('locationFactor') * formApi.getFieldValue('level') * formApi.getFieldValue('step') * benchmarkFactor
@@ -441,7 +443,7 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
             level: salary.level,
             step: salary.step,
             benchmark: salary.benchmark,
-            benchmarkFactor: salary.benchmarkFactor,
+            benchmarkFactor: salary.benchmark.includes('(old)') ? salary.benchmarkFactor : sfBenchmark[salary.benchmark as keyof typeof sfBenchmark],
             totalSalary: salary.totalSalary,
             changePercentage: 0,
             changeAmount: 0,
@@ -457,10 +459,11 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
     }, [open])
 
     const country = useStore(form.store, (state) => state.values.country)
+    const benchmarkUpdated = sfBenchmark[salary.benchmark as keyof typeof sfBenchmark] !== salary.benchmarkFactor
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-3xl">
                 <form
                     className="grid gap-4"
                     onSubmit={(e) => {
@@ -471,6 +474,16 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
                     <DialogHeader>
                         <DialogTitle>Edit salary</DialogTitle>
                     </DialogHeader>
+
+                    {benchmarkUpdated && (
+                        <Alert variant="default">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>This employee is currently on an old benchmark factor. </AlertTitle>
+                            <AlertDescription>
+                                You can keep it that way by choosing `{salary.benchmark} (old)` as the benchmark, or updated it by choosing `{salary.benchmark.replace(' (old)', '')}` as the benchmark.
+                            </AlertDescription>
+                        </Alert>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <form.Field
@@ -590,6 +603,9 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
                                             <SelectValue placeholder="Select a benchmark" />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            {benchmarkUpdated && (
+                                                <SelectItem value={`${salary.benchmark.replace(' (old)', '')} (old)`} key="old-benchmark">{salary.benchmark.replace(' (old)', '')} (old) ({salary.benchmarkFactor})</SelectItem>
+                                            )}
                                             {Object.keys(sfBenchmark).map((benchmark) => (
                                                 <SelectItem key={benchmark} value={benchmark}>
                                                     {benchmark} ({sfBenchmark[benchmark as keyof typeof sfBenchmark]})
