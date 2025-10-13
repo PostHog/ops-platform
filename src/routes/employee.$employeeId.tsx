@@ -403,22 +403,23 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
     }
 
     const getDefaultValues = () => ({
+        // all computed / readonly fields have placeholder values
         country: salary.country,
         area: salary.area,
-        locationFactor: salary.locationFactor,
+        locationFactor: 0,
         level: salary.level,
         step: salary.step,
         benchmark: salary.benchmark,
-        benchmarkFactor: salary.benchmark.includes('(old)') ? salary.benchmarkFactor : sfBenchmark[salary.benchmark as keyof typeof sfBenchmark],
-        totalSalary: salary.totalSalary,
+        benchmarkFactor: 0,
+        totalSalary: 0,
         changePercentage: 0,
         changeAmount: 0,
-        localCurrency: salary.localCurrency,
-        exchangeRate: salary.exchangeRate,
-        totalSalaryLocal: salary.totalSalaryLocal,
+        localCurrency: "USD",
+        exchangeRate: 0,
+        totalSalaryLocal: 0,
         amountTakenInOptions: 0,
-        actualSalary: salary.actualSalary,
-        actualSalaryLocal: salary.actualSalaryLocal,
+        actualSalary: 0,
+        actualSalaryLocal: 0,
         notes: salary.notes,
         employeeId: salary.employeeId
     })
