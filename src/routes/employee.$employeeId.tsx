@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input'
 import prisma from '@/db'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { useForm, useStore } from '@tanstack/react-form'
+import { useForm, useStore, AnyFormApi } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { Employee, Salary } from 'generated/prisma/client'
@@ -373,27 +373,58 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
     const router = useRouter()
     const benchmarkUpdated = sfBenchmark[salary.benchmark as keyof typeof sfBenchmark] !== salary.benchmarkFactor
 
+    const updateFormFields = (formApi: AnyFormApi) => {
+        const location = locationFactor.find(l => l.country === formApi.getFieldValue('country') && l.area === formApi.getFieldValue('area'))
+        formApi.setFieldValue('locationFactor', Number(location?.locationFactor?.toFixed(2)))
+
+        const benchmarkFactor = formApi.getFieldValue('benchmark').includes('(old)') ? salary.benchmarkFactor : sfBenchmark[formApi.getFieldValue('benchmark').replace(' (old)', '') as keyof typeof sfBenchmark]
+        formApi.setFieldValue('benchmarkFactor', Number(benchmarkFactor.toFixed(2)))
+
+        const totalSalary = formApi.getFieldValue('locationFactor') * formApi.getFieldValue('level') * formApi.getFieldValue('step') * benchmarkFactor
+        formApi.setFieldValue('totalSalary', Number(totalSalary.toFixed(2)))
+
+        const changePercentage = (totalSalary / salary.totalSalary) - 1
+        formApi.setFieldValue('changePercentage', Number(changePercentage.toFixed(4)))
+
+        const changeAmount = totalSalary - salary.totalSalary
+        formApi.setFieldValue('changeAmount', Number(changeAmount.toFixed(2)))
+
+        formApi.setFieldValue('exchangeRate', currencyData[location?.currency ?? ''])
+        formApi.setFieldValue('localCurrency', location?.currency ?? '')
+
+        const totalSalaryLocal = totalSalary * formApi.getFieldValue('exchangeRate')
+        formApi.setFieldValue('totalSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
+
+        const actualSalary = totalSalary - formApi.getFieldValue('amountTakenInOptions')
+        formApi.setFieldValue('actualSalary', Number(actualSalary.toFixed(2)))
+
+        const actualSalaryLocal = actualSalary * formApi.getFieldValue('exchangeRate')
+        formApi.setFieldValue('actualSalaryLocal', Number(actualSalaryLocal.toFixed(2)))
+    }
+
+    const getDefaultValues = () => ({
+        country: salary.country,
+        area: salary.area,
+        locationFactor: salary.locationFactor,
+        level: salary.level,
+        step: salary.step,
+        benchmark: salary.benchmark,
+        benchmarkFactor: salary.benchmark.includes('(old)') ? salary.benchmarkFactor : sfBenchmark[salary.benchmark as keyof typeof sfBenchmark],
+        totalSalary: salary.totalSalary,
+        changePercentage: 0,
+        changeAmount: 0,
+        localCurrency: salary.localCurrency,
+        exchangeRate: salary.exchangeRate,
+        totalSalaryLocal: salary.totalSalaryLocal,
+        amountTakenInOptions: 0,
+        actualSalary: salary.actualSalary,
+        actualSalaryLocal: salary.actualSalaryLocal,
+        notes: salary.notes,
+        employeeId: salary.employeeId
+    })
+
     const form = useForm({
-        defaultValues: {
-            country: salary.country,
-            area: salary.area,
-            locationFactor: salary.locationFactor,
-            level: salary.level,
-            step: salary.step,
-            benchmark: salary.benchmark,
-            benchmarkFactor: salary.benchmark.includes('(old)') ? salary.benchmarkFactor : sfBenchmark[salary.benchmark as keyof typeof sfBenchmark],
-            totalSalary: salary.totalSalary,
-            changePercentage: 0,
-            changeAmount: 0,
-            localCurrency: salary.localCurrency,
-            exchangeRate: salary.exchangeRate,
-            totalSalaryLocal: salary.totalSalaryLocal,
-            amountTakenInOptions: salary.amountTakenInOptions,
-            actualSalary: salary.actualSalary,
-            actualSalaryLocal: salary.actualSalaryLocal,
-            notes: salary.notes,
-            employeeId: salary.employeeId
-        },
+        defaultValues: getDefaultValues(),
         onSubmit: async ({ value }) => {
             await updateSalary({ data: value })
             router.invalidate()
@@ -403,61 +434,21 @@ export function SalaryUpdateModal({ open, salary, handleClose }: { open: boolean
             });
         },
         listeners: {
+            onMount({ formApi }) {
+                updateFormFields(formApi)
+            },
             onChange: ({ formApi, fieldApi }) => {
                 if (['country', 'area', 'level', 'step', 'benchmark', 'amountTakenInOptions'].includes(fieldApi.name)) {
-                    const location = locationFactor.find(l => l.country === formApi.getFieldValue('country') && l.area === formApi.getFieldValue('area'))
-                    formApi.setFieldValue('locationFactor', Number(location?.locationFactor?.toFixed(2)))
-
-                    const benchmarkFactor = formApi.getFieldValue('benchmark').includes('(old)') ? salary.benchmarkFactor : sfBenchmark[formApi.getFieldValue('benchmark').replace(' (old)', '') as keyof typeof sfBenchmark]
-                    formApi.setFieldValue('benchmarkFactor', Number(benchmarkFactor.toFixed(2)))
-
-                    const totalSalary = formApi.getFieldValue('locationFactor') * formApi.getFieldValue('level') * formApi.getFieldValue('step') * benchmarkFactor
-                    formApi.setFieldValue('totalSalary', Number(totalSalary.toFixed(2)))
-
-                    const changePercentage = (totalSalary / salary.totalSalary) - 1
-                    formApi.setFieldValue('changePercentage', Number(changePercentage.toFixed(4)))
-
-                    const changeAmount = totalSalary - salary.totalSalary
-                    formApi.setFieldValue('changeAmount', Number(changeAmount.toFixed(2)))
-
-                    formApi.setFieldValue('exchangeRate', currencyData[location?.currency ?? ''])
-                    formApi.setFieldValue('localCurrency', location?.currency ?? '')
-
-                    const totalSalaryLocal = totalSalary * formApi.getFieldValue('exchangeRate')
-                    formApi.setFieldValue('totalSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
-
-                    const actualSalary = totalSalary - formApi.getFieldValue('amountTakenInOptions')
-                    formApi.setFieldValue('actualSalary', Number(actualSalary.toFixed(2)))
-
-                    const actualSalaryLocal = actualSalary * formApi.getFieldValue('exchangeRate')
-                    formApi.setFieldValue('actualSalaryLocal', Number(actualSalaryLocal.toFixed(2)))
+                    updateFormFields(formApi)
                 }
             }
         }
     })
 
     useEffect(() => {
-        form.reset({
-            country: salary.country,
-            area: salary.area,
-            locationFactor: salary.locationFactor,
-            level: salary.level,
-            step: salary.step,
-            benchmark: salary.benchmark,
-            benchmarkFactor: salary.benchmark.includes('(old)') ? salary.benchmarkFactor : sfBenchmark[salary.benchmark as keyof typeof sfBenchmark],
-            totalSalary: salary.totalSalary,
-            changePercentage: 0,
-            changeAmount: 0,
-            localCurrency: salary.localCurrency,
-            exchangeRate: salary.exchangeRate,
-            totalSalaryLocal: salary.totalSalaryLocal,
-            amountTakenInOptions: salary.amountTakenInOptions,
-            actualSalary: salary.actualSalary,
-            actualSalaryLocal: salary.actualSalaryLocal,
-            notes: salary.notes,
-            employeeId: salary.employeeId
-        })
-    }, [open])
+        form.reset(getDefaultValues())
+        form.mount()
+    }, [salary.employeeId])
 
     const country = useStore(form.store, (state) => state.values.country)
 
