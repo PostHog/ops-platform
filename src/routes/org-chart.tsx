@@ -99,9 +99,9 @@ const getLayoutedElements = (nodes, edges, options = {}) => {
             targetPosition: isHorizontal ? 'left' : 'top',
             sourcePosition: isHorizontal ? 'right' : 'bottom',
 
-            // Hardcode a width and height for elk to use when layouting.
-            width: 150,
-            height: 50,
+            // Use different sizes for team nodes vs employee nodes
+            width: node.type === 'teamNode' ? 250 : 150,
+            height: node.type === 'teamNode' ? 80 : 50,
         })),
         edges: edges,
     }
@@ -120,91 +120,6 @@ const getLayoutedElements = (nodes, edges, options = {}) => {
         }))
         .catch(console.error);
 }
-
-// Tree structure with team nodes and multi-row employees
-const createSimpleTree = () => {
-    const nodes: Node[] = [];
-    const edges: Edge[] = [];
-
-    // Create team nodes (excluding Blitzscale)
-    const teamNames = [...new Set(employees.map(employee => employee.team))]
-        .filter((teamName) => teamName !== 'Blitzscale');
-
-    teamNames.forEach(teamName => {
-        nodes.push({
-            id: `team-${teamName}`,
-            position: { x: 0, y: 0 },
-            type: 'teamNode',
-            data: {
-                name: teamName,
-            },
-            targetPosition: Position.Top,
-            sourcePosition: Position.Bottom,
-        });
-    });
-
-    // Group employees by team for multi-row layout
-    const teamGroups = employees.reduce((groups, employee) => {
-        const team = employee.team;
-        if (!groups[team]) {
-            groups[team] = [];
-        }
-        groups[team].push(employee);
-        return groups;
-    }, {} as Record<string, typeof employees>);
-
-    // Create employee nodes with multi-row positioning
-    Object.entries(teamGroups).forEach(([, teamEmployees]) => {
-        const MAX_EMPLOYEES_PER_ROW = 4;
-        const rows = Math.ceil(teamEmployees.length / MAX_EMPLOYEES_PER_ROW);
-
-        teamEmployees.forEach((employee, index) => {
-            const row = Math.floor(index / MAX_EMPLOYEES_PER_ROW);
-            const col = index % MAX_EMPLOYEES_PER_ROW;
-
-            nodes.push({
-                id: `employee-${employee.id}`,
-                position: { x: 0, y: 0 },
-                type: 'employeeNode',
-                data: {
-                    name: employee.name,
-                    title: employee.title,
-                    team: employee.team,
-                    row: row,
-                    col: col,
-                    totalRows: rows,
-                },
-                targetPosition: Position.Top,
-                sourcePosition: Position.Bottom,
-            });
-        });
-    });
-
-    // Create edges: Blitzscale employees -> teams, teams -> employees
-    const blitzscaleEdges = employees.filter((employee) => {
-        return employee.team !== 'Blitzscale' &&
-            employees.find(e => e.id === employee.manager)?.team === 'Blitzscale' &&
-            teamNames.includes(employee.team);
-    }).map((employee) => ({
-        id: employee.id + employee.manager,
-        source: `employee-${employee.manager}`,
-        target: `team-${employee.team}`,
-        type: 'smoothstep',
-    }));
-
-    const teamEdges = employees
-        .filter((employee) => teamNames.includes(employee.team))
-        .map((employee) => ({
-            id: `team-${employee.team}-${employee.id}`,
-            source: `team-${employee.team}`,
-            target: `employee-${employee.id}`,
-            type: 'smoothstep',
-        }));
-
-    edges.push(...blitzscaleEdges, ...teamEdges);
-
-    return { nodes, edges };
-};
 
 export default function OrgChart() {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
