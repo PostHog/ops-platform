@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import {
   flexRender,
@@ -21,7 +21,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -33,6 +32,7 @@ import {
 import { createServerFn } from '@tanstack/react-start'
 import prisma from '@/db'
 import { Prisma } from "@/../generated/prisma/client.js";
+import FilterMenu, { FilterCondition } from '@/components/FilterMenu'
 
 export const Route = createFileRoute("/")({
   component: App,
@@ -75,6 +75,7 @@ function App() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
+  const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
 
@@ -87,7 +88,7 @@ function App() {
       ),
     },
     {
-      accessorKey: "lastChangeTimestamp",
+      accessorKey: "timestamp",
       header: "Last Change (date)",
       cell: ({ row }) => {
         const date = new Date(row.original.salaries?.[0]?.timestamp)
@@ -189,41 +190,37 @@ function App() {
   return (
     <div className="w-screen flex justify-center">
       <div className="max-w-[80%] flex-grow">
-        <div className="flex items-center py-4">
-          <Input
-            placeholder="Filter names..."
-            value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("name")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                Columns <ChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="flex justify-between py-4">
+          <div></div>
+          <div className="flex items-center space-x-2">
+            <FilterMenu employees={employees} columns={columns} filters={filters} setFilters={setFilters} />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="ml-auto">
+                  Columns <ChevronDown />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {table
+                  .getAllColumns()
+                  .filter((column) => column.getCanHide())
+                  .map((column) => {
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        className="capitalize"
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) =>
+                          column.toggleVisibility(!!value)
+                        }
+                      >
+                        {column.id}
+                      </DropdownMenuCheckboxItem>
+                    )
+                  })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         <div className="overflow-hidden rounded-md border">
           <Table>
