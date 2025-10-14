@@ -1,12 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, Handle, Position, ConnectionLineType, Background, SmoothStepEdge, Node, Edge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
+import { ReactFlow, addEdge, Handle, Position, Background, Node, Edge, useEdgesState, useNodesState, useReactFlow, ReactFlowProvider, Panel } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useState, useCallback } from 'react';
-import dagre from '@dagrejs/dagre';
+import { useCallback, useLayoutEffect } from 'react';
+import ELK from 'elkjs/lib/elk.bundled.js';
 import employeeData from '../../todos.json';
 
+import '@xyflow/react/dist/style.css';
+
 export const Route = createFileRoute('/org-chart')({
-    component: OrgChart,
+    component: () => <ReactFlowProvider><OrgChart /></ReactFlowProvider>,
 })
 
 const employees = employeeData.Resources
@@ -20,17 +22,16 @@ const employees = employeeData.Resources
     }));
 
 const teamNodes = [...new Set(employees.map(employee => employee.team))]
-.filter((teamName) => teamName !== 'Blitzscale')
-.map((teamName) => ({
-    id: `team-${teamName}`,
-    position: { x: 0, y: 0 },
-    type: 'teamNode',
-    data: {
-        name: teamName,
-    },
-    targetPosition: Position.Top,
-    sourcePosition: Position.Bottom,
-}));
+    .map((teamName) => ({
+        id: `team-${teamName}`,
+        position: { x: 0, y: 0 },
+        type: 'teamNode',
+        data: {
+            name: teamName,
+        },
+        targetPosition: Position.Top,
+        sourcePosition: Position.Bottom,
+    }));
 
 const employeeNodes = employees
     .map((employee) => ({
@@ -73,120 +74,202 @@ const initialEdges = [
     ...teamEdges
 ];
 
-const dagreGraph = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
+const elk = new ELK();
 
-// Calculate node dimensions based on content
-const calculateNodeDimensions = (node: Node) => {
-    const data = node.data as { name?: string; title?: string; team?: string };
-    const name = data.name || '';
-    const title = data.title || '';
-    const team = data.team || '';
-    
-    if (node.type === 'teamNode') {
-        // Team nodes are larger and only have name
-        const nameWidth = name.length * 10; // Larger font for team names
-        const width = Math.max(250, 64 + 16 + nameWidth + 24); // Larger circle + margins + text + padding
-        const height = 80; // Taller for team nodes
-        return { width, height };
-    } else {
-        // Employee nodes
-        const nameWidth = name.length * 8; // Approximate character width
-        const titleWidth = (title + ' - ' + team).length * 7; // Smaller font for subtitle
-        
-        // Node structure: profile circle (48px) + margin (8px) + text content + padding (16px total)
-        const width = Math.max(200, 48 + 8 + Math.max(nameWidth, titleWidth) + 16);
-        const height = 60; // Fixed height for consistent layout
-        
-        return { width, height };
-    }
+// Elk has a *huge* amount of options to configure. To see everything you can
+// tweak check out:
+//
+// - https://www.eclipse.org/elk/reference/algorithms.html
+// - https://www.eclipse.org/elk/reference/options.html
+const elkOptions = {
+    'elk.algorithm': 'layered',
+    'elk.layered.spacing.nodeNodeBetweenLayers': '100',
+    'elk.spacing.nodeNode': '80',
 };
 
-const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
-    const isHorizontal = direction === 'LR';
-    dagreGraph.setGraph({
-        rankdir: direction,
-        ranksep: 200, // Vertical spacing between ranks
-        nodesep: 100,  // Horizontal spacing between nodes in the same rank
-    });
-
-    nodes.forEach((node) => {
-        const { width, height } = calculateNodeDimensions(node);
-        dagreGraph.setNode(node.id, { width, height });
-    });
-
-    edges.forEach((edge) => {
-        dagreGraph.setEdge(edge.source, edge.target);
-    });
-
-    dagre.layout(dagreGraph);
-
-    const newNodes = nodes.map((node) => {
-        const nodeWithPosition = dagreGraph.node(node.id);
-        const { width, height } = calculateNodeDimensions(node);
-        const newNode = {
+const getLayoutedElements = (nodes, edges, options = {}) => {
+    const isHorizontal = options?.['elk.direction'] === 'RIGHT';
+    const graph = {
+        id: 'root',
+        layoutOptions: options,
+        children: nodes.map((node) => ({
             ...node,
-            targetPosition: isHorizontal ? Position.Left : Position.Top,
-            sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
-            // We are shifting the dagre node position (anchor=center center) to the top left
-            // so it matches the React Flow node anchor point (top left).
-            position: {
-                x: nodeWithPosition.x - width / 2,
-                y: nodeWithPosition.y - height / 2,
-            },
-        };
+            // Adjust the target and source handle positions based on the layout
+            // direction.
+            targetPosition: isHorizontal ? 'left' : 'top',
+            sourcePosition: isHorizontal ? 'right' : 'bottom',
 
-        return newNode;
+            // Hardcode a width and height for elk to use when layouting.
+            width: 150,
+            height: 50,
+        })),
+        edges: edges,
+    }
+
+    return elk
+        .layout(graph)
+        .then((layoutedGraph) => ({
+            nodes: layoutedGraph.children.map((node) => ({
+                ...node,
+                // React Flow expects a position property on the node instead of `x`
+                // and `y` fields.
+                position: { x: node.x, y: node.y },
+            })),
+
+            edges: layoutedGraph.edges,
+        }))
+        .catch(console.error);
+}
+
+// Tree structure with team nodes and multi-row employees
+const createSimpleTree = () => {
+    const nodes: Node[] = [];
+    const edges: Edge[] = [];
+
+    // Create team nodes (excluding Blitzscale)
+    const teamNames = [...new Set(employees.map(employee => employee.team))]
+        .filter((teamName) => teamName !== 'Blitzscale');
+
+    teamNames.forEach(teamName => {
+        nodes.push({
+            id: `team-${teamName}`,
+            position: { x: 0, y: 0 },
+            type: 'teamNode',
+            data: {
+                name: teamName,
+            },
+            targetPosition: Position.Top,
+            sourcePosition: Position.Bottom,
+        });
     });
 
-    return { nodes: newNodes, edges };
+    // Group employees by team for multi-row layout
+    const teamGroups = employees.reduce((groups, employee) => {
+        const team = employee.team;
+        if (!groups[team]) {
+            groups[team] = [];
+        }
+        groups[team].push(employee);
+        return groups;
+    }, {} as Record<string, typeof employees>);
+
+    // Create employee nodes with multi-row positioning
+    Object.entries(teamGroups).forEach(([, teamEmployees]) => {
+        const MAX_EMPLOYEES_PER_ROW = 4;
+        const rows = Math.ceil(teamEmployees.length / MAX_EMPLOYEES_PER_ROW);
+
+        teamEmployees.forEach((employee, index) => {
+            const row = Math.floor(index / MAX_EMPLOYEES_PER_ROW);
+            const col = index % MAX_EMPLOYEES_PER_ROW;
+
+            nodes.push({
+                id: `employee-${employee.id}`,
+                position: { x: 0, y: 0 },
+                type: 'employeeNode',
+                data: {
+                    name: employee.name,
+                    title: employee.title,
+                    team: employee.team,
+                    row: row,
+                    col: col,
+                    totalRows: rows,
+                },
+                targetPosition: Position.Top,
+                sourcePosition: Position.Bottom,
+            });
+        });
+    });
+
+    // Create edges: Blitzscale employees -> teams, teams -> employees
+    const blitzscaleEdges = employees.filter((employee) => {
+        return employee.team !== 'Blitzscale' &&
+            employees.find(e => e.id === employee.manager)?.team === 'Blitzscale' &&
+            teamNames.includes(employee.team);
+    }).map((employee) => ({
+        id: employee.id + employee.manager,
+        source: `employee-${employee.manager}`,
+        target: `team-${employee.team}`,
+        type: 'smoothstep',
+    }));
+
+    const teamEdges = employees
+        .filter((employee) => teamNames.includes(employee.team))
+        .map((employee) => ({
+            id: `team-${employee.team}-${employee.id}`,
+            source: `team-${employee.team}`,
+            target: `employee-${employee.id}`,
+            type: 'smoothstep',
+        }));
+
+    edges.push(...blitzscaleEdges, ...teamEdges);
+
+    return { nodes, edges };
 };
 
 export default function OrgChart() {
+    const [nodes, setNodes, onNodesChange] = useNodesState([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const { fitView } = useReactFlow();
 
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-        initialNodes,
-        initialEdges,
-    );
-    const [nodes, setNodes] = useState<Node[]>(layoutedNodes);
-    const [edges, setEdges] = useState<Edge[]>(layoutedEdges);
+    const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
+    const onLayout = useCallback(
+        ({ direction, useInitialNodes = false }) => {
+            const opts = { 'elk.direction': direction, ...elkOptions };
+            const ns = useInitialNodes ? initialNodes : nodes;
+            const es = useInitialNodes ? initialEdges : edges;
 
-    const onNodesChange = useCallback(
-        (changes: NodeChange[]) => setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)),
-        [],
-    );
-    const onEdgesChange = useCallback(
-        (changes: EdgeChange[]) => setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)),
-        [],
-    );
-    const onConnect = useCallback(
-        (params: Connection) => setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
-        [],
+            getLayoutedElements(ns, es, opts).then(
+                ({ nodes: layoutedNodes, edges: layoutedEdges }) => {
+                    setNodes(layoutedNodes);
+                    setEdges(layoutedEdges);
+                    fitView();
+                },
+            );
+        },
+        [nodes, edges],
     );
 
+    // Calculate the initial layout on mount.
+    useLayoutEffect(() => {
+        onLayout({ direction: 'DOWN', useInitialNodes: true });
+    }, []);
 
     return (
         <div className="w-full h-screen">
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
+                onConnect={onConnect}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 nodeTypes={{
                     employeeNode: EmployeeNode,
-                    teamNode: TeamNode
+                    teamNode: TeamNode,
                 }}
-                onConnect={onConnect}
-                edgeTypes={{ smoothstep: SmoothStepEdge }}
-                connectionLineType={ConnectionLineType.SmoothStep}
                 fitView
             >
+                <Panel position="top-right">
+                    <button
+                        className="xy-theme__button"
+                        onClick={() => onLayout({ direction: 'DOWN' })}
+                    >
+                        vertical layout
+                    </button>
+
+                    <button
+                        className="xy-theme__button"
+                        onClick={() => onLayout({ direction: 'RIGHT' })}
+                    >
+                        horizontal layout
+                    </button>
+                </Panel>
                 <Background />
             </ReactFlow>
         </div>
     );
 }
 
-function EmployeeNode({ data }: { data: { name: string, title: string, team: string } }) {
+function EmployeeNode({ data }: { data: { name: string, title: string, team: string, row?: number, totalRows?: number } }) {
     return (
         <div className="px-4 py-3 shadow-md rounded-md bg-white border-2 border-stone-400 min-w-[200px]">
             <div className="flex items-center">
@@ -195,7 +278,11 @@ function EmployeeNode({ data }: { data: { name: string, title: string, team: str
                 </div>
                 <div className="ml-3 flex-1 min-w-0">
                     <div className="text-sm font-bold truncate">{data.name}</div>
-                    <div className="text-gray-500 text-xs truncate">{data.title} - {data.team}</div>
+                    <div className="text-gray-500 text-xs truncate">{data.title}</div>
+                    <div className="text-gray-400 text-xs truncate">{data.team}</div>
+                    {data.totalRows && data.totalRows > 1 && (
+                        <div className="text-gray-300 text-xs">Row {data.row! + 1} of {data.totalRows}</div>
+                    )}
                 </div>
             </div>
 
