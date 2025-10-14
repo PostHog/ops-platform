@@ -19,7 +19,9 @@ const employees = employeeData.Resources
         manager: employee["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"].manager.value,
     }));
 
-const teamNodes = [...new Set(employees.map(employee => employee.team))].map((teamName) => ({
+const teamNodes = [...new Set(employees.map(employee => employee.team))]
+.filter((teamName) => teamName !== 'Blitzscale')
+.map((teamName) => ({
     id: `team-${teamName}`,
     position: { x: 0, y: 0 },
     type: 'teamNode',
@@ -50,15 +52,15 @@ const initialNodes = [
     ...employeeNodes
 ]
 
-// Manager-employee edges
-const managerEdges = employees.filter((employee) => employee.manager).map((employee) => ({
+const blitzscaleEdges = employees.filter((employee) => {
+    return employee.team != 'Blitzscale' && employees.find(e => e.id === employee.manager)?.team === 'Blitzscale'
+}).map((employee) => ({
     id: employee.id + employee.manager,
-    source: employee.manager,
-    target: `employee-${employee.id}`,
+    source: `employee-${employee.manager}`,
+    target: `team-${employee.team}`,
     type: 'smoothstep',
 }));
 
-// Team-employee edges
 const teamEdges = employees.map((employee) => ({
     id: `team-${employee.team}-${employee.id}`,
     source: `team-${employee.team}`,
@@ -67,7 +69,7 @@ const teamEdges = employees.map((employee) => ({
 }));
 
 const initialEdges = [
-    ...managerEdges,
+    ...blitzscaleEdges,
     ...teamEdges
 ];
 
