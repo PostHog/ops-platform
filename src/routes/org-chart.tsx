@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ReactFlow, addEdge, Handle, Position, Background, Node, Edge, useEdgesState, useNodesState, useReactFlow, ReactFlowProvider, Panel } from '@xyflow/react';
+import { ReactFlow, addEdge, Handle, Position, Background, useEdgesState, useNodesState, useReactFlow, ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useCallback, useLayoutEffect } from 'react';
 import ELK from 'elkjs/lib/elk.bundled.js';
@@ -109,7 +109,7 @@ const getLayoutedElements = (nodes, edges, options = {}) => {
     return elk
         .layout(graph)
         .then((layoutedGraph) => ({
-            nodes: layoutedGraph.children.map((node) => ({
+            nodes: layoutedGraph.children?.map((node) => ({
                 ...node,
                 // React Flow expects a position property on the node instead of `x`
                 // and `y` fields.
@@ -128,7 +128,7 @@ export default function OrgChart() {
 
     const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
     const onLayout = useCallback(
-        ({ direction, useInitialNodes = false }) => {
+        ({ direction, useInitialNodes = false }: { direction: string, useInitialNodes: boolean }) => {
             const opts = { 'elk.direction': direction, ...elkOptions };
             const ns = useInitialNodes ? initialNodes : nodes;
             const es = useInitialNodes ? initialEdges : edges;
@@ -144,7 +144,6 @@ export default function OrgChart() {
         [nodes, edges],
     );
 
-    // Calculate the initial layout on mount.
     useLayoutEffect(() => {
         onLayout({ direction: 'DOWN', useInitialNodes: true });
     }, []);
@@ -163,21 +162,6 @@ export default function OrgChart() {
                 }}
                 fitView
             >
-                <Panel position="top-right">
-                    <button
-                        className="xy-theme__button"
-                        onClick={() => onLayout({ direction: 'DOWN' })}
-                    >
-                        vertical layout
-                    </button>
-
-                    <button
-                        className="xy-theme__button"
-                        onClick={() => onLayout({ direction: 'RIGHT' })}
-                    >
-                        horizontal layout
-                    </button>
-                </Panel>
                 <Background />
             </ReactFlow>
         </div>
