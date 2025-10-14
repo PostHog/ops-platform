@@ -10,6 +10,9 @@ export default function Header() {
         <div className="px-2 font-bold">
           <Link to="/actions">Actions</Link>
         </div>
+        <div className="px-2 font-bold">
+          <Link to="/org-chart">Org chart</Link>
+        </div>
       </nav>
     </header>
   )

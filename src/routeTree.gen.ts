@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OrgChartRouteImport } from './routes/org-chart'
 import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmployeeEmployeeIdRouteImport } from './routes/employee.$employeeId'
 
+const OrgChartRoute = OrgChartRouteImport.update({
+  id: '/org-chart',
+  path: '/org-chart',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ActionsRoute = ActionsRouteImport.update({
   id: '/actions',
   path: '/actions',
@@ -32,35 +38,46 @@ const EmployeeEmployeeIdRoute = EmployeeEmployeeIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
+  '/org-chart': typeof OrgChartRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
+  '/org-chart': typeof OrgChartRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
+  '/org-chart': typeof OrgChartRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/actions' | '/employee/$employeeId'
+  fullPaths: '/' | '/actions' | '/org-chart' | '/employee/$employeeId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/actions' | '/employee/$employeeId'
-  id: '__root__' | '/' | '/actions' | '/employee/$employeeId'
+  to: '/' | '/actions' | '/org-chart' | '/employee/$employeeId'
+  id: '__root__' | '/' | '/actions' | '/org-chart' | '/employee/$employeeId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActionsRoute: typeof ActionsRoute
+  OrgChartRoute: typeof OrgChartRoute
   EmployeeEmployeeIdRoute: typeof EmployeeEmployeeIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/org-chart': {
+      id: '/org-chart'
+      path: '/org-chart'
+      fullPath: '/org-chart'
+      preLoaderRoute: typeof OrgChartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/actions': {
       id: '/actions'
       path: '/actions'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActionsRoute: ActionsRoute,
+  OrgChartRoute: OrgChartRoute,
   EmployeeEmployeeIdRoute: EmployeeEmployeeIdRoute,
 }
 export const routeTree = rootRouteImport
