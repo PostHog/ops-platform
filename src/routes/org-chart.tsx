@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ReactFlow, addEdge, Handle, Position, Background, useEdgesState, useNodesState, useReactFlow, ReactFlowProvider, Edge, Node, Connection } from '@xyflow/react';
+import { ReactFlow, Handle, Position, Background, useReactFlow, ReactFlowProvider, Edge, Node, getOutgoers, getIncomers } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useCallback, useLayoutEffect } from 'react';
+import { useCallback, useLayoutEffect, useState } from 'react';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import employeeData from '../../todos.json';
 
@@ -28,6 +28,8 @@ const teamNodes = [...new Set(employees.map(employee => employee.team))]
         type: 'teamNode',
         data: {
             name: teamName,
+            descendantsCount: 0, // Will be calculated later
+            showingChildren: true,
         },
         targetPosition: Position.Top,
         sourcePosition: Position.Bottom,
@@ -43,6 +45,8 @@ const employeeNodes = employees
             title: employee.title,
             team: employee.team,
             manager: employee.manager,
+            descendantsCount: 0, // Will be calculated later
+            showingChildren: true,
         },
         targetPosition: Position.Top,
         sourcePosition: Position.Bottom,
@@ -52,6 +56,45 @@ const initialNodes = [
     ...teamNodes,
     ...employeeNodes
 ]
+
+function createSetShowingChildren(
+    setNodes: (updater: (nodes: Node[]) => Node[]) => void,
+    updateVisibility: () => void,
+    nodeId: string
+) {
+    return (showingChildren: boolean) => {
+        setNodes(nodes =>
+            nodes.map(node =>
+                node.id === nodeId
+                    ? {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            showingChildren,
+                        }
+                    }
+                    : node
+            )
+        );
+        updateVisibility();
+    };
+}
+
+function enhanceNodesWithDescendantsCount(
+    nodes: Node[],
+    edges: Edge[],
+    setNodes: (updater: (nodes: Node[]) => Node[]) => void,
+    updateVisibility: () => void
+): Node[] {
+    return nodes.map(node => ({
+        ...node,
+        data: {
+            ...node.data,
+            descendantsCount: getDescendantsCount(node, nodes, edges),
+            setShowingChildren: createSetShowingChildren(setNodes, updateVisibility, node.id),
+        }
+    }));
+}
 
 const getTopLevelManager = (employee: typeof employees[number]): typeof employees[number] | undefined => {
     let manager = employees.find(e => e.id === employee.manager)
@@ -97,7 +140,46 @@ const elkOptions = {
     'elk.spacing.nodeNode': '80',
 };
 
-const getLayoutedElements = (nodes: Node[], edges: Edge[], options: Record<string, any> = {}): Promise<{nodes: Node[], edges: Edge[]}> => {
+function getChildrenCount(node: Node, nodes: Node[], edges: Edge[]): number {
+  const outgoers = getOutgoers(node, nodes, edges);
+  return outgoers.length;
+}
+
+function getDescendantsCount(node: Node, nodes: Node[], edges: Edge[]): number {
+    const outgoers = getOutgoers(node, nodes, edges);
+    return (
+        outgoers.length +
+        outgoers.reduce((acc, child) => acc + getDescendantsCount(child, nodes, edges), 0)
+    );
+}
+
+function shouldNodeHide(node: Node, nodes: Node[], edges: Edge[]): boolean {
+    const parents = getIncomers(node, nodes, edges);
+
+    if (parents.length === 0) {
+        return false;
+    }
+
+    for (const parent of parents) {
+        if (parent.data.showingChildren === false) {
+            return true;
+        }
+    }
+
+    return parents.some((parent) => shouldNodeHide(parent, nodes, edges));
+}
+
+function shouldEdgeHide(edge: Edge, nodes: Node[], edges: Edge[]): boolean {
+    const sourceNode = nodes.find(node => node.id === edge.source);
+    const targetNode = nodes.find(node => node.id === edge.target);
+
+    return (
+        (!!sourceNode && shouldNodeHide(sourceNode, nodes, edges)) ||
+        (!!targetNode && shouldNodeHide(targetNode, nodes, edges))
+    );
+}
+
+const getLayoutedElements = (nodes: Node[], edges: Edge[], options: Record<string, any> = {}): Promise<{ nodes: Node[], edges: Edge[] }> => {
     const isHorizontal = options?.['elk.direction'] === 'RIGHT';
     const graph = {
         id: 'root',
@@ -121,8 +203,8 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], options: Record<strin
         nodes: layoutedGraph.children!.map((node) => ({
             ...node,
             position: { x: node.x!, y: node.y! },
-            sourcePosition: node.sourcePosition as Position,
-            targetPosition: node.targetPosition as Position,
+            sourcePosition: Position.Bottom,
+            targetPosition: Position.Top,
         })),
         edges: layoutedGraph.edges!.map(edge => ({
             id: edge.id,
@@ -134,26 +216,38 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], options: Record<strin
 };
 
 export default function OrgChart() {
-    const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+    const [allNodes, setAllNodes] = useState<Node[]>([]);
+    const [allEdges, setAllEdges] = useState<Edge[]>([]);
     const { fitView } = useReactFlow();
 
-    const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), []);
+    // Filter for visible elements only
+    const visibleNodes = allNodes.filter(node => !shouldNodeHide(node, allNodes, allEdges));
+    const visibleEdges = allEdges.filter(edge => !shouldEdgeHide(edge, allNodes, allEdges));
+
+    const setNodesWithEnhancement = (updater: (nodes: Node[]) => Node[]) => {
+        setAllNodes(updater);
+    };
+
+    const updateNodeVisibility = useCallback(() => {
+        // Force re-render by updating state reference
+        setAllNodes(current => [...current]);
+    }, []);
+
     const onLayout = useCallback(
         ({ direction, useInitialNodes = false }: { direction: string, useInitialNodes: boolean }) => {
             const opts = { 'elk.direction': direction, ...elkOptions };
-            const ns = useInitialNodes ? initialNodes : nodes;
-            const es = useInitialNodes ? initialEdges : edges;
+            const ns = useInitialNodes ? enhanceNodesWithDescendantsCount(initialNodes, initialEdges, setNodesWithEnhancement, updateNodeVisibility) : allNodes;
+            const es = useInitialNodes ? initialEdges : allEdges;
 
             getLayoutedElements(ns, es, opts).then(
                 ({ nodes: layoutedNodes, edges: layoutedEdges }) => {
-                    setNodes(layoutedNodes);
-                    setEdges(layoutedEdges);
+                    setAllNodes(layoutedNodes);
+                    setAllEdges(layoutedEdges);
                     fitView();
                 },
             );
         },
-        [nodes, edges],
+        [allNodes, allEdges],
     );
 
     useLayoutEffect(() => {
@@ -163,11 +257,8 @@ export default function OrgChart() {
     return (
         <div className="w-full h-screen">
             <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                onConnect={onConnect}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
+                nodes={visibleNodes}
+                edges={visibleEdges}
                 nodeTypes={{
                     employeeNode: EmployeeNode,
                     teamNode: TeamNode,
@@ -180,7 +271,7 @@ export default function OrgChart() {
     );
 }
 
-function EmployeeNode({ data }: { data: { name: string, title: string, team: string, row?: number, totalRows?: number } }) {
+function EmployeeNode({ data }: { data: { name: string, title: string, team: string, row?: number, totalRows?: number, descendantsCount?: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
     return (
         <div className="px-4 py-3 shadow-md rounded-md bg-white border-2 border-stone-400 min-w-[200px]">
             <div className="flex items-center">
@@ -191,6 +282,17 @@ function EmployeeNode({ data }: { data: { name: string, title: string, team: str
                     <div className="text-sm font-bold truncate">{data.name}</div>
                     <div className="text-gray-500 text-xs truncate">{data.title}</div>
                     <div className="text-gray-400 text-xs truncate">{data.team}</div>
+                    {data.descendantsCount !== undefined && data.descendantsCount > 0 && (
+                        <div className="flex items-center gap-2 mt-1">
+                            <div className="text-blue-600 text-xs font-medium">{data.descendantsCount} {data.descendantsCount === 1 ? 'descendant' : 'descendants'}</div>
+                            <button
+                                onClick={() => data.setShowingChildren?.(!data.showingChildren)}
+                                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                            >
+                                {data.showingChildren ? 'Hide' : 'Show'}
+                            </button>
+                        </div>
+                    )}
                     {data.totalRows && data.totalRows > 1 && (
                         <div className="text-gray-300 text-xs">Row {data.row! + 1} of {data.totalRows}</div>
                     )}
@@ -211,16 +313,27 @@ function EmployeeNode({ data }: { data: { name: string, title: string, team: str
     );
 }
 
-function TeamNode({ data }: { data: { name: string } }) {
+function TeamNode({ data: { name, descendantsCount, showingChildren, setShowingChildren } }: { data: { name: string, descendantsCount: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
     return (
         <div className="px-6 py-4 shadow-lg rounded-lg bg-blue-50 border-2 border-blue-300 min-w-[200px]">
             <div className="flex items-center justify-center">
                 <div className="rounded-full w-16 h-16 flex justify-center items-center bg-blue-100 flex-shrink-0">
-                    <span className="text-blue-600 font-bold text-lg">{data.name[0]}</span>
+                    <span className="text-blue-600 font-bold text-lg">{name[0]}</span>
                 </div>
                 <div className="ml-4 flex-1 min-w-0">
-                    <div className="text-lg font-bold text-blue-800 truncate">{data.name}</div>
+                    <div className="text-lg font-bold text-blue-800 truncate">{name}</div>
                     <div className="text-blue-600 text-sm">Team</div>
+                    {descendantsCount > 0 && (
+                        <div className="flex items-center gap-2">
+                            <div className="text-blue-700 text-sm font-medium">{descendantsCount} {descendantsCount === 1 ? 'member' : 'members'}</div>
+                            <button
+                                onClick={() => setShowingChildren?.(!showingChildren)}
+                                className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 rounded transition-colors"
+                            >
+                                {showingChildren ? 'Hide' : 'Show'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
