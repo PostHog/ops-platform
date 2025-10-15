@@ -3,8 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { X, Plus, Filter, ChevronsUpDown } from 'lucide-react';
-import type { ColumnDef } from '@tanstack/react-table';
-import { Prisma, Salary } from 'generated/prisma/client';
 
 export interface FilterCondition {
     id: string;
@@ -14,62 +12,85 @@ export interface FilterCondition {
     logicalOperator: 'OR' | 'AND';
 }
 
-type Employee = Prisma.EmployeeGetPayload<{
-    include: {
-        salaries: {
-            orderBy: {
-                timestamp: 'desc'
-            }
+const generalOperatorOptions = [
+    'Is',
+    'Is not',
+    'Is set',
+    'Is not set',
+]
+
+const operatorOptions = {
+    NUMERIC: [
+        ...generalOperatorOptions,
+        'Higher than',
+        'Lower than'
+    ],
+    STRING: [
+        ...generalOperatorOptions,
+        'Contains',
+        'Does not contain'
+    ],
+}
+
+const FilterMenu: React.FC<{ filters: FilterCondition[], setFilters: React.Dispatch<React.SetStateAction<FilterCondition[]>> }> = ({ filters, setFilters }) => {
+    const fields = [
+        {
+            'name': 'Level', operatorOptions: operatorOptions.NUMERIC, options: [
+                { label: 'Junior (0.59)', value: '0.59' },
+                { label: 'Intermediate (0.78)', value: '0.78' },
+                { label: 'Senior (1)', value: '1' },
+                { label: 'Staff (1.2)', value: '1.2' }
+            ]
+        },
+        {
+            'name': 'Step', operatorOptions: operatorOptions.NUMERIC, options: [
+                { label: 'Learning (0.85-0.94)', value: 'Learning' },
+                { label: 'Established (0.95-1.04)', value: 'Established' },
+                { label: 'Thriving (1.05-1.1)', value: 'Thriving' },
+                { label: 'Expert (1.11-1.2)', value: 'Expert' }
+            ]
+        },
+        {
+            'name': 'Priority', operatorOptions: operatorOptions.STRING, options: [
+                { label: 'Low', value: 'low' },
+                { label: 'Medium', value: 'medium' },
+                { label: 'High', value: 'high' }
+            ]
+        },
+        {
+            'name': 'Reviewer', operatorOptions: operatorOptions.STRING, options: [
+                { label: 'Mother of Hedgehogs', value: 'Mother of Hedgehogs' },
+                { label: 'Father of Hedgehogs', value: 'Father of Hedgehogs' }
+            ]
         }
-    }
-}>
-
-const FilterMenu: React.FC<{ employees: Employee[], columns: ColumnDef<Employee>[], filters: FilterCondition[], setFilters: (filters: FilterCondition[]) => void }> = ({ employees, columns, filters, setFilters }) => {
-    const fieldOptions = columns.filter(column => column.header).map(column => column.header).filter(x => ['Name', 'Level', 'Step', 'Priority', 'Reviewer'].includes(x));
-
-    const operatorOptions = [
-        'Is',
-        'Is not',
-        'Is set',
-        'Is not set',
-    ];
+    ]
 
     const addFilter = () => {
         const newFilter: FilterCondition = {
             id: Date.now().toString(),
             field: '',
-            operator: operatorOptions[0],
+            operator: operatorOptions.NUMERIC[0],
             value: '',
             logicalOperator: 'AND'
         };
-        setFilters([...filters, newFilter]);
-    };
+        setFilters((prevFilters: FilterCondition[]) => [...prevFilters, newFilter]);
+    }
 
     const removeFilter = (id: string) => {
-        setFilters([...filters.filter(filter => filter.id !== id)]);
-    };
+        setFilters((prevFilters: FilterCondition[]) => prevFilters.filter((filter: FilterCondition) => filter.id !== id));
+    }
 
     const updateFilter = (id: string, field: keyof FilterCondition, value: string) => {
-        setFilters(filters.map(filter =>
+        setFilters((prevFilters: FilterCondition[]) => prevFilters.map((filter: FilterCondition) =>
             filter.id === id ? { ...filter, [field]: value } : filter
         ));
-    };
+    }
 
     const toggleLogicalOperator = (id: string) => {
-        setFilters(filters.map(filter =>
+        setFilters((prevFilters: FilterCondition[]) => prevFilters.map((filter: FilterCondition) =>
             filter.id === id ? { ...filter, logicalOperator: filter.logicalOperator === 'AND' ? 'OR' : 'AND' } : filter
         ));
-    };
-
-    const getOptions = (field: string) => {
-        let options: any = employees.map(employee => employee[field.toLowerCase() as keyof Employee]).filter(x => x)
-
-        if (options.length === 0) {
-            options = employees.map(employee => employee.salaries[0][field.toLowerCase() as keyof Salary])
-        }
-
-        return [...new Set(options)]
-    };
+    }
 
     return (
         <DropdownMenu>
@@ -120,9 +141,9 @@ const FilterMenu: React.FC<{ employees: Employee[], columns: ColumnDef<Employee>
                                                 <SelectValue placeholder="Select filter" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {fieldOptions.map((option) => (
-                                                    <SelectItem key={option} value={option} className="text-xs">
-                                                        {option}
+                                                {fields.map(({ name }) => (
+                                                    <SelectItem key={name} value={name} className="text-xs">
+                                                        {name}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
@@ -134,38 +155,37 @@ const FilterMenu: React.FC<{ employees: Employee[], columns: ColumnDef<Employee>
                                                     value={filter.operator}
                                                     onValueChange={(value) => updateFilter(filter.id, 'operator', value)}
                                                 >
-                                                    <SelectTrigger className="w-20 h-8 text-xs">
+                                                    <SelectTrigger className="w-20 h-8 text-xs flex-1">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {operatorOptions.map((option) => (
-                                                            <SelectItem key={option} value={option} className="text-xs">
-                                                                {option}
+                                                        {fields.find(({ name }) => name === filter.field)?.operatorOptions.map((operator) => (
+                                                            <SelectItem key={operator} value={operator} className="text-xs">
+                                                                {operator}
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
 
-                                                {!['Is not set', 'Is set'].includes(filter.operator) ? (
-                                                    <div className="flex-1">
-                                                        <Select
-                                                            value={filter.value}
-                                                            onValueChange={(value) => updateFilter(filter.id, 'value', value)}
-                                                        >
-                                                            <SelectTrigger className="w-full h-8 text-xs">
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                {getOptions(filter.field).map((option) => (
-                                                                    <SelectItem key={option} value={option} className="text-xs">
-                                                                        {option}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-
+                                                {['Is', 'Is not'].includes(filter.operator) ? (
+                                                    <Select
+                                                        value={filter.value}
+                                                        onValueChange={(value) => updateFilter(filter.id, 'value', value)}
+                                                    >
+                                                        <SelectTrigger className="w-full h-8 text-xs flex-1">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {fields.find(({ name }) => name === filter.field)?.options.map((option) => (
+                                                                <SelectItem key={option.value} value={option.value} className="text-xs">
+                                                                    {option.label}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
                                                 ) : null}
+
+                                                {/* TODO: Add numeric and string filters here */}
                                             </>
                                         )}
                                     </div>
@@ -194,6 +214,48 @@ const FilterMenu: React.FC<{ employees: Employee[], columns: ColumnDef<Employee>
             </DropdownMenuContent>
         </DropdownMenu>
     );
+}
+
+export const convertFiltersToPrismaWhere = (filters: FilterCondition[]) => {
+    if (filters.length === 0) return {};
+
+    const whereConditions = filters.map((filter) => {
+        const field = filter.field.toLowerCase();
+        const operator = filter.operator;
+        const value = filter.value;
+
+        switch (operator) {
+            case 'Is':
+                return { [field]: value };
+            case 'Is not':
+                return { [field]: { not: value } };
+            case 'Is set':
+                return { [field]: { not: null } };
+            case 'Is not set':
+                return { [field]: null };
+            default:
+                return {};
+        }
+    });
+
+    let whereClause: any = whereConditions[0];
+
+    for (let i = 1; i < whereConditions.length; i++) {
+        const logicalOperator = filters[i].logicalOperator;
+        const condition = whereConditions[i];
+
+        if (logicalOperator === 'AND') {
+            whereClause = {
+                AND: [whereClause, condition]
+            };
+        } else if (logicalOperator === 'OR') {
+            whereClause = {
+                OR: [whereClause, condition]
+            };
+        }
+    }
+
+    return whereClause;
 };
 
 export default FilterMenu;
