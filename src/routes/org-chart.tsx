@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ReactFlow, addEdge, Handle, Position, Background, useEdgesState, useNodesState, useReactFlow, ReactFlowProvider } from '@xyflow/react';
+import { ReactFlow, addEdge, Handle, Position, Background, useEdgesState, useNodesState, useReactFlow, ReactFlowProvider, Edge, Node, Connection } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useCallback, useLayoutEffect } from 'react';
 import ELK from 'elkjs/lib/elk.bundled.js';
@@ -97,46 +97,48 @@ const elkOptions = {
     'elk.spacing.nodeNode': '80',
 };
 
-const getLayoutedElements = (nodes, edges, options = {}) => {
+const getLayoutedElements = (nodes: Node[], edges: Edge[], options: Record<string, any> = {}): Promise<{nodes: Node[], edges: Edge[]}> => {
     const isHorizontal = options?.['elk.direction'] === 'RIGHT';
     const graph = {
         id: 'root',
         layoutOptions: options,
         children: nodes.map((node) => ({
             ...node,
-            // Adjust the target and source handle positions based on the layout
-            // direction.
             targetPosition: isHorizontal ? 'left' : 'top',
             sourcePosition: isHorizontal ? 'right' : 'bottom',
-
-            // Use different sizes for team nodes vs employee nodes
             width: node.type === 'teamNode' ? 250 : 150,
             height: node.type === 'teamNode' ? 80 : 50,
         })),
-        edges: edges,
-    }
+        edges: edges.map(edge => ({
+            id: edge.id,
+            sources: [edge.source],
+            targets: [edge.target],
+            type: edge.type,
+        })),
+    };
 
-    return elk
-        .layout(graph)
-        .then((layoutedGraph) => ({
-            nodes: layoutedGraph.children?.map((node) => ({
-                ...node,
-                // React Flow expects a position property on the node instead of `x`
-                // and `y` fields.
-                position: { x: node.x, y: node.y },
-            })),
-
-            edges: layoutedGraph.edges,
-        }))
-        .catch(console.error);
-}
+    return elk.layout(graph).then((layoutedGraph) => ({
+        nodes: layoutedGraph.children!.map((node) => ({
+            ...node,
+            position: { x: node.x!, y: node.y! },
+            sourcePosition: node.sourcePosition as Position,
+            targetPosition: node.targetPosition as Position,
+        })),
+        edges: layoutedGraph.edges!.map(edge => ({
+            id: edge.id,
+            source: edge.sources![0],
+            target: edge.targets![0],
+            type: edge.type || 'smoothstep',
+        } as Edge)),
+    }));
+};
 
 export default function OrgChart() {
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const { fitView } = useReactFlow();
 
-    const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
+    const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), []);
     const onLayout = useCallback(
         ({ direction, useInitialNodes = false }: { direction: string, useInitialNodes: boolean }) => {
             const opts = { 'elk.direction': direction, ...elkOptions };
