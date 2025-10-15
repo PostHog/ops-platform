@@ -141,8 +141,8 @@ const elkOptions = {
 };
 
 function getChildrenCount(node: Node, nodes: Node[], edges: Edge[]): number {
-  const outgoers = getOutgoers(node, nodes, edges);
-  return outgoers.length;
+    const outgoers = getOutgoers(node, nodes, edges);
+    return outgoers.length;
 }
 
 function getDescendantsCount(node: Node, nodes: Node[], edges: Edge[]): number {
@@ -188,8 +188,8 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], options: Record<strin
             ...node,
             targetPosition: isHorizontal ? 'left' : 'top',
             sourcePosition: isHorizontal ? 'right' : 'bottom',
-            width: node.type === 'teamNode' ? 250 : 150,
-            height: node.type === 'teamNode' ? 80 : 50,
+            width: node.type === 'teamNode' ? 250 : 250,
+            height: node.type === 'teamNode' ? 100 : 100,
         })),
         edges: edges.map(edge => ({
             id: edge.id,
@@ -273,11 +273,8 @@ export default function OrgChart() {
 
 function EmployeeNode({ data }: { data: { name: string, title: string, team: string, row?: number, totalRows?: number, descendantsCount?: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
     return (
-        <div className="px-4 py-3 shadow-md rounded-md bg-white border-2 border-stone-400 min-w-[200px]">
+        <div className="w-full h-full flex justify-center items-center px-4 py-3 shadow-md rounded-md bg-white border-2 border-stone-400 min-w-[200px]">
             <div className="flex items-center">
-                <div className="rounded-full w-12 h-12 flex justify-center items-center bg-gray-100 flex-shrink-0">
-                    {data.name[0]}
-                </div>
                 <div className="ml-3 flex-1 min-w-0">
                     <div className="text-sm font-bold truncate">{data.name}</div>
                     <div className="text-gray-500 text-xs truncate">{data.title}</div>
@@ -285,12 +282,14 @@ function EmployeeNode({ data }: { data: { name: string, title: string, team: str
                     {data.descendantsCount !== undefined && data.descendantsCount > 0 && (
                         <div className="flex items-center gap-2 mt-1">
                             <div className="text-blue-600 text-xs font-medium">{data.descendantsCount} {data.descendantsCount === 1 ? 'descendant' : 'descendants'}</div>
-                            <button
-                                onClick={() => data.setShowingChildren?.(!data.showingChildren)}
-                                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-                            >
-                                {data.showingChildren ? 'Hide' : 'Show'}
-                            </button>
+                            <div className="min-w-[95px] max-w-[95px]">
+                                <button
+                                    onClick={() => data.setShowingChildren?.(!data.showingChildren)}
+                                    className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                                >
+                                    {data.showingChildren ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
                         </div>
                     )}
                     {data.totalRows && data.totalRows > 1 && (
@@ -315,23 +314,21 @@ function EmployeeNode({ data }: { data: { name: string, title: string, team: str
 
 function TeamNode({ data: { name, descendantsCount, showingChildren, setShowingChildren } }: { data: { name: string, descendantsCount: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
     return (
-        <div className="px-6 py-4 shadow-lg rounded-lg bg-blue-50 border-2 border-blue-300 min-w-[200px]">
+        <div className="w-full h-full flex justify-center items-center px-6 py-4 shadow-lg rounded-lg bg-blue-50 border-2 border-blue-300 min-w-[200px]">
             <div className="flex items-center justify-center">
-                <div className="rounded-full w-16 h-16 flex justify-center items-center bg-blue-100 flex-shrink-0">
-                    <span className="text-blue-600 font-bold text-lg">{name[0]}</span>
-                </div>
                 <div className="ml-4 flex-1 min-w-0">
                     <div className="text-lg font-bold text-blue-800 truncate">{name}</div>
-                    <div className="text-blue-600 text-sm">Team</div>
                     {descendantsCount > 0 && (
                         <div className="flex items-center gap-2">
                             <div className="text-blue-700 text-sm font-medium">{descendantsCount} {descendantsCount === 1 ? 'member' : 'members'}</div>
-                            <button
+                            <div className="min-w-[95px] max-w-[95px]">
+                                <button
                                 onClick={() => setShowingChildren?.(!showingChildren)}
                                 className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 rounded transition-colors"
-                            >
-                                {showingChildren ? 'Hide' : 'Show'}
-                            </button>
+                                >
+                                    {showingChildren ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
