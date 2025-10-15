@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import {
   flexRender,
@@ -32,11 +32,10 @@ import {
 import { createServerFn } from '@tanstack/react-start'
 import prisma from '@/db'
 import { Prisma } from "@/../generated/prisma/client.js";
-import FilterMenu, { FilterCondition } from '@/components/FilterMenu'
+import { useQuery } from '@tanstack/react-query'
 
 export const Route = createFileRoute("/")({
-  component: App,
-  loader: async () => await getEmployees(),
+  component: App
 })
 
 type Employee = Prisma.EmployeeGetPayload<{
@@ -70,14 +69,17 @@ export const getEmployees = createServerFn({
 
 function App() {
   const router = useRouter()
-  const employees: Employee[] = Route.useLoaderData()
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
-  const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
+
+  const { data: employees } = useQuery({
+    queryKey: ['employees'],
+    queryFn: () => getEmployees(),
+  })
 
   const columns: ColumnDef<Employee>[] = [
     {
@@ -168,7 +170,7 @@ function App() {
   ]
 
   const table = useReactTable({
-    data: employees,
+    data: employees || [],
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -193,7 +195,6 @@ function App() {
         <div className="flex justify-between py-4">
           <div></div>
           <div className="flex items-center space-x-2">
-            <FilterMenu employees={employees} columns={columns} filters={filters} setFilters={setFilters} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="ml-auto">
