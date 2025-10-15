@@ -12,7 +12,7 @@ export const Route = createFileRoute('/org-chart')({
 })
 
 const employees = employeeData.Resources
-    .filter((employee) => employee.active)
+    .filter((employee) => employee.active && employee['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].customFields.full_time_headcount === 'Full-Time')
     .map((employee) => ({
         id: employee.id,
         name: employee.name.givenName + " " + employee.name.familyName,
@@ -53,14 +53,24 @@ const initialNodes = [
     ...employeeNodes
 ]
 
-const blitzscaleEdges = employees.filter((employee) => {
-    return employee.team != 'Blitzscale' && employees.find(e => e.id === employee.manager)?.team === 'Blitzscale'
-}).map((employee) => ({
-    id: employee.id + employee.manager,
-    source: `employee-${employee.manager}`,
-    target: `team-${employee.team}`,
-    type: 'smoothstep',
-}));
+const getTopLevelManager = (employee: typeof employees[number]): typeof employees[number] | undefined => {
+    let manager = employees.find(e => e.id === employee.manager)
+    if (manager && manager.team !== 'Blitzscale' && manager.manager) {
+        manager = getTopLevelManager(manager)
+    }
+    return manager
+}
+
+const blitzscaleEdges = employees.map((employee) => {
+    const topLevelManager = getTopLevelManager(employee)
+    if (!topLevelManager || employee.team === 'Blitzscale') return null
+    return {
+        id: employee.id + topLevelManager?.id,
+        source: `employee-${topLevelManager?.id}`,
+        target: `team-${employee.team}`,
+        type: 'smoothstep',
+    }
+}).filter((edge) => edge !== null);
 
 const teamEdges = employees.map((employee) => ({
     id: `team-${employee.team}-${employee.id}`,
