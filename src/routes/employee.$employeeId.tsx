@@ -27,8 +27,6 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { currencyData, getAreasByCountry, getCountries, locationFactor, sfBenchmark, stepModifier } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -373,6 +371,7 @@ function EmployeeOverview() {
 export function SalaryUpdateMenu({ salary }: { salary: Salary }) {
     const router = useRouter()
     const benchmarkUpdated = sfBenchmark[salary.benchmark as keyof typeof sfBenchmark] !== salary.benchmarkFactor
+    const locationFactorUpdated = locationFactor.find(l => l.country === salary.country && l.area === salary.area)?.locationFactor !== salary.locationFactor
 
     const updateFormFields = (formApi: AnyFormApi) => {
         const location = locationFactor.find(l => l.country === formApi.getFieldValue('country') && l.area === formApi.getFieldValue('area'))
@@ -469,6 +468,16 @@ export function SalaryUpdateMenu({ salary }: { salary: Salary }) {
                     <AlertTitle>This employee is currently on an old benchmark factor. </AlertTitle>
                     <AlertDescription>
                         You can keep it that way by choosing `{salary.benchmark} (old)` as the benchmark, or updated it by choosing `{salary.benchmark.replace(' (old)', '')}` as the benchmark.
+                    </AlertDescription>
+                </Alert>
+            )}
+
+            {locationFactorUpdated && (
+                <Alert variant="default">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>This employee is currently on an old location factor. </AlertTitle>
+                    <AlertDescription>
+                        The location factor will be updated on the next salary update.
                     </AlertDescription>
                 </Alert>
             )}
