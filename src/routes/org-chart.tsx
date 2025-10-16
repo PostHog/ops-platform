@@ -19,7 +19,7 @@ const getDeelEmployees = createServerFn({
     method: 'GET',
 })
     .handler(async () => {
-        let cursor = 0
+        let cursor = 1
         let allUsers: DeelEmployee[] = []
         let hasMore = true
 
