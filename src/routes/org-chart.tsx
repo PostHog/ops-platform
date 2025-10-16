@@ -3,132 +3,60 @@ import { ReactFlow, Handle, Position, Background, useReactFlow, ReactFlowProvide
 import '@xyflow/react/dist/style.css';
 import { useCallback, useLayoutEffect, useState } from 'react';
 import ELK from 'elkjs/lib/elk.bundled.js';
-import employeeData from '../../todos.json';
 
 import '@xyflow/react/dist/style.css';
+import { createServerFn } from '@tanstack/react-start';
+
+type DeelEmployee = {
+    id: string
+    name: string
+    title: string
+    team: string
+    manager: string
+}
+
+const getDeelEmployees = createServerFn({
+    method: 'GET',
+})
+    .handler(async () => {
+        let cursor = 0
+        let allUsers: DeelEmployee[] = []
+        let hasMore = true
+
+        while (hasMore) {
+            const response = await fetch(`https://api.letsdeel.com/scim/v2/Users?startIndex=${cursor}&count=100`, {
+                headers: {
+                    'Authorization': `Bearer ${process.env.DEEL_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+            })
+            if (response.status !== 200) {
+                throw new Error(`Failed to fetch employees: ${response.statusText}`)
+            }
+            const data = await response.json()
+            allUsers = [
+                ...allUsers,
+                ...data.Resources
+                    .filter((employee: any) => employee.active && employee['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].customFields.full_time_headcount === 'Full-Time')
+                    .map((employee: any) => ({
+                        id: employee.id,
+                        name: employee.name.givenName + " " + employee.name.familyName,
+                        title: employee.title,
+                        team: employee["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"].department,
+                        manager: employee["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"].manager.value,
+                    }))]
+            hasMore = data.totalResults > 100
+            cursor += 100
+        }
+
+        return allUsers
+    })
+
 
 export const Route = createFileRoute('/org-chart')({
     component: () => <ReactFlowProvider><OrgChart /></ReactFlowProvider>,
+    loader: async () => await getDeelEmployees(),
 })
-
-const employees = employeeData.Resources
-    .filter((employee) => employee.active && employee['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].customFields.full_time_headcount === 'Full-Time')
-    .map((employee) => ({
-        id: employee.id,
-        name: employee.name.givenName + " " + employee.name.familyName,
-        title: employee.title,
-        team: employee["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"].department,
-        manager: employee["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"].manager.value,
-    }));
-
-const teamNodes = [...new Set(employees.map(employee => employee.team))]
-    .map((teamName) => ({
-        id: `team-${teamName}`,
-        position: { x: 0, y: 0 },
-        type: 'teamNode',
-        data: {
-            name: teamName,
-            descendantsCount: 0, // Will be calculated later
-            showingChildren: true,
-        },
-        targetPosition: Position.Top,
-        sourcePosition: Position.Bottom,
-    }));
-
-const employeeNodes = employees
-    .map((employee) => ({
-        id: `employee-${employee.id}`,
-        position: { x: 0, y: 0 },
-        type: 'employeeNode',
-        data: {
-            name: employee.name,
-            title: employee.title,
-            team: employee.team,
-            manager: employee.manager,
-            descendantsCount: 0, // Will be calculated later
-            showingChildren: true,
-        },
-        targetPosition: Position.Top,
-        sourcePosition: Position.Bottom,
-    }));
-
-const initialNodes = [
-    ...teamNodes,
-    ...employeeNodes
-]
-
-function createSetShowingChildren(
-    setNodes: (updater: (nodes: Node[]) => Node[]) => void,
-    updateVisibility: () => void,
-    nodeId: string
-) {
-    return (showingChildren: boolean) => {
-        setNodes(nodes =>
-            nodes.map(node =>
-                node.id === nodeId
-                    ? {
-                        ...node,
-                        data: {
-                            ...node.data,
-                            showingChildren,
-                        }
-                    }
-                    : node
-            )
-        );
-        updateVisibility();
-    };
-}
-
-function enhanceNodesWithDescendantsCount(
-    nodes: Node[],
-    edges: Edge[],
-    setNodes: (updater: (nodes: Node[]) => Node[]) => void,
-    updateVisibility: () => void
-): Node[] {
-    return nodes.map(node => ({
-        ...node,
-        data: {
-            ...node.data,
-            descendantsCount: getDescendantsCount(node, nodes, edges),
-            setShowingChildren: createSetShowingChildren(setNodes, updateVisibility, node.id),
-        }
-    }));
-}
-
-const getTopLevelManager = (employee: typeof employees[number]): typeof employees[number] | undefined => {
-    let manager = employees.find(e => e.id === employee.manager)
-    if (manager && manager.team !== 'Blitzscale' && manager.manager) {
-        manager = getTopLevelManager(manager)
-    }
-    return manager
-}
-
-const blitzscaleEdges = employees.map((employee) => {
-    const topLevelManager = getTopLevelManager(employee)
-    if (!topLevelManager || employee.team === 'Blitzscale') return null
-    return {
-        id: employee.team + topLevelManager?.name,
-        source: `employee-${topLevelManager?.id}`,
-        target: `team-${employee.team}`,
-        type: 'smoothstep',
-    }
-}).filter((edge) => edge !== null)
-    .filter((edge, index, array) =>
-        array.findIndex(e => e.id === edge.id) === index
-    );
-
-const teamEdges = employees.map((employee) => ({
-    id: `team-${employee.team}-${employee.id}`,
-    source: `team-${employee.team}`,
-    target: `employee-${employee.id}`,
-    type: 'smoothstep',
-}));
-
-const initialEdges = [
-    ...blitzscaleEdges,
-    ...teamEdges
-];
 
 const elk = new ELK();
 
@@ -217,6 +145,116 @@ export default function OrgChart() {
     const [allNodes, setAllNodes] = useState<Node[]>([]);
     const [allEdges, setAllEdges] = useState<Edge[]>([]);
     const { fitView } = useReactFlow();
+    const employees: DeelEmployee[] = Route.useLoaderData()
+
+    const teamNodes = [...new Set(employees.map(employee => employee.team))]
+        .map((teamName) => ({
+            id: `team-${teamName}`,
+            position: { x: 0, y: 0 },
+            type: 'teamNode',
+            data: {
+                name: teamName,
+                descendantsCount: 0, // Will be calculated later
+                showingChildren: true,
+            },
+            targetPosition: Position.Top,
+            sourcePosition: Position.Bottom,
+        }));
+
+    const employeeNodes = employees
+        .map((employee) => ({
+            id: `employee-${employee.id}`,
+            position: { x: 0, y: 0 },
+            type: 'employeeNode',
+            data: {
+                name: employee.name,
+                title: employee.title,
+                team: employee.team,
+                manager: employee.manager,
+                descendantsCount: 0, // Will be calculated later
+                showingChildren: true,
+            },
+            targetPosition: Position.Top,
+            sourcePosition: Position.Bottom,
+        }));
+
+    const initialNodes = [
+        ...teamNodes,
+        ...employeeNodes
+    ]
+
+    function createSetShowingChildren(
+        setNodes: (updater: (nodes: Node[]) => Node[]) => void,
+        updateVisibility: () => void,
+        nodeId: string
+    ) {
+        return (showingChildren: boolean) => {
+            setNodes(nodes =>
+                nodes.map(node =>
+                    node.id === nodeId
+                        ? {
+                            ...node,
+                            data: {
+                                ...node.data,
+                                showingChildren,
+                            }
+                        }
+                        : node
+                )
+            );
+            updateVisibility();
+        };
+    }
+
+    function enhanceNodesWithDescendantsCount(
+        nodes: Node[],
+        edges: Edge[],
+        setNodes: (updater: (nodes: Node[]) => Node[]) => void,
+        updateVisibility: () => void
+    ): Node[] {
+        return nodes.map(node => ({
+            ...node,
+            data: {
+                ...node.data,
+                descendantsCount: getDescendantsCount(node, nodes, edges),
+                setShowingChildren: createSetShowingChildren(setNodes, updateVisibility, node.id),
+            }
+        }));
+    }
+
+    const getTopLevelManager = (employee: typeof employees[number]): typeof employees[number] | undefined => {
+        let manager = employees.find(e => e.id === employee.manager)
+        if (manager && manager.team !== 'Blitzscale' && manager.manager) {
+            manager = getTopLevelManager(manager)
+        }
+        return manager
+    }
+
+    const blitzscaleEdges = employees.map((employee) => {
+        const topLevelManager = getTopLevelManager(employee)
+        if (!topLevelManager || employee.team === 'Blitzscale') return null
+        return {
+            id: employee.team + topLevelManager?.name,
+            source: `employee-${topLevelManager?.id}`,
+            target: `team-${employee.team}`,
+            type: 'smoothstep',
+        }
+    }).filter((edge) => edge !== null)
+        .filter((edge, index, array) =>
+            array.findIndex(e => e.id === edge.id) === index
+        );
+
+    const teamEdges = employees.map((employee) => ({
+        id: `team-${employee.team}-${employee.id}`,
+        source: `team-${employee.team}`,
+        target: `employee-${employee.id}`,
+        type: 'smoothstep',
+    }));
+
+    const initialEdges = [
+        ...blitzscaleEdges,
+        ...teamEdges
+    ];
 
     // Filter for visible elements only
     const visibleNodes = allNodes.filter(node => !shouldNodeHide(node, allNodes, allEdges));
