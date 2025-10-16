@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ReactFlow, Handle, Position, Background, useReactFlow, ReactFlowProvider, Edge, Node, getOutgoers, getIncomers } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback, useLayoutEffect, useState } from 'react'
+import { useCallback, useLayoutEffect, useState, memo } from 'react'
 import ELK from 'elkjs/lib/elk.bundled.js'
 
 import '@xyflow/react/dist/style.css'
@@ -291,7 +291,7 @@ export default function OrgChart() {
     )
 }
 
-function EmployeeNode({ data }: { data: { name: string, title: string, team: string, row?: number, totalRows?: number, descendantsCount?: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
+const EmployeeNode = memo(function EmployeeNode({ data }: { data: { name: string, title: string, team: string, row?: number, totalRows?: number, descendantsCount?: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
     return (
         <div className="w-full h-full flex justify-center items-center px-4 py-3 shadow-md rounded-md bg-white border-2 border-stone-400 min-w-[200px]">
             <div className="flex items-center max-w-[80%]">
@@ -328,9 +328,9 @@ function EmployeeNode({ data }: { data: { name: string, title: string, team: str
             />
         </div>
     )
-}
+})
 
-function TeamNode({ data: { name, descendantsCount, showingChildren, setShowingChildren } }: { data: { name: string, descendantsCount: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
+const TeamNode = memo(function TeamNode({ data: { name, descendantsCount, showingChildren, setShowingChildren } }: { data: { name: string, descendantsCount: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
     return (
         <div className="w-full h-full flex justify-center items-center px-6 py-4 shadow-lg rounded-lg bg-blue-50 border-2 border-blue-300 min-w-[200px]">
             <div className="flex items-center justify-center">
@@ -362,4 +362,4 @@ function TeamNode({ data: { name, descendantsCount, showingChildren, setShowingC
             />
         </div>
     )
-}
+})
