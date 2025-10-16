@@ -72,7 +72,8 @@ const elkOptions = {
 };
 
 function getDescendantsCount(node: Node, nodes: Node[], edges: Edge[]): number {
-    const outgoers = getOutgoers(node, nodes, edges);
+    const outgoers = getOutgoers(node, nodes, edges)
+        .filter((node, index, array) => array.findIndex(n => n.id === node.id) === index);
     return (
         outgoers.length +
         outgoers.reduce((acc, child) => acc + getDescendantsCount(child, nodes, edges), 0)
@@ -240,12 +241,9 @@ export default function OrgChart() {
             type: 'smoothstep',
         }
     }).filter((edge) => edge !== null)
-        .filter((edge, index, array) =>
-            array.findIndex(e => e.id === edge.id) === index
-        );
 
     const teamEdges = employees.map((employee) => ({
-        id: `team-${employee.team}-${employee.id}`,
+        id: `team-${employee.team}-${employee.name}`,
         source: `team-${employee.team}`,
         target: `employee-${employee.id}`,
         type: 'smoothstep',
@@ -254,7 +252,9 @@ export default function OrgChart() {
     const initialEdges = [
         ...blitzscaleEdges,
         ...teamEdges
-    ];
+    ].filter((edge, index, array) =>
+        array.findIndex(e => e.id === edge.id) === index
+    )
 
     // Filter for visible elements only
     const visibleNodes = allNodes.filter(node => !shouldNodeHide(node, allNodes, allEdges));
