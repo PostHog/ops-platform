@@ -215,7 +215,7 @@ function EmployeeOverview() {
     })
 
     return (
-        <div className="w-screen flex justify-center flex flex-col items-center gap-5">
+        <div className="pt-8 flex justify-center flex flex-col items-center gap-5">
             <form
                 onSubmit={(e) => {
                     e.preventDefault()

@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 
 export default function Header() {
   return (
-    <header className="p-2 flex gap-2 bg-white text-black justify-between">
+    <header className="p-2 flex h-10 gap-2 bg-white text-black justify-between border-b border-gray-200">
       <nav className="flex flex-row">
         <div className="px-2 font-bold">
           <Link to="/">Ops Platform</Link>

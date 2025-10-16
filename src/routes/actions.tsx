@@ -121,7 +121,7 @@ function App() {
     })
 
     return (
-        <div className="w-screen flex justify-center">
+        <div className="w-full h-full pt-8 flex justify-center">
             <div className="max-w-[80%] flex-grow">
                 <div className="overflow-hidden rounded-md border">
                     <Table>

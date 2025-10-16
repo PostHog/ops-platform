@@ -45,9 +45,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className="h-screen w-screen flex flex-col">
         <Header />
-        {children}
+        <main className="flex-1">
+          {children}
+        </main>
         <Scripts />
       </body>
     </html>

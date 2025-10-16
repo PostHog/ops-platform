@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ReactFlow, Handle, Position, Background, useReactFlow, ReactFlowProvider, Edge, Node, getOutgoers, getIncomers } from '@xyflow/react'
+import { ReactFlow, Handle, Position, Background, useReactFlow, ReactFlowProvider, Edge, Node, getOutgoers, getIncomers, BackgroundVariant, Controls } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useCallback, useLayoutEffect, useState, memo, useMemo } from 'react'
 import ELK from 'elkjs/lib/elk.bundled.js'
@@ -100,9 +100,9 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]): Promise<{ nodes: Nod
             'elk.algorithm': 'layered',
             'elk.direction': 'DOWN',
             "elk.edgeRouting": "POLYLINE",
-            'elk.layered.spacing.nodeNodeBetweenLayers': '100',
-            "elk.spacing.nodeNode": "100",
-            "elk.spacing.edgeNode": "100",
+            'elk.layered.spacing.nodeNodeBetweenLayers': '50',
+            "elk.spacing.nodeNode": "50",
+            "elk.spacing.edgeNode": "50",
         },
         children: nodes.map((node) => ({
             ...node,
@@ -283,88 +283,85 @@ export default function OrgChart() {
     )
 
     return (
-        <div className="w-full h-screen">
+        <div className="h-full w-full">
             <ReactFlow
                 nodes={visibleNodes}
                 edges={visibleEdges}
                 nodeTypes={nodeTypes}
                 fitView
             >
-                <Background />
+                <Background gap={36} variant={BackgroundVariant.Dots} />
+
+                <Controls showInteractive={false} />
             </ReactFlow>
         </div>
     )
 }
 
+const NodeHandles = () => {
+    return (
+        <>
+            <Handle type="target" position={Position.Top} isConnectable={false} className="opacity-0" />
+            <Handle type="source" position={Position.Bottom} isConnectable={false} className="opacity-0" />
+        </>
+    )
+}
+
 const EmployeeNode = memo(function EmployeeNode({ data }: { data: { name: string, title: string, team: string, row?: number, totalRows?: number, descendantsCount?: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
     return (
-        <div className="w-full h-full flex justify-center items-center px-4 py-3 shadow-md rounded-md bg-white border-2 border-stone-400 min-w-[200px]">
-            <div className="flex items-center max-w-[80%]">
-                <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold truncate">{data.name}</div>
-                    <div className="text-gray-500 text-xs truncate">{data.title}</div>
-                    <div className="text-gray-400 text-xs truncate">{data.team}</div>
-                    {data.descendantsCount !== undefined && data.descendantsCount > 0 && (
-                        <div className="flex items-center gap-2 mt-1">
-                            <div className="text-blue-600 text-xs font-medium">{data.descendantsCount} {data.descendantsCount === 1 ? 'descendant' : 'descendants'}</div>
-                            <button
-                                onClick={() => data.setShowingChildren?.(!data.showingChildren)}
-                                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-                            >
-                                {data.showingChildren ? 'Hide' : 'Show'}
-                            </button>
-                        </div>
-                    )}
-                    {data.totalRows && data.totalRows > 1 && (
-                        <div className="text-gray-300 text-xs">Row {data.row! + 1} of {data.totalRows}</div>
-                    )}
+        <div className="transition-all hover:translate-y-[-2px]">
+            <div className="w-full h-full flex justify-center items-center px-4 py-3 shadow-md rounded-md bg-white border-2 border-stone-400 min-w-[200px]">
+                <div className="flex items-center max-w-[80%]">
+                    <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold truncate">{data.name}</div>
+                        <div className="text-gray-500 text-xs truncate">{data.title}</div>
+                        <div className="text-gray-400 text-xs truncate">{data.team}</div>
+                        {data.descendantsCount !== undefined && data.descendantsCount > 0 && (
+                            <div className="flex items-center gap-2 mt-1">
+                                <div className="text-blue-600 text-xs font-medium">{data.descendantsCount} {data.descendantsCount === 1 ? 'descendant' : 'descendants'}</div>
+                                <button
+                                    onClick={() => data.setShowingChildren?.(!data.showingChildren)}
+                                    className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                                >
+                                    {data.showingChildren ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
+                        )}
+                        {data.totalRows && data.totalRows > 1 && (
+                            <div className="text-gray-300 text-xs">Row {data.row! + 1} of {data.totalRows}</div>
+                        )}
+                    </div>
                 </div>
-            </div>
 
-            <Handle
-                type="target"
-                position={Position.Top}
-                className="w-16 !bg-teal-500"
-            />
-            <Handle
-                type="source"
-                position={Position.Bottom}
-                className="w-16 !bg-teal-500"
-            />
+                <NodeHandles />
+            </div>
         </div>
     )
 })
 
 const TeamNode = memo(function TeamNode({ data: { name, descendantsCount, showingChildren, setShowingChildren } }: { data: { name: string, descendantsCount: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
     return (
-        <div className="w-full h-full flex justify-center items-center px-6 py-4 shadow-lg rounded-lg bg-blue-50 border-2 border-blue-300 min-w-[200px]">
-            <div className="flex items-center justify-center">
-                <div className="ml-4 flex-1 min-w-0">
-                    <div className="text-lg font-bold text-blue-800 truncate">{name}</div>
-                    {descendantsCount > 0 && (
-                        <div className="flex items-center gap-2">
-                            <div className="text-blue-700 text-sm font-medium">{descendantsCount} {descendantsCount === 1 ? 'member' : 'members'}</div>
-                            <button
-                                onClick={() => setShowingChildren?.(!showingChildren)}
-                                className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 rounded transition-colors"
-                            >
-                                {showingChildren ? 'Hide' : 'Show'}
-                            </button>
-                        </div>
-                    )}
+        <div className="transition-all hover:translate-y-[-2px]">
+            <div className="w-full h-full flex justify-center items-center px-6 py-4 shadow-lg rounded-lg bg-blue-50 border-2 border-blue-300 min-w-[200px]">
+                <div className="flex items-center justify-center">
+                    <div className="ml-4 flex-1 min-w-0">
+                        <div className="text-lg font-bold text-blue-800 truncate">{name}</div>
+                        {descendantsCount > 0 && (
+                            <div className="flex items-center gap-2">
+                                <div className="text-blue-700 text-sm font-medium">{descendantsCount} {descendantsCount === 1 ? 'member' : 'members'}</div>
+                                <button
+                                    onClick={() => setShowingChildren?.(!showingChildren)}
+                                    className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 rounded transition-colors"
+                                >
+                                    {showingChildren ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
 
-            <Handle
-                type="target"
-                position={Position.Top}
-                className="w-16 !bg-blue-500"
-            />
-            <Handle
-                type="source"
-                position={Position.Bottom}
-                className="w-16 !bg-blue-500"
-            />
+                <NodeHandles />
+            </div>
         </div>
     )
 })
