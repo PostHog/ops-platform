@@ -108,12 +108,15 @@ const blitzscaleEdges = employees.map((employee) => {
     const topLevelManager = getTopLevelManager(employee)
     if (!topLevelManager || employee.team === 'Blitzscale') return null
     return {
-        id: employee.id + topLevelManager?.id,
+        id: employee.team + topLevelManager?.name,
         source: `employee-${topLevelManager?.id}`,
         target: `team-${employee.team}`,
         type: 'smoothstep',
     }
-}).filter((edge) => edge !== null);
+}).filter((edge) => edge !== null)
+    .filter((edge, index, array) =>
+        array.findIndex(e => e.id === edge.id) === index
+    );
 
 const teamEdges = employees.map((employee) => ({
     id: `team-${employee.team}-${employee.id}`,
