@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ReactFlow, Handle, Position, Background, useReactFlow, ReactFlowProvider, Edge, Node, getOutgoers, getIncomers } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback, useLayoutEffect, useState, memo } from 'react'
+import { useCallback, useLayoutEffect, useState, memo, useMemo } from 'react'
 import ELK from 'elkjs/lib/elk.bundled.js'
 
 import '@xyflow/react/dist/style.css'
@@ -274,15 +274,20 @@ export default function OrgChart() {
         onLayout({ useInitialNodes: true })
     }, [])
 
+    const nodeTypes = useMemo(
+        () => ({
+            employeeNode: EmployeeNode,
+            teamNode: TeamNode,
+        }),
+        [],
+    )
+
     return (
         <div className="w-full h-screen">
             <ReactFlow
                 nodes={visibleNodes}
                 edges={visibleEdges}
-                nodeTypes={{
-                    employeeNode: EmployeeNode,
-                    teamNode: TeamNode,
-                }}
+                nodeTypes={nodeTypes}
                 fitView
             >
                 <Background />
