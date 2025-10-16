@@ -1,11 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ReactFlow, Handle, Position, Background, useReactFlow, ReactFlowProvider, Edge, Node, getOutgoers, getIncomers } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import { useCallback, useLayoutEffect, useState } from 'react';
-import ELK from 'elkjs/lib/elk.bundled.js';
+import { ReactFlow, Handle, Position, Background, useReactFlow, ReactFlowProvider, Edge, Node, getOutgoers, getIncomers } from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
+import { useCallback, useLayoutEffect, useState } from 'react'
+import ELK from 'elkjs/lib/elk.bundled.js'
 
-import '@xyflow/react/dist/style.css';
-import { createServerFn } from '@tanstack/react-start';
+import '@xyflow/react/dist/style.css'
+import { createServerFn } from '@tanstack/react-start'
 
 type DeelEmployee = {
     id: string
@@ -58,65 +58,56 @@ export const Route = createFileRoute('/org-chart')({
     loader: async () => await getDeelEmployees(),
 })
 
-const elk = new ELK();
-
-// Elk has a *huge* amount of options to configure. To see everything you can
-// tweak check out:
-//
-// - https://www.eclipse.org/elk/reference/algorithms.html
-// - https://www.eclipse.org/elk/reference/options.html
-const elkOptions = {
-    'elk.algorithm': 'layered',
-    'elk.layered.spacing.nodeNodeBetweenLayers': '100',
-    'elk.spacing.nodeNode': '80',
-};
-
 function getDescendantsCount(node: Node, nodes: Node[], edges: Edge[]): number {
     const outgoers = getOutgoers(node, nodes, edges)
-        .filter((node, index, array) => array.findIndex(n => n.id === node.id) === index);
+        .filter((node, index, array) => array.findIndex(n => n.id === node.id) === index)
     return (
         outgoers.length +
         outgoers.reduce((acc, child) => acc + getDescendantsCount(child, nodes, edges), 0)
-    );
+    )
 }
 
 function shouldNodeHide(node: Node, nodes: Node[], edges: Edge[]): boolean {
-    const parents = getIncomers(node, nodes, edges);
+    const parents = getIncomers(node, nodes, edges)
 
     if (parents.length === 0) {
-        return false;
+        return false
     }
 
     for (const parent of parents) {
         if (parent.data.showingChildren === false) {
-            return true;
+            return true
         }
     }
 
-    return parents.some((parent) => shouldNodeHide(parent, nodes, edges));
+    return parents.some((parent) => shouldNodeHide(parent, nodes, edges))
 }
 
 function shouldEdgeHide(edge: Edge, nodes: Node[], edges: Edge[]): boolean {
-    const sourceNode = nodes.find(node => node.id === edge.source);
-    const targetNode = nodes.find(node => node.id === edge.target);
+    const sourceNode = nodes.find(node => node.id === edge.source)
+    const targetNode = nodes.find(node => node.id === edge.target)
 
     return (
         (!!sourceNode && shouldNodeHide(sourceNode, nodes, edges)) ||
         (!!targetNode && shouldNodeHide(targetNode, nodes, edges))
-    );
+    )
 }
 
-const getLayoutedElements = (nodes: Node[], edges: Edge[], options: Record<string, any> = {}): Promise<{ nodes: Node[], edges: Edge[] }> => {
-    const isHorizontal = options?.['elk.direction'] === 'RIGHT';
+const getLayoutedElements = (nodes: Node[], edges: Edge[]): Promise<{ nodes: Node[], edges: Edge[] }> => {
     const graph = {
         id: 'root',
-        layoutOptions: options,
+        layoutOptions: {
+            'elk.algorithm': 'layered',
+            'elk.direction': 'DOWN',
+            "elk.edgeRouting": "POLYLINE",
+            'elk.layered.spacing.nodeNodeBetweenLayers': '100',
+            "elk.spacing.nodeNode": "100",
+            "elk.spacing.edgeNode": "100",
+        },
         children: nodes.map((node) => ({
             ...node,
-            targetPosition: isHorizontal ? 'left' : 'top',
-            sourcePosition: isHorizontal ? 'right' : 'bottom',
-            width: node.type === 'teamNode' ? 250 : 250,
-            height: node.type === 'teamNode' ? 100 : 100,
+            width: 250,
+            height: 100,
         })),
         edges: edges.map(edge => ({
             id: edge.id,
@@ -124,7 +115,9 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], options: Record<strin
             targets: [edge.target],
             type: edge.type,
         })),
-    };
+    }
+
+    const elk = new ELK()
 
     return elk.layout(graph).then((layoutedGraph) => ({
         nodes: layoutedGraph.children!.map((node) => ({
@@ -137,15 +130,15 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], options: Record<strin
             id: edge.id,
             source: edge.sources![0],
             target: edge.targets![0],
-            type: edge.type || 'smoothstep',
-        } as Edge)),
-    }));
-};
+            type: 'smoothstep',
+        })),
+    }))
+}
 
 export default function OrgChart() {
-    const [allNodes, setAllNodes] = useState<Node[]>([]);
-    const [allEdges, setAllEdges] = useState<Edge[]>([]);
-    const { fitView } = useReactFlow();
+    const [allNodes, setAllNodes] = useState<Node[]>([])
+    const [allEdges, setAllEdges] = useState<Edge[]>([])
+    const { fitView } = useReactFlow()
     const employees: DeelEmployee[] = Route.useLoaderData()
 
     const teamNodes = [...new Set(employees.map(employee => employee.team))]
@@ -158,9 +151,7 @@ export default function OrgChart() {
                 descendantsCount: 0, // Will be calculated later
                 showingChildren: true,
             },
-            targetPosition: Position.Top,
-            sourcePosition: Position.Bottom,
-        }));
+        }))
 
     const employeeNodes = employees
         .map((employee) => ({
@@ -175,14 +166,12 @@ export default function OrgChart() {
                 descendantsCount: 0, // Will be calculated later
                 showingChildren: true,
             },
-            targetPosition: Position.Top,
-            sourcePosition: Position.Bottom,
-        }));
+        }))
 
-    const initialNodes = [
+    const getInitialNodes = useCallback(() => [
         ...teamNodes,
         ...employeeNodes
-    ]
+    ], [])
 
     function createSetShowingChildren(
         setNodes: (updater: (nodes: Node[]) => Node[]) => void,
@@ -202,9 +191,9 @@ export default function OrgChart() {
                         }
                         : node
                 )
-            );
-            updateVisibility();
-        };
+            )
+            updateVisibility()
+        }
     }
 
     function enhanceNodesWithDescendantsCount(
@@ -220,7 +209,7 @@ export default function OrgChart() {
                 descendantsCount: getDescendantsCount(node, nodes, edges),
                 setShowingChildren: createSetShowingChildren(setNodes, updateVisibility, node.id),
             }
-        }));
+        }))
     }
 
     const getTopLevelManager = (employee: typeof employees[number]): typeof employees[number] | undefined => {
@@ -238,7 +227,6 @@ export default function OrgChart() {
             id: employee.team + topLevelManager?.name,
             source: `employee-${topLevelManager?.id}`,
             target: `team-${employee.team}`,
-            type: 'smoothstep',
         }
     }).filter((edge) => edge !== null)
 
@@ -246,49 +234,45 @@ export default function OrgChart() {
         id: `team-${employee.team}-${employee.name}`,
         source: `team-${employee.team}`,
         target: `employee-${employee.id}`,
-        type: 'smoothstep',
-    }));
+    }))
 
-    const initialEdges = [
+    const getInitialEdges = useCallback(() => [
         ...blitzscaleEdges,
         ...teamEdges
     ].filter((edge, index, array) =>
         array.findIndex(e => e.id === edge.id) === index
-    )
+    ), [])
 
-    // Filter for visible elements only
-    const visibleNodes = allNodes.filter(node => !shouldNodeHide(node, allNodes, allEdges));
-    const visibleEdges = allEdges.filter(edge => !shouldEdgeHide(edge, allNodes, allEdges));
+    const visibleNodes = allNodes.filter(node => !shouldNodeHide(node, allNodes, allEdges))
+    const visibleEdges = allEdges.filter(edge => !shouldEdgeHide(edge, allNodes, allEdges))
 
     const setNodesWithEnhancement = (updater: (nodes: Node[]) => Node[]) => {
-        setAllNodes(updater);
-    };
+        setAllNodes(updater)
+    }
 
     const updateNodeVisibility = useCallback(() => {
-        // Force re-render by updating state reference
-        setAllNodes(current => [...current]);
-    }, []);
+        setAllNodes(current => [...current])
+    }, [])
 
     const onLayout = useCallback(
-        ({ direction, useInitialNodes = false }: { direction: string, useInitialNodes: boolean }) => {
-            const opts = { 'elk.direction': direction, ...elkOptions };
-            const ns = useInitialNodes ? enhanceNodesWithDescendantsCount(initialNodes, initialEdges, setNodesWithEnhancement, updateNodeVisibility) : allNodes;
-            const es = useInitialNodes ? initialEdges : allEdges;
+        ({ useInitialNodes = false }: { useInitialNodes: boolean }) => {
+            const ns = useInitialNodes ? enhanceNodesWithDescendantsCount(getInitialNodes(), getInitialEdges(), setNodesWithEnhancement, updateNodeVisibility) : allNodes
+            const es = useInitialNodes ? getInitialEdges() : allEdges
 
-            getLayoutedElements(ns, es, opts).then(
+            getLayoutedElements(ns, es).then(
                 ({ nodes: layoutedNodes, edges: layoutedEdges }) => {
-                    setAllNodes(layoutedNodes);
-                    setAllEdges(layoutedEdges);
-                    fitView();
+                    setAllNodes(layoutedNodes)
+                    setAllEdges(layoutedEdges)
+                    fitView()
                 },
-            );
+            )
         },
         [allNodes, allEdges],
-    );
+    )
 
     useLayoutEffect(() => {
-        onLayout({ direction: 'DOWN', useInitialNodes: true });
-    }, []);
+        onLayout({ useInitialNodes: true })
+    }, [])
 
     return (
         <div className="w-full h-screen">
@@ -304,7 +288,7 @@ export default function OrgChart() {
                 <Background />
             </ReactFlow>
         </div>
-    );
+    )
 }
 
 function EmployeeNode({ data }: { data: { name: string, title: string, team: string, row?: number, totalRows?: number, descendantsCount?: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
@@ -343,7 +327,7 @@ function EmployeeNode({ data }: { data: { name: string, title: string, team: str
                 className="w-16 !bg-teal-500"
             />
         </div>
-    );
+    )
 }
 
 function TeamNode({ data: { name, descendantsCount, showingChildren, setShowingChildren } }: { data: { name: string, descendantsCount: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
@@ -377,5 +361,5 @@ function TeamNode({ data: { name, descendantsCount, showingChildren, setShowingC
                 className="w-16 !bg-blue-500"
             />
         </div>
-    );
+    )
 }
