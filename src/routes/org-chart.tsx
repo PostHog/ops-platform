@@ -225,11 +225,13 @@ export default function OrgChart() {
         const topLevelManager = getTopLevelManager(employee)
         if (!topLevelManager || employee.team === 'Blitzscale') return null
         return {
-            id: employee.team + topLevelManager?.name,
+            id: employee.team,
             source: `employee-${topLevelManager?.id}`,
             target: `team-${employee.team}`,
         }
-    }).filter((edge) => edge !== null)
+    })
+        .filter((edge) => edge !== null)
+        .filter((edge, index, array) => array.findIndex((e) => e?.id === edge?.id) === index)
 
     const teamEdges = employees.map((employee) => ({
         id: `team-${employee.team}-${employee.name}`,
