@@ -6,12 +6,14 @@ import ELK from 'elkjs/lib/elk.bundled.js'
 
 import '@xyflow/react/dist/style.css'
 import { createServerFn } from '@tanstack/react-start'
+import EmployeePanel from '@/components/EmployeePanel'
 
-type DeelEmployee = {
+export type DeelEmployee = {
     id: string
     name: string
     title: string
     team: string
+    email: string
     manager: string
 }
 
@@ -42,6 +44,7 @@ const getDeelEmployees = createServerFn({
                         id: employee.id,
                         name: employee.name.givenName + " " + employee.name.familyName,
                         title: employee.title,
+                        email: employee.emails.find((email: { type: string, value: string }) => email.type === 'work')?.value,
                         team: employee["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"].department,
                         manager: employee["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"].manager.value,
                     }))]
@@ -138,6 +141,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]): Promise<{ nodes: Nod
 export default function OrgChart() {
     const [allNodes, setAllNodes] = useState<Node[]>([])
     const [allEdges, setAllEdges] = useState<Edge[]>([])
+    const [selectedNode, setSelectedNode] = useState<string | null>(null)
     const [layoutKey, setLayoutKey] = useState(0)
     const { fitView } = useReactFlow()
     const employees: DeelEmployee[] = Route.useLoaderData()
@@ -150,7 +154,7 @@ export default function OrgChart() {
             data: {
                 name: teamName,
                 descendantsCount: 0, // Will be calculated later
-                showingChildren: true,
+                showingChildren: teamName === 'Blitzscale' ? true : false,
             },
         }))
 
@@ -165,7 +169,7 @@ export default function OrgChart() {
                 team: employee.team,
                 manager: employee.manager,
                 descendantsCount: 0, // Will be calculated later
-                showingChildren: true,
+                showingChildren: false,
             },
         }))
 
@@ -303,11 +307,15 @@ export default function OrgChart() {
                 nodes={visibleNodes}
                 edges={visibleEdges}
                 nodeTypes={nodeTypes}
+                onNodeClick={(_, node) => setSelectedNode(node.id.replace('employee-', ''))}
+                onPaneClick={() => setSelectedNode(null)}
                 fitView
             >
                 <Background gap={36} variant={BackgroundVariant.Dots} />
 
                 <Controls showInteractive={false} />
+
+                <EmployeePanel employeeId={selectedNode} employees={employees} />
             </ReactFlow>
         </div>
     )
@@ -335,7 +343,10 @@ const EmployeeNode = memo(function EmployeeNode({ data }: { data: { name: string
                             <div className="flex items-center gap-2 mt-1">
                                 <div className="text-blue-600 text-xs font-medium">{data.descendantsCount} {data.descendantsCount === 1 ? 'descendant' : 'descendants'}</div>
                                 <button
-                                    onClick={() => data.setShowingChildren?.(!data.showingChildren)}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        data.setShowingChildren?.(!data.showingChildren)
+                                    }}
                                     className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
                                 >
                                     {data.showingChildren ? 'Hide' : 'Show'}
