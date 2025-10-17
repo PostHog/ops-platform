@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ReactFlow, Handle, Position, Background, useReactFlow, ReactFlowProvider, Edge, Node, getOutgoers, getIncomers, BackgroundVariant, Controls } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback, useLayoutEffect, useState, memo, useMemo } from 'react'
+import { useCallback, useLayoutEffect, useState, memo, useMemo, useEffect } from 'react'
 import ELK from 'elkjs/lib/elk.bundled.js'
 
 import '@xyflow/react/dist/style.css'
@@ -138,6 +138,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]): Promise<{ nodes: Nod
 export default function OrgChart() {
     const [allNodes, setAllNodes] = useState<Node[]>([])
     const [allEdges, setAllEdges] = useState<Edge[]>([])
+    const [layoutKey, setLayoutKey] = useState(0)
     const { fitView } = useReactFlow()
     const employees: DeelEmployee[] = Route.useLoaderData()
 
@@ -243,36 +244,45 @@ export default function OrgChart() {
         array.findIndex(e => e.id === edge.id) === index
     ), [])
 
-    const visibleNodes = allNodes.filter(node => !shouldNodeHide(node, allNodes, allEdges))
-    const visibleEdges = allEdges.filter(edge => !shouldEdgeHide(edge, allNodes, allEdges))
-
     const setNodesWithEnhancement = (updater: (nodes: Node[]) => Node[]) => {
         setAllNodes(updater)
     }
 
     const updateNodeVisibility = useCallback(() => {
         setAllNodes(current => [...current])
+        setLayoutKey(prev => prev + 1)
     }, [])
 
-    const onLayout = useCallback(
-        ({ useInitialNodes = false }: { useInitialNodes: boolean }) => {
-            const ns = useInitialNodes ? enhanceNodesWithDescendantsCount(getInitialNodes(), getInitialEdges(), setNodesWithEnhancement, updateNodeVisibility) : allNodes
-            const es = useInitialNodes ? getInitialEdges() : allEdges
+    const onLayout = ({ nodes, edges }: { nodes: Node[], edges: Edge[] }) => {
+        const visibleNodes = nodes.filter(node => !shouldNodeHide(node, allNodes, allEdges))
+        const hiddenNodes = nodes.filter(node => shouldNodeHide(node, allNodes, allEdges))
+        const visibleEdges = edges.filter(edge => !shouldEdgeHide(edge, allNodes, allEdges))
+        const hiddenEdges = edges.filter(edge => shouldEdgeHide(edge, allNodes, allEdges))
 
-            getLayoutedElements(ns, es).then(
-                ({ nodes: layoutedNodes, edges: layoutedEdges }) => {
-                    setAllNodes(layoutedNodes)
-                    setAllEdges(layoutedEdges)
-                    fitView()
-                },
-            )
-        },
-        [allNodes, allEdges],
-    )
+        getLayoutedElements(visibleNodes, visibleEdges).then(
+            ({ nodes: layoutedNodes, edges: layoutedEdges }) => {
+                setAllNodes([...layoutedNodes, ...hiddenNodes])
+                setAllEdges([...layoutedEdges, ...hiddenEdges])
+                fitView()
+            },
+        )
+    }
 
     useLayoutEffect(() => {
-        onLayout({ useInitialNodes: true })
+        const nodes = enhanceNodesWithDescendantsCount(getInitialNodes(), getInitialEdges(), setNodesWithEnhancement, updateNodeVisibility)
+        const edges = getInitialEdges()
+
+        onLayout({ nodes, edges })
     }, [])
+
+    useEffect(() => {
+        if (allNodes.length > 0) {
+            onLayout({
+                nodes: allNodes,
+                edges: allEdges
+            })
+        }
+    }, [layoutKey])
 
     const nodeTypes = useMemo(
         () => ({
@@ -281,6 +291,9 @@ export default function OrgChart() {
         }),
         [],
     )
+
+    const visibleNodes = allNodes.filter(node => !shouldNodeHide(node, allNodes, allEdges))
+    const visibleEdges = allEdges.filter(edge => !shouldEdgeHide(edge, allNodes, allEdges))
 
     return (
         <div className="h-full w-full">
