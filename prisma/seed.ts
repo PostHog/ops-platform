@@ -8,6 +8,7 @@ const employeeData: Prisma.EmployeeCreateInput[] = [
     priority: "high",
     reviewer: "Mother of Hedgehogs",
     reviewd: false,
+    email: "max@posthog.com",
     salaries: {
       create: [
         {
@@ -58,6 +59,7 @@ const employeeData: Prisma.EmployeeCreateInput[] = [
     priority: "high",
     reviewer: "Mother of Hedgehogs",
     reviewd: false,
+    email: 'alice@posthog.com',
     salaries: {
       create: [
         {
@@ -88,6 +90,7 @@ const employeeData: Prisma.EmployeeCreateInput[] = [
     priority: "low",
     reviewer: "Father of Hedgehogs",
     reviewd: false,
+    email: 'bob@posthog.com',
     salaries: {
       create: [
         {
