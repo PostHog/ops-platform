@@ -15,9 +15,10 @@ export type DeelEmployee = {
     team: string
     email: string
     manager: string
+    topLevelManager: string
 }
 
-const getDeelEmployees = createServerFn({
+export const getDeelEmployees = createServerFn({
     method: 'GET',
 })
     .handler(async () => {
