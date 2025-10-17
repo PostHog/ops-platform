@@ -96,7 +96,7 @@ const customFilterFns = {
     return true
   },
   containsText: (value: string, _: string, filterValue: string) => {
-    if (filterValue !== '' && !value.includes(filterValue)) return false
+    if (filterValue !== '' && !value.toLowerCase().includes(filterValue)) return false
     return true
   },
   equals: (value: string, _: string, filterValue: string) => {
