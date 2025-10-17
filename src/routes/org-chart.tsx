@@ -52,6 +52,19 @@ const getDeelEmployees = createServerFn({
             cursor += 100
         }
 
+        const getManager = (id: string) => {
+            const employee = allUsers.find(employee => employee.id === id)
+            if (employee?.manager && employee.team !== 'Blitzscale') {
+                return getManager(employee.manager)
+            }
+            return employee
+        }
+
+        allUsers = allUsers.map(employee => ({
+            ...employee,
+            topLevelManager: getManager(employee.manager)?.id ?? '',
+        }))
+
         return allUsers
     })
 
