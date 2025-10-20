@@ -281,6 +281,7 @@ function EmployeeOverview() {
                                     value={field.state.value}
                                     onBlur={field.handleBlur}
                                     onChange={(e) => field.handleChange(e.target.value)}
+                                    readOnly
                                 />
                             </div>
                         )}
@@ -315,6 +316,7 @@ function EmployeeOverview() {
                                     value={field.state.value}
                                     onBlur={field.handleBlur}
                                     onChange={(e) => field.handleChange(e.target.value)}
+                                    readOnly
                                 />
                             </div>
                         )}
