@@ -334,9 +334,8 @@ function EmployeeOverview() {
 
                 </div>
 
-                <div className="flex flex-row gap-2 justify-between items-center">
+                <div className="flex flex-row gap-2 justify-between items-center mt-2">
                     <span className="text-md font-bold">Salary history</span>
-                    <Button type="button" variant="outline">Update salary</Button>
                 </div>
 
                 <div className="w-full flex-grow">
