@@ -15,12 +15,12 @@ datasource db {
 }
 
 model Employee {
-  id           String       @id @default(cuid())
+  id           String        @id @default(cuid())
   priority     Priority
   reviewd      Boolean
-  email        String       @unique
+  email        String        @unique
   salaries     Salary[]
-  deelEmployee DeelEmployee @relation(fields: [email], references: [workEmail])
+  deelEmployee DeelEmployee?
 }
 
 model DeelEmployee {
@@ -36,7 +36,7 @@ model DeelEmployee {
   topLevelManagerId     String?
   topLevelManager       DeelEmployee?  @relation("topLevelManager", fields: [topLevelManagerId], references: [id])
   topLevelDirectReports DeelEmployee[] @relation("topLevelManager")
-  Employee              Employee?
+  Employee              Employee?      @relation(fields: [workEmail], references: [email])
 }
 
 enum Priority {

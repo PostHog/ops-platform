@@ -78,6 +78,9 @@ export const getEmployees = createServerFn({
           topLevelManager: true
         }
       }
+    },
+    where: {
+      salaries: { some: {} }
     }
   })
 })
@@ -134,7 +137,7 @@ function App() {
         filterVariant: 'text',
       },
       cell: ({ row }) => (
-        <div>{row.original.deelEmployee.name}</div>
+        <div>{row.original.deelEmployee?.name}</div>
       ),
     },
     {
@@ -214,7 +217,7 @@ function App() {
       meta: {
         filterVariant: 'text',
       },
-      cell: ({ row }) => <div>{row.original.deelEmployee.topLevelManager?.name}</div>,
+      cell: ({ row }) => <div>{row.original.deelEmployee?.topLevelManager?.name}</div>,
     },
     {
       accessorKey: "notes",

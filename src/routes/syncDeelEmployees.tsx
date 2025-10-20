@@ -61,6 +61,26 @@ export const Route = createFileRoute('/syncDeelEmployees')({
 
                 const deelEmployees = await getDeelEmployees()
 
+                const emailsToUpsert = Array.from(new Set(
+                    deelEmployees
+                        .map(emp => emp.workEmail)
+                        .filter((email) => email != null)
+                ))
+
+                await Promise.all(
+                    emailsToUpsert.map(email =>
+                        prisma.employee.upsert({
+                            where: { email },
+                            create: {
+                                email,
+                                priority: 'low',
+                                reviewd: false,
+                            },
+                            update: {},
+                        })
+                    )
+                )
+
                 await prisma.deelEmployee.deleteMany({})
 
                 await prisma.deelEmployee.createMany({
