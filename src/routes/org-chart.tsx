@@ -8,7 +8,13 @@ import '@xyflow/react/dist/style.css'
 import { createServerFn } from '@tanstack/react-start'
 import EmployeePanel from '@/components/EmployeePanel'
 import prisma from '@/db'
-import { DeelEmployee } from 'generated/prisma/client'
+import { Prisma } from 'generated/prisma/client'
+
+type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
+    include: {
+        employee: true,
+    }
+}>
 
 export const getDeelEmployees = createServerFn({
     method: 'GET',
