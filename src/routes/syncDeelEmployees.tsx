@@ -29,6 +29,7 @@ const getDeelEmployees = async () => {
                     workEmail: employee.emails.find((email: { type: string, value: string }) => email.type === 'work')?.value,
                     team: employee["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"].department,
                     managerId: employee["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"].manager.value,
+                    startDate: new Date(employee["urn:ietf:params:scim:schemas:extension:2.0:User"].startDate)
                 }))]
         hasMore = data.totalResults > 100
         cursor += 100
@@ -61,25 +62,10 @@ export const Route = createFileRoute('/syncDeelEmployees')({
 
                 const deelEmployees = await getDeelEmployees()
 
-                const emailsToUpsert = Array.from(new Set(
-                    deelEmployees
-                        .map(emp => emp.workEmail)
-                        .filter((email) => email != null)
-                ))
-
-                await Promise.all(
-                    emailsToUpsert.map(email =>
-                        prisma.employee.upsert({
-                            where: { email },
-                            create: {
-                                email,
-                                priority: 'low',
-                                reviewd: false,
-                            },
-                            update: {},
-                        })
-                    )
-                )
+                await prisma.employee.createMany({
+                    data: deelEmployees.map(({ workEmail }) => ({ email: workEmail ?? '', priority: 'low', reviewd: false })),
+                    skipDuplicates: true,
+                })
 
                 await prisma.deelEmployee.deleteMany({})
 
@@ -92,10 +78,11 @@ export const Route = createFileRoute('/syncDeelEmployees')({
                         workEmail: emp.workEmail,
                         managerId: null,
                         topLevelManagerId: null,
+                        startDate: emp.startDate
                     })),
                 })
 
-                Promise.allSettled(deelEmployees.map(emp =>
+                await Promise.allSettled(deelEmployees.map(emp =>
                     prisma.deelEmployee.update({
                         where: { id: emp.id },
                         data: {

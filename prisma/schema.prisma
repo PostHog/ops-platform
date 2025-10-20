@@ -37,6 +37,7 @@ model DeelEmployee {
   topLevelManager       DeelEmployee?  @relation("topLevelManager", fields: [topLevelManagerId], references: [id])
   topLevelDirectReports DeelEmployee[] @relation("topLevelManager")
   employee              Employee?      @relation(fields: [workEmail], references: [email])
+  startDate             DateTime
 }
 
 enum Priority {
