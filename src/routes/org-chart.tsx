@@ -232,10 +232,10 @@ export default function OrgChart() {
     }, [])
 
     const onLayout = ({ nodes, edges }: { nodes: Node[], edges: Edge[] }) => {
-        const visibleNodes = nodes.filter(node => !shouldNodeHide(node, allNodes, allEdges))
-        const hiddenNodes = nodes.filter(node => shouldNodeHide(node, allNodes, allEdges))
-        const visibleEdges = edges.filter(edge => !shouldEdgeHide(edge, allNodes, allEdges))
-        const hiddenEdges = edges.filter(edge => shouldEdgeHide(edge, allNodes, allEdges))
+        const visibleNodes = nodes.filter(node => !shouldNodeHide(node, nodes, edges))
+        const hiddenNodes = nodes.filter(node => shouldNodeHide(node, nodes, edges))
+        const visibleEdges = edges.filter(edge => !shouldEdgeHide(edge, nodes, edges))
+        const hiddenEdges = edges.filter(edge => shouldEdgeHide(edge, nodes, edges))
 
         getLayoutedElements(visibleNodes, visibleEdges).then(
             ({ nodes: layoutedNodes, edges: layoutedEdges }) => {
