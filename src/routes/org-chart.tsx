@@ -7,66 +7,14 @@ import ELK from 'elkjs/lib/elk.bundled.js'
 import '@xyflow/react/dist/style.css'
 import { createServerFn } from '@tanstack/react-start'
 import EmployeePanel from '@/components/EmployeePanel'
-
-export type DeelEmployee = {
-    id: string
-    name: string
-    title: string
-    team: string
-    email: string
-    manager: string
-    topLevelManager: string
-}
+import prisma from '@/db'
+import { DeelEmployee } from 'generated/prisma/client'
 
 export const getDeelEmployees = createServerFn({
     method: 'GET',
 })
     .handler(async () => {
-        let cursor = 1
-        let allUsers: DeelEmployee[] = []
-        let hasMore = true
-
-        while (hasMore) {
-            const response = await fetch(`https://api.letsdeel.com/scim/v2/Users?startIndex=${cursor}&count=100`, {
-                headers: {
-                    'Authorization': `Bearer ${process.env.DEEL_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-            })
-            if (response.status !== 200) {
-                throw new Error(`Failed to fetch employees: ${response.statusText}`)
-            }
-            const data = await response.json()
-            allUsers = [
-                ...allUsers,
-                ...data.Resources
-                    .filter((employee: any) => employee.active && employee['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].customFields.full_time_headcount === 'Full-Time')
-                    .map((employee: any) => ({
-                        id: employee.id,
-                        name: employee.name.givenName + " " + employee.name.familyName,
-                        title: employee.title,
-                        email: employee.emails.find((email: { type: string, value: string }) => email.type === 'work')?.value,
-                        team: employee["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"].department,
-                        manager: employee["urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"].manager.value,
-                    }))]
-            hasMore = data.totalResults > 100
-            cursor += 100
-        }
-
-        const getManager = (id: string) => {
-            const employee = allUsers.find(employee => employee.id === id)
-            if (employee?.manager && employee.team !== 'Blitzscale') {
-                return getManager(employee.manager)
-            }
-            return employee
-        }
-
-        allUsers = allUsers.map(employee => ({
-            ...employee,
-            topLevelManager: getManager(employee.manager)?.id ?? '',
-        }))
-
-        return allUsers
+        return await prisma.deelEmployee.findMany()
     })
 
 
@@ -181,7 +129,7 @@ export default function OrgChart() {
                 name: employee.name,
                 title: employee.title,
                 team: employee.team,
-                manager: employee.manager,
+                manager: employee.managerId,
                 descendantsCount: 0, // Will be calculated later
                 showingChildren: false,
             },
@@ -232,8 +180,8 @@ export default function OrgChart() {
     }
 
     const getTopLevelManager = (employee: typeof employees[number]): typeof employees[number] | undefined => {
-        let manager = employees.find(e => e.id === employee.manager)
-        if (manager && manager.team !== 'Blitzscale' && manager.manager) {
+        let manager = employees.find(e => e.id === employee.managerId)
+        if (manager && manager.team !== 'Blitzscale' && manager.managerId) {
             manager = getTopLevelManager(manager)
         }
         return manager

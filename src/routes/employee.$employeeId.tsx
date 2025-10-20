@@ -4,7 +4,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { useForm, useStore, AnyFormApi } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn, useServerFn } from '@tanstack/react-start'
-import { Employee, Salary } from 'generated/prisma/client'
+import { Prisma, type Salary } from 'generated/prisma/client'
 import { Priority } from 'generated/prisma/enums'
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -50,22 +50,40 @@ const getEmployeeById = createServerFn({
                     orderBy: {
                         timestamp: 'desc',
                     },
+                },
+                deelEmployee: {
+                    include: {
+                        topLevelManager: true,
+                    }
                 }
             }
         })
     })
 
+type Employee = Prisma.EmployeeGetPayload<{
+    include: {
+        salaries: {
+            orderBy: {
+                timestamp: 'desc',
+            },
+        },
+        deelEmployee: {
+            include: {
+                topLevelManager: true,
+            }
+        }
+    }
+}>
+
 const updateEmployee = createServerFn({
     method: 'POST',
 })
-    .inputValidator((d: { id: string; name: string; priority: Priority; reviewer: string; reviewd: boolean }) => d)
+    .inputValidator((d: { id: string; priority: Priority; reviewd: boolean }) => d)
     .handler(async ({ data }) => {
         return await prisma.employee.update({
             where: { id: data.id },
             data: {
-                name: data.name,
                 priority: data.priority,
-                reviewer: data.reviewer,
                 reviewd: data.reviewd,
             },
         })
@@ -91,12 +109,22 @@ function EmployeeOverview() {
         queryFn: () => getEmployeesFn(),
     })
     const router = useRouter()
-    const employee: Employee & { salaries: Salary[] } = Route.useLoaderData()
+    const employee: Employee = Route.useLoaderData()
 
     const form = useForm({
-        defaultValues: employee,
+        defaultValues: {
+            id: employee.id,
+            name: employee.deelEmployee?.name,
+            priority: employee.priority,
+            reviewer: employee.deelEmployee?.topLevelManager?.name,
+            reviewd: employee.reviewd,
+        },
         onSubmit: async ({ value }) => {
-            await updateEmployee({ data: value })
+            await updateEmployee({ data: {
+                id: value.id,
+                priority: value.priority,
+                reviewd: value.reviewd,
+            } })
             router.invalidate()
             createToast("Employee updated successfully.", {
                 timeout: 3000,

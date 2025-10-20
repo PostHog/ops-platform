@@ -15,13 +15,30 @@ datasource db {
 }
 
 model Employee {
-  id       String   @id @default(cuid())
-  name     String
-  priority Priority
-  reviewer String
-  reviewd  Boolean
-  email    String   @unique
-  salaries Salary[]
+  id           String       @id @default(cuid())
+  name         String
+  priority     Priority
+  reviewer     String
+  reviewd      Boolean
+  email        String       @unique
+  salaries     Salary[]
+  deelEmployee DeelEmployee @relation(fields: [email], references: [workEmail])
+}
+
+model DeelEmployee {
+  id                    String         @id
+  name                  String
+  title                 String
+  team                  String
+  workEmail             String?        @unique
+  personalEmail         String?
+  managerId             String?
+  manager               DeelEmployee?  @relation("manager", fields: [managerId], references: [id])
+  directReports         DeelEmployee[] @relation("manager")
+  topLevelManagerId     String?
+  topLevelManager       DeelEmployee?  @relation("topLevelManager", fields: [topLevelManagerId], references: [id])
+  topLevelDirectReports DeelEmployee[] @relation("topLevelManager")
+  Employee              Employee?
 }
 
 enum Priority {

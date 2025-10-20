@@ -1,4 +1,4 @@
-import { DeelEmployee } from "@/routes/org-chart"
+import { DeelEmployee } from 'generated/prisma/client'
 import { Button } from "./ui/button"
 import prisma from "@/db"
 import { createServerFn } from "@tanstack/react-start"
@@ -20,9 +20,9 @@ const EmployeePanel = ({ employeeId, employees }: { employeeId: string | null, e
     const employee = employees.find(employee => employee.id === employeeId)
 
     const { data: employeeRecord } = useQuery({
-        queryKey: ['employee', employee?.email],
-        queryFn: async () => await getEmployeeByEmail({ data: { email: employee?.email ?? '' } }),
-        enabled: !!employee?.email,
+        queryKey: ['employee', employee?.workEmail],
+        queryFn: async () => await getEmployeeByEmail({ data: { email: employee?.workEmail ?? '' } }),
+        enabled: !!employee?.workEmail,
     })
 
     if (!employee) return null

@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SyncDeelEmployeesRouteImport } from './routes/syncDeelEmployees'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
 import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmployeeEmployeeIdRouteImport } from './routes/employee.$employeeId'
 
+const SyncDeelEmployeesRoute = SyncDeelEmployeesRouteImport.update({
+  id: '/syncDeelEmployees',
+  path: '/syncDeelEmployees',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrgChartRoute = OrgChartRouteImport.update({
   id: '/org-chart',
   path: '/org-chart',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/org-chart': typeof OrgChartRoute
+  '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/org-chart': typeof OrgChartRoute
+  '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
 }
 export interface FileRoutesById {
@@ -52,25 +60,50 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/org-chart': typeof OrgChartRoute
+  '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/actions' | '/org-chart' | '/employee/$employeeId'
+  fullPaths:
+    | '/'
+    | '/actions'
+    | '/org-chart'
+    | '/syncDeelEmployees'
+    | '/employee/$employeeId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/actions' | '/org-chart' | '/employee/$employeeId'
-  id: '__root__' | '/' | '/actions' | '/org-chart' | '/employee/$employeeId'
+  to:
+    | '/'
+    | '/actions'
+    | '/org-chart'
+    | '/syncDeelEmployees'
+    | '/employee/$employeeId'
+  id:
+    | '__root__'
+    | '/'
+    | '/actions'
+    | '/org-chart'
+    | '/syncDeelEmployees'
+    | '/employee/$employeeId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActionsRoute: typeof ActionsRoute
   OrgChartRoute: typeof OrgChartRoute
+  SyncDeelEmployeesRoute: typeof SyncDeelEmployeesRoute
   EmployeeEmployeeIdRoute: typeof EmployeeEmployeeIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/syncDeelEmployees': {
+      id: '/syncDeelEmployees'
+      path: '/syncDeelEmployees'
+      fullPath: '/syncDeelEmployees'
+      preLoaderRoute: typeof SyncDeelEmployeesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/org-chart': {
       id: '/org-chart'
       path: '/org-chart'
@@ -106,6 +139,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActionsRoute: ActionsRoute,
   OrgChartRoute: OrgChartRoute,
+  SyncDeelEmployeesRoute: SyncDeelEmployeesRoute,
   EmployeeEmployeeIdRoute: EmployeeEmployeeIdRoute,
 }
 export const routeTree = rootRouteImport
