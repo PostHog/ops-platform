@@ -11,7 +11,15 @@ import { useMemo } from 'react'
 
 type Salary = Prisma.SalaryGetPayload<{
     include: {
-      employee: true
+        employee: {
+            include: {
+                deelEmployee: {
+                    include: {
+                        topLevelManager: true
+                    }
+                }
+            }
+        },
     }
   }>
 
@@ -26,7 +34,15 @@ const getUpdatedSalaries = createServerFn({
                 }
             },
             include: {
-                employee: true,
+                employee: {
+                    include: {
+                        deelEmployee: {
+                            include: {
+                                topLevelManager: true
+                            }
+                        }
+                    }
+                },
             },
             orderBy: {
                 timestamp: 'desc',
@@ -58,7 +74,7 @@ function App() {
             accessorKey: "name",
             header: "Name",
             cell: ({ row }) => (
-                <div>{row.original.employee.name}</div>
+                <div>{row.original.employee.deelEmployee.name}</div>
             ),
         },
         {
@@ -74,7 +90,7 @@ function App() {
         {
             accessorKey: "reviewer",
             header: "Reviewer",
-            cell: ({ row }) => <div>{row.original.employee.reviewer}</div>,
+            cell: ({ row }) => <div>{row.original.employee.deelEmployee.topLevelManager?.name}</div>,
         },
         {
             accessorKey: "communicated",
