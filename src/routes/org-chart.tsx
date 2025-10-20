@@ -9,6 +9,7 @@ import { createServerFn } from '@tanstack/react-start'
 import EmployeePanel from '@/components/EmployeePanel'
 import prisma from '@/db'
 import { Prisma } from 'generated/prisma/client'
+import { cn } from '@/lib/utils'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
     include: {
@@ -140,6 +141,7 @@ export default function OrgChart() {
                 title: employee.title,
                 team: employee.team,
                 manager: employee.managerId,
+                startDate: employee.startDate,
                 descendantsCount: 0, // Will be calculated later
                 showingChildren: false,
             },
@@ -304,10 +306,11 @@ const NodeHandles = () => {
     )
 }
 
-const EmployeeNode = memo(function EmployeeNode({ data }: { data: { name: string, title: string, team: string, row?: number, totalRows?: number, descendantsCount?: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
+const EmployeeNode = memo(function EmployeeNode({ data }: { data: { name: string, title: string, team: string, row?: number, totalRows?: number, startDate: Date, descendantsCount?: number, showingChildren: boolean, setShowingChildren?: (showingChildren: boolean) => void } }) {
+    const isFutureHire = data.startDate && new Date(data.startDate) > new Date()
     return (
         <div className="h-full max-h-full transition-all hover:translate-y-[-2px]">
-            <div className="w-full h-full flex justify-center items-center px-4 py-3 shadow-md rounded-md bg-white border-2 border-stone-400 min-w-[200px]">
+            <div className={cn("w-full h-full flex justify-center items-center px-4 py-3 shadow-md rounded-md bg-white border-2 border-stone-400 min-w-[200px]", isFutureHire ? 'bg-violet-50' : '')}>
                 <div className="flex items-center max-w-[80%]">
                     <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold truncate">{data.name}</div>
@@ -325,6 +328,11 @@ const EmployeeNode = memo(function EmployeeNode({ data }: { data: { name: string
                                 >
                                     {data.showingChildren ? 'Hide' : 'Show'}
                                 </button>
+                            </div>
+                        )}
+                        {isFutureHire && (
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-violet-600 text-xs font-medium">New starter</span>
                             </div>
                         )}
                         {data.totalRows && data.totalRows > 1 && (
