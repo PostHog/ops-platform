@@ -42,7 +42,12 @@ type Employee = Prisma.EmployeeGetPayload<{
   include: {
     salaries: {
       orderBy: {
-        timestamp: 'desc'
+        timestamp: 'desc',
+      },
+    },
+    deelEmployee: {
+      include: {
+        topLevelManager: true
       }
     }
   }
@@ -67,10 +72,12 @@ export const getEmployees = createServerFn({
         orderBy: {
           timestamp: 'desc',
         },
+      },
+      deelEmployee: {
+        include: {
+          topLevelManager: true
+        }
       }
-    },
-    orderBy: {
-      name: 'asc',
     }
   })
 })
@@ -127,7 +134,7 @@ function App() {
         filterVariant: 'text',
       },
       cell: ({ row }) => (
-        <div>{row.original.name}</div>
+        <div>{row.original.deelEmployee.name}</div>
       ),
     },
     {
@@ -207,7 +214,7 @@ function App() {
       meta: {
         filterVariant: 'text',
       },
-      cell: ({ row }) => <div>{row.original.reviewer}</div>,
+      cell: ({ row }) => <div>{row.original.deelEmployee.topLevelManager?.name}</div>,
     },
     {
       accessorKey: "notes",
