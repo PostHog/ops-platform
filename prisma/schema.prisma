@@ -16,9 +16,7 @@ datasource db {
 
 model Employee {
   id           String       @id @default(cuid())
-  name         String
   priority     Priority
-  reviewer     String
   reviewd      Boolean
   email        String       @unique
   salaries     Salary[]
