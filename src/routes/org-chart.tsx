@@ -241,7 +241,9 @@ export default function OrgChart() {
             ({ nodes: layoutedNodes, edges: layoutedEdges }) => {
                 setAllNodes([...layoutedNodes, ...hiddenNodes])
                 setAllEdges([...layoutedEdges, ...hiddenEdges])
-                fitView()
+                setTimeout(() => {
+                    fitView()
+                }, 100)
             },
         )
     }
