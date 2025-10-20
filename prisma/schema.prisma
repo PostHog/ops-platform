@@ -36,7 +36,7 @@ model DeelEmployee {
   topLevelManagerId     String?
   topLevelManager       DeelEmployee?  @relation("topLevelManager", fields: [topLevelManagerId], references: [id])
   topLevelDirectReports DeelEmployee[] @relation("topLevelManager")
-  Employee              Employee?      @relation(fields: [workEmail], references: [email])
+  employee              Employee?      @relation(fields: [workEmail], references: [email])
 }
 
 enum Priority {

@@ -14,7 +14,11 @@ export const getDeelEmployees = createServerFn({
     method: 'GET',
 })
     .handler(async () => {
-        return await prisma.deelEmployee.findMany()
+        return await prisma.deelEmployee.findMany({
+            include: {
+                employee: true,
+            }
+        })
     })
 
 
