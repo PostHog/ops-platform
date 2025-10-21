@@ -5,8 +5,12 @@ Welcome to your new TanStack app!
 To run this application:
 
 ```bash
+flox activate
+flox services start
+npx prisma db push
+npx prisma db seed
 pnpm install
-pnpm start
+pnpm dev
 ```
 
 # Building For Production
