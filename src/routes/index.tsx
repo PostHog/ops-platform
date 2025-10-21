@@ -136,6 +136,7 @@ function App() {
       meta: {
         filterVariant: 'text',
       },
+      filterFn: (row: Row<Employee>, _: string, filterValue: string)=> customFilterFns.containsText(row.original.deelEmployee?.name ?? '', _, filterValue),
       cell: ({ row }) => (
         <div>{row.original.deelEmployee?.name}</div>
       ),
@@ -217,6 +218,7 @@ function App() {
       meta: {
         filterVariant: 'text',
       },
+      filterFn: (row: Row<Employee>, _: string, filterValue: string)=> customFilterFns.containsText(row.original.deelEmployee?.topLevelManager?.name ?? '', _, filterValue),
       cell: ({ row }) => <div>{row.original.deelEmployee?.topLevelManager?.name}</div>,
     },
     {
