@@ -21,6 +21,7 @@ model Employee {
   email        String        @unique
   salaries     Salary[]
   deelEmployee DeelEmployee?
+  Feedback     Feedback[]
 }
 
 model DeelEmployee {
@@ -69,4 +70,12 @@ model Salary {
   employeeId           String
   communicated         Boolean  @default(false)
   employee             Employee @relation(fields: [employeeId], references: [id])
+}
+
+model Feedback {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  feedback   String
+  timestamp  DateTime @default(now())
 }

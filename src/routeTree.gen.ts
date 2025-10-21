@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SyncDeelEmployeesRouteImport } from './routes/syncDeelEmployees'
+import { Route as SendKeeperTestsRouteImport } from './routes/sendKeeperTests'
+import { Route as ReceiveKeeperTestResultsRouteImport } from './routes/receiveKeeperTestResults'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
 import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as IndexRouteImport } from './routes/index'
@@ -20,6 +22,17 @@ const SyncDeelEmployeesRoute = SyncDeelEmployeesRouteImport.update({
   path: '/syncDeelEmployees',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SendKeeperTestsRoute = SendKeeperTestsRouteImport.update({
+  id: '/sendKeeperTests',
+  path: '/sendKeeperTests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReceiveKeeperTestResultsRoute =
+  ReceiveKeeperTestResultsRouteImport.update({
+    id: '/receiveKeeperTestResults',
+    path: '/receiveKeeperTestResults',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const OrgChartRoute = OrgChartRouteImport.update({
   id: '/org-chart',
   path: '/org-chart',
@@ -45,6 +58,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/org-chart': typeof OrgChartRoute
+  '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
+  '/sendKeeperTests': typeof SendKeeperTestsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
 }
@@ -52,6 +67,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/org-chart': typeof OrgChartRoute
+  '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
+  '/sendKeeperTests': typeof SendKeeperTestsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
 }
@@ -60,6 +77,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/org-chart': typeof OrgChartRoute
+  '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
+  '/sendKeeperTests': typeof SendKeeperTestsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
 }
@@ -69,6 +88,8 @@ export interface FileRouteTypes {
     | '/'
     | '/actions'
     | '/org-chart'
+    | '/receiveKeeperTestResults'
+    | '/sendKeeperTests'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
   fileRoutesByTo: FileRoutesByTo
@@ -76,6 +97,8 @@ export interface FileRouteTypes {
     | '/'
     | '/actions'
     | '/org-chart'
+    | '/receiveKeeperTestResults'
+    | '/sendKeeperTests'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
   id:
@@ -83,6 +106,8 @@ export interface FileRouteTypes {
     | '/'
     | '/actions'
     | '/org-chart'
+    | '/receiveKeeperTestResults'
+    | '/sendKeeperTests'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
   fileRoutesById: FileRoutesById
@@ -91,6 +116,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActionsRoute: typeof ActionsRoute
   OrgChartRoute: typeof OrgChartRoute
+  ReceiveKeeperTestResultsRoute: typeof ReceiveKeeperTestResultsRoute
+  SendKeeperTestsRoute: typeof SendKeeperTestsRoute
   SyncDeelEmployeesRoute: typeof SyncDeelEmployeesRoute
   EmployeeEmployeeIdRoute: typeof EmployeeEmployeeIdRoute
 }
@@ -102,6 +129,20 @@ declare module '@tanstack/react-router' {
       path: '/syncDeelEmployees'
       fullPath: '/syncDeelEmployees'
       preLoaderRoute: typeof SyncDeelEmployeesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sendKeeperTests': {
+      id: '/sendKeeperTests'
+      path: '/sendKeeperTests'
+      fullPath: '/sendKeeperTests'
+      preLoaderRoute: typeof SendKeeperTestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/receiveKeeperTestResults': {
+      id: '/receiveKeeperTestResults'
+      path: '/receiveKeeperTestResults'
+      fullPath: '/receiveKeeperTestResults'
+      preLoaderRoute: typeof ReceiveKeeperTestResultsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/org-chart': {
@@ -139,6 +180,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActionsRoute: ActionsRoute,
   OrgChartRoute: OrgChartRoute,
+  ReceiveKeeperTestResultsRoute: ReceiveKeeperTestResultsRoute,
+  SendKeeperTestsRoute: SendKeeperTestsRoute,
   SyncDeelEmployeesRoute: SyncDeelEmployeesRoute,
   EmployeeEmployeeIdRoute: EmployeeEmployeeIdRoute,
 }
