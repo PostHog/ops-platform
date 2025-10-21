@@ -1,5 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
 import prisma from '@/db'
+import { Prisma } from 'generated/prisma/client'
+
+type Employee = Prisma.EmployeeGetPayload<{
+    include: {
+        deelEmployee: {
+            include: {
+                topLevelManager: true,
+            }
+        }
+    }
+}>
 
 export const Route = createFileRoute('/sendKeeperTests')({
     server: {
@@ -12,17 +23,21 @@ export const Route = createFileRoute('/sendKeeperTests')({
 
                 const employees = await prisma.employee.findMany({
                     include: {
-                        deelEmployee: true,
+                        deelEmployee: {
+                            include: {
+                                topLevelManager: true,
+                            }
+                        },
                     },
                 })
 
-                const getSlackMessageBody = (email: string, employeeId: string) => ({
+                const getSlackMessageBody = (employee: Employee) => ({
                     "blocks": [
                         {
                             "type": "section",
                             "text": {
                                 "type": "mrkdwn",
-                                "text": `Hey! It's Keeper Test Time! Please submit feedback for ${email}. If you get stuck or aren't familiar, check out <https://posthog.com/handbook/company/management#the-keeper-test|this> section of the Handbook.`
+                                "text": `Hey! It's Keeper Test Time! Please submit feedback for ${employee.email}. If you get stuck or aren't familiar, check out <https://posthog.com/handbook/company/management#the-keeper-test|this> section of the Handbook.`
                             }
                         },
                         {
@@ -78,18 +93,18 @@ export const Route = createFileRoute('/sendKeeperTests')({
                                     {
                                         "text": {
                                             "type": "plain_text",
-                                            "text": "Yes",
+                                            "text": "Driver",
                                             "emoji": true
                                         },
-                                        "value": "yes"
+                                        "value": "driver"
                                     },
                                     {
                                         "text": {
                                             "type": "plain_text",
-                                            "text": "No",
+                                            "text": "Passenger",
                                             "emoji": true
                                         },
-                                        "value": "no"
+                                        "value": "passenger"
                                     }
                                 ],
                                 "action_id": "keeper-test-question-2"
@@ -206,7 +221,7 @@ export const Route = createFileRoute('/sendKeeperTests')({
                                         "emoji": true
                                     },
                                     "action_id": "submit_keeper_test",
-                                    "value": `${email}|${employeeId}`
+                                    "value": `${employee.email}|${employee.id}|${employee.deelEmployee?.topLevelManager?.name ?? ''}`
                                 }
                             ]
                         }
@@ -221,7 +236,7 @@ export const Route = createFileRoute('/sendKeeperTests')({
                     },
                     body: JSON.stringify({
                         channel: 'U05LD9R5P6E',
-                        blocks: getSlackMessageBody(employees[0].email, employees[0].id).blocks
+                        blocks: getSlackMessageBody(employees[0]).blocks
                     })
                   })
 

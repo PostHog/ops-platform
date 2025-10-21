@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input'
 import prisma from '@/db'
+import ReactMarkdown from 'react-markdown'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useForm, useStore, AnyFormApi } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
@@ -46,6 +47,11 @@ const getEmployeeById = createServerFn({
                 id: data.employeeId,
             },
             include: {
+                feedback: {
+                    orderBy: {
+                        timestamp: 'desc',
+                    },
+                },
                 salaries: {
                     orderBy: {
                         timestamp: 'desc',
@@ -71,7 +77,8 @@ type Employee = Prisma.EmployeeGetPayload<{
             include: {
                 topLevelManager: true,
             }
-        }
+        },
+        feedback: true
     }
 }>
 
@@ -120,11 +127,13 @@ function EmployeeOverview() {
             reviewd: employee.reviewd,
         },
         onSubmit: async ({ value }) => {
-            await updateEmployee({ data: {
-                id: value.id,
-                priority: value.priority,
-                reviewd: value.reviewd,
-            } })
+            await updateEmployee({
+                data: {
+                    id: value.id,
+                    priority: value.priority,
+                    reviewd: value.reviewd,
+                }
+            })
             router.invalidate()
             createToast("Employee updated successfully.", {
                 timeout: 3000,
@@ -332,6 +341,33 @@ function EmployeeOverview() {
                         )}
                     />
 
+                </div>
+
+                <div className="flex flex-row gap-2 justify-between items-center mt-2">
+                    <span className="text-md font-bold">Feedback</span>
+                </div>
+
+                <div className="w-full flex-grow">
+                    <div className="mb-4 p-4 border rounded-lg bg-gray-50 max-h-[500px] overflow-y-auto">
+                        {employee.feedback.map(({ id, feedback, timestamp }) => (
+                            <div key={id} className="mb-4 p-4 border rounded-lg bg-gray-50">
+                                <span className="text-sm text-gray-500 w-full text-right list-disc">{new Date(timestamp).toLocaleDateString()}</span>
+                                <ReactMarkdown
+                                    components={{
+                                        h1: ({ children }) => <h1 className="text-2xl font-bold">{children}</h1>,
+                                        h2: ({ children }) => <h2 className="text-xl font-bold">{children}</h2>,
+                                        h3: ({ children }) => <h3 className="text-lg font-bold">{children}</h3>,
+                                        h4: ({ children }) => <h4 className="text-base font-bold">{children}</h4>,
+                                        h5: ({ children }) => <h5 className="text-sm font-bold">{children}</h5>,
+                                        h6: ({ children }) => <h6 className="text-xs font-bold">{children}</h6>,
+                                        ul: ({ children }) => <ul className="list-disc list-inside">{children}</ul>,
+                                    }}
+                                >
+                                    {feedback}
+                                </ReactMarkdown>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="flex flex-row gap-2 justify-between items-center mt-2">

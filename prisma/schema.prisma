@@ -21,7 +21,7 @@ model Employee {
   email        String        @unique
   salaries     Salary[]
   deelEmployee DeelEmployee?
-  Feedback     Feedback[]
+  feedback     Feedback[]
 }
 
 model DeelEmployee {

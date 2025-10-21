@@ -68,16 +68,15 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
                         fieldData[fieldId] = value[fieldId]
                     }
 
-                    const feedback = `
-                        Keeper test feedback for ${body.actions[0].value.split('|')[0]}:
-                        - If this team member was leaving for a similar role at another company, would you try to keep them?: ${fieldData['keeper-test-question-1']?.selected_option.value}
-                        - If yes, what is it specifically that makes them so valuable to your team and PostHog?: ${fieldData['keeper-test-question-1-text']?.value}
-                        - Are they a driver or a passenger?: ${fieldData['keeper-test-question-2']?.selected_option.value}
-                        - Do they get things done proactively, today?: ${fieldData['keeper-test-question-3']?.selected_option.value}
-                        - Are they optimistic by default?: ${fieldData['keeper-test-question-4']?.selected_option.value}
-                        - Areas to watch: ${fieldData['keeper-test-question-4-text']?.value}
-                        - Have you shared this feedback with your team member?: ${fieldData['keeper-test-question-5']?.selected_option.value}
-                    `
+                    const feedback =
+                        `### Keeper test feedback from ${body.actions[0].value.split('|')[2]}:\n` +
+                        `- If this team member was leaving for a similar role at another company, would you try to keep them?: ${fieldData['keeper-test-question-1']?.selected_option.value}\n` +
+                        `- If yes, what is it specifically that makes them so valuable to your team and PostHog?: ${fieldData['keeper-test-question-1-text']?.value}\n` +
+                        `- Are they a driver or a passenger?: ${fieldData['keeper-test-question-2']?.selected_option.value}\n` +
+                        `- Do they get things done proactively, today?: ${fieldData['keeper-test-question-3']?.selected_option.value}\n` +
+                        `- Are they optimistic by default?: ${fieldData['keeper-test-question-4']?.selected_option.value}\n` +
+                        `- Areas to watch: ${fieldData['keeper-test-question-4-text']?.value}\n` +
+                        `- Have you shared this feedback with your team member?: ${fieldData['keeper-test-question-5']?.selected_option.value}\n`
 
                     await prisma.feedback.create({
                         data: {
