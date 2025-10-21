@@ -367,6 +367,12 @@ function EmployeeOverview() {
                                 </ReactMarkdown>
                             </div>
                         ))}
+
+                        {employee.feedback.length === 0 && (
+                            <div className="text-center text-sm text-gray-500">
+                                No feedback yet.
+                            </div>
+                        )}
                     </div>
                 </div>
 
