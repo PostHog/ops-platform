@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SyncDeelEmployeesRouteImport } from './routes/syncDeelEmployees'
 import { Route as SendKeeperTestsRouteImport } from './routes/sendKeeperTests'
+import { Route as RunScheduledJobsRouteImport } from './routes/runScheduledJobs'
 import { Route as ReceiveKeeperTestResultsRouteImport } from './routes/receiveKeeperTestResults'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
 import { Route as ActionsRouteImport } from './routes/actions'
@@ -25,6 +26,11 @@ const SyncDeelEmployeesRoute = SyncDeelEmployeesRouteImport.update({
 const SendKeeperTestsRoute = SendKeeperTestsRouteImport.update({
   id: '/sendKeeperTests',
   path: '/sendKeeperTests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RunScheduledJobsRoute = RunScheduledJobsRouteImport.update({
+  id: '/runScheduledJobs',
+  path: '/runScheduledJobs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReceiveKeeperTestResultsRoute =
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/actions': typeof ActionsRoute
   '/org-chart': typeof OrgChartRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
+  '/runScheduledJobs': typeof RunScheduledJobsRoute
   '/sendKeeperTests': typeof SendKeeperTestsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/actions': typeof ActionsRoute
   '/org-chart': typeof OrgChartRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
+  '/runScheduledJobs': typeof RunScheduledJobsRoute
   '/sendKeeperTests': typeof SendKeeperTestsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/actions': typeof ActionsRoute
   '/org-chart': typeof OrgChartRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
+  '/runScheduledJobs': typeof RunScheduledJobsRoute
   '/sendKeeperTests': typeof SendKeeperTestsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/actions'
     | '/org-chart'
     | '/receiveKeeperTestResults'
+    | '/runScheduledJobs'
     | '/sendKeeperTests'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/actions'
     | '/org-chart'
     | '/receiveKeeperTestResults'
+    | '/runScheduledJobs'
     | '/sendKeeperTests'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/actions'
     | '/org-chart'
     | '/receiveKeeperTestResults'
+    | '/runScheduledJobs'
     | '/sendKeeperTests'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
@@ -117,6 +129,7 @@ export interface RootRouteChildren {
   ActionsRoute: typeof ActionsRoute
   OrgChartRoute: typeof OrgChartRoute
   ReceiveKeeperTestResultsRoute: typeof ReceiveKeeperTestResultsRoute
+  RunScheduledJobsRoute: typeof RunScheduledJobsRoute
   SendKeeperTestsRoute: typeof SendKeeperTestsRoute
   SyncDeelEmployeesRoute: typeof SyncDeelEmployeesRoute
   EmployeeEmployeeIdRoute: typeof EmployeeEmployeeIdRoute
@@ -136,6 +149,13 @@ declare module '@tanstack/react-router' {
       path: '/sendKeeperTests'
       fullPath: '/sendKeeperTests'
       preLoaderRoute: typeof SendKeeperTestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/runScheduledJobs': {
+      id: '/runScheduledJobs'
+      path: '/runScheduledJobs'
+      fullPath: '/runScheduledJobs'
+      preLoaderRoute: typeof RunScheduledJobsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/receiveKeeperTestResults': {
@@ -181,6 +201,7 @@ const rootRouteChildren: RootRouteChildren = {
   ActionsRoute: ActionsRoute,
   OrgChartRoute: OrgChartRoute,
   ReceiveKeeperTestResultsRoute: ReceiveKeeperTestResultsRoute,
+  RunScheduledJobsRoute: RunScheduledJobsRoute,
   SendKeeperTestsRoute: SendKeeperTestsRoute,
   SyncDeelEmployeesRoute: SyncDeelEmployeesRoute,
   EmployeeEmployeeIdRoute: EmployeeEmployeeIdRoute,
