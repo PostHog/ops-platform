@@ -79,3 +79,27 @@ model Feedback {
   feedback   String
   timestamp  DateTime @default(now())
 }
+
+enum CyclotronQueueName {
+  send_keeper_test
+  receive_keeper_test_results
+  dead_letter
+}
+
+enum CyclotronJobState {
+  running
+  available
+  failed
+}
+
+model CyclotronJob {
+  id             String             @id @default(cuid())
+  created        DateTime           @default(now())
+  scheduled      DateTime           @default(now())
+  queue_name     CyclotronQueueName
+  lock_id        String?
+  state          CyclotronJobState  @default(available)
+  last_heartbeat DateTime           @default(now())
+  data           Json
+  failure_count  Int                @default(0)
+}
