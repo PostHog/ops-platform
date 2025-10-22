@@ -23,6 +23,7 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
                 const invalidFields = []
 
                 if (body.actions[0].action_id === 'submit_keeper_test') {
+                    const [employeeEmail, employeeId, managerName, jobId] = body.actions[0].value.split('|')
                     for (const [, value] of Object.entries(body.state.values as Record<string, any>)) {
                         const fieldId = Object.keys(value)[0]
                         const { type, selected_option } = value[fieldId]
@@ -57,7 +58,7 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            text: `Successfully submitted keeper test feedabck for ${body.actions[0].value.split('|')[0]}`,
+                            text: `Successfully submitted keeper test feedabck for ${employeeEmail}`,
                         })
                     })
 
@@ -69,7 +70,7 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
                     }
 
                     const feedback =
-                        `### Keeper test feedback from ${body.actions[0].value.split('|')[2]}:\n` +
+                        `### Keeper test feedback from ${managerName}:\n` +
                         `- If this team member was leaving for a similar role at another company, would you try to keep them?: ${fieldData['keeper-test-question-1']?.selected_option.value}\n` +
                         `- If yes, what is it specifically that makes them so valuable to your team and PostHog?: ${fieldData['keeper-test-question-1-text']?.value}\n` +
                         `- Are they a driver or a passenger?: ${fieldData['keeper-test-question-2']?.selected_option.value}\n` +
@@ -80,9 +81,13 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
 
                     await prisma.feedback.create({
                         data: {
-                            employeeId: body.actions[0].value.split('|')[1],
+                            employeeId: employeeId,
                             feedback: feedback,
                         }
+                    })
+
+                    await prisma.cyclotronJob.delete({
+                        where: { id: jobId }
                     })
                 }
 

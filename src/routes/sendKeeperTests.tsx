@@ -11,40 +11,45 @@ export const Route = createFileRoute('/sendKeeperTests')({
                     return new Response('Unauthorized' + token, { status: 401 })
                 }
 
-                const employees = await prisma.deelEmployee.findMany({
+                const employees = await prisma.employee.findMany({
                     include: {
-                        manager: true,
+                        deelEmployee: {
+                            include: {
+                                manager: true,
+                            }
+                        }
                     },
                     where: {
-                        workEmail: {
-                            not: null
-                        },
-                        team: {
-                            not: 'Blitzscale'
+                        deelEmployee: {
+                            team: {
+                                not: 'Blitzscale'
+                            }
                         }
                     }
                 })
 
                 await prisma.cyclotronJob.createMany({
                     data: employees
-                        .filter((emp): emp is typeof emp & { workEmail: string; manager: { id: string; workEmail: string; name: string } } => 
-                            emp.workEmail !== null && emp.manager !== null && emp.manager.workEmail !== null
-                        )
-                        .map(employee => ({
-                            queue_name: 'send_keeper_test',
-                            data: JSON.stringify({
-                                employee: {
-                                    id: employee.id,
-                                    email: employee.workEmail,
-                                    name: employee.name,
-                                },
-                                manager: {
-                                    id: employee.manager.id,
-                                    email: employee.manager.workEmail,
-                                    name: employee.manager.name,
-                                },
-                            } satisfies KeeperTestJobPayload),
-                        })),
+                        .map(employee => {
+                            if (!employee.deelEmployee?.manager || !employee.deelEmployee?.manager?.workEmail) {
+                                return null
+                            }
+                            return {
+                                queue_name: 'send_keeper_test',
+                                data: JSON.stringify({
+                                    employee: {
+                                        id: employee.id,
+                                        email: employee.email,
+                                        name: employee.deelEmployee?.name,
+                                    },
+                                    manager: {
+                                        id: employee.deelEmployee?.manager?.id,
+                                        email: employee.deelEmployee?.manager?.workEmail,
+                                        name: employee.deelEmployee?.manager?.name,
+                                    },
+                                } satisfies KeeperTestJobPayload),
+                            }
+                        }).filter(emp => emp !== null),
                 })
 
                 return new Response(JSON.stringify({
