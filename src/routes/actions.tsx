@@ -74,7 +74,7 @@ function App() {
             accessorKey: "name",
             header: "Name",
             cell: ({ row }) => (
-                <div>{row.original.employee.deelEmployee.name}</div>
+                <div>{row.original.employee.deelEmployee?.name}</div>
             ),
         },
         {
@@ -90,7 +90,7 @@ function App() {
         {
             accessorKey: "reviewer",
             header: "Reviewer",
-            cell: ({ row }) => <div>{row.original.employee.deelEmployee.topLevelManager?.name}</div>,
+            cell: ({ row }) => <div>{row.original.employee.deelEmployee?.topLevelManager?.name}</div>,
         },
         {
             accessorKey: "communicated",
