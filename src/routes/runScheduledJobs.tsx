@@ -227,7 +227,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                     ]
                 })
 
-                const lockId = crypto.randomUUID()
+                const lock_id = crypto.randomUUID()
 
                 const jobs = await prisma.$queryRaw`
                     WITH available AS (
@@ -243,7 +243,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                     UPDATE "CyclotronJob"
                     SET 
                         state = 'running'::"CyclotronJobState",
-                        lock_id = ${lockId},
+                        lock_id = ${lock_id},
                         last_heartbeat = NOW()
                     FROM available
                     WHERE "CyclotronJob".id = available.id
@@ -255,7 +255,8 @@ export const Route = createFileRoute('/runScheduledJobs')({
                         lock_id,
                         state,
                         last_heartbeat,
-                        data
+                        data,
+                        failure_count
                 ` as CyclotronJob[]
 
                 const jobResults: JobResult[] = []
@@ -287,18 +288,23 @@ export const Route = createFileRoute('/runScheduledJobs')({
                                     blocks: getSlackMessageBody(employee.email, employee.id, manager.name, job.id).blocks
                                 })
                             })
-                        } else if (job.queue_name === 'receive_keeper_test_results') {
-                            // TODO: check if a message has been received
-                            // If not, send a reminder
-                        }
 
-                        jobResults.push({
-                            id: job.id,
-                            success: true,
-                            data: {
-                                queue_name: 'receive_keeper_test_results',
-                            }
-                        })
+                            jobResults.push({
+                                id: job.id,
+                                success: true,
+                                data: {
+                                    queue_name: 'receive_keeper_test_results',
+                                }
+                            })
+                        } else if (job.queue_name === 'receive_keeper_test_results') {
+                            // TODO: check if a message has been received for three days
+                            // If not, send a reminder
+
+                            jobResults.push({
+                                id: job.id,
+                                success: true
+                            })
+                        }
                     } catch (error) {
                         console.error(error)
                         jobResults.push({
@@ -314,7 +320,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 await Promise.all(jobResults.map(async ({ id, success, data }) => {
                     if (success) {
                         await prisma.cyclotronJob.update({
-                            where: { id },
+                            where: { id, lock_id },
                             data: {
                                 ...data,
                                 state: 'available',
@@ -323,13 +329,15 @@ export const Route = createFileRoute('/runScheduledJobs')({
                             }
                         })
                     } else {
+                        const isDead = data?.failure_count && data.failure_count >= 5
                         await prisma.cyclotronJob.update({
-                            where: { id },
+                            where: { id, lock_id },
                             data: {
                                 ...data,
-                                state: 'failed',
+                                state: 'available',
                                 lock_id: null,
                                 last_heartbeat: new Date(),
+                                ...(isDead ? { state: 'failed', queue_name: 'dead_letter' } : {}),
                             }
                         })
                     }
