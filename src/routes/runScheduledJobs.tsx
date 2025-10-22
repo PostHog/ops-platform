@@ -297,8 +297,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                                 }
                             })
                         } else if (job.queue_name === 'receive_keeper_test_results') {
-                            // TODO: check if a message has been received for three days
-                            // If not, send a reminder
+                            // TODO: remind people to fill out the keeper test form
 
                             jobResults.push({
                                 id: job.id,
