@@ -1,4 +1,5 @@
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import prisma from '@/db'
 import ReactMarkdown from 'react-markdown'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
@@ -198,7 +199,7 @@ function EmployeeOverview() {
             {
                 accessorKey: "notes",
                 header: "Notes",
-                cell: ({ row }) => <div>{row.original.notes}</div>,
+                cell: ({ row }) => <div className="min-w-[200px] whitespace-pre-line">{row.original.notes}</div>,
             },
         ]
 
@@ -657,7 +658,7 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                         
                         return (
                             <div 
-                                className={`text-xs py-1 px-1 ${isMismatch ? "text-red-600 font-medium" : ""}`}
+                                className={`text-xs py-1 px-1 text-right ${isMismatch ? "text-red-600 font-medium" : ""}`}
                                 title={isMismatch ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(field.state.value)}` : ""}
                             >
                                 {formatCurrency(field.state.value)}
@@ -690,11 +691,12 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                 <form.Field
                     name="notes"
                     children={(field) => (
-                        <Input
-                            className="w-full h-6 text-xs"
+                        <Textarea
+                            className="w-full min-h-[24px] text-xs !text-xs resize-none"
                             value={field.state.value}
                             onChange={(e) => field.handleChange(e.target.value)}
                             placeholder="Notes..."
+                            autoFocus
                         />
                     )}
                 />
@@ -710,7 +712,7 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                         <form.Field
                             name="exchangeRate"
                             children={(field) => (
-                                <div className="text-xs py-1 px-1">
+                                <div className="text-xs py-1 px-1 text-right">
                                     {field.state.value}
                                 </div>
                             )}
