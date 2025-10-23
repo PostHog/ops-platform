@@ -136,9 +136,9 @@ function App() {
       meta: {
         filterVariant: 'text',
       },
-      filterFn: (row: Row<Employee>, _: string, filterValue: string)=> customFilterFns.containsText(row.original.deelEmployee?.name ?? '', _, filterValue),
+      filterFn: (row: Row<Employee>, _: string, filterValue: string)=> customFilterFns.containsText(row.original.deelEmployee?.name || row.original.email, _, filterValue),
       cell: ({ row }) => (
-        <div>{row.original.deelEmployee?.name}</div>
+        <div>{row.original.deelEmployee?.name || row.original.email}</div>
       ),
     },
     {

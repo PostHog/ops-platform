@@ -6,12 +6,11 @@ import { useForm, useStore, AnyFormApi } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { Prisma, type Salary } from 'generated/prisma/client'
-import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import "vercel-toast/dist/vercel-toast.css";
 import { createToast } from "vercel-toast";
 import { getEmployees, months } from '.'
-import { useEffect, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
     ColumnDef,
     flexRender,
@@ -27,7 +26,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { useQuery } from '@tanstack/react-query'
-import { currencyData, getAreasByCountry, getCountries, locationFactor, sfBenchmark, stepModifier, formatCurrency } from '@/lib/utils'
+import { currencyData, getAreasByCountry, getCountries, locationFactor, sfBenchmark, formatCurrency } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 
@@ -95,6 +94,8 @@ const updateSalary = createServerFn({
 
 function EmployeeOverview() {
     const getEmployeesFn = useServerFn(getEmployees)
+    const [showInlineForm, setShowInlineForm] = useState(true)
+    const [showDetailedColumns, setShowDetailedColumns] = useState(false)
 
     const { data: employees } = useQuery({
         queryKey: ['employees'],
@@ -117,104 +118,124 @@ function EmployeeOverview() {
 
     if (!employee) return null
 
-    const columns: ColumnDef<Salary>[] = useMemo(() => [
-        {
-            accessorKey: "timestamp",
-            header: "Last Change (date)",
-            cell: ({ row }) => {
-                const date = new Date(row.original.timestamp)
-                return <div>{months[date.getMonth()]} {date.getFullYear()}</div>
+    const columns: ColumnDef<Salary>[] = useMemo(() => {
+        const baseColumns: ColumnDef<Salary>[] = [
+            {
+                accessorKey: "timestamp",
+                header: "Last Change (date)",
+                cell: ({ row }) => {
+                    const date = new Date(row.original.timestamp)
+                    return <div>{months[date.getMonth()]} {date.getFullYear()}</div>
+                },
             },
-        },
-        {
-            accessorKey: "locationFactor",
-            header: "Location Factor",
-            cell: ({ row }) => <div>{row.original.locationFactor}</div>,
-        },
-        {
-            accessorKey: "level",
-            header: "Level",
-            cell: ({ row }) => <div>{row.original.level}</div>,
-        },
-        {
-            accessorKey: "step",
-            header: "Step",
-            cell: ({ row }) => <div>{row.original.step}</div>,
-        },
-        {
-            accessorKey: "benchmark",
-            header: "Benchmark",
-            cell: ({ row }) => <div>{row.original.benchmark}</div>,
-        },
-        {
-            accessorKey: "totalSalary",
-            header: "Total Salary ($)",
-            cell: ({ row }) => <div>{formatCurrency(row.original.totalSalary)}</div>,
-        },
-        {
-            accessorKey: "changeAmount",
-            header: "Change ($)",
-            cell: ({ row }) => <div>{formatCurrency(row.original.changeAmount)}</div>,
-        },
-        {
-            accessorKey: "changePercentage",
-            header: "Change (%)",
-            cell: ({ row }) => <div>{row.original.changePercentage * 100}%</div>,
-        },
-        {
-            accessorKey: "exchangeRate",
-            header: "Exchange Rate",
-            cell: ({ row }) => <div>{row.original.exchangeRate}</div>,
-        },
-        {
-            accessorKey: "totalSalaryLocal",
-            header: "Total Salary (local)",
-            cell: ({ row }) => <div>{row.original.totalSalaryLocal}</div>,
-        },
-        {
-            accessorKey: "amountTakenInOptions",
-            header: "Amount Taken In Options ($)",
-            cell: ({ row }) => <div>{formatCurrency(row.original.amountTakenInOptions)}</div>,
-        },
-        {
-            accessorKey: "actualSalary",
-            header: "Actual Salary ($)",
-            cell: ({ row }) => <div>{formatCurrency(row.original.actualSalary)}</div>,
-        },
-        {
-            accessorKey: "actualSalaryLocal",
-            header: "Actual Salary (local)",
-            cell: ({ row }) => <div>{row.original.actualSalaryLocal}</div>,
-        },
-        {
-            accessorKey: "notes",
-            header: "Notes",
-            cell: ({ row }) => <div>{row.original.notes}</div>,
-        },
-        // {
-        //     id: "actions",
-        //     enableHiding: false,
-        //     cell: ({ row }) => {
-        //         const salary = row.original
+            {
+                accessorKey: "country",
+                header: "Country",
+                cell: ({ row }) => <div>{row.original.country}</div>,
+            },
+            {
+                accessorKey: "area",
+                header: "Area",
+                cell: ({ row }) => <div>{row.original.area}</div>,
+            },
+            {
+                accessorKey: "benchmark",
+                header: "Benchmark",
+                cell: ({ row }) => <div>{row.original.benchmark}</div>,
+            },
+            {
+                accessorKey: "locationFactor",
+                header: "Location",
+                cell: ({ row }) => <div>{row.original.locationFactor}</div>,
+            },
+            {
+                accessorKey: "level",
+                header: "Level",
+                cell: ({ row }) => <div>{row.original.level}</div>,
+            },
+            {
+                accessorKey: "step",
+                header: "Step",
+                cell: ({ row }) => <div>{row.original.step}</div>,
+            },
+            {
+                accessorKey: "totalSalary",
+                header: "Total Salary ($)",
+                cell: ({ row }) => {
+                    const salary = row.original
+                    const expectedTotal = salary.locationFactor * salary.level * salary.step * salary.benchmarkFactor
+                    const isMismatch = Math.abs(salary.totalSalary - expectedTotal) > 0.01 // Allow for small floating point differences
+                    
+                    return (
+                        <div 
+                            className={isMismatch ? "text-red-600 font-medium" : ""}
+                            title={isMismatch ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(salary.totalSalary)}` : ""}
+                        >
+                            {formatCurrency(salary.totalSalary)}
+                        </div>
+                    )
+                },
+            },
+            {
+                accessorKey: "changeAmount",
+                header: "Change ($)",
+                cell: ({ row }) => <div>{formatCurrency(row.original.changeAmount)}</div>,
+            },
+            {
+                accessorKey: "changePercentage",
+                header: "Change (%)",
+                cell: ({ row }) => <div>{row.original.changePercentage * 100}%</div>,
+            },
+            {
+                accessorKey: "notes",
+                header: "Notes",
+                cell: ({ row }) => <div>{row.original.notes}</div>,
+            },
+        ]
 
-        //         return (
-        //             <DropdownMenu>
-        //                 <DropdownMenuTrigger asChild>
-        //                     <Button variant="ghost" className="h-8 w-8 p-0">
-        //                         <span className="sr-only">Open menu</span>
-        //                         <MoreHorizontal />
-        //                     </Button>
-        //                 </DropdownMenuTrigger>
-        //                 <DropdownMenuContent align="end">
-        //                     <DropdownMenuItem>
-        //                         Edit salary
-        //                     </DropdownMenuItem>
-        //                 </DropdownMenuContent>
-        //             </DropdownMenu>
-        //         )
-        //     },
-        // },
-    ], [])
+        const expandIndicator: ColumnDef<Salary> = {
+            id: "expandIndicator",
+            header: () => (
+                <button
+                    onClick={() => setShowDetailedColumns(!showDetailedColumns)}
+                    className="flex items-center justify-center text-gray-400 hover:text-gray-600 w-full"
+                >
+                    <span className="text-xs">{showDetailedColumns ? '▶' : '◀'}</span>
+                </button>
+            ),
+            cell: () => null,
+        }
+
+        const detailedColumns: ColumnDef<Salary>[] = [
+            {
+                accessorKey: "exchangeRate",
+                header: "Exchange Rate",
+                cell: ({ row }) => <div>{row.original.exchangeRate}</div>,
+            },
+            {
+                accessorKey: "totalSalaryLocal",
+                header: "Total Salary (local)",
+                cell: ({ row }) => <div>{row.original.totalSalaryLocal}</div>,
+            },
+            {
+                accessorKey: "amountTakenInOptions",
+                header: "Amount Taken In Options ($)",
+                cell: ({ row }) => <div>{formatCurrency(row.original.amountTakenInOptions)}</div>,
+            },
+            {
+                accessorKey: "actualSalary",
+                header: "Actual Salary ($)",
+                cell: ({ row }) => <div>{formatCurrency(row.original.actualSalary)}</div>,
+            },
+            {
+                accessorKey: "actualSalaryLocal",
+                header: "Actual Salary (local)",
+                cell: ({ row }) => <div>{row.original.actualSalaryLocal}</div>,
+            },
+        ]
+
+        return showDetailedColumns ? [...baseColumns, expandIndicator, ...detailedColumns] : [...baseColumns, expandIndicator]
+    }, [showDetailedColumns])
 
     const table = useReactTable({
         data: employee.salaries,
@@ -300,11 +321,47 @@ function EmployeeOverview() {
 
                 <div className="flex flex-row gap-2 justify-between items-center mt-2">
                     <span className="text-md font-bold">Salary history</span>
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setShowInlineForm(!showInlineForm)}
+                    >
+                        {showInlineForm ? 'Cancel' : 'Add New Salary'}
+                    </Button>
                 </div>
+
+                {employee.salaries[0] && (() => {
+                    const benchmarkUpdated = sfBenchmark[employee.salaries[0].benchmark as keyof typeof sfBenchmark] !== employee.salaries[0].benchmarkFactor
+                    const locationFactorUpdated = locationFactor.find(l => l.country === employee.salaries[0].country && l.area === employee.salaries[0].area)?.locationFactor !== employee.salaries[0].locationFactor
+                    
+                    return (
+                        <>
+                            {benchmarkUpdated && (
+                                <Alert variant="default">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertTitle>This employee is currently on an old benchmark factor.</AlertTitle>
+                                    <AlertDescription>
+                                        You can keep it that way by choosing `{employee.salaries[0].benchmark} (old)` as the benchmark, or updated it by choosing `{employee.salaries[0].benchmark.replace(' (old)', '')}` as the benchmark.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
+                            {locationFactorUpdated && (
+                                <Alert variant="default">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertTitle>This employee is currently on an old location factor.</AlertTitle>
+                                    <AlertDescription>
+                                        The location factor will be updated on the next salary update.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        </>
+                    )
+                })()}
 
                 <div className="w-full flex-grow">
                     <div className="overflow-hidden rounded-md border">
-                        <Table>
+                        <Table className="text-xs">
                             <TableHeader>
                                 {table.getHeaderGroups().map((headerGroup) => (
                                     <TableRow key={headerGroup.id}>
@@ -324,6 +381,18 @@ function EmployeeOverview() {
                                 ))}
                             </TableHeader>
                             <TableBody>
+                                {showInlineForm && (
+                                    <InlineSalaryFormRow 
+                                        employeeId={employee.id}
+                                        latestSalary={employee.salaries[0]}
+                                        showDetailedColumns={showDetailedColumns}
+                                        onSuccess={() => {
+                                            setShowInlineForm(false)
+                                            router.invalidate()
+                                        }}
+                                        onCancel={() => setShowInlineForm(false)}
+                                    />
+                                )}
                                 {table.getRowModel().rows?.length ? (
                                     table.getRowModel().rows.map((row) => (
                                         <TableRow
@@ -355,74 +424,83 @@ function EmployeeOverview() {
                     </div>
                 </div>
             </form>
-
-            <SalaryUpdateMenu salary={employee.salaries[0]} />
         </div>
     )
 }
 
-export function SalaryUpdateMenu({ salary }: { salary: Salary }) {
-    const router = useRouter()
-    const benchmarkUpdated = sfBenchmark[salary.benchmark as keyof typeof sfBenchmark] !== salary.benchmarkFactor
-    const locationFactorUpdated = locationFactor.find(l => l.country === salary.country && l.area === salary.area)?.locationFactor !== salary.locationFactor
+function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, showDetailedColumns }: { 
+    employeeId: string
+    onSuccess: () => void
+    onCancel: () => void
+    latestSalary: Salary | undefined
+    showDetailedColumns: boolean
+}) {
+    
+    const getDefaultValues = () => ({
+        country: latestSalary?.country ?? "United States",
+        area: latestSalary?.area ?? "San Francisco Bay Area",
+        locationFactor: latestSalary?.locationFactor ?? 0,
+        level: latestSalary?.level ?? 1,
+        step: latestSalary?.step ?? 1,
+        benchmark: latestSalary?.benchmark ?? "Senior Software Engineer",
+        benchmarkFactor: latestSalary?.benchmarkFactor ?? 0,
+        totalSalary: latestSalary?.totalSalary ?? 0,
+        changePercentage: 0, // Always 0 for new entries
+        changeAmount: 0, // Always 0 for new entries
+        localCurrency: latestSalary?.localCurrency ?? "USD",
+        exchangeRate: latestSalary?.exchangeRate ?? 1,
+        totalSalaryLocal: latestSalary?.totalSalaryLocal ?? 0,
+        amountTakenInOptions: latestSalary?.amountTakenInOptions ?? 0,
+        actualSalary: latestSalary?.actualSalary ?? 0,
+        actualSalaryLocal: latestSalary?.actualSalaryLocal ?? 0,
+        notes: latestSalary?.notes ?? "",
+        employeeId: employeeId
+    })
 
     const updateFormFields = (formApi: AnyFormApi) => {
         const location = locationFactor.find(l => l.country === formApi.getFieldValue('country') && l.area === formApi.getFieldValue('area'))
-        formApi.setFieldValue('locationFactor', Number(location?.locationFactor?.toFixed(2)))
+        const locationFactorValue = location?.locationFactor ?? 0
+        formApi.setFieldValue('locationFactor', Number(locationFactorValue.toFixed(2)))
 
-        const benchmarkFactor = formApi.getFieldValue('benchmark').includes('(old)') ? salary.benchmarkFactor : sfBenchmark[formApi.getFieldValue('benchmark').replace(' (old)', '') as keyof typeof sfBenchmark]
+        const benchmarkValue = formApi.getFieldValue('benchmark')
+        const benchmarkFactor = benchmarkValue?.includes('(old)') ? 0 : (sfBenchmark[benchmarkValue?.replace(' (old)', '') as keyof typeof sfBenchmark] ?? 0)
         formApi.setFieldValue('benchmarkFactor', Number(benchmarkFactor.toFixed(2)))
 
-        const totalSalary = formApi.getFieldValue('locationFactor') * formApi.getFieldValue('level') * formApi.getFieldValue('step') * benchmarkFactor
+        const currentLocationFactor = formApi.getFieldValue('locationFactor') ?? 0
+        const level = formApi.getFieldValue('level') ?? 1
+        const step = formApi.getFieldValue('step') ?? 1
+        const totalSalary = currentLocationFactor * level * step * benchmarkFactor
         formApi.setFieldValue('totalSalary', Number(totalSalary.toFixed(2)))
 
-        const changePercentage = (totalSalary / salary.totalSalary) - 1
+        // Calculate change from the latest salary
+        const latestTotalSalary = latestSalary?.totalSalary ?? 0
+        const changePercentage = latestTotalSalary > 0 ? (totalSalary / latestTotalSalary) - 1 : 0
         formApi.setFieldValue('changePercentage', Number(changePercentage.toFixed(4)))
 
-        const changeAmount = totalSalary - salary.totalSalary
+        const changeAmount = totalSalary - latestTotalSalary
         formApi.setFieldValue('changeAmount', Number(changeAmount.toFixed(2)))
 
-        formApi.setFieldValue('exchangeRate', currencyData[location?.currency ?? ''])
-        formApi.setFieldValue('localCurrency', location?.currency ?? '')
+        const exchangeRate = currencyData[location?.currency ?? ''] ?? 1
+        formApi.setFieldValue('exchangeRate', exchangeRate)
+        formApi.setFieldValue('localCurrency', location?.currency ?? 'USD')
 
-        const totalSalaryLocal = totalSalary * formApi.getFieldValue('exchangeRate')
+        const totalSalaryLocal = totalSalary * exchangeRate
         formApi.setFieldValue('totalSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
 
-        const actualSalary = totalSalary - formApi.getFieldValue('amountTakenInOptions')
+        const amountTakenInOptions = formApi.getFieldValue('amountTakenInOptions') ?? 0
+        const actualSalary = totalSalary - amountTakenInOptions
         formApi.setFieldValue('actualSalary', Number(actualSalary.toFixed(2)))
 
-        const actualSalaryLocal = actualSalary * formApi.getFieldValue('exchangeRate')
+        const actualSalaryLocal = actualSalary * exchangeRate
         formApi.setFieldValue('actualSalaryLocal', Number(actualSalaryLocal.toFixed(2)))
     }
-
-    const getDefaultValues = () => ({
-        // all computed / readonly fields have placeholder values
-        country: salary.country,
-        area: salary.area,
-        locationFactor: 0,
-        level: salary.level,
-        step: salary.step,
-        benchmark: salary.benchmark,
-        benchmarkFactor: 0,
-        totalSalary: 0,
-        changePercentage: 0,
-        changeAmount: 0,
-        localCurrency: "USD",
-        exchangeRate: 0,
-        totalSalaryLocal: 0,
-        amountTakenInOptions: 0,
-        actualSalary: 0,
-        actualSalaryLocal: 0,
-        notes: salary.notes,
-        employeeId: salary.employeeId
-    })
 
     const form = useForm({
         defaultValues: getDefaultValues(),
         onSubmit: async ({ value }) => {
             await updateSalary({ data: value })
-            router.invalidate()
-            createToast("Salary updated successfully.", {
+            onSuccess()
+            createToast("Salary added successfully.", {
                 timeout: 3000,
             });
         },
@@ -438,351 +516,267 @@ export function SalaryUpdateMenu({ salary }: { salary: Salary }) {
         }
     })
 
-    useEffect(() => {
-        form.reset(getDefaultValues())
-        form.mount()
-    }, [salary.employeeId])
-
     const country = useStore(form.store, (state) => state.values.country)
 
     return (
-        <form
-            className="grid gap-4 w-[80%] px-4"
-            onSubmit={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                form.handleSubmit()
-            }}>
-            <span className="text-md font-bold">Edit salary</span>
-
-            {benchmarkUpdated && (
-                <Alert variant="default">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>This employee is currently on an old benchmark factor. </AlertTitle>
-                    <AlertDescription>
-                        You can keep it that way by choosing `{salary.benchmark} (old)` as the benchmark, or updated it by choosing `{salary.benchmark.replace(' (old)', '')}` as the benchmark.
-                    </AlertDescription>
-                </Alert>
-            )}
-
-            {locationFactorUpdated && (
-                <Alert variant="default">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>This employee is currently on an old location factor. </AlertTitle>
-                    <AlertDescription>
-                        The location factor will be updated on the next salary update.
-                    </AlertDescription>
-                </Alert>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-                <form.Field
-                    name="notes"
-                    children={(field) => (
-                        <div className="grid gap-3 col-span-2">
-                            <Label htmlFor="notes">Notes</Label>
-                            <Input
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                onChange={(e) => field.handleChange(e.target.value)}
-                            />
-                        </div>
-                    )}
-                />
+        <TableRow className="bg-blue-50">
+            <TableCell>
+                <div className="text-xs text-gray-500">New Entry</div>
+            </TableCell>
+            <TableCell>
                 <form.Field
                     name="country"
                     children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="country">Country</Label>
-                            <Select name={field.name} defaultValue={field.state.value} onValueChange={(value) => field.handleChange(value)}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select a country" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {getCountries().map((country) => (
-                                        <SelectItem key={country} value={country}>
-                                            {country}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <Select 
+                            value={field.state.value} 
+                            onValueChange={(value) => field.handleChange(value)}
+                        >
+                            <SelectTrigger className="w-full h-6 text-xs">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {getCountries().map((country) => (
+                                    <SelectItem key={country} value={country}>
+                                        {country}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     )}
                 />
+            </TableCell>
+            <TableCell>
                 <form.Field
                     name="area"
                     children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="area">Area</Label>
-                            <Select name={field.name} defaultValue={field.state.value} onValueChange={(value) => field.handleChange(value)} disabled={!country}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select an area" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {getAreasByCountry(country).map((area) => (
-                                        <SelectItem key={area} value={area}>
-                                            {area}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <Select 
+                            value={field.state.value} 
+                            onValueChange={(value) => field.handleChange(value)}
+                            disabled={!country}
+                        >
+                            <SelectTrigger className="w-full h-6 text-xs">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {getAreasByCountry(country).map((area) => (
+                                    <SelectItem key={area} value={area}>
+                                        {area}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     )}
                 />
-                <form.Field
-                    name="locationFactor"
-                    children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="locationFactor">Location Factor</Label>
-                            <Input
-                                readOnly
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                type='number'
-                                onChange={(e) => field.handleChange(Number(e.target.value))}
-                            />
-                        </div>
-                    )}
-                />
-                <form.Field
-                    name="level"
-                    children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="level">Level</Label>
-                            <Select name={field.name} defaultValue={field.state.value.toString()} onValueChange={(value) => field.handleChange(Number(value))}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select a level" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="0.59">Junior (0.59)</SelectItem>
-                                    <SelectItem value="0.78">Intermediate (0.78)</SelectItem>
-                                    <SelectItem value="1">Senior (1)</SelectItem>
-                                    <SelectItem value="1.2">Staff (1.2)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-                />
-                <form.Field
-                    name="step"
-                    validators={{
-                        onChange: ({ value }) => {
-                            const isValid = Object.values(stepModifier).some(range =>
-                                value >= range[0] && value <= range[1]
-                            )
-                            if (!isValid) {
-                                const ranges = Object.entries(stepModifier)
-                                    .map(([name, range]) => `${name} (${range[0]}-${range[1]})`)
-                                    .join(', ')
-                                return `Step must be within one of these ranges: ${ranges}`
-                            }
-                        }
-                    }}
-                    children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="step">Step</Label>
-                            <Input
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                step={0.01}
-                                type='number'
-                                onChange={(e) => field.handleChange(Number(e.target.value))}
-                            />
-                            {!field.state.meta.isValid && (
-                                <span className="text-red-500 text-sm">{field.state.meta.errors.join(', ')}</span>
-                            )}
-                        </div>
-                    )}
-                />
+            </TableCell>
+            <TableCell>
                 <form.Field
                     name="benchmark"
                     children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="benchmark">Benchmark</Label>
-                            <Select name={field.name} defaultValue={field.state.value} onValueChange={(value) => field.handleChange(value)}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select a benchmark" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {benchmarkUpdated && (
-                                        <SelectItem value={`${salary.benchmark.replace(' (old)', '')} (old)`} key="old-benchmark">{salary.benchmark.replace(' (old)', '')} (old) ({salary.benchmarkFactor})</SelectItem>
-                                    )}
-                                    {Object.keys(sfBenchmark).map((benchmark) => (
-                                        <SelectItem key={benchmark} value={benchmark}>
-                                            {benchmark} ({sfBenchmark[benchmark as keyof typeof sfBenchmark]})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <Select 
+                            value={field.state.value} 
+                            onValueChange={(value) => field.handleChange(value)}
+                        >
+                            <SelectTrigger className="w-full h-6 text-xs">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Object.keys(sfBenchmark).map((benchmark) => (
+                                    <SelectItem key={benchmark} value={benchmark}>
+                                        {benchmark} ({sfBenchmark[benchmark as keyof typeof sfBenchmark]})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     )}
                 />
+            </TableCell>
+            <TableCell>
                 <form.Field
-                    name="benchmarkFactor"
+                    name="locationFactor"
                     children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="benchmarkFactor">Benchmark Factor</Label>
-                            <Input
-                                readOnly
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                type='number'
-                                onChange={(e) => field.handleChange(Number(e.target.value))}
-                            />
+                        <div className="text-xs py-1 px-1">
+                            {field.state.value}
                         </div>
                     )}
                 />
+            </TableCell>
+            <TableCell>
+                <form.Field
+                    name="level"
+                    children={(field) => (
+                        <Select 
+                            value={field.state.value.toString()} 
+                            onValueChange={(value) => field.handleChange(Number(value))}
+                        >
+                            <SelectTrigger className="w-full h-6 text-xs">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="0.59">Junior (0.59)</SelectItem>
+                                <SelectItem value="0.78">Intermediate (0.78)</SelectItem>
+                                <SelectItem value="1">Senior (1)</SelectItem>
+                                <SelectItem value="1.2">Staff (1.2)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    )}
+                />
+            </TableCell>
+            <TableCell>
+                <form.Field
+                    name="step"
+                    children={(field) => (
+                        <Input
+                            className="w-full h-6 text-xs min-w-[70px]"
+                            value={field.state.value}
+                            type="number"
+                            step={0.01}
+                            onChange={(e) => field.handleChange(Number(e.target.value))}
+                        />
+                    )}
+                />
+            </TableCell>
+            <TableCell>
                 <form.Field
                     name="totalSalary"
-                    children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="totalSalary">Total Salary</Label>
-                            <Input
-                                readOnly
-                                name={field.name}
-                                value={formatCurrency(field.state.value)}
-                                onBlur={field.handleBlur}
-                                type='text'
-                                onChange={(e) => field.handleChange(Number(e.target.value))}
-                            />
-                        </div>
-                    )}
+                    children={(field) => {
+                        const locationFactor = form.getFieldValue('locationFactor') ?? 0
+                        const level = form.getFieldValue('level') ?? 1
+                        const step = form.getFieldValue('step') ?? 1
+                        const benchmarkFactor = form.getFieldValue('benchmarkFactor') ?? 0
+                        const expectedTotal = locationFactor * level * step * benchmarkFactor
+                        const isMismatch = Math.abs(field.state.value - expectedTotal) > 0.01
+                        
+                        return (
+                            <div 
+                                className={`text-xs py-1 px-1 ${isMismatch ? "text-red-600 font-medium" : ""}`}
+                                title={isMismatch ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(field.state.value)}` : ""}
+                            >
+                                {formatCurrency(field.state.value)}
+                            </div>
+                        )
+                    }}
                 />
-                <form.Field
-                    name="changePercentage"
-                    children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="changePercentage">Change (%)</Label>
-                            <Input
-                                readOnly
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                type='number'
-                                onChange={(e) => field.handleChange(Number(e.target.value))}
-                            />
-                        </div>
-                    )}
-                />
+            </TableCell>
+            <TableCell>
                 <form.Field
                     name="changeAmount"
                     children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="changeAmount">Change ($)</Label>
-                            <Input
-                                readOnly
-                                name={field.name}
-                                value={formatCurrency(field.state.value)}
-                                onBlur={field.handleBlur}
-                                type='text'
-                                onChange={(e) => field.handleChange(Number(e.target.value))}
-                            />
+                        <div className="text-xs py-1 px-1">
+                            {formatCurrency(field.state.value)}
                         </div>
                     )}
                 />
+            </TableCell>
+            <TableCell>
                 <form.Field
-                    name="exchangeRate"
+                    name="changePercentage"
                     children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="exchangeRate">Exchange Rate</Label>
-                            <Input
-                                readOnly
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                type='number'
-                                onChange={(e) => field.handleChange(Number(e.target.value))}
-                            />
+                        <div className="text-xs py-1 px-1">
+                            {`${(field.state.value * 100).toFixed(2)}%`}
                         </div>
                     )}
                 />
+            </TableCell>
+            <TableCell>
                 <form.Field
-                    name="localCurrency"
+                    name="notes"
                     children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="localCurrency">Local Currency</Label>
-                            <Input
-                                readOnly
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                type='text'
-                                onChange={(e) => field.handleChange(e.target.value)}
-                            />
-                        </div>
+                        <Input
+                            className="w-full h-6 text-xs"
+                            value={field.state.value}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            placeholder="Notes..."
+                        />
                     )}
                 />
-                <form.Field
-                    name="totalSalaryLocal"
-                    children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="totalSalaryLocal">Total Salary (local)</Label>
-                            <Input
-                                readOnly
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                type='number'
-                                onChange={(e) => field.handleChange(Number(e.target.value))}
-                            />
-                        </div>
-                    )}
-                />
-                <form.Field
-                    name="amountTakenInOptions"
-                    children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="amountTakenInOptions">Amount Taken In Options ($)</Label>
-                            <Input
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                type='number'
-                                onChange={(e) => field.handleChange(Number(e.target.value))}
-                            />
-                        </div>
-                    )}
-                />
-                <form.Field
-                    name="actualSalary"
-                    children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="actualSalary">Actual Salary ($)</Label>
-                            <Input
-                                readOnly
-                                name={field.name}
-                                value={formatCurrency(field.state.value)}
-                                onBlur={field.handleBlur}
-                                type='text'
-                                onChange={(e) => field.handleChange(Number(e.target.value))}
-                            />
-                        </div>
-                    )}
-                />
-                <form.Field
-                    name="actualSalaryLocal"
-                    children={(field) => (
-                        <div className="grid gap-3">
-                            <Label htmlFor="actualSalaryLocal">Actual Salary (local)</Label>
-                            <Input
-                                readOnly
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                type='number'
-                                onChange={(e) => field.handleChange(Number(e.target.value))}
-                            />
-                        </div>
-                    )}
-                />
-                
-            </div>
-
-            <Button type="submit">Submit</Button>
-        </form>
+            </TableCell>
+            <TableCell>
+                <div className="flex items-center justify-center text-gray-400">
+                    <span className="text-xs">{showDetailedColumns ? '▶' : '◀'}</span>
+                </div>
+            </TableCell>
+            {showDetailedColumns && (
+                <>
+                    <TableCell>
+                        <form.Field
+                            name="exchangeRate"
+                            children={(field) => (
+                                <div className="text-xs py-1 px-1">
+                                    {field.state.value}
+                                </div>
+                            )}
+                        />
+                    </TableCell>
+                    <TableCell>
+                        <form.Field
+                            name="totalSalaryLocal"
+                            children={(field) => (
+                                <div className="text-xs py-1 px-1">
+                                    {field.state.value}
+                                </div>
+                            )}
+                        />
+                    </TableCell>
+                    <TableCell>
+                        <form.Field
+                            name="amountTakenInOptions"
+                            children={(field) => (
+                                <Input
+                                    className="w-full h-6 text-xs"
+                                    value={field.state.value}
+                                    type="number"
+                                    onChange={(e) => field.handleChange(Number(e.target.value))}
+                                />
+                            )}
+                        />
+                    </TableCell>
+                    <TableCell>
+                        <form.Field
+                            name="actualSalary"
+                            children={(field) => (
+                                <div className="text-xs py-1 px-1">
+                                    {formatCurrency(field.state.value)}
+                                </div>
+                            )}
+                        />
+                    </TableCell>
+                    <TableCell>
+                        <form.Field
+                            name="actualSalaryLocal"
+                            children={(field) => (
+                                <div className="text-xs py-1 px-1">
+                                    {field.state.value}
+                                </div>
+                            )}
+                        />
+                    </TableCell>
+                </>
+            )}
+            <TableCell>
+                <div className="flex gap-1">
+                    <Button
+                        type="button"
+                        size="sm"
+                        onClick={(e) => {
+                            e.preventDefault()
+                            form.handleSubmit()
+                        }}
+                        className="h-6 px-2 text-xs"
+                    >
+                        Save
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={onCancel}
+                        className="h-6 px-2 text-xs"
+                    >
+                        Cancel
+                    </Button>
+                </div>
+            </TableCell>
+        </TableRow>
     )
 }
+
