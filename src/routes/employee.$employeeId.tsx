@@ -6,9 +6,7 @@ import { useForm, useStore, AnyFormApi } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { Prisma, type Salary } from 'generated/prisma/client'
-import { Priority } from 'generated/prisma/enums'
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import "vercel-toast/dist/vercel-toast.css";
 import { createToast } from "vercel-toast";
@@ -29,7 +27,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { useQuery } from '@tanstack/react-query'
-import { currencyData, getAreasByCountry, getCountries, locationFactor, sfBenchmark, stepModifier } from '@/lib/utils'
+import { currencyData, getAreasByCountry, getCountries, locationFactor, sfBenchmark, stepModifier, formatCurrency } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 
@@ -82,19 +80,6 @@ type Employee = Prisma.EmployeeGetPayload<{
     }
 }>
 
-const updateEmployee = createServerFn({
-    method: 'POST',
-})
-    .inputValidator((d: { id: string; priority: Priority; reviewd: boolean }) => d)
-    .handler(async ({ data }) => {
-        return await prisma.employee.update({
-            where: { id: data.id },
-            data: {
-                priority: data.priority,
-                reviewd: data.reviewd,
-            },
-        })
-    })
 
 const updateSalary = createServerFn({
     method: 'POST',
@@ -121,21 +106,10 @@ function EmployeeOverview() {
     const form = useForm({
         defaultValues: {
             id: employee.id,
-            name: employee.deelEmployee?.name,
-            priority: employee.priority,
-            reviewer: employee.deelEmployee?.topLevelManager?.name,
-            reviewd: employee.reviewd,
         },
-        onSubmit: async ({ value }) => {
-            await updateEmployee({
-                data: {
-                    id: value.id,
-                    priority: value.priority,
-                    reviewd: value.reviewd,
-                }
-            })
-            router.invalidate()
-            createToast("Employee updated successfully.", {
+        onSubmit: async () => {
+            // No longer updating employee data through this form
+            createToast("No changes to save.", {
                 timeout: 3000,
             });
         },
@@ -175,12 +149,12 @@ function EmployeeOverview() {
         {
             accessorKey: "totalSalary",
             header: "Total Salary ($)",
-            cell: ({ row }) => <div>{row.original.totalSalary}</div>,
+            cell: ({ row }) => <div>{formatCurrency(row.original.totalSalary)}</div>,
         },
         {
             accessorKey: "changeAmount",
             header: "Change ($)",
-            cell: ({ row }) => <div>{row.original.changeAmount}</div>,
+            cell: ({ row }) => <div>{formatCurrency(row.original.changeAmount)}</div>,
         },
         {
             accessorKey: "changePercentage",
@@ -200,12 +174,12 @@ function EmployeeOverview() {
         {
             accessorKey: "amountTakenInOptions",
             header: "Amount Taken In Options ($)",
-            cell: ({ row }) => <div>{row.original.amountTakenInOptions}</div>,
+            cell: ({ row }) => <div>{formatCurrency(row.original.amountTakenInOptions)}</div>,
         },
         {
             accessorKey: "actualSalary",
             header: "Actual Salary ($)",
-            cell: ({ row }) => <div>{row.original.actualSalary}</div>,
+            cell: ({ row }) => <div>{formatCurrency(row.original.actualSalary)}</div>,
         },
         {
             accessorKey: "actualSalaryLocal",
@@ -261,7 +235,18 @@ function EmployeeOverview() {
                 className="2xl:w-[80%] max-w-full px-4 flex flex-col gap-5"
             >
                 <div className="flex flex-row justify-between items-center">
-                    <span className="text-xl font-bold">Edit employee</span>
+                    <div className="flex flex-col">
+                        <span className="text-xl font-bold">
+                            {employee.deelEmployee?.name || employee.email || 'Edit employee'}
+                        </span>
+                        <div className="text-sm text-gray-600 mt-1">
+                            <span>Priority: {employee.priority}</span>
+                            {employee.deelEmployee?.topLevelManager?.name && (
+                                <span className="ml-4">Reviewer: {employee.deelEmployee.topLevelManager.name}</span>
+                            )}
+                            <span className="ml-4">Reviewed: {employee.reviewd ? 'Yes' : 'No'}</span>
+                        </div>
+                    </div>
                     <div className='flex gap-2 justify-end'>
                         <Button variant="outline" type='button' onClick={() => router.navigate({ to: '/' })}>Back to overview</Button>
                         <Button variant="outline" type='button' onClick={() => {
@@ -278,69 +263,6 @@ function EmployeeOverview() {
                         }}>Move to next employee</Button>
                         <Button type="submit">Save changes</Button>
                     </div>
-                </div>
-                <div className="grid grid-cols-2 gap-5">
-                    <form.Field
-                        name="name"
-                        children={(field) => (
-                            <div className="grid gap-3">
-                                <Label htmlFor="name">Name</Label>
-                                <Input
-                                    name={field.name}
-                                    value={field.state.value}
-                                    onBlur={field.handleBlur}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    readOnly
-                                />
-                            </div>
-                        )}
-                    />
-
-                    <form.Field
-                        name="priority"
-                        children={(field) => (
-                            <div className="grid gap-3">
-                                <Label htmlFor="priority">Priority</Label>
-                                <Select name={field.name} defaultValue={field.state.value} onValueChange={(value) => field.handleChange(value as Priority)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a priority" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="low">Low</SelectItem>
-                                        <SelectItem value="medium">Medium</SelectItem>
-                                        <SelectItem value="high">High</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-                    />
-
-                    <form.Field
-                        name="reviewer"
-                        children={(field) => (
-                            <div className="grid gap-3">
-                                <Label htmlFor="reviewer">Reviewer</Label>
-                                <Input
-                                    name={field.name}
-                                    value={field.state.value}
-                                    onBlur={field.handleBlur}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    readOnly
-                                />
-                            </div>
-                        )}
-                    />
-
-                    <form.Field
-                        name="reviewd"
-                        children={(field) => (
-                            <div className="grid gap-3">
-                                <Label htmlFor="reviewd">Reviewd</Label>
-                                <Switch id="reviewd" name="reviewd" checked={field.state.value} onCheckedChange={(checked) => field.handleChange(checked)} />
-                            </div>
-                        )}
-                    />
-
                 </div>
 
                 <div className="flex flex-row gap-2 justify-between items-center mt-2">
@@ -555,6 +477,20 @@ export function SalaryUpdateMenu({ salary }: { salary: Salary }) {
 
             <div className="grid grid-cols-2 gap-4">
                 <form.Field
+                    name="notes"
+                    children={(field) => (
+                        <div className="grid gap-3 col-span-2">
+                            <Label htmlFor="notes">Notes</Label>
+                            <Input
+                                name={field.name}
+                                value={field.state.value}
+                                onBlur={field.handleBlur}
+                                onChange={(e) => field.handleChange(e.target.value)}
+                            />
+                        </div>
+                    )}
+                />
+                <form.Field
                     name="country"
                     children={(field) => (
                         <div className="grid gap-3">
@@ -708,9 +644,9 @@ export function SalaryUpdateMenu({ salary }: { salary: Salary }) {
                             <Input
                                 readOnly
                                 name={field.name}
-                                value={field.state.value}
+                                value={formatCurrency(field.state.value)}
                                 onBlur={field.handleBlur}
-                                type='number'
+                                type='text'
                                 onChange={(e) => field.handleChange(Number(e.target.value))}
                             />
                         </div>
@@ -740,9 +676,9 @@ export function SalaryUpdateMenu({ salary }: { salary: Salary }) {
                             <Input
                                 readOnly
                                 name={field.name}
-                                value={field.state.value}
+                                value={formatCurrency(field.state.value)}
                                 onBlur={field.handleBlur}
-                                type='number'
+                                type='text'
                                 onChange={(e) => field.handleChange(Number(e.target.value))}
                             />
                         </div>
@@ -819,9 +755,9 @@ export function SalaryUpdateMenu({ salary }: { salary: Salary }) {
                             <Input
                                 readOnly
                                 name={field.name}
-                                value={field.state.value}
+                                value={formatCurrency(field.state.value)}
                                 onBlur={field.handleBlur}
-                                type='number'
+                                type='text'
                                 onChange={(e) => field.handleChange(Number(e.target.value))}
                             />
                         </div>
@@ -843,20 +779,7 @@ export function SalaryUpdateMenu({ salary }: { salary: Salary }) {
                         </div>
                     )}
                 />
-                <form.Field
-                    name="notes"
-                    children={(field) => (
-                        <div className="grid gap-3 col-span-2">
-                            <Label htmlFor="notes">Notes</Label>
-                            <Input
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                onChange={(e) => field.handleChange(e.target.value)}
-                            />
-                        </div>
-                    )}
-                />
+                
             </div>
 
             <Button type="submit">Submit</Button>
