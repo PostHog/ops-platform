@@ -15,3 +15,4 @@ todos.json
 
 .netlify
 .vercel
+historicalImporter.ts

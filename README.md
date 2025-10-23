@@ -8,7 +8,7 @@ To run this application:
 flox activate
 flox services start
 npx prisma db push
-npx prisma db seed
+pnpm import-historical // You'll need to place the historicalImporter.ts into the root folder
 pnpm install
 pnpm dev
 ```
