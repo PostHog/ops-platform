@@ -85,11 +85,20 @@ const updateSalary = createServerFn({
 })
     .inputValidator((d: Omit<Salary, 'id' | 'timestamp' | 'communicated'>) => d)
     .handler(async ({ data }) => {
-        return await prisma.salary.create({
+        // Create the salary entry
+        const salary = await prisma.salary.create({
             data: {
                 ...data,
             },
         })
+        
+        // Update the employee's reviewed status to true
+        await prisma.employee.update({
+            where: { id: data.employeeId },
+            data: { reviewd: true }
+        })
+        
+        return salary
     })
 
 function EmployeeOverview() {
@@ -146,17 +155,17 @@ function EmployeeOverview() {
             {
                 accessorKey: "locationFactor",
                 header: "Location",
-                cell: ({ row }) => <div>{row.original.locationFactor}</div>,
+                cell: ({ row }) => <div className="text-right">{row.original.locationFactor}</div>,
             },
             {
                 accessorKey: "level",
                 header: "Level",
-                cell: ({ row }) => <div>{row.original.level}</div>,
+                cell: ({ row }) => <div className="text-right">{row.original.level}</div>,
             },
             {
                 accessorKey: "step",
                 header: "Step",
-                cell: ({ row }) => <div>{row.original.step}</div>,
+                cell: ({ row }) => <div className="text-right">{row.original.step}</div>,
             },
             {
                 accessorKey: "totalSalary",
@@ -168,7 +177,7 @@ function EmployeeOverview() {
                     
                     return (
                         <div 
-                            className={isMismatch ? "text-red-600 font-medium" : ""}
+                            className={`text-right ${isMismatch ? "text-red-600 font-medium" : ""}`}
                             title={isMismatch ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(salary.totalSalary)}` : ""}
                         >
                             {formatCurrency(salary.totalSalary)}
@@ -179,12 +188,12 @@ function EmployeeOverview() {
             {
                 accessorKey: "changeAmount",
                 header: "Change ($)",
-                cell: ({ row }) => <div>{formatCurrency(row.original.changeAmount)}</div>,
+                cell: ({ row }) => <div className="text-right">{formatCurrency(row.original.changeAmount)}</div>,
             },
             {
                 accessorKey: "changePercentage",
                 header: "Change (%)",
-                cell: ({ row }) => <div>{row.original.changePercentage * 100}%</div>,
+                cell: ({ row }) => <div className="text-right">{(row.original.changePercentage * 100).toFixed(2)}%</div>,
             },
             {
                 accessorKey: "notes",
@@ -210,27 +219,27 @@ function EmployeeOverview() {
             {
                 accessorKey: "exchangeRate",
                 header: "Exchange Rate",
-                cell: ({ row }) => <div>{row.original.exchangeRate}</div>,
+                cell: ({ row }) => <div className="text-right">{row.original.exchangeRate}</div>,
             },
             {
                 accessorKey: "totalSalaryLocal",
                 header: "Total Salary (local)",
-                cell: ({ row }) => <div>{row.original.totalSalaryLocal}</div>,
+                cell: ({ row }) => <div className="text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.localCurrency }).format(row.original.totalSalaryLocal)}</div>,
             },
             {
                 accessorKey: "amountTakenInOptions",
                 header: "Amount Taken In Options ($)",
-                cell: ({ row }) => <div>{formatCurrency(row.original.amountTakenInOptions)}</div>,
+                cell: ({ row }) => <div className="text-right">{formatCurrency(row.original.amountTakenInOptions)}</div>,
             },
             {
                 accessorKey: "actualSalary",
                 header: "Actual Salary ($)",
-                cell: ({ row }) => <div>{formatCurrency(row.original.actualSalary)}</div>,
+                cell: ({ row }) => <div className="text-right">{formatCurrency(row.original.actualSalary)}</div>,
             },
             {
                 accessorKey: "actualSalaryLocal",
                 header: "Actual Salary (local)",
-                cell: ({ row }) => <div>{row.original.actualSalaryLocal}</div>,
+                cell: ({ row }) => <div className="text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.localCurrency }).format(row.original.actualSalaryLocal)}</div>,
             },
         ]
 
@@ -453,7 +462,7 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
         amountTakenInOptions: latestSalary?.amountTakenInOptions ?? 0,
         actualSalary: latestSalary?.actualSalary ?? 0,
         actualSalaryLocal: latestSalary?.actualSalaryLocal ?? 0,
-        notes: latestSalary?.notes ?? "",
+        notes: "",
         employeeId: employeeId
     })
 
@@ -594,7 +603,7 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                 <form.Field
                     name="locationFactor"
                     children={(field) => (
-                        <div className="text-xs py-1 px-1">
+                        <div className="text-xs py-1 px-1 text-right">
                             {field.state.value}
                         </div>
                     )}
@@ -661,7 +670,7 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                 <form.Field
                     name="changeAmount"
                     children={(field) => (
-                        <div className="text-xs py-1 px-1">
+                        <div className="text-xs py-1 px-1 text-right">
                             {formatCurrency(field.state.value)}
                         </div>
                     )}
@@ -671,8 +680,8 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                 <form.Field
                     name="changePercentage"
                     children={(field) => (
-                        <div className="text-xs py-1 px-1">
-                            {`${(field.state.value * 100).toFixed(2)}%`}
+                        <div className="text-xs py-1 px-1 text-right">
+                            {(field.state.value * 100).toFixed(2)}%
                         </div>
                     )}
                 />
@@ -710,11 +719,14 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                     <TableCell>
                         <form.Field
                             name="totalSalaryLocal"
-                            children={(field) => (
-                                <div className="text-xs py-1 px-1">
-                                    {field.state.value}
-                                </div>
-                            )}
+                            children={(field) => {
+                                const localCurrency = form.getFieldValue('localCurrency') ?? 'USD'
+                                return (
+                                    <div className="text-xs py-1 px-1 text-right">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: localCurrency }).format(field.state.value)}
+                                    </div>
+                                )
+                            }}
                         />
                     </TableCell>
                     <TableCell>
@@ -734,7 +746,7 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                         <form.Field
                             name="actualSalary"
                             children={(field) => (
-                                <div className="text-xs py-1 px-1">
+                                <div className="text-xs py-1 px-1 text-right">
                                     {formatCurrency(field.state.value)}
                                 </div>
                             )}
@@ -743,11 +755,14 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                     <TableCell>
                         <form.Field
                             name="actualSalaryLocal"
-                            children={(field) => (
-                                <div className="text-xs py-1 px-1">
-                                    {field.state.value}
-                                </div>
-                            )}
+                            children={(field) => {
+                                const localCurrency = form.getFieldValue('localCurrency') ?? 'USD'
+                                return (
+                                    <div className="text-xs py-1 px-1 text-right">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: localCurrency }).format(field.state.value)}
+                                    </div>
+                                )
+                            }}
                         />
                     </TableCell>
                 </>
