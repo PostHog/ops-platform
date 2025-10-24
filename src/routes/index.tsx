@@ -32,6 +32,7 @@ import { createServerFn } from '@tanstack/react-start'
 import prisma from '@/db'
 import { Prisma } from "@/../generated/prisma/client.js";
 import { useQuery } from '@tanstack/react-query'
+import { formatCurrency } from '@/lib/utils'
 
 export const Route = createFileRoute("/")({
   component: App
@@ -135,9 +136,9 @@ function App() {
       meta: {
         filterVariant: 'text',
       },
-      filterFn: (row: Row<Employee>, _: string, filterValue: string)=> customFilterFns.containsText(row.original.deelEmployee?.name ?? '', _, filterValue),
+      filterFn: (row: Row<Employee>, _: string, filterValue: string)=> customFilterFns.containsText(row.original.deelEmployee?.name || row.original.email, _, filterValue),
       cell: ({ row }) => (
-        <div>{row.original.deelEmployee?.name}</div>
+        <div>{row.original.deelEmployee?.name || row.original.email}</div>
       ),
     },
     {
@@ -160,7 +161,7 @@ function App() {
         filterVariant: 'range',
       },
       filterFn: (row: Row<Employee>, _: string, filterValue: [number | undefined, number | undefined])=> customFilterFns.inNumberRange(row.original.salaries?.[0]?.level, _, filterValue),
-      cell: ({ row }) => <div>{row.original.salaries[0].level}</div>,
+      cell: ({ row }) => <div className="text-right">{row.original.salaries[0].level}</div>,
     },
     {
       accessorKey: "step",
@@ -169,7 +170,7 @@ function App() {
         filterVariant: 'range',
       },
       filterFn: (row: Row<Employee>, _: string, filterValue: [number | undefined, number | undefined])=> customFilterFns.inNumberRange(row.original.salaries?.[0]?.step, _, filterValue),
-      cell: ({ row }) => <div>{row.original.salaries[0].step}</div>,
+      cell: ({ row }) => <div className="text-right">{row.original.salaries[0].step}</div>,
     },
     {
       accessorKey: "totalSalary",
@@ -178,7 +179,7 @@ function App() {
         filterVariant: 'range',
       },
       filterFn: (row: Row<Employee>, _: string, filterValue: [number | undefined, number | undefined])=> customFilterFns.inNumberRange(row.original.salaries?.[0]?.totalSalary, _, filterValue),
-      cell: ({ row }) => <div>{row.original.salaries[0].totalSalary}</div>,
+      cell: ({ row }) => <div className="text-right">{formatCurrency(row.original.salaries[0].totalSalary)}</div>,
     },
     {
       accessorKey: "changePercentage",
@@ -187,7 +188,7 @@ function App() {
         filterVariant: 'range',
       },
       filterFn: (row: Row<Employee>, _: string, filterValue: [number | undefined, number | undefined])=> customFilterFns.inNumberRange(row.original.salaries?.[0]?.changePercentage * 100, _, filterValue),
-      cell: ({ row }) => <div>{row.original.salaries[0].changePercentage * 100}%</div>,
+      cell: ({ row }) => <div className="text-right">{(row.original.salaries[0].changePercentage * 100).toFixed(2)}%</div>,
     },
     {
       accessorKey: "changeAmount",
@@ -196,7 +197,7 @@ function App() {
         filterVariant: 'range',
       },
       filterFn: (row: Row<Employee>, _: string, filterValue: [number | undefined, number | undefined])=> customFilterFns.inNumberRange(row.original.salaries?.[0]?.changeAmount, _, filterValue),
-      cell: ({ row }) => <div>{row.original.salaries[0].changeAmount}</div>,
+      cell: ({ row }) => <div className="text-right">{formatCurrency(row.original.salaries[0].changeAmount)}</div>,
     },
     {
       accessorKey: "priority",
@@ -321,7 +322,7 @@ function App() {
           </div>
         </div>
         <div className="overflow-hidden rounded-md border">
-          <Table>
+          <Table className="text-xs">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -350,9 +351,11 @@ function App() {
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
+                    className="cursor-pointer hover:bg-gray-50"
+                    onClick={() => router.navigate({ to: '/employee/$employeeId', params: { employeeId: row.original.id } })}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
+                      <TableCell key={cell.id} className="py-1 px-1">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
@@ -385,7 +388,7 @@ function Filter({ column }: { column: Column<any, unknown> }) {
 
   return filterVariant === 'range' ? (
     <div>
-      <div className="flex space-x-2">
+      <div className="flex flex-col space-y-1">
         {/* See faceted column filters example for min max values functionality */}
         <DebouncedInput
           type="number"
@@ -394,7 +397,7 @@ function Filter({ column }: { column: Column<any, unknown> }) {
             column.setFilterValue((old: [number, number]) => [value, old?.[1]])
           }
           placeholder={`Min`}
-          className="w-24 border shadow rounded"
+          className="w-16 border shadow rounded"
         />
         <DebouncedInput
           type="number"
@@ -403,14 +406,14 @@ function Filter({ column }: { column: Column<any, unknown> }) {
             column.setFilterValue((old: [number, number]) => [old?.[0], value])
           }
           placeholder={`Max`}
-          className="w-24 border shadow rounded"
+          className="w-16 border shadow rounded"
         />
       </div>
       <div className="h-1" />
     </div>
   ) : filterVariant === 'dateRange' ? (
     <div>
-      <div className="flex space-x-2">
+      <div className="flex flex-col space-y-1">
         <DebouncedInput
           type="date"
           value={(columnFilterValue as [string, string])?.[0] ?? ''}
@@ -418,7 +421,7 @@ function Filter({ column }: { column: Column<any, unknown> }) {
             column.setFilterValue((old: [string, string]) => [value, old?.[1]])
           }
           placeholder={`Min`}
-          className="w-32 border shadow rounded"
+          className="w-24 border shadow rounded"
         />
         <DebouncedInput
           type="date"
@@ -427,7 +430,7 @@ function Filter({ column }: { column: Column<any, unknown> }) {
             column.setFilterValue((old: [string, string]) => [old?.[0], value])
           }
           placeholder={`Max`}
-          className="w-32 border shadow rounded"
+          className="w-24 border shadow rounded"
         />
       </div>
       <div className="h-1" />
