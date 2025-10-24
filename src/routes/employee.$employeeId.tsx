@@ -492,7 +492,7 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
 
         const exchangeRate = currencyData[location?.currency ?? ''] ?? 1
         formApi.setFieldValue('exchangeRate', exchangeRate)
-        formApi.setFieldValue('localCurrency', location?.currency ?? 'USD')
+        formApi.setFieldValue('localCurrency', currencyData[location?.currency ?? ''] ? location?.currency : 'USD')
 
         const totalSalaryLocal = totalSalary * exchangeRate
         formApi.setFieldValue('totalSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
