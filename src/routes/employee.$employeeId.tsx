@@ -409,6 +409,7 @@ function EmployeeOverview() {
                                         showOverrideMode={showOverrideMode}
                                         latestSalary={employee.salaries[0]}
                                         showDetailedColumns={showDetailedColumns}
+                                        totalAmountInStockOptions={employee.salaries.reduce((acc, salary) => acc + salary.amountTakenInOptions, 0)}
                                         onSuccess={() => {
                                             setShowInlineForm(false)
                                             router.invalidate()
@@ -451,13 +452,14 @@ function EmployeeOverview() {
     )
 }
 
-function InlineSalaryFormRow({ employeeId, showOverrideMode, onSuccess, onCancel, latestSalary, showDetailedColumns }: {
+function InlineSalaryFormRow({ employeeId, showOverrideMode, onSuccess, onCancel, latestSalary, showDetailedColumns, totalAmountInStockOptions }: {
     employeeId: string
     showOverrideMode: boolean
     onSuccess: () => void
     onCancel: () => void
     latestSalary: Salary | undefined
     showDetailedColumns: boolean
+    totalAmountInStockOptions: number
 }) {
 
     const getDefaultValues = () => ({
@@ -516,7 +518,7 @@ function InlineSalaryFormRow({ employeeId, showOverrideMode, onSuccess, onCancel
         formApi.setFieldValue('totalSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
 
         const amountTakenInOptions = formApi.getFieldValue('amountTakenInOptions') ?? 0
-        const actualSalary = totalSalary - amountTakenInOptions
+        const actualSalary = totalSalary - amountTakenInOptions - totalAmountInStockOptions
         formApi.setFieldValue('actualSalary', Number(actualSalary.toFixed(2)))
 
         const actualSalaryLocal = actualSalary * exchangeRate
