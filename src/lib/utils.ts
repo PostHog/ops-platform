@@ -52,6 +52,7 @@ export const currencyData: Record<string, number> = {
   ILS: 3.113,
   KRW: 1188.88,
   PLN: 4.035,
+  COP: 4925
 }
 
 export const sfBenchmark: Record<string, number> = {
