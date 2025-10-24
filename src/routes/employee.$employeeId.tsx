@@ -92,19 +92,20 @@ const updateSalary = createServerFn({
                 ...data,
             },
         })
-        
+
         // Update the employee's reviewed status to true
         await prisma.employee.update({
             where: { id: data.employeeId },
             data: { reviewd: true }
         })
-        
+
         return salary
     })
 
 function EmployeeOverview() {
     const getEmployeesFn = useServerFn(getEmployees)
     const [showInlineForm, setShowInlineForm] = useState(true)
+    const [showOverrideMode, setShowOverrideMode] = useState(false)
     const [showDetailedColumns, setShowDetailedColumns] = useState(false)
 
     const { data: employees } = useQuery({
@@ -175,9 +176,9 @@ function EmployeeOverview() {
                     const salary = row.original
                     const expectedTotal = salary.locationFactor * salary.level * salary.step * salary.benchmarkFactor
                     const isMismatch = Math.abs(salary.totalSalary - expectedTotal) > 0.01 // Allow for small floating point differences
-                    
+
                     return (
-                        <div 
+                        <div
                             className={`text-right ${isMismatch ? "text-red-600 font-medium" : ""}`}
                             title={isMismatch ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(salary.totalSalary)}` : ""}
                         >
@@ -331,19 +332,30 @@ function EmployeeOverview() {
 
                 <div className="flex flex-row gap-2 justify-between items-center mt-2">
                     <span className="text-md font-bold">Salary history</span>
-                    <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => setShowInlineForm(!showInlineForm)}
-                    >
-                        {showInlineForm ? 'Cancel' : 'Add New Salary'}
-                    </Button>
+                    <div className="flex gap-2">
+                        {showInlineForm ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setShowOverrideMode(!showOverrideMode)}
+                            >
+                                {showOverrideMode ? 'Disable override mode' : 'Enable override mode'}
+                            </Button>
+                        ) : null}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowInlineForm(!showInlineForm)}
+                        >
+                            {showInlineForm ? 'Cancel' : 'Add New Salary'}
+                        </Button>
+                    </div>
                 </div>
 
                 {employee.salaries[0] && (() => {
                     const benchmarkUpdated = sfBenchmark[employee.salaries[0].benchmark as keyof typeof sfBenchmark] !== employee.salaries[0].benchmarkFactor
                     const locationFactorUpdated = locationFactor.find(l => l.country === employee.salaries[0].country && l.area === employee.salaries[0].area)?.locationFactor !== employee.salaries[0].locationFactor
-                    
+
                     return (
                         <>
                             {benchmarkUpdated && (
@@ -392,8 +404,9 @@ function EmployeeOverview() {
                             </TableHeader>
                             <TableBody>
                                 {showInlineForm && (
-                                    <InlineSalaryFormRow 
+                                    <InlineSalaryFormRow
                                         employeeId={employee.id}
+                                        showOverrideMode={showOverrideMode}
                                         latestSalary={employee.salaries[0]}
                                         showDetailedColumns={showDetailedColumns}
                                         onSuccess={() => {
@@ -438,14 +451,15 @@ function EmployeeOverview() {
     )
 }
 
-function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, showDetailedColumns }: { 
+function InlineSalaryFormRow({ employeeId, showOverrideMode, onSuccess, onCancel, latestSalary, showDetailedColumns }: {
     employeeId: string
+    showOverrideMode: boolean
     onSuccess: () => void
     onCancel: () => void
     latestSalary: Salary | undefined
     showDetailedColumns: boolean
 }) {
-    
+
     const getDefaultValues = () => ({
         country: latestSalary?.country ?? "United States",
         area: latestSalary?.area ?? "San Francisco Bay Area",
@@ -479,8 +493,12 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
         const currentLocationFactor = formApi.getFieldValue('locationFactor') ?? 0
         const level = formApi.getFieldValue('level') ?? 1
         const step = formApi.getFieldValue('step') ?? 1
-        const totalSalary = currentLocationFactor * level * step * benchmarkFactor
-        formApi.setFieldValue('totalSalary', Number(totalSalary.toFixed(2)))
+        let totalSalary = currentLocationFactor * level * step * benchmarkFactor
+        if (!showOverrideMode) {
+            formApi.setFieldValue('totalSalary', Number(totalSalary.toFixed(2)))
+        } else {
+            totalSalary = formApi.getFieldValue('totalSalary') ?? totalSalary
+        }
 
         // Calculate change from the latest salary
         const latestTotalSalary = latestSalary?.totalSalary ?? 0
@@ -521,6 +539,8 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
             onChange: ({ formApi, fieldApi }) => {
                 if (['country', 'area', 'level', 'step', 'benchmark', 'amountTakenInOptions'].includes(fieldApi.name)) {
                     updateFormFields(formApi)
+                } else if (['totalSalary'].includes(fieldApi.name) && showOverrideMode) {
+                    updateFormFields(formApi)
                 }
             }
         }
@@ -537,8 +557,8 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                 <form.Field
                     name="country"
                     children={(field) => (
-                        <Select 
-                            value={field.state.value} 
+                        <Select
+                            value={field.state.value}
                             onValueChange={(value) => field.handleChange(value)}
                         >
                             <SelectTrigger className="w-full h-6 text-xs">
@@ -559,8 +579,8 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                 <form.Field
                     name="area"
                     children={(field) => (
-                        <Select 
-                            value={field.state.value} 
+                        <Select
+                            value={field.state.value}
                             onValueChange={(value) => field.handleChange(value)}
                             disabled={!country}
                         >
@@ -582,8 +602,8 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                 <form.Field
                     name="benchmark"
                     children={(field) => (
-                        <Select 
-                            value={field.state.value} 
+                        <Select
+                            value={field.state.value}
                             onValueChange={(value) => field.handleChange(value)}
                         >
                             <SelectTrigger className="w-full h-6 text-xs">
@@ -614,8 +634,8 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                 <form.Field
                     name="level"
                     children={(field) => (
-                        <Select 
-                            value={field.state.value.toString()} 
+                        <Select
+                            value={field.state.value.toString()}
                             onValueChange={(value) => field.handleChange(Number(value))}
                         >
                             <SelectTrigger className="w-full h-6 text-xs">
@@ -655,9 +675,21 @@ function InlineSalaryFormRow({ employeeId, onSuccess, onCancel, latestSalary, sh
                         const benchmarkFactor = form.getFieldValue('benchmarkFactor') ?? 0
                         const expectedTotal = locationFactor * level * step * benchmarkFactor
                         const isMismatch = Math.abs(field.state.value - expectedTotal) > 0.01
-                        
+
+                        if (showOverrideMode) {
+                            return (
+                                <Input
+                                    className="w-full h-6 text-xs min-w-[70px]"
+                                    value={field.state.value}
+                                    type="number"
+                                    step={1}
+                                    onChange={(e) => field.handleChange(Number(e.target.value))}
+                                />
+                            )
+                        }
+
                         return (
-                            <div 
+                            <div
                                 className={`text-xs py-1 px-1 text-right ${isMismatch ? "text-red-600 font-medium" : ""}`}
                                 title={isMismatch ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(field.state.value)}` : ""}
                             >
