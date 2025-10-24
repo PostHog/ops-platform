@@ -28,11 +28,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { createServerFn } from '@tanstack/react-start'
+import { createServerFn, useServerFn } from '@tanstack/react-start'
 import prisma from '@/db'
 import { Prisma } from "@/../generated/prisma/client.js";
 import { useQuery } from '@tanstack/react-query'
 import { formatCurrency } from '@/lib/utils'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import "vercel-toast/dist/vercel-toast.css"
+import { createToast } from "vercel-toast"
 
 export const Route = createFileRoute("/")({
   component: App
@@ -90,6 +93,16 @@ export const getEmployees = createServerFn({
   })
 })
 
+const updateEmployeePriority = createServerFn({
+    method: 'POST',
+  }).inputValidator((d: { employeeId: string, priority: string }) => d)
+    .handler(async ({ data }) => {
+      return await prisma.employee.update({
+        where: { id: data.employeeId },
+        data: { priority: data.priority }
+      })
+    })
+
 const customFilterFns = {
   inDateRange: (row: Row<Employee>, _: string, filterValue: [string | undefined, string | undefined]) => {
     const [minStr, maxStr] = filterValue as [string | undefined, string | undefined]
@@ -129,9 +142,11 @@ function App() {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
 
-  const { data: employees } = useQuery({
+  const getEmployeesFn = useServerFn(getEmployees)
+
+  const { data: employees, refetch } = useQuery({
     queryKey: ['employees'],
-    queryFn: () => getEmployees(),
+    queryFn: () => getEmployeesFn(),
   })
 
   const columns: ColumnDef<Employee>[] = [
@@ -215,7 +230,28 @@ function App() {
           { label: 'High', value: 'high' },
         ]
       },
-      cell: ({ row }) => <div>{row.original.priority}</div>,
+      cell: ({ row }) => {
+        const handlePriorityChange = async (value: string) => {
+          await updateEmployeePriority({ data: { employeeId: row.original.id, priority: value } })
+          refetch()
+          createToast("Priority updated successfully.", {
+            timeout: 3000,
+          })
+        }
+        
+        return (
+          <Select value={row.original.priority} onValueChange={handlePriorityChange}>
+            <SelectTrigger className="w-24 h-6 text-xs px-1 py-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+            </SelectContent>
+          </Select>
+        )
+      },
     },
     {
       accessorKey: "reviewer",
