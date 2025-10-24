@@ -81,7 +81,12 @@ export const getEmployees = createServerFn({
     },
     where: {
       salaries: { some: {} }
-    }
+    },
+    orderBy: {
+      deelEmployee: {
+        name: 'asc',
+      },
+    },
   })
 })
 
