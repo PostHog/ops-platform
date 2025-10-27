@@ -476,7 +476,7 @@ function InlineSalaryFormRow({ employeeId, showOverrideMode, onSuccess, onCancel
         localCurrency: latestSalary?.localCurrency ?? "USD",
         exchangeRate: latestSalary?.exchangeRate ?? 1,
         totalSalaryLocal: latestSalary?.totalSalaryLocal ?? 0,
-        amountTakenInOptions: latestSalary?.amountTakenInOptions ?? 0,
+        amountTakenInOptions: 0,
         actualSalary: latestSalary?.actualSalary ?? 0,
         actualSalaryLocal: latestSalary?.actualSalaryLocal ?? 0,
         notes: "",
