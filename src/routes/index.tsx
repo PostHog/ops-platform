@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/table"
 import { createServerFn, useServerFn } from '@tanstack/react-start'
 import prisma from '@/db'
-import { Prisma } from "@/../generated/prisma/client.js";
+import { type Priority, type Prisma } from "@/../generated/prisma/client.js";
 import { useQuery } from '@tanstack/react-query'
 import { formatCurrency } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -97,9 +97,10 @@ const updateEmployeePriority = createServerFn({
     method: 'POST',
   }).inputValidator((d: { employeeId: string, priority: string }) => d)
     .handler(async ({ data }) => {
+      if (!data.priority) return
       return await prisma.employee.update({
         where: { id: data.employeeId },
-        data: { priority: data.priority }
+        data: { priority: data.priority as Priority }
       })
     })
 
