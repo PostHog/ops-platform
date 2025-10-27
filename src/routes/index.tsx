@@ -36,6 +36,8 @@ import { formatCurrency } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import "vercel-toast/dist/vercel-toast.css"
 import { createToast } from "vercel-toast"
+import { reviewQueueAtom } from '@/atoms'
+import { useAtom } from 'jotai'
 
 export const Route = createFileRoute("/")({
   component: App
@@ -142,6 +144,7 @@ function App() {
   )
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
+  const [_, setReviewQueue] = useAtom(reviewQueueAtom)
 
   const getEmployeesFn = useServerFn(getEmployees)
 
@@ -329,12 +332,21 @@ function App() {
     filterFns: {},
   })
 
+  const handleReviewVisibleEmployees = () => {
+    const visibleEmployees = table.getFilteredRowModel().rows.map((row) => row.original.id)
+    setReviewQueue(visibleEmployees)
+    router.navigate({ to: '/employee/$employeeId', params: { employeeId: visibleEmployees[0] } });
+  }
+
   return (
     <div className="w-screen flex justify-center">
       <div className="max-w-[80%] flex-grow">
         <div className="flex justify-between py-4">
           <div></div>
           <div className="flex items-center space-x-2">
+            <Button variant="outline" className="ml-auto" onClick={handleReviewVisibleEmployees}>
+              Review visible employees
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="ml-auto">

@@ -5,12 +5,12 @@ import ReactMarkdown from 'react-markdown'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useForm, useStore, AnyFormApi } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { createServerFn, useServerFn } from '@tanstack/react-start'
+import { createServerFn } from '@tanstack/react-start'
 import { Prisma, type Salary } from 'generated/prisma/client'
 import { Button } from "@/components/ui/button"
 import "vercel-toast/dist/vercel-toast.css";
 import { createToast } from "vercel-toast";
-import { getEmployees, months } from '.'
+import { months } from '.'
 import { useMemo, useState } from 'react'
 import {
     ColumnDef,
@@ -26,10 +26,11 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { useQuery } from '@tanstack/react-query'
 import { currencyData, getAreasByCountry, getCountries, locationFactor, sfBenchmark, formatCurrency } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
+import { reviewQueueAtom } from '@/atoms'
+import { useAtom } from 'jotai'
 
 export const Route = createFileRoute('/employee/$employeeId')({
     component: EmployeeOverview,
@@ -103,17 +104,13 @@ const updateSalary = createServerFn({
     })
 
 function EmployeeOverview() {
-    const getEmployeesFn = useServerFn(getEmployees)
     const [showInlineForm, setShowInlineForm] = useState(true)
     const [showOverrideMode, setShowOverrideMode] = useState(false)
     const [showDetailedColumns, setShowDetailedColumns] = useState(false)
 
-    const { data: employees } = useQuery({
-        queryKey: ['employees'],
-        queryFn: () => getEmployeesFn(),
-    })
     const router = useRouter()
     const employee: Employee = Route.useLoaderData()
+    const [reviewQueue, setReviewQueue] = useAtom(reviewQueueAtom)
 
     const form = useForm({
         defaultValues: {
@@ -248,6 +245,20 @@ function EmployeeOverview() {
         return showDetailedColumns ? [...baseColumns, expandIndicator, ...detailedColumns] : [...baseColumns, expandIndicator]
     }, [showDetailedColumns])
 
+    const handleMoveToNextEmployee = () => {
+        const currentIndex = reviewQueue.indexOf(employee.id)
+        const nextEmployee = reviewQueue[currentIndex + 1] ?? null
+        if (nextEmployee) {
+            router.navigate({ to: '/employee/$employeeId', params: { employeeId: nextEmployee } });
+        } else {
+            createToast("No more employees in review queue, navigating to overview.", {
+                timeout: 3000,
+            });
+            setReviewQueue([])
+            router.navigate({ to: '/' });
+        }
+    }
+
     const table = useReactTable({
         data: employee.salaries,
         columns,
@@ -281,18 +292,9 @@ function EmployeeOverview() {
                     </div>
                     <div className='flex gap-2 justify-end'>
                         <Button variant="outline" type='button' onClick={() => router.navigate({ to: '/' })}>Back to overview</Button>
-                        <Button variant="outline" type='button' onClick={() => {
-                            const currentIndex = employees?.findIndex(e => e.id === employee.id) ?? -1;
-                            const nextEmployee = employees?.[currentIndex + 1];
-                            if (nextEmployee) {
-                                router.navigate({ to: '/employee/$employeeId', params: { employeeId: nextEmployee.id } });
-                            } else {
-                                createToast("No more employees found, navigating to overview.", {
-                                    timeout: 3000,
-                                });
-                                router.navigate({ to: '/' });
-                            }
-                        }}>Move to next employee</Button>
+                        {reviewQueue.length > 0 && (
+                            <Button variant="outline" type='button' onClick={handleMoveToNextEmployee}>Move to next employee</Button>
+                        )}
                         <Button type="submit">Save changes</Button>
                     </div>
                 </div>
