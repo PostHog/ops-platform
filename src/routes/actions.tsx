@@ -8,6 +8,8 @@ import { createServerFn } from '@tanstack/react-start'
 import prisma from '@/db'
 import { Prisma } from 'generated/prisma/client'
 import { useMemo } from 'react'
+import { mkConfig, generateCsv, download } from "export-to-csv";
+import { months } from '.'
 
 type Salary = Prisma.SalaryGetPayload<{
     include: {
@@ -21,7 +23,7 @@ type Salary = Prisma.SalaryGetPayload<{
             }
         },
     }
-  }>
+}>
 
 const getUpdatedSalaries = createServerFn({
     method: 'GET',
@@ -62,7 +64,7 @@ const updateCommunicated = createServerFn({
             where: { id: data.id },
             data: { communicated: data.communicated },
         })
-})
+    })
 
 export const Route = createFileRoute('/actions')({
     component: App,
@@ -91,6 +93,11 @@ function App() {
             cell: ({ row }) => <div>{row.original.totalSalary}</div>,
         },
         {
+            accessorKey: "changePercentage",
+            header: "Change (%)",
+            cell: ({ row }) => <div>{(row.original.changePercentage * 100).toFixed(2)}%</div>,
+        },
+        {
             accessorKey: "reviewer",
             header: "Reviewer",
             cell: ({ row }) => <div>{row.original.employee.deelEmployee?.topLevelManager?.name}</div>,
@@ -104,8 +111,8 @@ function App() {
             id: "actions",
             enableHiding: false,
             cell: ({ row }) => {
-                const { communicated, id} = row.original
-    
+                const { communicated, id } = row.original
+
                 return (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -130,6 +137,21 @@ function App() {
         },
     ], [])
 
+    const handleExportAsCSV = () => {
+        const csvConfig = mkConfig({ useKeysAsHeaders: true, filename: `pay review actions ${months[new Date().getMonth()]} ${new Date().getFullYear()}` });
+
+        const csv = generateCsv(csvConfig)(salaries.map(salary => ({
+            name: salary.employee.deelEmployee?.name,
+            notes: salary.notes,
+            totalSalary: salary.totalSalary,
+            changePercentage: salary.changePercentage,
+            reviewer: salary.employee.deelEmployee?.topLevelManager?.name,
+            communicated: salary.communicated ? "Yes" : "No",
+        })));
+
+        download(csvConfig)(csv)
+    }
+
     const table = useReactTable({
         data: salaries,
         columns,
@@ -140,8 +162,16 @@ function App() {
     })
 
     return (
-        <div className="w-full h-full pt-8 flex justify-center">
+        <div className="w-full h-full flex justify-center">
             <div className="max-w-[80%] flex-grow">
+                <div className="flex justify-between py-4">
+                    <div></div>
+                    <div className="flex items-center space-x-2">
+                        <Button variant="outline" className="ml-auto" onClick={handleExportAsCSV}>
+                            Export as CSV
+                        </Button>
+                    </div>
+                </div>
                 <div className="overflow-hidden rounded-md border">
                     <Table>
                         <TableHeader>
