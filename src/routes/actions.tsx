@@ -10,6 +10,7 @@ import { Prisma } from 'generated/prisma/client'
 import { useMemo } from 'react'
 import { mkConfig, generateCsv, download } from "export-to-csv";
 import { months } from '.'
+import { formatCurrency } from '@/lib/utils'
 
 type Salary = Prisma.SalaryGetPayload<{
     include: {
@@ -90,7 +91,7 @@ function App() {
         {
             accessorKey: "totalSalary",
             header: "Total Salary",
-            cell: ({ row }) => <div>{row.original.totalSalary}</div>,
+            cell: ({ row }) => <div>{formatCurrency(row.original.totalSalary)}</div>,
         },
         {
             accessorKey: "changePercentage",
