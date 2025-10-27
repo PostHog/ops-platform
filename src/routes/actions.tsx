@@ -31,6 +31,9 @@ const getUpdatedSalaries = createServerFn({
             where: {
                 timestamp: {
                     gte: new Date(new Date().setDate(new Date().getDate() - 30)),
+                },
+                changeAmount: {
+                    gt: 0
                 }
             },
             include: {
