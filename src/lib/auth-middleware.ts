@@ -18,6 +18,7 @@ export const authMiddleware = createMiddleware({ type: 'function' }).server(asyn
                 id: session.user.id,
                 name: session.user.name,
                 email: session.user.email,
+                role: session.user.role
             }
         }
     } catch (error) {
@@ -26,6 +27,10 @@ export const authMiddleware = createMiddleware({ type: 'function' }).server(asyn
 
     if (!user) {
         throw redirect({ to: '/login' })
+    }
+
+    if (user.role !== 'admin') {
+        throw redirect({ to: '/error', search: { message: 'You are not authorized to access this page' } })
     }
 
     return await next({

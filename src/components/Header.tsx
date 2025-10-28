@@ -17,6 +17,9 @@ export default function Header() {
         <div className="px-2 font-bold">
           <Link to="/org-chart">Org chart</Link>
         </div>
+        <div className="px-2 font-bold">
+          <Link to="/management">Management</Link>
+        </div>
       </nav>
       <div className="flex flex-row gap-2 items-center">
         {session ? (

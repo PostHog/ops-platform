@@ -14,7 +14,9 @@ import { Route as SendKeeperTestsRouteImport } from './routes/sendKeeperTests'
 import { Route as RunScheduledJobsRouteImport } from './routes/runScheduledJobs'
 import { Route as ReceiveKeeperTestResultsRouteImport } from './routes/receiveKeeperTestResults'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
+import { Route as ManagementRouteImport } from './routes/management'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ErrorRouteImport } from './routes/error'
 import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmployeeEmployeeIdRouteImport } from './routes/employee.$employeeId'
@@ -46,9 +48,19 @@ const OrgChartRoute = OrgChartRouteImport.update({
   path: '/org-chart',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManagementRoute = ManagementRouteImport.update({
+  id: '/management',
+  path: '/management',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ErrorRoute = ErrorRouteImport.update({
+  id: '/error',
+  path: '/error',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActionsRoute = ActionsRouteImport.update({
@@ -75,7 +87,9 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
+  '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
+  '/management': typeof ManagementRoute
   '/org-chart': typeof OrgChartRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
@@ -87,7 +101,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
+  '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
+  '/management': typeof ManagementRoute
   '/org-chart': typeof OrgChartRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
@@ -100,7 +116,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
+  '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
+  '/management': typeof ManagementRoute
   '/org-chart': typeof OrgChartRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
@@ -114,7 +132,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/actions'
+    | '/error'
     | '/login'
+    | '/management'
     | '/org-chart'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
@@ -126,7 +146,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/actions'
+    | '/error'
     | '/login'
+    | '/management'
     | '/org-chart'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
@@ -138,7 +160,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/actions'
+    | '/error'
     | '/login'
+    | '/management'
     | '/org-chart'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
@@ -151,7 +175,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActionsRoute: typeof ActionsRoute
+  ErrorRoute: typeof ErrorRoute
   LoginRoute: typeof LoginRoute
+  ManagementRoute: typeof ManagementRoute
   OrgChartRoute: typeof OrgChartRoute
   ReceiveKeeperTestResultsRoute: typeof ReceiveKeeperTestResultsRoute
   RunScheduledJobsRoute: typeof RunScheduledJobsRoute
@@ -198,11 +224,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgChartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/management': {
+      id: '/management'
+      path: '/management'
+      fullPath: '/management'
+      preLoaderRoute: typeof ManagementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/error': {
+      id: '/error'
+      path: '/error'
+      fullPath: '/error'
+      preLoaderRoute: typeof ErrorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/actions': {
@@ -239,7 +279,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActionsRoute: ActionsRoute,
+  ErrorRoute: ErrorRoute,
   LoginRoute: LoginRoute,
+  ManagementRoute: ManagementRoute,
   OrgChartRoute: OrgChartRoute,
   ReceiveKeeperTestResultsRoute: ReceiveKeeperTestResultsRoute,
   RunScheduledJobsRoute: RunScheduledJobsRoute,

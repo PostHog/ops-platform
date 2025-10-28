@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { admin } from "better-auth/plugins"
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { PrismaClient } from "../../generated/prisma/client";
 import { reactStartCookies } from "better-auth/react-start";
@@ -15,5 +16,5 @@ export const auth = betterAuth({
             clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
         }
     },
-    plugins: [reactStartCookies()]
+    plugins: [admin(), reactStartCookies()]
 });
