@@ -14,9 +14,11 @@ import { Route as SendKeeperTestsRouteImport } from './routes/sendKeeperTests'
 import { Route as RunScheduledJobsRouteImport } from './routes/runScheduledJobs'
 import { Route as ReceiveKeeperTestResultsRouteImport } from './routes/receiveKeeperTestResults'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmployeeEmployeeIdRouteImport } from './routes/employee.$employeeId'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const SyncDeelEmployeesRoute = SyncDeelEmployeesRouteImport.update({
   id: '/syncDeelEmployees',
@@ -44,6 +46,11 @@ const OrgChartRoute = OrgChartRouteImport.update({
   path: '/org-chart',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ActionsRoute = ActionsRouteImport.update({
   id: '/actions',
   path: '/actions',
@@ -59,80 +66,99 @@ const EmployeeEmployeeIdRoute = EmployeeEmployeeIdRouteImport.update({
   path: '/employee/$employeeId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
+  '/login': typeof LoginRoute
   '/org-chart': typeof OrgChartRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
   '/sendKeeperTests': typeof SendKeeperTestsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
+  '/login': typeof LoginRoute
   '/org-chart': typeof OrgChartRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
   '/sendKeeperTests': typeof SendKeeperTestsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
+  '/login': typeof LoginRoute
   '/org-chart': typeof OrgChartRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
   '/sendKeeperTests': typeof SendKeeperTestsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/actions'
+    | '/login'
     | '/org-chart'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
     | '/sendKeeperTests'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/actions'
+    | '/login'
     | '/org-chart'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
     | '/sendKeeperTests'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/actions'
+    | '/login'
     | '/org-chart'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
     | '/sendKeeperTests'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActionsRoute: typeof ActionsRoute
+  LoginRoute: typeof LoginRoute
   OrgChartRoute: typeof OrgChartRoute
   ReceiveKeeperTestResultsRoute: typeof ReceiveKeeperTestResultsRoute
   RunScheduledJobsRoute: typeof RunScheduledJobsRoute
   SendKeeperTestsRoute: typeof SendKeeperTestsRoute
   SyncDeelEmployeesRoute: typeof SyncDeelEmployeesRoute
   EmployeeEmployeeIdRoute: typeof EmployeeEmployeeIdRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -172,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgChartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/actions': {
       id: '/actions'
       path: '/actions'
@@ -193,28 +226,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeeEmployeeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActionsRoute: ActionsRoute,
+  LoginRoute: LoginRoute,
   OrgChartRoute: OrgChartRoute,
   ReceiveKeeperTestResultsRoute: ReceiveKeeperTestResultsRoute,
   RunScheduledJobsRoute: RunScheduledJobsRoute,
   SendKeeperTestsRoute: SendKeeperTestsRoute,
   SyncDeelEmployeesRoute: SyncDeelEmployeesRoute,
   EmployeeEmployeeIdRoute: EmployeeEmployeeIdRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }
