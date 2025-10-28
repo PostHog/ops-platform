@@ -101,8 +101,8 @@ function RouteComponent() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="user">User</SelectItem>
+              <SelectItem value="admin">Admin (full access)</SelectItem>
+              <SelectItem value="user">User (no access)</SelectItem>
             </SelectContent>
           </Select>
         )
