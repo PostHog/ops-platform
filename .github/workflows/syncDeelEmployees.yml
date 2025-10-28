@@ -8,15 +8,15 @@ jobs:
   syncDeelEmployees:
     runs-on: ubuntu-latest
     steps:
-    - name: Call syncDeelEmployees endpoint
-      id: syncDeelEmployees
-      uses: fjogeleit/http-request-action@v1
-      with:
-        url: '${{ vars.BASE_URL }}/syncDeelEmployees'
-        method: 'POST'
-        customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
-        timeout: 20000
-    - name: Show Response
-      run: |
-        echo ${{ steps.syncDeelEmployees.outputs.status }}
-        echo ${{ steps.syncDeelEmployees.outputs.response }}
+      - name: Call syncDeelEmployees endpoint
+        id: syncDeelEmployees
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: '${{ vars.BASE_URL }}/syncDeelEmployees'
+          method: 'POST'
+          customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
+          timeout: 20000
+      - name: Show Response
+        run: |
+          echo ${{ steps.syncDeelEmployees.outputs.status }}
+          echo ${{ steps.syncDeelEmployees.outputs.response }}

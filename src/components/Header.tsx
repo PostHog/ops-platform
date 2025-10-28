@@ -1,6 +1,6 @@
-import { useSession, signOut } from '@/lib/auth-client'
 import { Link, useRouter } from '@tanstack/react-router'
 import { Button } from './ui/button'
+import { signOut, useSession } from '@/lib/auth-client'
 
 export default function Header() {
   const { data: session } = useSession()
@@ -30,8 +30,12 @@ export default function Header() {
       <div className="flex flex-row gap-2 items-center">
         {session ? (
           <>
-            <span className="text-sm text-gray-500">Logged in as {session?.user.name}</span>
-            <Button variant="outline" onClick={handleSignOut}>Sign out</Button>
+            <span className="text-sm text-gray-500">
+              Logged in as {session?.user.name}
+            </span>
+            <Button variant="outline" onClick={handleSignOut}>
+              Sign out
+            </Button>
           </>
         ) : null}
       </div>

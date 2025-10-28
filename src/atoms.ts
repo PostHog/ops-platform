@@ -1,3 +1,3 @@
 import { atom } from 'jotai'
 
-export const reviewQueueAtom = atom<string[]>([])
+export const reviewQueueAtom = atom<Array<string>>([])
