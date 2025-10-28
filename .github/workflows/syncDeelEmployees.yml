@@ -1,0 +1,20 @@
+name: Sync Deel Employees
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+
+jobs:
+  syncDeelEmployees:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Call syncDeelEmployees endpoint
+      uses: fjogeleit/http-request-action@v1
+      with:
+        url: '${{ vars.BASE_URL }}/syncDeelEmployees'
+        method: 'POST'
+        customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
+    - name: Show Response
+      run: |
+        echo ${{ steps.syncDeelEmployees.outputs.status }}
+        echo ${{ steps.syncDeelEmployees.outputs.response }}
