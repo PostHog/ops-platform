@@ -1,7 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import type {
-  Edge,
-  Node} from '@xyflow/react';
+import type { Edge, Node } from '@xyflow/react'
 import {
   Background,
   BackgroundVariant,
@@ -56,7 +54,11 @@ export const Route = createFileRoute('/org-chart')({
   loader: async () => await getDeelEmployees(),
 })
 
-function getDescendantsCount(node: Node, nodes: Array<Node>, edges: Array<Edge>): number {
+function getDescendantsCount(
+  node: Node,
+  nodes: Array<Node>,
+  edges: Array<Edge>,
+): number {
   const outgoers = getOutgoers(node, nodes, edges).filter(
     (node, index, array) => array.findIndex((n) => n.id === node.id) === index,
   )
@@ -69,7 +71,11 @@ function getDescendantsCount(node: Node, nodes: Array<Node>, edges: Array<Edge>)
   )
 }
 
-function shouldNodeHide(node: Node, nodes: Array<Node>, edges: Array<Edge>): boolean {
+function shouldNodeHide(
+  node: Node,
+  nodes: Array<Node>,
+  edges: Array<Edge>,
+): boolean {
   const parents = getIncomers(node, nodes, edges)
 
   if (parents.length === 0) {
@@ -85,7 +91,11 @@ function shouldNodeHide(node: Node, nodes: Array<Node>, edges: Array<Edge>): boo
   return parents.some((parent) => shouldNodeHide(parent, nodes, edges))
 }
 
-function shouldEdgeHide(edge: Edge, nodes: Array<Node>, edges: Array<Edge>): boolean {
+function shouldEdgeHide(
+  edge: Edge,
+  nodes: Array<Node>,
+  edges: Array<Edge>,
+): boolean {
   const sourceNode = nodes.find((node) => node.id === edge.source)
   const targetNode = nodes.find((node) => node.id === edge.target)
 
@@ -265,7 +275,9 @@ export default function OrgChart() {
     [],
   )
 
-  const setNodesWithEnhancement = (updater: (nodes: Array<Node>) => Array<Node>) => {
+  const setNodesWithEnhancement = (
+    updater: (nodes: Array<Node>) => Array<Node>,
+  ) => {
     setAllNodes(updater)
   }
 
@@ -274,7 +286,13 @@ export default function OrgChart() {
     setLayoutKey((prev) => prev + 1)
   }, [])
 
-  const onLayout = ({ nodes, edges }: { nodes: Array<Node>; edges: Array<Edge> }) => {
+  const onLayout = ({
+    nodes,
+    edges,
+  }: {
+    nodes: Array<Node>
+    edges: Array<Edge>
+  }) => {
     const visibleNodes = nodes.filter(
       (node) => !shouldNodeHide(node, nodes, edges),
     )

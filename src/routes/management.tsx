@@ -4,11 +4,10 @@ import { createServerFn } from '@tanstack/react-start'
 import {
   flexRender,
   getCoreRowModel,
-  useReactTable
+  useReactTable,
 } from '@tanstack/react-table'
 import { createToast } from 'vercel-toast'
-import type {
-  ColumnDef} from '@tanstack/react-table';
+import type { ColumnDef } from '@tanstack/react-table'
 import type { User } from 'generated/prisma/client'
 import prisma from '@/db'
 import {

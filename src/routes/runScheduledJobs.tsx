@@ -234,7 +234,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
 
         const lock_id = crypto.randomUUID()
 
-        const jobs = (await prisma.$queryRaw`
+        const jobs = await prisma.$queryRaw`
                     WITH available AS (
                         SELECT id
                         FROM "CyclotronJob"
@@ -262,7 +262,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                         last_heartbeat,
                         data,
                         failure_count
-                `)
+                `
 
         const jobResults: Array<JobResult> = []
 

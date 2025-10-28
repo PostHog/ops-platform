@@ -12,22 +12,21 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
-import { reviewQueueAtom } from '@/atoms'
 import { useAtom } from 'jotai'
 import { months } from '.'
-import type {
-  ColumnDef} from '@tanstack/react-table';
-import type {Salary, Prisma} from 'generated/prisma/client';
-import type { AnyFormApi } from '@tanstack/react-form';
+import type { ColumnDef } from '@tanstack/react-table'
+import type { Prisma, Salary } from 'generated/prisma/client'
+import type { AnyFormApi } from '@tanstack/react-form'
+import { reviewQueueAtom } from '@/atoms'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   currencyData,
+  formatCurrency,
   getAreasByCountry,
   getCountries,
   locationFactor,
   sfBenchmark,
-  formatCurrency,
 } from '@/lib/utils'
 import {
   Table,
@@ -794,8 +793,7 @@ function InlineSalaryFormRow({
               <SelectContent>
                 {Object.keys(sfBenchmark).map((benchmark) => (
                   <SelectItem key={benchmark} value={benchmark}>
-                    {benchmark} (
-                    {sfBenchmark[benchmark]})
+                    {benchmark} ({sfBenchmark[benchmark]})
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -12,11 +12,16 @@ import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { useQuery } from '@tanstack/react-query'
 import { createToast } from 'vercel-toast'
 import { useAtom } from 'jotai'
-import type { Column, ColumnDef, ColumnFiltersState, Row ,
+import type {
+  Column,
+  ColumnDef,
+  ColumnFiltersState,
+  Row,
   RowData,
   SortingState,
-  VisibilityState} from '@tanstack/react-table'
-import type {Priority, Prisma} from '../../generated/prisma/client';
+  VisibilityState,
+} from '@tanstack/react-table'
+import type { Priority, Prisma } from '../../generated/prisma/client'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,

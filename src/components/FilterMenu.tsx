@@ -81,7 +81,10 @@ const FilterMenu: React.FC<{
       value: '',
       logicalOperator: 'AND',
     }
-    setFilters((prevFilters: Array<FilterCondition>) => [...prevFilters, newFilter])
+    setFilters((prevFilters: Array<FilterCondition>) => [
+      ...prevFilters,
+      newFilter,
+    ])
   }
 
   const removeFilter = (id: string) => {
@@ -266,7 +269,9 @@ const FilterMenu: React.FC<{
   )
 }
 
-export const convertFiltersToPrismaWhere = (filters: Array<FilterCondition>) => {
+export const convertFiltersToPrismaWhere = (
+  filters: Array<FilterCondition>,
+) => {
   if (filters.length === 0) return {}
 
   const whereConditions = filters.map((filter) => {
