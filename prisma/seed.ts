@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 const employeeData: Prisma.EmployeeCreateInput[] = [
   {
     priority: "high",
-    reviewd: false,
+    reviewed: false,
     email: "max@posthog.com",
     salaries: {
       create: [
@@ -54,7 +54,7 @@ const employeeData: Prisma.EmployeeCreateInput[] = [
   },
   {
     priority: "high",
-    reviewd: false,
+    reviewed: false,
     email: 'alice@posthog.com',
     salaries: {
       create: [
@@ -83,7 +83,7 @@ const employeeData: Prisma.EmployeeCreateInput[] = [
   },
   {
     priority: "low",
-    reviewd: false,
+    reviewed: false,
     email: 'bob@posthog.com',
     salaries: {
       create: [

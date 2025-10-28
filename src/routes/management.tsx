@@ -3,7 +3,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Table, TableCell, TableRow, TableBody, TableHeader, TableHead } from '@/components/ui/table'
 import prisma from '@/db'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack/react-table'
 import { User } from 'generated/prisma/client'
@@ -34,7 +34,19 @@ const updateUserRole = createServerFn({
         })
     })
 
+const startReviewCycle = createServerFn({
+    method: 'POST'
+})
+    .handler(async () => {
+        return await prisma.employee.updateMany({
+            data: {
+                reviewed: false
+            }
+        })
+    })
+
 function RouteComponent() {
+    const router = useRouter()
     const { data: users, refetch } = useQuery({
         queryKey: ['users'],
         queryFn: () => getUsers(),
@@ -149,7 +161,13 @@ function RouteComponent() {
                     <div className="text-lg font-bold">Review cycle</div>
                 </div>
                 <div className="overflow-hidden">
-                    <Button>Start review cycle (set revied to false for all employees)</Button>
+                    <Button onClick={async () => {
+                        await startReviewCycle()
+                        router.invalidate()
+                        createToast("Review cycle started successfully.", {
+                            timeout: 3000,
+                        })
+                    }}>Start review cycle (set reviewed to false for all employees)</Button>
                 </div>
             </div>
         </div>

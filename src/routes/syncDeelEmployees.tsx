@@ -63,7 +63,7 @@ export const Route = createFileRoute('/syncDeelEmployees')({
                 const deelEmployees = await getDeelEmployees()
 
                 await prisma.employee.createMany({
-                    data: deelEmployees.map(({ workEmail }) => ({ email: workEmail ?? '', priority: 'low', reviewd: false })),
+                    data: deelEmployees.map(({ workEmail }) => ({ email: workEmail ?? '', priority: 'low', reviewed: false })),
                     skipDuplicates: true,
                 })
 

@@ -1,9 +1,15 @@
 import { useSession, signOut } from '@/lib/auth-client'
-import { Link } from '@tanstack/react-router'
+import { Link, useRouter } from '@tanstack/react-router'
 import { Button } from './ui/button'
 
 export default function Header() {
   const { data: session } = useSession()
+  const router = useRouter()
+
+  const handleSignOut = () => {
+    signOut()
+    router.navigate({ to: '/login' })
+  }
 
   return (
     <header className="p-2 flex h-10 gap-2 bg-white text-black justify-between border-b border-gray-200">
@@ -25,7 +31,7 @@ export default function Header() {
         {session ? (
           <>
             <span className="text-sm text-gray-500">Logged in as {session?.user.name}</span>
-            <Button variant="outline" onClick={() => signOut()}>Sign out</Button>
+            <Button variant="outline" onClick={handleSignOut}>Sign out</Button>
           </>
         ) : null}
       </div>

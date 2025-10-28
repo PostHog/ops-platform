@@ -276,8 +276,8 @@ function App() {
       cell: ({ row }) => <div>{row.original.salaries[0].notes}</div>,
     },
     {
-      accessorKey: "reviewd",
-      header: "Reviewd",
+      accessorKey: "reviewed",
+      header: "reviewed",
       meta: {
         filterVariant: 'select',
         filterOptions: [
@@ -285,8 +285,8 @@ function App() {
           { label: 'No', value: 'false' },
         ]
       },
-      filterFn: (row: Row<Employee>, _: string, filterValue: string)=> customFilterFns.equals(row.original.reviewd.toString(), _, filterValue),
-      cell: ({ row }) => <div>{row.original.reviewd ? "Yes" : "No"}</div>,
+      filterFn: (row: Row<Employee>, _: string, filterValue: string)=> customFilterFns.equals(row.original.reviewed.toString(), _, filterValue),
+      cell: ({ row }) => <div>{row.original.reviewed ? "Yes" : "No"}</div>,
     },
     {
       id: "actions",

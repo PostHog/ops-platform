@@ -97,7 +97,7 @@ const updateSalary = createServerFn({
         // Update the employee's reviewed status to true
         await prisma.employee.update({
             where: { id: data.employeeId },
-            data: { reviewd: true }
+            data: { reviewed: true }
         })
 
         return salary
@@ -287,7 +287,7 @@ function EmployeeOverview() {
                             {employee.deelEmployee?.topLevelManager?.name && (
                                 <span className="ml-4">Reviewer: {employee.deelEmployee.topLevelManager.name}</span>
                             )}
-                            <span className="ml-4">Reviewed: {employee.reviewd ? 'Yes' : 'No'}</span>
+                            <span className="ml-4">Reviewed: {employee.reviewed ? 'Yes' : 'No'}</span>
                         </div>
                     </div>
                     <div className='flex gap-2 justify-end'>
