@@ -14,6 +14,7 @@ jobs:
         url: '${{ vars.BASE_URL }}/syncDeelEmployees'
         method: 'POST'
         customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
+        timeout: 20000
     - name: Show Response
       run: |
         echo ${{ steps.syncDeelEmployees.outputs.status }}
