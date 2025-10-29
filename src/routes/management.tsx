@@ -28,10 +28,31 @@ import {
 import { Button } from '@/components/ui/button'
 import { currencyData, locationFactor, sfBenchmark } from '@/lib/utils'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { fetchDeelEmployees } from './syncDeelEmployees'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
 })
+
+const fetchDeelContract = async (id: string) => {
+  const response = await fetch(
+    `https://api.letsdeel.com/rest/v2/contracts/${id}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${process.env.DEEL_API_KEY}`,
+      },
+    },
+  )
+
+  if (response.status !== 200) {
+    throw new Error(`Failed to fetch contract: ${response.statusText}`)
+  }
+
+  const data = await response.json()
+
+  return data.data
+}
 
 const getUsers = createServerFn({
   method: 'GET',
@@ -62,6 +83,71 @@ const startReviewCycle = createServerFn({
       reviewed: false,
     },
   })
+})
+
+const checkSalaryDeviation = createServerFn({
+  method: 'POST',
+}).handler(async () => {
+  const deelEmployees = await fetchDeelEmployees()
+  const employees = await prisma.employee.findMany({
+    where: {
+      salaries: { some: {} },
+    },
+    include: {
+      salaries: {
+        orderBy: {
+          timestamp: 'desc',
+        },
+      },
+    },
+  })
+
+  const results: Array<{
+    email: string
+    salary: number
+    deelSalary: number
+    deviation: number
+    deviationPercentage: number
+    compensation_details: any
+  }> = []
+
+  for (const employee of employees) {
+    try {
+      const localDeelEmployee = deelEmployees.find(
+        (x) => x.workEmail === employee.email,
+      )
+      const { compensation_details } = await fetchDeelContract(
+        localDeelEmployee?.contractId ?? '',
+      )
+
+      const calcDeelSalary = (compensation_details: any) => {
+        if (compensation_details.gross_annual_salary != 0) {
+          return Number(compensation_details.gross_annual_salary)
+        }
+
+        if (compensation_details.scale === 'monthly') {
+          return Number(compensation_details.amount) * 12
+        }
+        return Number(compensation_details.amount)
+      }
+
+      results.push({
+        email: employee.email,
+        salary: employee.salaries[0].totalSalaryLocal,
+        deelSalary: calcDeelSalary(compensation_details),
+        deviation: Math.abs(employee.salaries[0].totalSalaryLocal - calcDeelSalary(compensation_details)),
+        deviationPercentage: Math.abs(employee.salaries[0].totalSalaryLocal - calcDeelSalary(compensation_details)) / employee.salaries[0].totalSalaryLocal,
+        compensation_details: compensation_details,
+      })
+      console.log('processed employee: ' + employee.email)
+    } catch (error) {
+      console.error(
+        'Error processing employee: ' + employee.email + ' - ' + error,
+      )
+    }
+  }
+
+  return { deelEmployees, results }
 })
 
 const populateInitialEmployeeSalaries = createServerFn({
@@ -102,29 +188,27 @@ const populateInitialEmployeeSalaries = createServerFn({
   let successCount = 0
   const errors: Array<string> = []
 
+  const deelEmployees = await fetchDeelEmployees()
+
   for (const employee of employees) {
     try {
       if (!employee.employee?.id) continue
-      const response = await fetch(
-        `https://api.letsdeel.com/scim/v2/Users?filter=${encodeURIComponent(`email eq "${employee.workEmail}"`)}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${process.env.DEEL_API_KEY}`,
-          },
-        },
+      const deelEmployee = deelEmployees.find(
+        (deelEmployee) => deelEmployee.workEmail === employee.workEmail,
       )
-      if (response.status !== 200) {
-        throw new Error(`Failed to fetch employees: ${response.statusText}`)
+      if (!deelEmployee) {
+        throw new Error('Deel employee not found: ' + employee.workEmail)
       }
-      const data = await response.json()
       const { level, step, country, area, role } =
-        data.Resources[0][
-          'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
-        ].customFields
+        deelEmployee?.customFields ?? {}
+      const startDate = deelEmployee?.startDate
 
       if (!level || !step || !country || !area || !role) {
         throw new Error('level, step, country, area, or role is missing')
+      }
+
+      if (!startDate) {
+        throw new Error('Start date is missing: ' + employee.workEmail)
       }
 
       const location = locationFactor.find(
@@ -161,6 +245,7 @@ const populateInitialEmployeeSalaries = createServerFn({
 
       await prisma.salary.create({
         data: {
+          timestamp: new Date(startDate),
           country: country,
           area: area,
           locationFactor: locationFactorValue,
@@ -182,11 +267,20 @@ const populateInitialEmployeeSalaries = createServerFn({
         },
       })
       successCount++
+      console.log(
+        'Successfully imported salary for employee: ' + employee.workEmail,
+      )
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error'
       errors.push(
         `Error processing employee ${employee.workEmail}: ${errorMessage}`,
+      )
+      console.error(
+        'Error processing employee: ' +
+          employee.workEmail +
+          ' - ' +
+          errorMessage,
       )
     }
   }
@@ -323,7 +417,8 @@ function RouteComponent() {
           </Button>
           <Button
             onClick={async () => {
-              const { successCount, errorCount, errors } = await populateInitialEmployeeSalaries()
+              const { successCount, errorCount, errors } =
+                await populateInitialEmployeeSalaries()
               router.invalidate()
 
               const message = document.createElement('div')
@@ -354,6 +449,25 @@ function RouteComponent() {
             }}
           >
             Populate initial employee salaries
+          </Button>
+          <Button
+            onClick={async () => {
+              const contracts = await checkSalaryDeviation()
+              console.log(contracts)
+              router.invalidate()
+
+              createToast('Salary deviation checked successfully.', {
+                timeout: 10000,
+                action: {
+                  text: 'Close',
+                  callback(toast) {
+                    toast.destroy()
+                  },
+                },
+              })
+            }}
+          >
+            Check salary deviation compared to Deel
           </Button>
         </div>
       </div>
