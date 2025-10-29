@@ -86,6 +86,65 @@ const populateInitialEmployeeSalaries = createServerFn({
       : role
   }
 
+  const getDeelEmployees = async () => {
+    let cursor = 1
+    let allUsers: Array<any> = []
+    let hasMore = true
+
+    while (hasMore) {
+      const response = await fetch(
+        `https://api.letsdeel.com/scim/v2/Users?startIndex=${cursor}&count=100`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.DEEL_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      )
+      if (response.status !== 200) {
+        throw new Error(`Failed to fetch employees: ${response.statusText}`)
+      }
+      const data = await response.json()
+      allUsers = [
+        ...allUsers,
+        ...data.Resources.filter(
+          (employee: any) =>
+            employee.active &&
+            employee[
+              'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
+            ].customFields.full_time_headcount === 'Full-Time',
+        ).map((employee: any) => ({
+          id: employee.id,
+          name: employee.name.givenName + ' ' + employee.name.familyName,
+          title: employee.title,
+          workEmail: employee.emails.find(
+            (email: { type: string; value: string }) => email.type === 'work',
+          )?.value,
+          team: employee[
+            'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
+          ].department,
+          managerId:
+            employee[
+              'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
+            ].manager.value,
+          startDate: new Date(
+            employee[
+              'urn:ietf:params:scim:schemas:extension:2.0:User'
+            ].startDate,
+          ),
+          customFields:
+            employee[
+              'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
+            ].customFields,
+        })),
+      ]
+      hasMore = data.totalResults > 100
+      cursor += 100
+    }
+
+    return allUsers
+  }
+
   const mappedRoles = {
     'Technical Customer Success Manager': 'Customer Success Manager (OTE)',
     'Technical Support Engineer': 'Support Engineer',
@@ -102,29 +161,27 @@ const populateInitialEmployeeSalaries = createServerFn({
   let successCount = 0
   const errors: Array<string> = []
 
+  const deelEmployees = await getDeelEmployees()
+
   for (const employee of employees) {
     try {
       if (!employee.employee?.id) continue
-      const response = await fetch(
-        `https://api.letsdeel.com/scim/v2/Users?filter=${encodeURIComponent(`email eq "${employee.workEmail}"`)}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${process.env.DEEL_API_KEY}`,
-          },
-        },
+      const deelEmployee = deelEmployees.find(
+        (deelEmployee) => deelEmployee.workEmail === employee.workEmail,
       )
-      if (response.status !== 200) {
-        throw new Error(`Failed to fetch employees: ${response.statusText}`)
+      if (!deelEmployee) {
+        throw new Error('Deel employee not found: ' + employee.workEmail)
       }
-      const data = await response.json()
       const { level, step, country, area, role } =
-        data.Resources[0][
-          'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
-        ].customFields
+        deelEmployee?.customFields ?? {}
+      const startDate = deelEmployee?.startDate
 
       if (!level || !step || !country || !area || !role) {
         throw new Error('level, step, country, area, or role is missing')
+      }
+
+      if (!startDate) {
+        throw new Error('Start date is missing: ' + employee.workEmail)
       }
 
       const location = locationFactor.find(
@@ -161,6 +218,7 @@ const populateInitialEmployeeSalaries = createServerFn({
 
       await prisma.salary.create({
         data: {
+          timestamp: new Date(startDate),
           country: country,
           area: area,
           locationFactor: locationFactorValue,
@@ -182,11 +240,20 @@ const populateInitialEmployeeSalaries = createServerFn({
         },
       })
       successCount++
+      console.log(
+        'Successfully imported salary for employee: ' + employee.workEmail,
+      )
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error'
       errors.push(
         `Error processing employee ${employee.workEmail}: ${errorMessage}`,
+      )
+      console.error(
+        'Error processing employee: ' +
+          employee.workEmail +
+          ' - ' +
+          errorMessage,
       )
     }
   }
@@ -323,7 +390,8 @@ function RouteComponent() {
           </Button>
           <Button
             onClick={async () => {
-              const { successCount, errorCount, errors } = await populateInitialEmployeeSalaries()
+              const { successCount, errorCount, errors } =
+                await populateInitialEmployeeSalaries()
               router.invalidate()
 
               const message = document.createElement('div')
