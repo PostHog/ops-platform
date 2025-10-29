@@ -10,6 +10,7 @@ type FetchedDeelEmployee = DeelEmployee & {
     area: string
     role: string
   }
+  contractId: string
 }
 
 export const fetchDeelEmployees = async () => {
@@ -57,6 +58,9 @@ export const fetchDeelEmployees = async () => {
         customFields:
           employee['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']
             .customFields,
+        contractId:
+          employee['urn:ietf:params:scim:schemas:extension:2.0:User']
+            .employments[0].contractId,
       })),
     ]
     hasMore = data.totalResults > 100

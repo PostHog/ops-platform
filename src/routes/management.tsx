@@ -34,6 +34,26 @@ export const Route = createFileRoute('/management')({
   component: RouteComponent,
 })
 
+const fetchDeelContract = async (id: string) => {
+  const response = await fetch(
+    `https://api.letsdeel.com/rest/v2/contracts/${id}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${process.env.DEEL_API_KEY}`,
+      },
+    },
+  )
+
+  if (response.status !== 200) {
+    throw new Error(`Failed to fetch contract: ${response.statusText}`)
+  }
+
+  const data = await response.json()
+
+  return data.data
+}
+
 const getUsers = createServerFn({
   method: 'GET',
 }).handler(async () => {
@@ -63,6 +83,71 @@ const startReviewCycle = createServerFn({
       reviewed: false,
     },
   })
+})
+
+const checkSalaryDeviation = createServerFn({
+  method: 'POST',
+}).handler(async () => {
+  const deelEmployees = await fetchDeelEmployees()
+  const employees = await prisma.employee.findMany({
+    where: {
+      salaries: { some: {} },
+    },
+    include: {
+      salaries: {
+        orderBy: {
+          timestamp: 'desc',
+        },
+      },
+    },
+  })
+
+  const results: Array<{
+    email: string
+    salary: number
+    deelSalary: number
+    deviation: number
+    deviationPercentage: number
+    compensation_details: any
+  }> = []
+
+  for (const employee of employees) {
+    try {
+      const localDeelEmployee = deelEmployees.find(
+        (x) => x.workEmail === employee.email,
+      )
+      const { compensation_details } = await fetchDeelContract(
+        localDeelEmployee?.contractId ?? '',
+      )
+
+      const calcDeelSalary = (compensation_details: any) => {
+        if (compensation_details.gross_annual_salary != 0) {
+          return Number(compensation_details.gross_annual_salary)
+        }
+
+        if (compensation_details.scale === 'monthly') {
+          return Number(compensation_details.amount) * 12
+        }
+        return Number(compensation_details.amount)
+      }
+
+      results.push({
+        email: employee.email,
+        salary: employee.salaries[0].totalSalaryLocal,
+        deelSalary: calcDeelSalary(compensation_details),
+        deviation: Math.abs(employee.salaries[0].totalSalaryLocal - calcDeelSalary(compensation_details)),
+        deviationPercentage: Math.abs(employee.salaries[0].totalSalaryLocal - calcDeelSalary(compensation_details)) / employee.salaries[0].totalSalaryLocal,
+        compensation_details: compensation_details,
+      })
+      console.log('processed employee: ' + employee.email)
+    } catch (error) {
+      console.error(
+        'Error processing employee: ' + employee.email + ' - ' + error,
+      )
+    }
+  }
+
+  return { deelEmployees, results }
 })
 
 const populateInitialEmployeeSalaries = createServerFn({
@@ -364,6 +449,25 @@ function RouteComponent() {
             }}
           >
             Populate initial employee salaries
+          </Button>
+          <Button
+            onClick={async () => {
+              const contracts = await checkSalaryDeviation()
+              console.log(contracts)
+              router.invalidate()
+
+              createToast('Salary deviation checked successfully.', {
+                timeout: 10000,
+                action: {
+                  text: 'Close',
+                  callback(toast) {
+                    toast.destroy()
+                  },
+                },
+              })
+            }}
+          >
+            Check salary deviation compared to Deel
           </Button>
         </div>
       </div>
