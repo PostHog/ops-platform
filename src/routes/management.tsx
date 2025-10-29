@@ -26,6 +26,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { currencyData, locationFactor, sfBenchmark } from '@/lib/utils'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
@@ -60,6 +62,140 @@ const startReviewCycle = createServerFn({
       reviewed: false,
     },
   })
+})
+
+const populateInitialEmployeeSalaries = createServerFn({
+  method: 'POST',
+}).handler(async () => {
+  const employees = await prisma.deelEmployee.findMany({
+    where: {
+      employee: {
+        salaries: {
+          none: {},
+        },
+      },
+    },
+    include: {
+      employee: true,
+    },
+  })
+
+  const getMappedRole = (role: string) => {
+    return Object.keys(mappedRoles).includes(role)
+      ? mappedRoles[role as keyof typeof mappedRoles]
+      : role
+  }
+
+  const mappedRoles = {
+    'Technical Customer Success Manager': 'Customer Success Manager (OTE)',
+    'Technical Support Engineer': 'Support Engineer',
+    TAE: 'Account Executive (OTE)',
+    TAM: 'Customer Success Manager (OTE)',
+    'Production Designer': 'Graphic Designer',
+    'Post Production Specialist': 'Video Producer',
+    'Security Engineer': 'Product Engineer',
+    'Office Manager': 'People Operations Manager',
+    'Content Marketing Manager': 'Content Marketer',
+    'Platform Engineer': 'Site Reliability Engineer',
+  }
+
+  let successCount = 0
+  const errors: Array<string> = []
+
+  for (const employee of employees) {
+    try {
+      if (!employee.employee?.id) continue
+      const response = await fetch(
+        `https://api.letsdeel.com/scim/v2/Users?filter=${encodeURIComponent(`email eq "${employee.workEmail}"`)}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${process.env.DEEL_API_KEY}`,
+          },
+        },
+      )
+      if (response.status !== 200) {
+        throw new Error(`Failed to fetch employees: ${response.statusText}`)
+      }
+      const data = await response.json()
+      const { level, step, country, area, role } =
+        data.Resources[0][
+          'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
+        ].customFields
+
+      if (!level || !step || !country || !area || !role) {
+        throw new Error('level, step, country, area, or role is missing')
+      }
+
+      const location = locationFactor.find(
+        (l) => l.country === country && l.area === area,
+      )
+
+      if (!location) {
+        throw new Error('Invalid location: ' + country + ' ' + area)
+      }
+
+      const locationFactorValue = location?.locationFactor ?? 0
+
+      const benchmarkFactor =
+        sfBenchmark[getMappedRole(role) as keyof typeof sfBenchmark] ?? 0
+
+      if (benchmarkFactor === 0) {
+        throw new Error('Invalid role: ' + role)
+      }
+
+      const totalSalary =
+        locationFactorValue * Number(level) * Number(step) * benchmarkFactor
+
+      const exchangeRate = currencyData[location?.currency ?? ''] ?? 1
+
+      const totalSalaryLocal = totalSalary * exchangeRate
+
+      const actualSalary = totalSalary
+
+      const actualSalaryLocal = actualSalary * exchangeRate
+
+      if (totalSalaryLocal <= 1) {
+        throw new Error('Total salary local is less than 1')
+      }
+
+      await prisma.salary.create({
+        data: {
+          country: country,
+          area: area,
+          locationFactor: locationFactorValue,
+          level: Number(level),
+          step: Number(step),
+          benchmark: getMappedRole(role),
+          benchmarkFactor: benchmarkFactor,
+          totalSalary: totalSalary,
+          changePercentage: 0, // Always 0 for new entries
+          changeAmount: 0, // Always 0 for new entries
+          localCurrency: location?.currency ?? 'USD',
+          exchangeRate: exchangeRate,
+          totalSalaryLocal: totalSalaryLocal,
+          amountTakenInOptions: 0,
+          actualSalary: actualSalary,
+          actualSalaryLocal: actualSalaryLocal,
+          notes: '',
+          employeeId: employee.employee.id,
+        },
+      })
+      successCount++
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      errors.push(
+        `Error processing employee ${employee.workEmail}: ${errorMessage}`,
+      )
+    }
+  }
+
+  return {
+    successCount,
+    errorCount: errors.length,
+    errors,
+  }
 })
 
 function RouteComponent() {
@@ -173,7 +309,7 @@ function RouteComponent() {
         <div className="flex justify-between py-4">
           <div className="text-lg font-bold">Review cycle</div>
         </div>
-        <div className="overflow-hidden">
+        <div className="overflow-hidden flex flex-col gap-2">
           <Button
             onClick={async () => {
               await startReviewCycle()
@@ -184,6 +320,40 @@ function RouteComponent() {
             }}
           >
             Start review cycle (set reviewed to false for all employees)
+          </Button>
+          <Button
+            onClick={async () => {
+              const { successCount, errorCount, errors } = await populateInitialEmployeeSalaries()
+              router.invalidate()
+
+              const message = document.createElement('div')
+              message.className = 'flex flex-col gap-2'
+              message.innerHTML = renderToStaticMarkup(
+                <>
+                  <span>
+                    Successfully imported {successCount} employee salaries.
+                  </span>
+                  <span>Failed to import {errorCount} employee salaries.</span>
+                  <div className="flex flex-col gap-1">
+                    {errors.map((error) => (
+                      <span key={error}>{error}</span>
+                    ))}
+                  </div>
+                </>,
+              )
+
+              createToast(message, {
+                timeout: 10000,
+                action: {
+                  text: 'Close',
+                  callback(toast) {
+                    toast.destroy()
+                  },
+                },
+              })
+            }}
+          >
+            Populate initial employee salaries
           </Button>
         </div>
       </div>
