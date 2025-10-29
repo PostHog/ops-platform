@@ -2,9 +2,19 @@ import { createFileRoute } from '@tanstack/react-router'
 import type { DeelEmployee } from 'generated/prisma/client'
 import prisma from '@/db'
 
-const getDeelEmployees = async () => {
+type FetchedDeelEmployee = DeelEmployee & {
+  customFields: {
+    level: string
+    step: string
+    country: string
+    area: string
+    role: string
+  }
+}
+
+export const fetchDeelEmployees = async () => {
   let cursor = 1
-  let allUsers: Array<DeelEmployee> = []
+  let allUsers: Array<FetchedDeelEmployee> = []
   let hasMore = true
 
   while (hasMore) {
@@ -44,6 +54,9 @@ const getDeelEmployees = async () => {
         startDate: new Date(
           employee['urn:ietf:params:scim:schemas:extension:2.0:User'].startDate,
         ),
+        customFields:
+          employee['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']
+            .customFields,
       })),
     ]
     hasMore = data.totalResults > 100
@@ -75,7 +88,7 @@ export const Route = createFileRoute('/syncDeelEmployees')({
           return new Response('Unauthorized' + token, { status: 401 })
         }
 
-        const deelEmployees = await getDeelEmployees()
+        const deelEmployees = await fetchDeelEmployees()
 
         await prisma.employee.createMany({
           data: deelEmployees.map(({ workEmail }) => ({

@@ -28,6 +28,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { currencyData, locationFactor, sfBenchmark } from '@/lib/utils'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { fetchDeelEmployees } from './syncDeelEmployees'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
@@ -86,65 +87,6 @@ const populateInitialEmployeeSalaries = createServerFn({
       : role
   }
 
-  const getDeelEmployees = async () => {
-    let cursor = 1
-    let allUsers: Array<any> = []
-    let hasMore = true
-
-    while (hasMore) {
-      const response = await fetch(
-        `https://api.letsdeel.com/scim/v2/Users?startIndex=${cursor}&count=100`,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.DEEL_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-      if (response.status !== 200) {
-        throw new Error(`Failed to fetch employees: ${response.statusText}`)
-      }
-      const data = await response.json()
-      allUsers = [
-        ...allUsers,
-        ...data.Resources.filter(
-          (employee: any) =>
-            employee.active &&
-            employee[
-              'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
-            ].customFields.full_time_headcount === 'Full-Time',
-        ).map((employee: any) => ({
-          id: employee.id,
-          name: employee.name.givenName + ' ' + employee.name.familyName,
-          title: employee.title,
-          workEmail: employee.emails.find(
-            (email: { type: string; value: string }) => email.type === 'work',
-          )?.value,
-          team: employee[
-            'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
-          ].department,
-          managerId:
-            employee[
-              'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
-            ].manager.value,
-          startDate: new Date(
-            employee[
-              'urn:ietf:params:scim:schemas:extension:2.0:User'
-            ].startDate,
-          ),
-          customFields:
-            employee[
-              'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
-            ].customFields,
-        })),
-      ]
-      hasMore = data.totalResults > 100
-      cursor += 100
-    }
-
-    return allUsers
-  }
-
   const mappedRoles = {
     'Technical Customer Success Manager': 'Customer Success Manager (OTE)',
     'Technical Support Engineer': 'Support Engineer',
@@ -161,7 +103,7 @@ const populateInitialEmployeeSalaries = createServerFn({
   let successCount = 0
   const errors: Array<string> = []
 
-  const deelEmployees = await getDeelEmployees()
+  const deelEmployees = await fetchDeelEmployees()
 
   for (const employee of employees) {
     try {
