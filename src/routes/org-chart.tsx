@@ -24,7 +24,7 @@ import {
 import ELK from 'elkjs/lib/elk.bundled.js'
 
 import { createServerFn } from '@tanstack/react-start'
-import type { Prisma } from 'generated/prisma/client'
+import type { Prisma } from '@prisma/client'
 import EmployeePanel from '@/components/EmployeePanel'
 import prisma from '@/db'
 import { cn } from '@/lib/utils'

@@ -9,7 +9,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { useMemo } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
 import { months } from '.'
-import type { Prisma } from 'generated/prisma/client'
+import type { Prisma } from '@prisma/client'
 import type { ColumnDef } from '@tanstack/react-table'
 import prisma from '@/db'
 import {

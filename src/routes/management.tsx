@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-table'
 import { createToast } from 'vercel-toast'
 import type { ColumnDef } from '@tanstack/react-table'
-import type { User } from 'generated/prisma/client'
+import type { User } from '@prisma/client'
 import prisma from '@/db'
 import {
   Table,

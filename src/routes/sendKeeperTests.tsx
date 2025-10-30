@@ -38,7 +38,7 @@ export const Route = createFileRoute('/sendKeeperTests')({
                 return null
               }
               return {
-                queue_name: 'send_keeper_test',
+                queue_name: 'send_keeper_test' as const,
                 data: JSON.stringify({
                   employee: {
                     id: employee.id,

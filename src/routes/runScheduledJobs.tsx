@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { CyclotronJob } from 'generated/prisma/client'
+import type { CyclotronJob } from '@prisma/client'
 import prisma from '@/db'
 
 export type KeeperTestJobPayload = {
@@ -234,7 +234,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
 
         const lock_id = crypto.randomUUID()
 
-        const jobs = await prisma.$queryRaw`
+        const jobs = await prisma.$queryRaw<Array<CyclotronJob>>`
                     WITH available AS (
                         SELECT id
                         FROM "CyclotronJob"
@@ -285,6 +285,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 )
 
                 const userBody = await userRes.json()
+                // @ts-ignore
                 const slackUserId = userBody.user.id
 
                 await fetch('https://slack.com/api/chat.postMessage', {
