@@ -5,7 +5,7 @@ export const Route = createFileRoute('/error')({
 })
 
 function RouteComponent() {
-  const search = useSearch({ from: '/error' })
+  const search: { message: string } = useSearch({ from: '/error' })
   return (
     <div className="flex flex-col items-center justify-center h-full">
       <div className="w-full max-w-md px-6 flex flex-col items-center justify-center">
