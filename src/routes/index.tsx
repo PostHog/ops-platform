@@ -21,7 +21,7 @@ import type {
   SortingState,
   VisibilityState,
 } from '@tanstack/react-table'
-import type { Priority, Prisma } from '../../generated/prisma/client'
+import type { Priority, Prisma } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,

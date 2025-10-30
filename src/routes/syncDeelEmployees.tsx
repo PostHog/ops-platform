@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import type { DeelEmployee } from 'generated/prisma/client'
+import type { DeelEmployee } from '@prisma/client'
 import prisma from '@/db'
 
 type FetchedDeelEmployee = DeelEmployee & {

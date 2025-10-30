@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Button } from './ui/button'
-import type { Prisma } from 'generated/prisma/client'
+import type { Prisma } from '@prisma/client'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
