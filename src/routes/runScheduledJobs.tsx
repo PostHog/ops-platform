@@ -285,6 +285,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 )
 
                 const userBody = await userRes.json()
+                // @ts-ignore
                 const slackUserId = userBody.user.id
 
                 await fetch('https://slack.com/api/chat.postMessage', {
