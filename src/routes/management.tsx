@@ -215,7 +215,7 @@ const populateInitialEmployeeSalaries = createServerFn({
     'Technical Support Engineer': 'Support Engineer',
     TAE: 'Account Executive (OTE)',
     'Technical Account Manager': 'Account Executive (OTE)',
-    TAM: 'Customer Success Manager (OTE)',
+    TAM: 'Account Executive (OTE)',
     'Production Designer': 'Graphic Designer',
     'Post Production Specialist': 'Video Producer',
     'Security Engineer': 'Product Engineer',
