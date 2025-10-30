@@ -10,7 +10,8 @@
     "test": "vitest run",
     "lint": "eslint",
     "format": "prettier",
-    "check": "prettier --write . && eslint --fix",
+    "prettier:fix": "prettier --write .",
+    "prettier:check": "prettier --check .",
     "import-historical": "tsx historicalImporter.ts",
     "typecheck": "tsc --noEmit"
   },
