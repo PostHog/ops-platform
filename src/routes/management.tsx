@@ -135,8 +135,15 @@ const checkSalaryDeviation = createServerFn({
         email: employee.email,
         salary: employee.salaries[0].totalSalaryLocal,
         deelSalary: calcDeelSalary(compensation_details),
-        deviation: Math.abs(employee.salaries[0].totalSalaryLocal - calcDeelSalary(compensation_details)),
-        deviationPercentage: Math.abs(employee.salaries[0].totalSalaryLocal - calcDeelSalary(compensation_details)) / employee.salaries[0].totalSalaryLocal,
+        deviation: Math.abs(
+          employee.salaries[0].totalSalaryLocal -
+            calcDeelSalary(compensation_details),
+        ),
+        deviationPercentage:
+          Math.abs(
+            employee.salaries[0].totalSalaryLocal -
+              calcDeelSalary(compensation_details),
+          ) / employee.salaries[0].totalSalaryLocal,
         compensation_details: compensation_details,
       })
       console.log('processed employee: ' + employee.email)
@@ -174,8 +181,10 @@ const populateInitialEmployeeSalaries = createServerFn({
 
   const mappedRoles = {
     'Technical Customer Success Manager': 'Customer Success Manager (OTE)',
+    'Customer Success Manager': 'Customer Success Manager (OTE)',
     'Technical Support Engineer': 'Support Engineer',
     TAE: 'Account Executive (OTE)',
+    'Technical Account Manager': 'Account Executive (OTE)',
     TAM: 'Customer Success Manager (OTE)',
     'Production Designer': 'Graphic Designer',
     'Post Production Specialist': 'Video Producer',
@@ -183,6 +192,7 @@ const populateInitialEmployeeSalaries = createServerFn({
     'Office Manager': 'People Operations Manager',
     'Content Marketing Manager': 'Content Marketer',
     'Platform Engineer': 'Site Reliability Engineer',
+    'Clickhouse Engineer': 'Product Engineer',
   }
 
   let successCount = 0
