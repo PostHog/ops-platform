@@ -109,7 +109,9 @@ const checkSalaryDeviation = createServerFn({
     deviation: number
     deviationPercentage: number
     compensation_details: any
+    team: string
   }> = []
+  const errors: Array<string> = []
 
   for (const employee of employees) {
     try {
@@ -133,28 +135,56 @@ const checkSalaryDeviation = createServerFn({
 
       results.push({
         email: employee.email,
-        salary: employee.salaries[0].totalSalaryLocal,
+        salary: employee.salaries[0].actualSalaryLocal,
         deelSalary: calcDeelSalary(compensation_details),
-        deviation: Math.abs(
-          employee.salaries[0].totalSalaryLocal -
-            calcDeelSalary(compensation_details),
-        ),
+        deviation:
+          employee.salaries[0].actualSalaryLocal -
+          calcDeelSalary(compensation_details),
         deviationPercentage:
           Math.abs(
-            employee.salaries[0].totalSalaryLocal -
+            employee.salaries[0].actualSalaryLocal -
               calcDeelSalary(compensation_details),
-          ) / employee.salaries[0].totalSalaryLocal,
+          ) / employee.salaries[0].actualSalaryLocal,
         compensation_details: compensation_details,
+        team: localDeelEmployee?.team ?? '',
       })
       console.log('processed employee: ' + employee.email)
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      errors.push(
+        `Error processing employee ${employee.email}: ${errorMessage}`,
+      )
       console.error(
-        'Error processing employee: ' + employee.email + ' - ' + error,
+        'Error processing employee: ' + employee.email + ' - ' + errorMessage,
       )
     }
   }
 
-  return { deelEmployees, results }
+  return {
+    allResults: results,
+    filteredResultsNote:
+      'Deviation percentage > 0.1%, deviation percentage !== 0.5, currency code !== GBP, team does not include Sales or Customer Success',
+    filteredResults: results
+      .filter(
+        (x) =>
+          x.deviationPercentage > 0.001 &&
+          x.deviationPercentage !== 0.5 &&
+          x.compensation_details.currency_code !== 'GBP' &&
+          !x.team.includes('Sales') &&
+          !x.team.includes('Customer Success'),
+      )
+      .map((x) => ({
+        deelSalary: x.deelSalary,
+        deviation: x.deviation,
+        deviationPercentage: x.deviationPercentage,
+        email: x.email,
+        salary: x.salary,
+        currency: x.compensation_details.currency_code,
+        team: x.team,
+      })),
+    errors,
+  }
 })
 
 const populateInitialEmployeeSalaries = createServerFn({
@@ -462,8 +492,14 @@ function RouteComponent() {
           </Button>
           <Button
             onClick={async () => {
-              const contracts = await checkSalaryDeviation()
-              console.log(contracts)
+              createToast(
+                'Checking salary deviation... (this may take a while). Results will be logged in the console.',
+                {
+                  timeout: 10000,
+                },
+              )
+              const results = await checkSalaryDeviation()
+              console.log(results)
               router.invalidate()
 
               createToast('Salary deviation checked successfully.', {
