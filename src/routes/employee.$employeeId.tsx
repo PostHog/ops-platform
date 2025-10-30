@@ -345,6 +345,10 @@ function EmployeeOverview() {
     },
   })
 
+  const benchmarkUpdated =
+    sfBenchmark[employee.salaries[0].benchmark as keyof typeof sfBenchmark] !==
+    employee.salaries[0].benchmarkFactor
+
   return (
     <div className="pt-8 flex justify-center flex flex-col items-center gap-5">
       <form
@@ -467,10 +471,6 @@ function EmployeeOverview() {
 
         {employee.salaries[0] &&
           (() => {
-            const benchmarkUpdated =
-              sfBenchmark[
-                employee.salaries[0].benchmark as keyof typeof sfBenchmark
-              ] !== employee.salaries[0].benchmarkFactor
             const locationFactorUpdated =
               locationFactor.find(
                 (l) =>
@@ -549,6 +549,7 @@ function EmployeeOverview() {
                       router.invalidate()
                     }}
                     onCancel={() => setShowInlineForm(false)}
+                    benchmarkUpdated={benchmarkUpdated}
                   />
                 )}
                 {table.getRowModel().rows?.length ? (
@@ -594,6 +595,7 @@ function InlineSalaryFormRow({
   latestSalary,
   showDetailedColumns,
   totalAmountInStockOptions,
+  benchmarkUpdated,
 }: {
   employeeId: string
   showOverrideMode: boolean
@@ -602,6 +604,7 @@ function InlineSalaryFormRow({
   latestSalary: Salary | undefined
   showDetailedColumns: boolean
   totalAmountInStockOptions: number
+  benchmarkUpdated: boolean
 }) {
   const getDefaultValues = () => ({
     country: latestSalary?.country ?? 'United States',
@@ -638,7 +641,7 @@ function InlineSalaryFormRow({
 
     const benchmarkValue = formApi.getFieldValue('benchmark')
     const benchmarkFactor = benchmarkValue?.includes('(old)')
-      ? 0
+      ? (latestSalary?.benchmarkFactor ?? 0)
       : (sfBenchmark[
           benchmarkValue?.replace(' (old)', '') as keyof typeof sfBenchmark
         ] ?? 0)
@@ -791,6 +794,15 @@ function InlineSalaryFormRow({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                {benchmarkUpdated ? (
+                  <SelectItem
+                    value={`${latestSalary?.benchmark?.replace(' (old)', '')} (old)`}
+                    key="old-benchmark"
+                  >
+                    {latestSalary?.benchmark?.replace(' (old)', '')} (old) (
+                    {latestSalary?.benchmarkFactor})
+                  </SelectItem>
+                ) : null}
                 {Object.keys(sfBenchmark).map((benchmark) => (
                   <SelectItem key={benchmark} value={benchmark}>
                     {benchmark} ({sfBenchmark[benchmark]})
@@ -841,6 +853,8 @@ function InlineSalaryFormRow({
               value={field.state.value}
               type="number"
               step={0.01}
+              min={0.85}
+              max={1.2}
               onChange={(e) => field.handleChange(Number(e.target.value))}
             />
           )}
