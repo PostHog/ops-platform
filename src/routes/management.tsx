@@ -323,7 +323,8 @@ function RouteComponent() {
           </Button>
           <Button
             onClick={async () => {
-              const { successCount, errorCount, errors } = await populateInitialEmployeeSalaries()
+              const { successCount, errorCount, errors } =
+                await populateInitialEmployeeSalaries()
               router.invalidate()
 
               const message = document.createElement('div')
