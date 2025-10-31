@@ -6,7 +6,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import 'vercel-toast/dist/vercel-toast.css'
 import { createToast } from 'vercel-toast'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -126,18 +126,6 @@ function EmployeeOverview() {
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
   const [reviewQueue, setReviewQueue] = useAtom(reviewQueueAtom)
-
-  const form = useForm({
-    defaultValues: {
-      id: employee.id,
-    },
-    onSubmit: async () => {
-      // No longer updating employee data through this form
-      createToast('No changes to save.', {
-        timeout: 3000,
-      })
-    },
-  })
 
   if (!employee) return null
 
@@ -351,13 +339,7 @@ function EmployeeOverview() {
 
   return (
     <div className="pt-8 flex justify-center flex flex-col items-center gap-5">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          form.handleSubmit()
-        }}
-        className="2xl:w-[80%] max-w-full px-4 flex flex-col gap-5"
-      >
+      <div className="2xl:w-[80%] max-w-full px-4 flex flex-col gap-5">
         <div className="flex flex-row justify-between items-center">
           <div className="flex flex-col">
             <span className="text-xl font-bold">
@@ -392,7 +374,6 @@ function EmployeeOverview() {
                 Move to next employee
               </Button>
             )}
-            <Button type="submit">Save changes</Button>
           </div>
         </div>
 
@@ -582,7 +563,7 @@ function EmployeeOverview() {
             </Table>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   )
 }
@@ -729,6 +710,11 @@ function InlineSalaryFormRow({
       },
     },
   })
+
+  useEffect(() => {
+    form.reset(getDefaultValues())
+    form.mount()
+  }, [employeeId])
 
   const country = useStore(form.store, (state) => state.values.country)
 

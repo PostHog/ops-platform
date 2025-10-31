@@ -475,7 +475,7 @@ function App() {
   }
 
   return (
-    <div className="w-screen flex justify-center">
+    <div className="flex justify-center">
       <div className="max-w-[80%] flex-grow">
         <div className="flex justify-between py-4">
           <div></div>
@@ -515,7 +515,7 @@ function App() {
             </DropdownMenu>
           </div>
         </div>
-        <div className="overflow-hidden rounded-md border">
+        <div className="rounded-md border">
           <Table className="text-xs">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
