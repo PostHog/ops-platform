@@ -221,6 +221,7 @@ const populateInitialEmployeeSalaries = createServerFn({
     'Security Engineer': 'Product Engineer',
     'Office Manager': 'People Operations Manager',
     'Content Marketing Manager': 'Content Marketer',
+    'Technical Content Marketer': 'Content Marketer',
     'Platform Engineer': 'Site Reliability Engineer',
     'Clickhouse Engineer': 'Product Engineer',
   }
@@ -251,7 +252,7 @@ const populateInitialEmployeeSalaries = createServerFn({
         throw new Error('Start date is missing: ' + employee.workEmail)
       }
 
-      if (['1.2', '1', '0.78', '0.59'].includes(level)) {
+      if (!['1.2', '1', '0.78', '.78', '0.59', '.59'].includes(level)) {
         throw new Error('Invalid level: ' + level)
       }
 
