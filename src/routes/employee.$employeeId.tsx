@@ -814,6 +814,7 @@ function InlineSalaryFormRow({
   const level = useStore(form.store, (state) => state.values.level)
   const step = useStore(form.store, (state) => state.values.step)
   const benchmark = useStore(form.store, (state) => state.values.benchmark)
+  const canSubmit = useStore(form.store, (state) => state.canSubmit)
 
   useEffect(() => {
     setLevel(level)
@@ -943,9 +944,21 @@ function InlineSalaryFormRow({
       <TableCell>
         <form.Field
           name="step"
+          validators={{
+            onChange: ({ value }) => {
+              if (value < 0.85 || value > 1.2) {
+                return 'Step must be between 0.85 and 1.2'
+              }
+            },
+          }}
           children={(field) => (
             <Input
-              className="w-full h-6 text-xs min-w-[70px]"
+              className={
+                'w-full h-6 text-xs min-w-[70px]' +
+                (field.state.meta.errors.length > 0
+                  ? ' border-red-500 ring-red-500'
+                  : '')
+              }
               value={field.state.value}
               type="number"
               step={0.01}
@@ -1111,6 +1124,7 @@ function InlineSalaryFormRow({
           <Button
             type="button"
             size="sm"
+            disabled={!canSubmit}
             onClick={(e) => {
               e.preventDefault()
               form.handleSubmit()
