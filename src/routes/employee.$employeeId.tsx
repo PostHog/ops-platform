@@ -6,7 +6,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import 'vercel-toast/dist/vercel-toast.css'
 import { createToast } from 'vercel-toast'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -710,6 +710,11 @@ function InlineSalaryFormRow({
       },
     },
   })
+
+  useEffect(() => {
+    form.reset(getDefaultValues())
+    form.mount()
+  }, [employeeId])
 
   const country = useStore(form.store, (state) => state.values.country)
 
