@@ -195,11 +195,13 @@ function App() {
         filterVariant: 'text',
       },
       filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
-        customFilterFns.containsText(
-          row.original.deelEmployee?.name || row.original.email,
-          _,
-          filterValue,
-        ),
+        (row.original.deelEmployee?.name &&
+          customFilterFns.containsText(
+            row.original.deelEmployee?.name,
+            _,
+            filterValue,
+          )) ||
+        customFilterFns.containsText(row.original.email, _, filterValue),
       cell: ({ row }) => (
         <div>{row.original.deelEmployee?.name || row.original.email}</div>
       ),
