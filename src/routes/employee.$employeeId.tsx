@@ -336,8 +336,9 @@ function EmployeeOverview() {
   })
 
   const benchmarkUpdated =
-    sfBenchmark[employee.salaries[0].benchmark as keyof typeof sfBenchmark] !==
-    employee.salaries[0].benchmarkFactor
+    employee.salaries[0] &&
+    sfBenchmark[employee.salaries[0]?.benchmark as keyof typeof sfBenchmark] !==
+      employee.salaries[0].benchmarkFactor
 
   return (
     <div className="pt-8 flex justify-center flex flex-col items-center gap-5">
