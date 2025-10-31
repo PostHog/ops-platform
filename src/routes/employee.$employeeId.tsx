@@ -45,6 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useQuery } from '@tanstack/react-query'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -97,6 +98,51 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
+const getReferenceEmployees = createServerFn({
+  method: 'GET',
+})
+  .inputValidator((d: { level: number; step: number; benchmark: string }) => d)
+  .handler(async ({ data }) => {
+    const employees = await prisma.employee.findMany({
+      where: {
+        salaries: {
+          some: {
+            level: data.level,
+            benchmark: data.benchmark,
+          },
+        },
+      },
+      include: {
+        salaries: {
+          orderBy: {
+            timestamp: 'desc',
+          },
+        },
+        deelEmployee: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    })
+
+    return employees
+      .filter(
+        (employee) =>
+          employee.salaries[0]?.level === data.level &&
+          employee.salaries[0]?.benchmark === data.benchmark,
+      )
+      .map((employee) => ({
+        id: employee.id,
+        name: employee.deelEmployee?.name ?? employee.email,
+        level: employee.salaries[0]?.level,
+        step: employee.salaries[0]?.step,
+      }))
+      .sort(
+        (a, b) => Math.abs(data.step - a.step) - Math.abs(data.step - b.step),
+      )
+  })
+
 const updateSalary = createServerFn({
   method: 'POST',
 })
@@ -121,13 +167,28 @@ const updateSalary = createServerFn({
 function EmployeeOverview() {
   const [showInlineForm, setShowInlineForm] = useState(true)
   const [showOverrideMode, setShowOverrideMode] = useState(false)
+  const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
   const [showDetailedColumns, setShowDetailedColumns] = useState(false)
 
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
   const [reviewQueue, setReviewQueue] = useAtom(reviewQueueAtom)
+  const [level, setLevel] = useState(employee.salaries[0]?.level ?? 1)
+  const [step, setStep] = useState(employee.salaries[0]?.step ?? 1)
+  const [benchmark, setBenchmark] = useState(
+    employee.salaries[0]?.benchmark ?? 'Product Engineer',
+  )
 
   if (!employee) return null
+
+  const { data: referenceEmployees } = useQuery({
+    queryKey: ['referenceEmployees', employee.id, level, step, benchmark],
+    queryFn: () =>
+      getReferenceEmployees({
+        data: { level, step, benchmark },
+      }),
+    enabled: !!level && !!step && !!benchmark,
+  })
 
   const columns: Array<ColumnDef<Salary>> = useMemo(() => {
     const baseColumns: Array<ColumnDef<Salary>> = [
@@ -435,6 +496,19 @@ function EmployeeOverview() {
               <Button
                 type="button"
                 variant="outline"
+                onClick={() =>
+                  setShowReferenceEmployees(!showReferenceEmployees)
+                }
+              >
+                {showReferenceEmployees
+                  ? 'Hide reference employees'
+                  : 'Show reference employees'}
+              </Button>
+            ) : null}
+            {showInlineForm ? (
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setShowOverrideMode(!showOverrideMode)}
               >
                 {showOverrideMode
@@ -533,6 +607,9 @@ function EmployeeOverview() {
                     }}
                     onCancel={() => setShowInlineForm(false)}
                     benchmarkUpdated={benchmarkUpdated}
+                    setLevel={setLevel}
+                    setStep={setStep}
+                    setBenchmark={setBenchmark}
                   />
                 )}
                 {table.getRowModel().rows?.length ? (
@@ -565,6 +642,20 @@ function EmployeeOverview() {
             </Table>
           </div>
         </div>
+
+        {showReferenceEmployees && (
+          <>
+            <div className="flex flex-row gap-2 justify-between items-center mt-2">
+              <span className="text-md font-bold">Reference employees</span>
+            </div>
+
+            <div className="w-full flex-grow">
+              <ReferenceEmployeesTable
+                referenceEmployees={referenceEmployees ?? []}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
@@ -579,6 +670,9 @@ function InlineSalaryFormRow({
   showDetailedColumns,
   totalAmountInStockOptions,
   benchmarkUpdated,
+  setLevel,
+  setStep,
+  setBenchmark,
 }: {
   employeeId: string
   showOverrideMode: boolean
@@ -588,6 +682,9 @@ function InlineSalaryFormRow({
   showDetailedColumns: boolean
   totalAmountInStockOptions: number
   benchmarkUpdated: boolean
+  setLevel: (level: number) => void
+  setStep: (step: number) => void
+  setBenchmark: (benchmark: string) => void
 }) {
   const getDefaultValues = () => ({
     country: latestSalary?.country ?? 'United States',
@@ -712,6 +809,16 @@ function InlineSalaryFormRow({
       },
     },
   })
+
+  const level = useStore(form.store, (state) => state.values.level)
+  const step = useStore(form.store, (state) => state.values.step)
+  const benchmark = useStore(form.store, (state) => state.values.benchmark)
+
+  useEffect(() => {
+    setLevel(level)
+    setStep(step)
+    setBenchmark(benchmark)
+  }, [level, step, benchmark])
 
   useEffect(() => {
     form.reset(getDefaultValues())
@@ -1023,5 +1130,95 @@ function InlineSalaryFormRow({
         </div>
       </TableCell>
     </TableRow>
+  )
+}
+
+type ReferenceEmployee = {
+  id: string
+  name: string
+  level: number
+  step: number
+}
+
+function ReferenceEmployeesTable({
+  referenceEmployees,
+}: {
+  referenceEmployees: ReferenceEmployee[]
+}) {
+  const columns: Array<ColumnDef<ReferenceEmployee>> = useMemo(
+    () => [
+      {
+        accessorKey: 'name',
+        header: 'Name',
+        cell: ({ row }) => <div>{row.original.name}</div>,
+      },
+      {
+        accessorKey: 'level',
+        header: 'Level',
+        cell: ({ row }) => <div>{row.original.level}</div>,
+      },
+      {
+        accessorKey: 'step',
+        header: 'Step',
+        cell: ({ row }) => <div>{row.original.step}</div>,
+      },
+    ],
+    [],
+  )
+
+  const table = useReactTable({
+    data: referenceEmployees,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    filterFns: {
+      fuzzy: () => true,
+    },
+  })
+
+  return (
+    <div className="overflow-hidden max-h-[300px] overflow-y-auto rounded-md border">
+      <Table className="text-xs">
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                return (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                  </TableHead>
+                )
+              })}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow
+                key={row.id}
+                data-state={row.getIsSelected() && 'selected'}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="h-24 text-center">
+                No results.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
