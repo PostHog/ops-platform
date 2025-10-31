@@ -643,7 +643,7 @@ function EmployeeOverview() {
           </div>
         </div>
 
-        {showReferenceEmployees && (
+        {showInlineForm && showReferenceEmployees && (
           <>
             <div className="flex flex-row gap-2 justify-between items-center mt-2">
               <span className="text-md font-bold">Reference employees</span>
