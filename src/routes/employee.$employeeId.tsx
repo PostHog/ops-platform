@@ -141,6 +141,7 @@ const getReferenceEmployees = createServerFn({
       .sort(
         (a, b) => Math.abs(data.step - a.step) - Math.abs(data.step - b.step),
       )
+      .slice(0, 50)
   })
 
 const updateSalary = createServerFn({
