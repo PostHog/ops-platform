@@ -446,7 +446,7 @@ function EmployeeOverview() {
         </div>
 
         <div className="w-full flex-grow">
-          <div className="mb-4 p-4 border rounded-lg bg-gray-50 max-h-[500px] overflow-y-auto">
+          <div className="mb-4 p-4 border rounded-lg bg-gray-50 max-h-[300px] overflow-y-auto">
             {employee.feedback.map(({ id, feedback, timestamp }) => (
               <div key={id} className="mb-4 p-4 border rounded-lg bg-gray-50">
                 <span className="text-sm text-gray-500 w-full text-right list-disc">
