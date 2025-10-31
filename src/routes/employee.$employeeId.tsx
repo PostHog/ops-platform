@@ -347,16 +347,15 @@ function EmployeeOverview() {
             <span className="text-xl font-bold">
               {employee.deelEmployee?.name || employee.email || 'Edit employee'}
             </span>
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="text-sm text-gray-600 mt-1 flex gap-4">
+              <span>Email: {employee.email}</span>
               <span>Priority: {employee.priority}</span>
               {employee.deelEmployee?.topLevelManager?.name && (
-                <span className="ml-4">
+                <span>
                   Reviewer: {employee.deelEmployee.topLevelManager.name}
                 </span>
               )}
-              <span className="ml-4">
-                Reviewed: {employee.reviewed ? 'Yes' : 'No'}
-              </span>
+              <span>Reviewed: {employee.reviewed ? 'Yes' : 'No'}</span>
             </div>
           </div>
           <div className="flex gap-2 justify-end">
