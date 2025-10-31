@@ -251,6 +251,14 @@ const populateInitialEmployeeSalaries = createServerFn({
         throw new Error('Start date is missing: ' + employee.workEmail)
       }
 
+      if (['1.2', '1', '0.78', '0.59'].includes(level)) {
+        throw new Error('Invalid level: ' + level)
+      }
+
+      if (Number(step) < 0.85 || Number(step) > 1.2) {
+        throw new Error('Invalid step: ' + step)
+      }
+
       const location = locationFactor.find(
         (l) => l.country === country && l.area === area,
       )
