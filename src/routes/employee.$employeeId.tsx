@@ -312,6 +312,8 @@ function EmployeeOverview() {
         to: '/employee/$employeeId',
         params: { employeeId: nextEmployee },
       })
+      setShowInlineForm(true)
+      setShowOverrideMode(false)
     } else {
       createToast(
         'No more employees in review queue, navigating to overview.',
