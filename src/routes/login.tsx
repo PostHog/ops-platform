@@ -1,12 +1,22 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { signIn } from '@/lib/auth-client'
+import { signIn, useSession } from '@/lib/auth-client'
+import { useEffect } from 'react'
 
 export const Route = createFileRoute('/login')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
+  const { data: session, isRefetching } = useSession()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (session && !isRefetching) {
+      router.navigate({ to: '/' })
+    }
+  }, [session])
+
   const handleLogin = async () => {
     await signIn.social({
       provider: 'google',
