@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button'
 import { currencyData, locationFactor, sfBenchmark } from '@/lib/utils'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { fetchDeelEmployees } from './syncDeelEmployees'
+import type { KeeperTestJobPayload } from './runScheduledJobs'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
@@ -524,8 +525,82 @@ function RouteComponent() {
           >
             Check salary deviation compared to Deel
           </Button>
+          <KeeperTestManagement />
         </div>
       </div>
     </div>
+  )
+}
+
+export const scheduleKeeperTests = createServerFn({
+  method: 'POST',
+}).handler(async () => {
+  const employees = await prisma.employee.findMany({
+    include: {
+      deelEmployee: {
+        include: {
+          manager: true,
+        },
+      },
+    },
+    where: {
+      deelEmployee: {
+        team: {
+          not: 'Blitzscale',
+        },
+      },
+    },
+  })
+
+  const result = await prisma.cyclotronJob.createMany({
+    data: employees
+      .map((employee) => {
+        if (
+          !employee.deelEmployee?.manager ||
+          !employee.deelEmployee?.manager?.workEmail
+        ) {
+          return null
+        }
+        return {
+          queue_name: 'send_keeper_test' as const,
+          data: JSON.stringify({
+            employee: {
+              id: employee.id,
+              email: employee.email,
+              name: employee.deelEmployee?.name,
+            },
+            manager: {
+              id: employee.deelEmployee?.manager?.id,
+              email: employee.deelEmployee?.manager?.workEmail,
+              name: employee.deelEmployee?.manager?.name,
+            },
+          } satisfies KeeperTestJobPayload),
+        }
+      })
+      .filter((emp) => emp !== null),
+  })
+
+  return {
+    success: true,
+    count: result.count,
+  }
+})
+
+function KeeperTestManagement() {
+  const router = useRouter()
+
+  return (
+    <Button
+      onClick={async () => {
+        const results = await scheduleKeeperTests()
+        router.invalidate()
+
+        createToast(`Successfully scheduled ${results.count} keeper tests.`, {
+          timeout: 3000,
+        })
+      }}
+    >
+      Schedule keeper tests for every employee
+    </Button>
   )
 }

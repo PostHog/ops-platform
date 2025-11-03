@@ -13,6 +13,7 @@ export type KeeperTestJobPayload = {
     email: string
     name: string
   }
+  thread_id?: string
 }
 
 export type JobResult = {
@@ -284,9 +285,78 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   },
                 )
 
-                const userBody = await userRes.json()
                 // @ts-ignore
-                const slackUserId = userBody.user.id
+                const userBody = await userRes.json()
+                // const slackUserId = userBody.user.id
+                const slackUserId = 'U05LD9R5P6E'
+
+                const response = await fetch(
+                  'https://slack.com/api/chat.postMessage',
+                  {
+                    method: 'POST',
+                    headers: {
+                      Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      // channel: slackUserId,
+                      channel: slackUserId,
+                      blocks: getSlackMessageBody(
+                        employee.email,
+                        employee.id,
+                        manager.name,
+                        job.id,
+                      ).blocks,
+                    }),
+                  },
+                )
+                const messageResponse = await response.json()
+
+                jobResults.push({
+                  id: job.id,
+                  success: true,
+                  data: {
+                    data: JSON.stringify({
+                      ...(JSON.parse(
+                        job.data as string,
+                      ) as KeeperTestJobPayload),
+                      thread_id: messageResponse.ts,
+                    }),
+                    queue_name: 'receive_keeper_test_results',
+                    scheduled: new Date(Date.now() + 24 * 60 * 60 * 1000), // send reminders one day after the keeper test is sent
+                  },
+                })
+              } else if (job.queue_name === 'receive_keeper_test_results') {
+                const { thread_id, manager } = JSON.parse(
+                  job.data as string,
+                ) as KeeperTestJobPayload
+
+                if (!thread_id) {
+                  console.log('Thread ID is required')
+                  jobResults.push({
+                    id: job.id,
+                    success: false,
+                    data: {
+                      failure_count: job.failure_count + 1,
+                    },
+                  })
+                  return
+                }
+
+                const userRes = await fetch(
+                  `https://slack.com/api/users.lookupByEmail?email=${manager.email}`,
+                  {
+                    method: 'GET',
+                    headers: {
+                      Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+                    },
+                  },
+                )
+
+                // @ts-ignore
+                const userBody = await userRes.json()
+                // const slackUserId = userBody.user.id
+                const slackUserId = 'U05LD9R5P6E'
 
                 await fetch('https://slack.com/api/chat.postMessage', {
                   method: 'POST',
@@ -295,14 +365,9 @@ export const Route = createFileRoute('/runScheduledJobs')({
                     'Content-Type': 'application/json',
                   },
                   body: JSON.stringify({
-                    // channel: slackUserId,
-                    channel: 'U05LD9R5P6E',
-                    blocks: getSlackMessageBody(
-                      employee.email,
-                      employee.id,
-                      manager.name,
-                      job.id,
-                    ).blocks,
+                    channel: slackUserId,
+                    thread_ts: thread_id,
+                    text: `<@${slackUserId}> please make sure to submit this feedback`,
                   }),
                 })
 
@@ -310,15 +375,8 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   id: job.id,
                   success: true,
                   data: {
-                    queue_name: 'receive_keeper_test_results',
+                    scheduled: new Date(Date.now() + 24 * 60 * 60 * 1000), // send another reminder after a day
                   },
-                })
-              } else if (job.queue_name === 'receive_keeper_test_results') {
-                // TODO: remind people to fill out the keeper test form
-
-                jobResults.push({
-                  id: job.id,
-                  success: true,
                 })
               }
             } catch (error) {
