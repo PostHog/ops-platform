@@ -1,5 +1,5 @@
-import { Handle, Position, useReactFlow } from '@xyflow/react'
-import { memo, MouseEventHandler } from 'react'
+import { Handle, Position } from '@xyflow/react'
+import { memo } from 'react'
 import { cn } from '../utils'
 import { OrgChartNode } from '@/routes/org-chart'
 

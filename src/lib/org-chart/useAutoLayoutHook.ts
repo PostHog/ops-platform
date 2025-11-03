@@ -7,7 +7,7 @@ import {
   useStore,
 } from '@xyflow/react';
 import { getSourceHandlePosition, getTargetHandlePosition } from './utils';
-import layoutAlgorithms, { type LayoutAlgorithmOptions } from './algorithms';
+import layoutAlgorithms, { LayoutAlgorithm, type LayoutAlgorithmOptions } from './algorithms';
 
 export type LayoutOptions = {
   algorithm: keyof typeof layoutAlgorithms;
@@ -41,7 +41,7 @@ function useAutoLayout(options: LayoutOptions) {
     // The callback passed to `useEffect` cannot be `async` itself, so instead we
     // create an async function here and call it immediately afterwards.
     const runLayout = async () => {
-      const layoutAlgorithm = layoutAlgorithms[options.algorithm];
+      const layoutAlgorithm = layoutAlgorithms[options.algorithm] as LayoutAlgorithm;
       // Pass in a clone of the nodes and edges so that we don't mutate the
       // original elements.
       const nodes = elements.nodes.map(node => ({...node}));
