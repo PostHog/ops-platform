@@ -158,19 +158,6 @@ export default function OrgChart() {
   const { fitView } = useReactFlow()
   const employees: Array<DeelEmployee> = Route.useLoaderData()
 
-  const teamNodes = [
-    ...new Set(employees.map((employee) => employee.team)),
-  ].map((teamName) => ({
-    id: `team-${teamName}`,
-    position: { x: 0, y: 0 },
-    type: 'teamNode',
-    data: {
-      name: teamName,
-      descendantsCount: 0, // Will be calculated later
-      showingChildren: teamName === 'Blitzscale' ? true : false,
-    },
-  }))
-
   const employeeNodes = employees.map((employee) => ({
     id: `employee-${employee.id}`,
     position: { x: 0, y: 0 },
@@ -186,10 +173,7 @@ export default function OrgChart() {
     },
   }))
 
-  const getInitialNodes = useCallback(
-    () => [...teamNodes, ...employeeNodes],
-    [],
-  )
+  const getInitialNodes = useCallback(() => [...employeeNodes], [])
 
   function createSetShowingChildren(
     setNodes: (updater: (nodes: Array<Node>) => Array<Node>) => void,
@@ -234,41 +218,17 @@ export default function OrgChart() {
     }))
   }
 
-  const getTopLevelManager = (
-    employee: (typeof employees)[number],
-  ): (typeof employees)[number] | undefined => {
-    let manager = employees.find((e) => e.id === employee.managerId)
-    if (manager && manager.team !== 'Blitzscale' && manager.managerId) {
-      manager = getTopLevelManager(manager)
-    }
-    return manager
-  }
-
-  const blitzscaleEdges = employees
-    .map((employee) => {
-      const topLevelManager = getTopLevelManager(employee)
-      if (!topLevelManager || employee.team === 'Blitzscale') return null
-      return {
-        id: employee.team,
-        source: `employee-${topLevelManager?.id}`,
-        target: `team-${employee.team}`,
-      }
-    })
-    .filter((edge) => edge !== null)
-    .filter(
-      (edge, index, array) =>
-        array.findIndex((e) => e?.id === edge?.id) === index,
-    )
-
-  const teamEdges = employees.map((employee) => ({
-    id: `team-${employee.team}-${employee.name}`,
-    source: `team-${employee.team}`,
-    target: `employee-${employee.id}`,
-  }))
+  const edges = employees
+    .filter((employee) => employee.managerId)
+    .map((employee) => ({
+      id: `employee-${employee.managerId}-${employee.id}`,
+      source: `employee-${employee.managerId}`,
+      target: `employee-${employee.id}`,
+    }))
 
   const getInitialEdges = useCallback(
     () =>
-      [...blitzscaleEdges, ...teamEdges].filter(
+      [...edges].filter(
         (edge, index, array) =>
           array.findIndex((e) => e.id === edge.id) === index,
       ),
