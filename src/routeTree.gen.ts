@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SyncDeelEmployeesRouteImport } from './routes/syncDeelEmployees'
-import { Route as SendKeeperTestsRouteImport } from './routes/sendKeeperTests'
 import { Route as RunScheduledJobsRouteImport } from './routes/runScheduledJobs'
 import { Route as ReceiveKeeperTestResultsRouteImport } from './routes/receiveKeeperTestResults'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
@@ -25,11 +24,6 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 const SyncDeelEmployeesRoute = SyncDeelEmployeesRouteImport.update({
   id: '/syncDeelEmployees',
   path: '/syncDeelEmployees',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SendKeeperTestsRoute = SendKeeperTestsRouteImport.update({
-  id: '/sendKeeperTests',
-  path: '/sendKeeperTests',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RunScheduledJobsRoute = RunScheduledJobsRouteImport.update({
@@ -93,7 +87,6 @@ export interface FileRoutesByFullPath {
   '/org-chart': typeof OrgChartRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
-  '/sendKeeperTests': typeof SendKeeperTestsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -107,7 +100,6 @@ export interface FileRoutesByTo {
   '/org-chart': typeof OrgChartRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
-  '/sendKeeperTests': typeof SendKeeperTestsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -122,7 +114,6 @@ export interface FileRoutesById {
   '/org-chart': typeof OrgChartRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
-  '/sendKeeperTests': typeof SendKeeperTestsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -138,7 +129,6 @@ export interface FileRouteTypes {
     | '/org-chart'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
-    | '/sendKeeperTests'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
     | '/api/auth/$'
@@ -152,7 +142,6 @@ export interface FileRouteTypes {
     | '/org-chart'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
-    | '/sendKeeperTests'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
     | '/api/auth/$'
@@ -166,7 +155,6 @@ export interface FileRouteTypes {
     | '/org-chart'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
-    | '/sendKeeperTests'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
     | '/api/auth/$'
@@ -181,7 +169,6 @@ export interface RootRouteChildren {
   OrgChartRoute: typeof OrgChartRoute
   ReceiveKeeperTestResultsRoute: typeof ReceiveKeeperTestResultsRoute
   RunScheduledJobsRoute: typeof RunScheduledJobsRoute
-  SendKeeperTestsRoute: typeof SendKeeperTestsRoute
   SyncDeelEmployeesRoute: typeof SyncDeelEmployeesRoute
   EmployeeEmployeeIdRoute: typeof EmployeeEmployeeIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -194,13 +181,6 @@ declare module '@tanstack/react-router' {
       path: '/syncDeelEmployees'
       fullPath: '/syncDeelEmployees'
       preLoaderRoute: typeof SyncDeelEmployeesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sendKeeperTests': {
-      id: '/sendKeeperTests'
-      path: '/sendKeeperTests'
-      fullPath: '/sendKeeperTests'
-      preLoaderRoute: typeof SendKeeperTestsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/runScheduledJobs': {
@@ -285,7 +265,6 @@ const rootRouteChildren: RootRouteChildren = {
   OrgChartRoute: OrgChartRoute,
   ReceiveKeeperTestResultsRoute: ReceiveKeeperTestResultsRoute,
   RunScheduledJobsRoute: RunScheduledJobsRoute,
-  SendKeeperTestsRoute: SendKeeperTestsRoute,
   SyncDeelEmployeesRoute: SyncDeelEmployeesRoute,
   EmployeeEmployeeIdRoute: EmployeeEmployeeIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
