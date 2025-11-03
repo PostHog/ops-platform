@@ -60,7 +60,7 @@ const EmployeeNode = memo(function EmployeeNode({
   const isFutureHire = startDate && new Date(startDate) > new Date()
 
   return (
-    <div className="h-full max-h-full transition-all hover:translate-y-[-2px]">
+    <div className="w-[200px] max-w-[200px] min-w-[200px] h-[100px] max-h-[100px] min-h-[100px] transition-all hover:translate-y-[-2px]">
       <div
         className={cn(
           'w-full h-full flex justify-center items-center px-4 py-3 shadow-md rounded-md bg-white border-2 border-stone-400 min-w-[200px]',
