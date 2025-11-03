@@ -444,7 +444,7 @@ const EmployeeNode = memo(function EmployeeNode({
             {isFutureHire && (
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-violet-600 text-xs font-medium">
-                  New starter
+                  Future starter
                 </span>
               </div>
             )}
