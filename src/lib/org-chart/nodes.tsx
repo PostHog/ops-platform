@@ -28,7 +28,7 @@ const TeamNode = memo(function TeamNode({
   data: OrgChartNode['data']
 }) {
   return (
-    <div className="h-full max-h-full transition-all hover:translate-y-[-2px]">
+    <div className="transition-all hover:translate-y-[-2px]">
       <div className="w-full h-full flex justify-center items-center px-6 py-4 shadow-lg rounded-lg bg-blue-50 border-2 border-blue-300 min-w-[200px]">
         <div className="flex items-center justify-center">
           <div className="ml-4 flex-1 min-w-0">
