@@ -107,13 +107,26 @@ const EmployeeNode = memo(function EmployeeNode({
 const LeafContainer = memo(function LeafContainer({
   data,
 }: {
-  data: { name: string }
+  data: {
+    employees: Array<OrgChartNode['data'] & { nodeId: string }>
+  }
 }) {
-  return <div>this is a leaf container {data.name}</div>
+  const employees = data.employees || []
+
+  return (
+    <div className="p-4 rounded-lg border-t-2 border-gray-300">
+      <div className="grid grid-cols-2 gap-4">
+        {employees.map((employee) => {
+          return <EmployeeNode key={employee.nodeId} data={employee} />
+        })}
+      </div>
+      <NodeHandles />
+    </div>
+  )
 })
 
 export const nodeTypes = {
   employeeNode: EmployeeNode,
   teamNode: TeamNode,
-  leafContainer: LeafContainer,
+  leafContainerNode: LeafContainer,
 }

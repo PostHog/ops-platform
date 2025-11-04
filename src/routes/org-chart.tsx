@@ -1,8 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import type { Edge, Node, OnEdgesChange, OnNodesChange } from '@xyflow/react'
+import type { Edge, Node } from '@xyflow/react'
 import {
-  applyEdgeChanges,
-  applyNodeChanges,
   Background,
   BackgroundVariant,
   Controls,
@@ -125,7 +123,7 @@ export default function OrgChart() {
       },
     })),
   )
-  const [edges, setEdges] = useState<Array<Edge>>(getInitialEdges(employees))
+  const [edges] = useState<Array<Edge>>(getInitialEdges(employees))
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const { fitView } = useReactFlow()
 
@@ -133,15 +131,6 @@ export default function OrgChart() {
     nodes,
     edges,
     { treeWidth: 200, treeHeight: 100 },
-  )
-
-  const onNodesChange: OnNodesChange<OrgChartNode> = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    [],
-  )
-  const onEdgesChange: OnEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [],
   )
 
   const toggleExpanded = useCallback(
@@ -169,8 +158,6 @@ export default function OrgChart() {
       <ReactFlow
         nodes={visibleNodes}
         edges={visibleEdges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         onNodeClick={(_, node) =>
           setSelectedNode(node.id.replace('employee-', ''))
