@@ -108,8 +108,8 @@ function createLeafContainers(
 
       // Add container to dagre with appropriate dimensions
       dagre.setNode(container.id, {
-        width: 440, // 2 columns * 200px + 40px padding
-        height: Math.ceil(leafChildren.length / 2) * 200 + 40, // 2 rows per column, 120px per row
+        width: 450,
+        height: Math.ceil(leafChildren.length / 2) * 100 + 50,
         data: container.data,
       })
 
@@ -142,7 +142,7 @@ function useExpandCollapse(
     // 2. Add each node and edge to the dagre graph.
     for (const node of nodes) {
       dagre.setNode(node.id, {
-        width: 100,
+        width: 200,
         height: 100,
         data: node.data,
       })
