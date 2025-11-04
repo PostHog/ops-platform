@@ -25,6 +25,7 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
 }>
 
 export type OrgChartNode = Node<{
+  id: string
   name: string
   title?: string
   team?: string
@@ -33,6 +34,7 @@ export type OrgChartNode = Node<{
   expanded: boolean
   childrenCount?: number
   toggleExpanded: () => void
+  handleClick?: (id: string) => void
 }>
 
 export const getDeelEmployees = createServerFn({
@@ -114,17 +116,18 @@ const getInitialEdges = (employees: Array<DeelEmployee>): Array<Edge> => {
 
 export default function OrgChart() {
   const employees: Array<DeelEmployee> = Route.useLoaderData()
+  const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const [nodes, setNodes] = useState<Array<OrgChartNode>>(
     getInitialNodes(employees).map((node) => ({
       ...node,
       data: {
         ...node.data,
         toggleExpanded: () => toggleExpanded(node),
+        handleClick: (id) => setSelectedNode(id.replace('employee-', '')),
       },
     })),
   )
   const [edges] = useState<Array<Edge>>(getInitialEdges(employees))
-  const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const { fitView } = useReactFlow()
 
   const { nodes: visibleNodes, edges: visibleEdges } = useExpandCollapse(
