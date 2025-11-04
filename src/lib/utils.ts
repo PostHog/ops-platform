@@ -61,7 +61,7 @@ export const currencyData: Record<string, number> = {
 }
 
 export const sfBenchmark: Record<string, number> = {
-  'Product Engineer': 243000,
+  'Product Engineer': 262000,
   'Account Executive (OTE)': 300000,
   'Backend Engineer': 243000,
   'Billing Support Specialist': 154619,
