@@ -60,16 +60,6 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
             )
           }
 
-          await fetch(body.response_url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              text: `Successfully submitted keeper test feedabck for ${employeeEmail}`,
-            }),
-          })
-
           const fieldData: Record<string, any> = {}
 
           for (const [, value] of Object.entries(
@@ -88,6 +78,18 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
             `- Are they optimistic by default?: ${fieldData['keeper-test-question-4']?.selected_option.value}\n` +
             `- Areas to watch: ${fieldData['keeper-test-question-4-text']?.value}\n` +
             `- Have you shared this feedback with your team member?: ${fieldData['keeper-test-question-5']?.selected_option.value}`
+
+          await fetch(body.response_url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              text:
+                `Successfully submitted keeper test feedback for ${employeeEmail}\n\nSummary:\n\n` +
+                feedback,
+            }),
+          })
 
           await prisma.feedback.create({
             data: {
