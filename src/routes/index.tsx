@@ -110,6 +110,7 @@ export const getEmployees = createServerFn({
     },
     where: {
       salaries: { some: {} },
+      deelEmployee: { isNot: null },
     },
     orderBy: {
       deelEmployee: {
