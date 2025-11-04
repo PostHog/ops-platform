@@ -84,6 +84,7 @@ const getInitialNodes = (
   return [blitzscaleNode, ...employeeNodes].map((node) => ({
     ...node,
     data: {
+      id: node.id,
       ...node.data,
       expanded: ['root-node'].includes(node.id),
       toggleExpanded: () => {},
