@@ -134,12 +134,14 @@ export default function OrgChart() {
 
   const toggleExpanded = useCallback(
     (node: OrgChartNode) => {
+      let expanded = false
       setNodes((nds) =>
         nds.map((n) => {
           if (n.id === node.id) {
+            expanded = !n.data.expanded
             return {
               ...n,
-              data: { ...n.data, expanded: !n.data.expanded },
+              data: { ...n.data, expanded: expanded },
             }
           }
 
@@ -147,7 +149,17 @@ export default function OrgChart() {
         }),
       )
 
-      fitView({ nodes: [{ id: node.id }], duration: 300 })
+      fitView({
+        nodes: [
+          {
+            id:
+              expanded || node.data.title === 'Cofounder'
+                ? node.id
+                : `leaf-container-employee-${node.data.manager}`,
+          },
+        ],
+        duration: 300,
+      })
     },
     [fitView],
   )
