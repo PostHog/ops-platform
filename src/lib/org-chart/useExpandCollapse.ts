@@ -3,12 +3,6 @@ import type { Edge } from '@xyflow/react'
 import { OrgChartNode } from '@/routes/org-chart'
 import Dagre from '@dagrejs/dagre'
 
-export type UseExpandCollapseOptions = {
-  layoutNodes?: boolean
-  treeWidth?: number
-  treeHeight?: number
-}
-
 function createLeafContainer(
   managerId: string,
   employees: Array<OrgChartNode>,
@@ -20,7 +14,6 @@ function createLeafContainer(
     data: {
       employees: employees.map((e) => ({
         ...e.data,
-        nodeId: e.id, // Store node ID so we can identify which node to expand
       })),
     },
   }
@@ -138,28 +131,19 @@ function createLeafContainers(
 function useExpandCollapse(
   nodes: OrgChartNode[],
   edges: Edge[],
-  {
-    layoutNodes = true,
-    treeWidth = 200,
-    treeHeight = 100,
-  }: UseExpandCollapseOptions = {},
 ): { nodes: OrgChartNode[]; edges: Edge[] } {
   return useMemo(() => {
-    if (!layoutNodes) return { nodes, edges }
-
     // 1. Create a new instance of `Dagre.graphlib.Graph` and set some default
     // properties.
     const dagre = new Dagre.graphlib.Graph()
       .setDefaultEdgeLabel(() => ({}))
       .setGraph({ rankdir: 'TB' })
 
-    // 2. Add each node and edge to the dagre graph. Instead of using each node's
-    // intrinsic width and height, we tell dagre to use the `treeWidth` and
-    // `treeHeight` values. This lets you control the space between nodes.
+    // 2. Add each node and edge to the dagre graph.
     for (const node of nodes) {
       dagre.setNode(node.id, {
-        width: treeWidth,
-        height: treeHeight,
+        width: 100,
+        height: 100,
         data: node.data,
       })
     }
@@ -220,7 +204,7 @@ function useExpandCollapse(
       }),
       edges: dagreEdges,
     }
-  }, [nodes, edges, layoutNodes, treeWidth, treeHeight])
+  }, [nodes, edges])
 }
 
 export default useExpandCollapse

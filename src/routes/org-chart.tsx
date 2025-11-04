@@ -130,7 +130,6 @@ export default function OrgChart() {
   const { nodes: visibleNodes, edges: visibleEdges } = useExpandCollapse(
     nodes,
     edges,
-    { treeWidth: 200, treeHeight: 100 },
   )
 
   const toggleExpanded = useCallback(

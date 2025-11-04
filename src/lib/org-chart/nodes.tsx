@@ -108,7 +108,7 @@ const LeafContainer = memo(function LeafContainer({
   data,
 }: {
   data: {
-    employees: Array<OrgChartNode['data'] & { nodeId: string }>
+    employees: Array<OrgChartNode['data']>
   }
 }) {
   const employees = data.employees || []
@@ -117,7 +117,7 @@ const LeafContainer = memo(function LeafContainer({
     <div className="p-4 rounded-lg border-t-2 border-gray-300">
       <div className="grid grid-cols-2 gap-4">
         {employees.map((employee) => {
-          return <EmployeeNode key={employee.nodeId} data={employee} />
+          return <EmployeeNode key={employee.name} data={employee} />
         })}
       </div>
       <NodeHandles />
