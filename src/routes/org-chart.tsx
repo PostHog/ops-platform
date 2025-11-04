@@ -4,12 +4,13 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  Panel,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { createServerFn } from '@tanstack/react-start'
 import type { Prisma } from '@prisma/client'
@@ -17,6 +18,7 @@ import EmployeePanel from '@/components/EmployeePanel'
 import prisma from '@/db'
 import { nodeTypes } from '@/lib/org-chart/nodes'
 import useExpandCollapse from '@/lib/org-chart/useExpandCollapse'
+import OrgChartPanel from '@/components/OrgChartPanel'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -136,6 +138,50 @@ export default function OrgChart() {
     edges,
   )
 
+  // expand all parent nodes of a selected node (for search)
+  useEffect(() => {
+    if (!selectedNode) return
+
+    const parentIds = new Set<string>()
+    let currentNode = nodes.find((n) => n.id === `employee-${selectedNode}`)
+    const directParentId = currentNode?.data.manager
+    const initialNodeExpanded = currentNode?.data.expanded
+
+    while (currentNode) {
+      if (currentNode.data.title === 'Cofounder') {
+        parentIds.add('root-node')
+        break
+      }
+      if (!currentNode.data.manager) break
+      const parentId = `employee-${currentNode.data.manager}`
+      parentIds.add(parentId)
+      currentNode = nodes.find((n) => n.id === parentId)
+    }
+
+    if (parentIds.size > 0) {
+      setNodes((nds) =>
+        nds.map((n) =>
+          parentIds.has(n.id) && !n.data.expanded
+            ? { ...n, data: { ...n.data, expanded: true } }
+            : n,
+        ),
+      )
+    }
+
+    fitView({
+      nodes: [
+        initialNodeExpanded
+          ? {
+              id: `employee-${selectedNode}`,
+            }
+          : {
+              id: `leaf-container-employee-${directParentId}`,
+            },
+      ],
+      duration: 300,
+    })
+  }, [selectedNode])
+
   const toggleExpanded = useCallback(
     (node: OrgChartNode) => {
       let expanded = false
@@ -174,15 +220,20 @@ export default function OrgChart() {
         nodes={visibleNodes}
         edges={visibleEdges}
         nodeTypes={nodeTypes}
-        onNodeClick={(_, node) =>
-          setSelectedNode(node.id.replace('employee-', ''))
-        }
         onPaneClick={() => setSelectedNode(null)}
         fitView
       >
         <Background gap={36} variant={BackgroundVariant.Dots} />
 
         <Controls showInteractive={false} />
+
+        <Panel position="top-left">
+          <OrgChartPanel
+            employees={employees}
+            selectedNode={selectedNode}
+            setSelectedNode={setSelectedNode}
+          />
+        </Panel>
 
         <EmployeePanel employeeId={selectedNode} employees={employees} />
       </ReactFlow>
