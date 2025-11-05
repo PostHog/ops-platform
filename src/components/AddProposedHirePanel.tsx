@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select'
-import { type DeelEmployee, Priority, type Prisma } from '@prisma/client'
+import { type DeelEmployee, type Priority, type Prisma } from '@prisma/client'
 import OrgChartPanel from './OrgChartPanel'
 import prisma from '@/db'
 import { createServerFn } from '@tanstack/react-start'
@@ -118,7 +118,7 @@ function AddProposedHirePanel({
       onBlur: z.object({
         title: z.string().min(1, 'You must enter a title'),
         managerEmail: z.string().min(1, 'You must select a manager'),
-        priority: z.nativeEnum(Priority),
+        priority: z.enum(['low', 'medium', 'high']),
         hiringProfile: z.string(),
       }),
     },
