@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select'
-import { DeelEmployee, Priority, Prisma } from '@prisma/client'
+import { type DeelEmployee, Priority, type Prisma } from '@prisma/client'
 import OrgChartPanel from './OrgChartPanel'
 import prisma from '@/db'
 import { createServerFn } from '@tanstack/react-start'
@@ -28,11 +28,9 @@ import { useState } from 'react'
 import { z } from 'zod'
 import { useRouter } from '@tanstack/react-router'
 
-type ProposedHire = Prisma.ProposedHireGetPayload<{
-  include: {
-    manager: true
-  }
-}>
+type ProposedHire = Prisma.ProposedHireGetPayload<{}> & {
+  manager: DeelEmployee
+}
 
 const addProposedHire = createServerFn({
   method: 'POST',
@@ -40,7 +38,7 @@ const addProposedHire = createServerFn({
   .inputValidator(
     (d: {
       title: string
-      managerId: string
+      managerEmail: string
       priority: Priority
       hiringProfile: string
     }) => d,
@@ -49,7 +47,7 @@ const addProposedHire = createServerFn({
     return await prisma.proposedHire.create({
       data: {
         title: data.title,
-        managerId: data.managerId,
+        managerEmail: data.managerEmail,
         priority: data.priority,
         hiringProfile: data.hiringProfile,
       },
@@ -63,7 +61,7 @@ const updateProposedHire = createServerFn({
     (d: {
       id: string
       title: string
-      managerId: string
+      managerEmail: string
       priority: Priority
       hiringProfile: string
     }) => d,
@@ -73,7 +71,7 @@ const updateProposedHire = createServerFn({
       where: { id: data.id },
       data: {
         title: data.title,
-        managerId: data.managerId,
+        managerEmail: data.managerEmail,
         priority: data.priority,
         hiringProfile: data.hiringProfile,
       },
@@ -106,32 +104,32 @@ function AddProposedHirePanel({
     defaultValues: editingExisting
       ? {
           title: proposedHire.title,
-          managerId: proposedHire.manager.id,
+          managerEmail: proposedHire.manager.workEmail,
           priority: proposedHire.priority,
           hiringProfile: proposedHire.hiringProfile,
         }
       : {
           title: '',
-          managerId: null as string | null,
+          managerEmail: null as string | null,
           priority: 'medium' as Priority,
           hiringProfile: '',
         },
     validators: {
       onBlur: z.object({
         title: z.string().min(1, 'You must enter a title'),
-        managerId: z.string().min(1, 'You must select a manager'),
+        managerEmail: z.string().min(1, 'You must select a manager'),
         priority: z.nativeEnum(Priority),
         hiringProfile: z.string(),
       }),
     },
     onSubmit: async ({ value }) => {
-      if (!value.managerId) return
+      if (!value.managerEmail) return
       editingExisting
         ? await updateProposedHire({
             data: {
               id: proposedHire.id,
               title: value.title,
-              managerId: value.managerId,
+              managerEmail: value.managerEmail,
               priority: value.priority,
               hiringProfile: value.hiringProfile,
             },
@@ -139,7 +137,7 @@ function AddProposedHirePanel({
         : await addProposedHire({
             data: {
               title: value.title,
-              managerId: value.managerId,
+              managerEmail: value.managerEmail,
               priority: value.priority,
               hiringProfile: value.hiringProfile,
             },
@@ -188,7 +186,7 @@ function AddProposedHirePanel({
               )}
             />
             <form.Field
-              name="managerId"
+              name="managerEmail"
               children={(field) => (
                 <div className="grid gap-3 col-span-2">
                   <Label htmlFor={field.name}>Manager</Label>
@@ -196,6 +194,7 @@ function AddProposedHirePanel({
                     employees={employees}
                     selectedNode={field.state.value}
                     setSelectedNode={(value) => field.handleChange(value)}
+                    idValue="email"
                   />
                   <FieldInfo field={field} />
                 </div>

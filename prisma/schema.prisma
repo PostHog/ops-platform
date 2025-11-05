@@ -38,7 +38,6 @@ model DeelEmployee {
   topLevelDirectReports DeelEmployee[] @relation("topLevelManager")
   employee              Employee?      @relation(fields: [workEmail], references: [email])
   startDate             DateTime
-  ProposedHire          ProposedHire[]
 }
 
 enum Priority {
@@ -172,12 +171,11 @@ model Verification {
 }
 
 model ProposedHire {
-  id            String       @id @default(cuid())
+  id            String   @id @default(cuid())
   title         String
-  managerId     String
-  manager       DeelEmployee @relation(fields: [managerId], references: [id])
+  managerEmail  String
   priority      Priority
   hiringProfile String
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @default(now()) @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
 }

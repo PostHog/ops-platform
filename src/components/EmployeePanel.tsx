@@ -9,11 +9,9 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   }
 }>
 
-type ProposedHire = Prisma.ProposedHireGetPayload<{
-  include: {
-    manager: true
-  }
-}>
+type ProposedHire = Prisma.ProposedHireGetPayload<{}> & {
+  manager: DeelEmployee
+}
 
 const EmployeePanel = ({
   selectedNode,
