@@ -5,7 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider      = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -38,6 +38,7 @@ model DeelEmployee {
   topLevelDirectReports DeelEmployee[] @relation("topLevelManager")
   employee              Employee?      @relation(fields: [workEmail], references: [email])
   startDate             DateTime
+  ProposedHire          ProposedHire[]
 }
 
 enum Priority {
@@ -168,4 +169,15 @@ model Verification {
   updatedAt  DateTime @default(now()) @updatedAt
 
   @@map("verification")
+}
+
+model ProposedHire {
+  id            String       @id @default(cuid())
+  title         String
+  managerId     String
+  manager       DeelEmployee @relation(fields: [managerId], references: [id])
+  priority      Priority
+  hiringProfile String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @default(now()) @updatedAt
 }

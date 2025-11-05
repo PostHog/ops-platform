@@ -19,6 +19,7 @@ import prisma from '@/db'
 import { nodeTypes } from '@/lib/org-chart/nodes'
 import useExpandCollapse from '@/lib/org-chart/useExpandCollapse'
 import OrgChartPanel from '@/components/OrgChartPanel'
+import AddProposedHirePanel from '@/components/AddProposedHirePanel'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -26,28 +27,49 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   }
 }>
 
-export type OrgChartNode = Node<{
-  id: string
-  name: string
-  title?: string
-  team?: string
-  manager?: string
-  startDate?: Date
-  expanded: boolean
-  childrenCount?: number
-  toggleExpanded: () => void
-  handleClick?: (id: string) => void
-  selectedNode: string | null
+type ProposedHire = Prisma.ProposedHireGetPayload<{
+  include: {
+    manager: true
+  }
 }>
 
-export const getDeelEmployees = createServerFn({
+type ProposedHireFields = {
+  hiringPriority?: 'low' | 'medium' | 'high'
+  hiringProfile?: string
+}
+
+export type OrgChartNode = Node<
+  {
+    id: string
+    name: string
+    title?: string
+    team?: string
+    manager?: string
+    startDate?: Date
+    expanded: boolean
+    childrenCount?: number
+    toggleExpanded: () => void
+    handleClick?: (id: string) => void
+    selectedNode: string | null
+  } & ProposedHireFields
+>
+
+export const getDeelEmployeesAndProposedHires = createServerFn({
   method: 'GET',
 }).handler(async () => {
-  return await prisma.deelEmployee.findMany({
+  const employees = await prisma.deelEmployee.findMany({
     include: {
       employee: true,
     },
   })
+
+  const proposedHires = await prisma.proposedHire.findMany({
+    include: {
+      manager: true,
+    },
+  })
+
+  return { employees, proposedHires }
 })
 
 export const Route = createFileRoute('/org-chart')({
@@ -56,11 +78,12 @@ export const Route = createFileRoute('/org-chart')({
       <OrgChart />
     </ReactFlowProvider>
   ),
-  loader: async () => await getDeelEmployees(),
+  loader: async () => await getDeelEmployeesAndProposedHires(),
 })
 
 const getInitialNodes = (
   employees: Array<DeelEmployee>,
+  proposedHires: Array<ProposedHire>,
 ): Array<OrgChartNode> => {
   const blitzscaleNode = {
     id: 'root-node',
@@ -84,19 +107,40 @@ const getInitialNodes = (
     },
   }))
 
-  return [blitzscaleNode, ...employeeNodes].map((node) => ({
-    ...node,
-    data: {
-      id: node.id,
-      ...node.data,
-      expanded: ['root-node'].includes(node.id),
-      toggleExpanded: () => {},
-      selectedNode: null,
-    },
-  }))
+  const proposedHireNodes = proposedHires.map(
+    ({ id, title, manager, priority, hiringProfile }) => ({
+      id: `employee-${id}`,
+      position: { x: 0, y: 0 },
+      type: 'employeeNode',
+      data: {
+        name: '',
+        title: title,
+        team: '',
+        manager: manager.id,
+        hiringPriority: priority,
+        hiringProfile,
+      },
+    }),
+  )
+
+  return [blitzscaleNode, ...employeeNodes, ...proposedHireNodes].map(
+    (node) => ({
+      ...node,
+      data: {
+        id: node.id,
+        ...node.data,
+        expanded: ['root-node'].includes(node.id),
+        toggleExpanded: () => {},
+        selectedNode: null,
+      },
+    }),
+  )
 }
 
-const getInitialEdges = (employees: Array<DeelEmployee>): Array<Edge> => {
+const getInitialEdges = (
+  employees: Array<DeelEmployee>,
+  proposedHires: Array<ProposedHire>,
+): Array<Edge> => {
   const blitzscaleEdges = employees
     .filter((employee) => employee.title === 'Cofounder')
     .map((employee) => ({
@@ -113,17 +157,23 @@ const getInitialEdges = (employees: Array<DeelEmployee>): Array<Edge> => {
       target: `employee-${employee.id}`,
     }))
 
-  return [...blitzscaleEdges, ...edges].map((edge) => ({
+  const proposedHireEdges = proposedHires.map(({ id, manager }) => ({
+    id: `proposedHire-${manager.id}-${id}`,
+    source: `employee-${manager.id}`,
+    target: `employee-${id}`,
+  }))
+
+  return [...blitzscaleEdges, ...edges, ...proposedHireEdges].map((edge) => ({
     ...edge,
     type: 'smoothstep',
   }))
 }
 
 export default function OrgChart() {
-  const employees: Array<DeelEmployee> = Route.useLoaderData()
+  const { employees, proposedHires } = Route.useLoaderData()
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const [nodes, setNodes] = useState<Array<OrgChartNode>>(
-    getInitialNodes(employees).map((node) => ({
+    getInitialNodes(employees, proposedHires).map((node) => ({
       ...node,
       data: {
         ...node.data,
@@ -132,7 +182,9 @@ export default function OrgChart() {
       },
     })),
   )
-  const [edges] = useState<Array<Edge>>(getInitialEdges(employees))
+  const [edges] = useState<Array<Edge>>(
+    getInitialEdges(employees, proposedHires),
+  )
   const { fitView } = useReactFlow()
 
   const { nodes: visibleNodes, edges: visibleEdges } = useExpandCollapse(
@@ -239,7 +291,15 @@ export default function OrgChart() {
           />
         </Panel>
 
-        <EmployeePanel employeeId={selectedNode} employees={employees} />
+        <Panel position="top-right">
+          <AddProposedHirePanel employees={employees} />
+        </Panel>
+
+        <EmployeePanel
+          selectedNode={selectedNode}
+          employees={employees}
+          proposedHires={proposedHires}
+        />
       </ReactFlow>
     </div>
   )

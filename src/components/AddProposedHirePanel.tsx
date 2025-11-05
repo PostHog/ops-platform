@@ -1,0 +1,263 @@
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { AnyFieldApi, useForm } from '@tanstack/react-form'
+import { createToast } from 'vercel-toast'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select'
+import { DeelEmployee, Priority, Prisma } from '@prisma/client'
+import OrgChartPanel from './OrgChartPanel'
+import prisma from '@/db'
+import { createServerFn } from '@tanstack/react-start'
+import { useState } from 'react'
+import { z } from 'zod'
+import { useRouter } from '@tanstack/react-router'
+
+type ProposedHire = Prisma.ProposedHireGetPayload<{
+  include: {
+    manager: true
+  }
+}>
+
+const addProposedHire = createServerFn({
+  method: 'POST',
+})
+  .inputValidator(
+    (d: {
+      title: string
+      managerId: string
+      priority: Priority
+      hiringProfile: string
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    return await prisma.proposedHire.create({
+      data: {
+        title: data.title,
+        managerId: data.managerId,
+        priority: data.priority,
+        hiringProfile: data.hiringProfile,
+      },
+    })
+  })
+
+const updateProposedHire = createServerFn({
+  method: 'POST',
+})
+  .inputValidator(
+    (d: {
+      id: string
+      title: string
+      managerId: string
+      priority: Priority
+      hiringProfile: string
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    return await prisma.proposedHire.update({
+      where: { id: data.id },
+      data: {
+        title: data.title,
+        managerId: data.managerId,
+        priority: data.priority,
+        hiringProfile: data.hiringProfile,
+      },
+    })
+  })
+
+function FieldInfo({ field }: { field: AnyFieldApi }) {
+  return (
+    <div className="text-sm text-red-600">
+      {field.state.meta.isTouched && !field.state.meta.isValid ? (
+        <em>{field.state.meta.errors.map((err) => err.message).join(',')}</em>
+      ) : null}
+      {field.state.meta.isValidating ? 'Validating...' : null}
+    </div>
+  )
+}
+
+function AddProposedHirePanel({
+  employees,
+  proposedHire,
+}: {
+  employees: Array<DeelEmployee>
+  proposedHire?: ProposedHire
+}) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const editingExisting = !!proposedHire
+
+  const form = useForm({
+    defaultValues: editingExisting
+      ? {
+          title: proposedHire.title,
+          managerId: proposedHire.manager.id,
+          priority: proposedHire.priority,
+          hiringProfile: proposedHire.hiringProfile,
+        }
+      : {
+          title: '',
+          managerId: null as string | null,
+          priority: 'medium' as Priority,
+          hiringProfile: '',
+        },
+    validators: {
+      onBlur: z.object({
+        title: z.string().min(1, 'You must enter a title'),
+        managerId: z.string().min(1, 'You must select a manager'),
+        priority: z.nativeEnum(Priority),
+        hiringProfile: z.string(),
+      }),
+    },
+    onSubmit: async ({ value }) => {
+      if (!value.managerId) return
+      editingExisting
+        ? await updateProposedHire({
+            data: {
+              id: proposedHire.id,
+              title: value.title,
+              managerId: value.managerId,
+              priority: value.priority,
+              hiringProfile: value.hiringProfile,
+            },
+          })
+        : await addProposedHire({
+            data: {
+              title: value.title,
+              managerId: value.managerId,
+              priority: value.priority,
+              hiringProfile: value.hiringProfile,
+            },
+          })
+      router.invalidate()
+      setOpen(false)
+      createToast('Successfully added proposed hire.', {
+        timeout: 3000,
+      })
+    },
+  })
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <form>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="w-full">
+            {editingExisting ? 'Edit proposed hire' : 'Add proposed hire'}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingExisting ? 'Edit proposed hire' : 'Add proposed hire'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingExisting
+                ? 'Edit a proposed hire on the organization chart.'
+                : 'Add a proposed hire to the organization chart.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <form.Field
+              name="title"
+              children={(field) => (
+                <div className="grid gap-3 col-span-2">
+                  <Label htmlFor={field.name}>Title</Label>
+                  <Input
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                  />
+                  <FieldInfo field={field} />
+                </div>
+              )}
+            />
+            <form.Field
+              name="managerId"
+              children={(field) => (
+                <div className="grid gap-3 col-span-2">
+                  <Label htmlFor={field.name}>Manager</Label>
+                  <OrgChartPanel
+                    employees={employees}
+                    selectedNode={field.state.value}
+                    setSelectedNode={(value) => field.handleChange(value)}
+                  />
+                  <FieldInfo field={field} />
+                </div>
+              )}
+            />
+            <form.Field
+              name="priority"
+              children={(field) => (
+                <div className="grid gap-3 col-span-2">
+                  <Label htmlFor={field.name}>Priority</Label>
+                  <Select
+                    value={field.state.value.toString()}
+                    onValueChange={(value) =>
+                      field.handleChange(value as Priority)
+                    }
+                  >
+                    <SelectTrigger className="w-full h-6 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FieldInfo field={field} />
+                </div>
+              )}
+            />
+            <form.Field
+              name="hiringProfile"
+              children={(field) => (
+                <div className="grid gap-3 col-span-2">
+                  <Label htmlFor={field.name}>Hiring Profile</Label>
+                  <Input
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                  />
+                  <FieldInfo field={field} />
+                </div>
+              )}
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button
+              onClick={(e) => {
+                e.stopPropagation()
+                form.handleSubmit()
+              }}
+            >
+              {editingExisting ? 'Save changes' : 'Add proposed hire'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </form>
+    </Dialog>
+  )
+}
+
+export default AddProposedHirePanel

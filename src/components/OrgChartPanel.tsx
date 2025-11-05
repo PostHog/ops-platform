@@ -35,7 +35,7 @@ const OrgChartPanel = ({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[300px] justify-between"
+          className="min-w-[300px] justify-between w-full"
         >
           {selectedNode
             ? employees.find((employee) => employee.id === selectedNode)?.name
