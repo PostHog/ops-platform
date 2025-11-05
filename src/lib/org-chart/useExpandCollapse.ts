@@ -6,6 +6,7 @@ import Dagre from '@dagrejs/dagre'
 function createLeafContainer(
   managerId: string,
   employees: Array<OrgChartNode>,
+  selectedNode: string | null,
 ) {
   return {
     id: `leaf-container-${managerId}`,
@@ -14,6 +15,7 @@ function createLeafContainer(
     data: {
       employees: employees.map((e) => ({
         ...e.data,
+        selectedNode: selectedNode ? `employee-${selectedNode}` : null,
       })),
     },
   }
@@ -61,6 +63,7 @@ function createLeafContainers(
   dagre: Dagre.graphlib.Graph,
   nodes: OrgChartNode[],
   edges: Edge[],
+  selectedNode: string | null,
 ): Record<string, OrgChartNode> {
   const leafContainers: Record<string, OrgChartNode> = {}
   const childrenMap = buildChildrenMap(edges)
@@ -98,7 +101,7 @@ function createLeafContainers(
 
     // Only create container if there are leaf children to group
     if (leafChildren.length > 0) {
-      const container = createLeafContainer(node.id, leafChildren)
+      const container = createLeafContainer(node.id, leafChildren, selectedNode)
       leafContainers[container.id] = container as unknown as OrgChartNode
 
       // Remove leaf nodes from dagre since they'll be in the container
@@ -131,6 +134,7 @@ function createLeafContainers(
 function useExpandCollapse(
   nodes: OrgChartNode[],
   edges: Edge[],
+  selectedNode: string | null,
 ): { nodes: OrgChartNode[]; edges: Edge[] } {
   return useMemo(() => {
     // 1. Create a new instance of `Dagre.graphlib.Graph` and set some default
@@ -160,7 +164,12 @@ function useExpandCollapse(
     }
 
     // 4. Create leaf containers for employees without direct reports
-    const leafContainers = createLeafContainers(dagre, nodes, edges)
+    const leafContainers = createLeafContainers(
+      dagre,
+      nodes,
+      edges,
+      selectedNode,
+    )
 
     // 5. Run the dagre layouting algorithm.
     Dagre.layout(dagre)
@@ -198,13 +207,16 @@ function useExpandCollapse(
         const position = { x, y }
         // 🚨 `filterCollapsedChildren` *mutates* the data object of a node. React
         // will not know the data has changed unless we create a new object here.
-        const data = { ...node.data }
+        const data = {
+          ...node.data,
+          selectedNode: selectedNode ? `employee-${selectedNode}` : null,
+        }
 
         return [{ ...node, position, data }]
       }),
       edges: dagreEdges,
     }
-  }, [nodes, edges])
+  }, [nodes, edges, selectedNode])
 }
 
 export default useExpandCollapse
