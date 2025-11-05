@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { Button } from './ui/button'
 import type { Prisma } from '@prisma/client'
+import AddProposedHirePanel from './AddProposedHirePanel'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -8,16 +9,25 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   }
 }>
 
-const EmployeePanel = ({
-  employeeId,
-  employees,
-}: {
-  employeeId: string | null
-  employees: Array<DeelEmployee>
-}) => {
-  const employee = employees.find((employee) => employee.id === employeeId)
+type ProposedHire = Prisma.ProposedHireGetPayload<{}> & {
+  manager: DeelEmployee
+}
 
-  if (!employee) return null
+const EmployeePanel = ({
+  selectedNode,
+  employees,
+  proposedHires,
+}: {
+  selectedNode: string | null
+  employees: Array<DeelEmployee>
+  proposedHires: Array<ProposedHire>
+}) => {
+  const employee = employees.find((employee) => employee.id === selectedNode)
+  const proposedHire = proposedHires.find(
+    (proposedHire) => proposedHire.id === selectedNode,
+  )
+
+  if (!employee && !proposedHire) return null
   return (
     <div className="absolute h-full flex flex-col m-0 p-2 overflow-hidden transition-[width] max-h-full right-0 justify-center w-[36rem]">
       <div
@@ -28,18 +38,30 @@ const EmployeePanel = ({
         }}
       >
         <div className="p-2">
-          <h1 className="text-lg font-bold mb-4">{employee.name}</h1>
+          <h1 className="text-lg font-bold mb-4">
+            {employee?.name || proposedHire?.title}
+          </h1>
           <pre className="bg-gray-50 p-4 rounded-lg overflow-auto">
-            {JSON.stringify(employee, null, 2)}
+            {JSON.stringify(employee || proposedHire, null, 2)}
           </pre>
-          <Link
-            to="/employee/$employeeId"
-            params={{ employeeId: employee.employee?.id ?? '' }}
-          >
-            <Button variant="outline" className="w-full my-4">
-              View employee
-            </Button>
-          </Link>
+          {employee ? (
+            <Link
+              to="/employee/$employeeId"
+              params={{ employeeId: employee.employee?.id ?? '' }}
+            >
+              <Button variant="outline" className="w-full my-4">
+                View employee
+              </Button>
+            </Link>
+          ) : null}
+          {proposedHire ? (
+            <div className="w-full my-4">
+              <AddProposedHirePanel
+                employees={employees}
+                proposedHire={proposedHire}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

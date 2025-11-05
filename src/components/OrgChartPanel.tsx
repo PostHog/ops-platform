@@ -21,10 +21,12 @@ const OrgChartPanel = ({
   employees,
   selectedNode,
   setSelectedNode,
+  idValue = 'id',
 }: {
   employees: Array<DeelEmployee>
   selectedNode: string | null
   setSelectedNode: (node: string | null) => void
+  idValue?: 'id' | 'email'
 }) => {
   const [open, setOpen] = useState(false)
 
@@ -35,10 +37,14 @@ const OrgChartPanel = ({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[300px] justify-between"
+          className="min-w-[300px] justify-between w-full"
         >
           {selectedNode
-            ? employees.find((employee) => employee.id === selectedNode)?.name
+            ? employees.find((employee) =>
+                idValue === 'id'
+                  ? employee.id === selectedNode
+                  : employee.workEmail === selectedNode,
+              )?.name
             : 'Search employee...'}
           <ChevronsUpDown className="opacity-50" />
         </Button>
@@ -55,9 +61,15 @@ const OrgChartPanel = ({
                   value={`${employee.id} - ${employee.name} - ${employee.workEmail}`}
                   onSelect={(currentValue) => {
                     setSelectedNode(
-                      currentValue.split(' - ')[0] === selectedNode
+                      (
+                        idValue === 'id'
+                          ? currentValue.split(' - ')[0] === selectedNode
+                          : currentValue.split(' - ')[2] === selectedNode
+                      )
                         ? null
-                        : currentValue.split(' - ')[0],
+                        : idValue === 'id'
+                          ? currentValue.split(' - ')[0]
+                          : currentValue.split(' - ')[2],
                     )
                     setOpen(false)
                   }}

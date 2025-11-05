@@ -56,6 +56,7 @@ const EmployeeNode = memo(function EmployeeNode({
     toggleExpanded,
     handleClick,
     selectedNode,
+    hiringPriority,
   },
 }: {
   data: OrgChartNode['data']
@@ -76,6 +77,7 @@ const EmployeeNode = memo(function EmployeeNode({
         className={cn(
           'w-full h-full flex justify-center items-center px-4 py-3 shadow-md rounded-md bg-white border-stone-400 min-w-[200px]',
           isFutureHire ? 'bg-violet-50' : '',
+          hiringPriority ? 'bg-yellow-50' : '',
           selectedNode === id ? 'border-2' : 'border-1',
         )}
       >
@@ -104,6 +106,13 @@ const EmployeeNode = memo(function EmployeeNode({
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-violet-600 text-xs font-medium">
                   Future starter
+                </span>
+              </div>
+            )}
+            {hiringPriority && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-violet-600 text-xs font-medium">
+                  Proposed hire ({hiringPriority})
                 </span>
               </div>
             )}
