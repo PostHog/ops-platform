@@ -78,6 +78,14 @@ const updateProposedHire = createServerFn({
     })
   })
 
+const deleteProposedHire = createServerFn({
+  method: 'POST',
+})
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    return await prisma.proposedHire.delete({ where: { id: data.id } })
+  })
+
 function FieldInfo({ field }: { field: AnyFieldApi }) {
   return (
     <div className="text-sm text-red-600">
@@ -240,18 +248,38 @@ function AddProposedHirePanel({
               )}
             />
           </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button
-              onClick={(e) => {
-                e.stopPropagation()
-                form.handleSubmit()
-              }}
-            >
-              {editingExisting ? 'Save changes' : 'Add proposed hire'}
-            </Button>
+          <DialogFooter className="flex flex-row !justify-between">
+            {editingExisting ? (
+              <div className="flex flex-row gap-2">
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    await deleteProposedHire({ data: { id: proposedHire.id } })
+                    router.invalidate()
+                    setOpen(false)
+                    createToast('Successfully deleted proposed hire.', {
+                      timeout: 3000,
+                    })
+                  }}
+                  type="button"
+                >
+                  Delete
+                </Button>
+              </div>
+            ) : null}
+            <div className="flex flex-row gap-2">
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  form.handleSubmit()
+                }}
+              >
+                {editingExisting ? 'Save changes' : 'Add proposed hire'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </form>
