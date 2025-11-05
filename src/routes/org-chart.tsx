@@ -178,7 +178,8 @@ export default function OrgChart() {
       data: {
         ...node.data,
         toggleExpanded: () => toggleExpanded(node),
-        handleClick: (id) => setSelectedNode(id.replace('employee-', '')),
+        handleClick: (id: string) =>
+          setSelectedNode(id.replace('employee-', '')),
       },
     })),
   )
