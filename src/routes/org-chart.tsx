@@ -183,7 +183,7 @@ export default function OrgChart() {
       },
     })),
   )
-  const [edges] = useState<Array<Edge>>(
+  const [edges, setEdges] = useState<Array<Edge>>(
     getInitialEdges(employees, proposedHires),
   )
   const { fitView } = useReactFlow()
@@ -195,11 +195,9 @@ export default function OrgChart() {
   )
 
   // expand all parent nodes of a selected node (for search)
-  useEffect(() => {
-    if (!selectedNode) return
-
+  const focusNode = (id: string) => {
     const parentIds = new Set<string>()
-    let currentNode = nodes.find((n) => n.id === `employee-${selectedNode}`)
+    let currentNode = nodes.find((n) => n.id === `employee-${id}`)
     const directParentId = currentNode?.data.manager
     const initialNodeExpanded =
       currentNode?.data.expanded || currentNode?.data.title === 'Cofounder'
@@ -229,7 +227,7 @@ export default function OrgChart() {
       nodes: [
         initialNodeExpanded
           ? {
-              id: `employee-${selectedNode}`,
+              id: `employee-${id}`,
             }
           : {
               id: `leaf-container-employee-${directParentId}`,
@@ -237,6 +235,11 @@ export default function OrgChart() {
       ],
       duration: 300,
     })
+  }
+
+  useEffect(() => {
+    if (!selectedNode) return
+    focusNode(selectedNode)
   }, [selectedNode])
 
   const toggleExpanded = useCallback(
@@ -270,6 +273,84 @@ export default function OrgChart() {
     },
     [fitView],
   )
+
+  // Update proposed hire nodes when proposedHires changes
+  useEffect(() => {
+    const proposedHireMap = new Map(
+      proposedHires.map((ph) => [`employee-${ph.id}`, ph]),
+    )
+    const proposedHireIds = new Set(proposedHireMap.keys())
+
+    setNodes((currentNodes) => {
+      const updatedNodes = currentNodes
+        // Remove proposed hires that no longer exist, update ones that do
+        .filter((node) => {
+          const isProposedHire = 'hiringPriority' in node.data
+          return !isProposedHire || proposedHireIds.has(node.id)
+        })
+        .map((node) => {
+          const proposedHire = proposedHireMap.get(node.id)
+          if (proposedHire) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                title: proposedHire.title,
+                manager: proposedHire.manager.id,
+                hiringPriority: proposedHire.priority,
+                hiringProfile: proposedHire.hiringProfile,
+              },
+            }
+          }
+          return node
+        })
+
+      // Add new proposed hire nodes
+      const existingIds = new Set(updatedNodes.map((n) => n.id))
+      proposedHires.forEach(
+        ({ id, title, manager, priority, hiringProfile }) => {
+          const nodeId = `employee-${id}`
+          if (!existingIds.has(nodeId)) {
+            const newNode: OrgChartNode = {
+              id: nodeId,
+              position: { x: 0, y: 0 },
+              type: 'employeeNode',
+              data: {
+                id: nodeId,
+                name: '',
+                title,
+                team: '',
+                manager: manager.id,
+                hiringPriority: priority,
+                hiringProfile,
+                expanded: false,
+                toggleExpanded: () => toggleExpanded(newNode),
+                handleClick: (id: string) =>
+                  setSelectedNode(id.replace('employee-', '')),
+                selectedNode: null,
+              },
+            }
+            updatedNodes.push(newNode)
+          }
+        },
+      )
+
+      return updatedNodes
+    })
+
+    setEdges((currentEdges) => {
+      const employeeEdges = currentEdges.filter(
+        (edge) => !edge.id.startsWith('proposedHire-'),
+      )
+      const newProposedHireEdges = proposedHires.map(({ id, manager }) => ({
+        id: `proposedHire-${manager.id}-${id}`,
+        source: `employee-${manager.id}`,
+        target: `employee-${id}`,
+        type: 'smoothstep' as const,
+      }))
+      return [...employeeEdges, ...newProposedHireEdges]
+    })
+  }, [proposedHires])
 
   return (
     <div className="h-full w-full">
