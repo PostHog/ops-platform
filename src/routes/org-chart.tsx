@@ -37,6 +37,7 @@ export type OrgChartNode = Node<{
   childrenCount?: number
   toggleExpanded: () => void
   handleClick?: (id: string) => void
+  selectedNode: string | null
 }>
 
 export const getDeelEmployees = createServerFn({
@@ -90,6 +91,7 @@ const getInitialNodes = (
       ...node.data,
       expanded: ['root-node'].includes(node.id),
       toggleExpanded: () => {},
+      selectedNode: null,
     },
   }))
 }
@@ -136,6 +138,7 @@ export default function OrgChart() {
   const { nodes: visibleNodes, edges: visibleEdges } = useExpandCollapse(
     nodes,
     edges,
+    selectedNode,
   )
 
   // expand all parent nodes of a selected node (for search)
@@ -145,7 +148,8 @@ export default function OrgChart() {
     const parentIds = new Set<string>()
     let currentNode = nodes.find((n) => n.id === `employee-${selectedNode}`)
     const directParentId = currentNode?.data.manager
-    const initialNodeExpanded = currentNode?.data.expanded
+    const initialNodeExpanded =
+      currentNode?.data.expanded || currentNode?.data.title === 'Cofounder'
 
     while (currentNode) {
       if (currentNode.data.title === 'Cofounder') {

@@ -55,6 +55,7 @@ const EmployeeNode = memo(function EmployeeNode({
     expanded,
     toggleExpanded,
     handleClick,
+    selectedNode,
   },
 }: {
   data: OrgChartNode['data']
@@ -73,8 +74,9 @@ const EmployeeNode = memo(function EmployeeNode({
     >
       <div
         className={cn(
-          'w-full h-full flex justify-center items-center px-4 py-3 shadow-md rounded-md bg-white border-2 border-stone-400 min-w-[200px]',
+          'w-full h-full flex justify-center items-center px-4 py-3 shadow-md rounded-md bg-white border-stone-400 min-w-[200px]',
           isFutureHire ? 'bg-violet-50' : '',
+          selectedNode === id ? 'border-2' : 'border-1',
         )}
       >
         <div className="flex items-center max-w-[80%]">
