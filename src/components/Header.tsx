@@ -1,4 +1,4 @@
-import { Link, useRouter } from '@tanstack/react-router'
+import { Link, redirect, useRouter } from '@tanstack/react-router'
 import { Button } from './ui/button'
 import { signOut, useSession } from '@/lib/auth-client'
 import { createUserFn } from '@/lib/auth-middleware'
@@ -16,7 +16,11 @@ export const getMyEmployeeId = createUserFn({
     },
   })
 
-  return employee?.id
+  if (!employee) {
+    throw redirect({ to: '/error', search: { message: 'No employee found' } })
+  }
+
+  return employee.id
 })
 
 export default function Header() {
