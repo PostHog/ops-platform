@@ -12,7 +12,6 @@ import {
 import '@xyflow/react/dist/style.css'
 import { useCallback, useEffect, useState } from 'react'
 
-import { createServerFn } from '@tanstack/react-start'
 import type { Prisma } from '@prisma/client'
 import EmployeePanel from '@/components/EmployeePanel'
 import prisma from '@/db'
@@ -20,6 +19,7 @@ import { nodeTypes } from '@/lib/org-chart/nodes'
 import useExpandCollapse from '@/lib/org-chart/useExpandCollapse'
 import OrgChartPanel from '@/components/OrgChartPanel'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
+import { createAuthenticatedFn } from '@/lib/auth-middleware'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -52,7 +52,7 @@ export type OrgChartNode = Node<
   } & ProposedHireFields
 >
 
-export const getDeelEmployeesAndProposedHires = createServerFn({
+export const getDeelEmployeesAndProposedHires = createAuthenticatedFn({
   method: 'GET',
 }).handler(async () => {
   const employees = await prisma.deelEmployee.findMany({

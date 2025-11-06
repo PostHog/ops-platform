@@ -8,7 +8,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { ChevronDown, MoreHorizontal } from 'lucide-react'
-import { createServerFn, useServerFn } from '@tanstack/react-start'
+import { useServerFn } from '@tanstack/react-start'
 import { useQuery } from '@tanstack/react-query'
 import { createToast } from 'vercel-toast'
 import { useAtom } from 'jotai'
@@ -49,6 +49,7 @@ import {
 } from '@/components/ui/select'
 import 'vercel-toast/dist/vercel-toast.css'
 import { reviewQueueAtom } from '@/atoms'
+import { createAuthenticatedFn } from '@/lib/auth-middleware'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -92,7 +93,7 @@ export const months = [
   'December',
 ]
 
-export const getEmployees = createServerFn({
+const getEmployees = createAuthenticatedFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.employee.findMany({
@@ -101,6 +102,7 @@ export const getEmployees = createServerFn({
         orderBy: {
           timestamp: 'desc',
         },
+        take: 1,
       },
       deelEmployee: {
         include: {
@@ -120,7 +122,7 @@ export const getEmployees = createServerFn({
   })
 })
 
-const updateEmployeePriority = createServerFn({
+const updateEmployeePriority = createAuthenticatedFn({
   method: 'POST',
 })
   .inputValidator((d: { employeeId: string; priority: string }) => d)

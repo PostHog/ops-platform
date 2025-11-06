@@ -1,8 +1,20 @@
-import { createStart } from '@tanstack/react-start'
-import { authMiddleware } from '@/lib/auth-middleware'
+import { createMiddleware, createStart } from '@tanstack/react-start'
+import { isRedirect } from '@tanstack/react-router'
+
+// https://github.com/TanStack/router/issues/4460#issuecomment-3015836376
+const convertRedirectErrorToExceptionMiddleware = createMiddleware({
+  type: 'function',
+}).server(async ({ next }) => {
+  const result = await next()
+  if ('error' in result && isRedirect(result.error)) {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
+    throw result.error
+  }
+  return result
+})
 
 export const startInstance = createStart(() => {
   return {
-    functionMiddleware: [authMiddleware],
+    functionMiddleware: [convertRedirectErrorToExceptionMiddleware],
   }
 })

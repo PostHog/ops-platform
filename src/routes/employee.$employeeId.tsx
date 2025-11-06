@@ -3,7 +3,6 @@ import { Textarea } from '@/components/ui/textarea'
 import ReactMarkdown from 'react-markdown'
 import { useForm, useStore } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import 'vercel-toast/dist/vercel-toast.css'
 import { createToast } from 'vercel-toast'
 import { useEffect, useMemo, useState } from 'react'
@@ -46,6 +45,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useQuery } from '@tanstack/react-query'
+import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
+import { useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -53,14 +54,20 @@ export const Route = createFileRoute('/employee/$employeeId')({
     await getEmployeeById({ data: { employeeId: params.employeeId } }),
 })
 
-const getEmployeeById = createServerFn({
+const getEmployeeById = createUserFn({
   method: 'GET',
 })
   .inputValidator((d: { employeeId: string }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === 'admin'
     return await prisma.employee.findUnique({
       where: {
         id: data.employeeId,
+        ...(!isAdmin
+          ? {
+              email: context.user.email,
+            }
+          : {}),
       },
       include: {
         feedback: {
@@ -72,6 +79,30 @@ const getEmployeeById = createServerFn({
           orderBy: {
             timestamp: 'desc',
           },
+          ...(isAdmin
+            ? {}
+            : {
+                select: {
+                  id: true,
+                  timestamp: true,
+                  country: true,
+                  area: true,
+                  locationFactor: true,
+                  level: true,
+                  step: true,
+                  benchmark: true,
+                  benchmarkFactor: true,
+                  totalSalary: true,
+                  changePercentage: true,
+                  changeAmount: true,
+                  exchangeRate: true,
+                  localCurrency: true,
+                  totalSalaryLocal: true,
+                  amountTakenInOptions: true,
+                  actualSalary: true,
+                  actualSalaryLocal: true,
+                },
+              }),
         },
         deelEmployee: {
           include: {
@@ -98,7 +129,7 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
-const getReferenceEmployees = createServerFn({
+const getReferenceEmployees = createAuthenticatedFn({
   method: 'GET',
 })
   .inputValidator((d: { level: number; step: number; benchmark: string }) => d)
@@ -144,7 +175,7 @@ const getReferenceEmployees = createServerFn({
       .slice(0, 50)
   })
 
-const updateSalary = createServerFn({
+const updateSalary = createAuthenticatedFn({
   method: 'POST',
 })
   .inputValidator((d: Omit<Salary, 'id' | 'timestamp' | 'communicated'>) => d)
@@ -166,7 +197,9 @@ const updateSalary = createServerFn({
   })
 
 function EmployeeOverview() {
-  const [showInlineForm, setShowInlineForm] = useState(true)
+  const { data: session } = useSession()
+  const user = session?.user
+  const [showInlineForm, setShowInlineForm] = useState(user?.role === 'admin')
   const [showOverrideMode, setShowOverrideMode] = useState(false)
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
   const [showDetailedColumns, setShowDetailedColumns] = useState(false)
@@ -188,7 +221,7 @@ function EmployeeOverview() {
       getReferenceEmployees({
         data: { level, step, benchmark },
       }),
-    enabled: !!level && !!step && !!benchmark,
+    enabled: !!level && !!step && !!benchmark && user?.role === 'admin',
   })
 
   const columns: Array<ColumnDef<Salary>> = useMemo(() => {
@@ -222,28 +255,28 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'locationFactor',
-        header: 'Location',
+        header: () => <div className="text-right">Location</div>,
         cell: ({ row }) => (
           <div className="text-right">{row.original.locationFactor}</div>
         ),
       },
       {
         accessorKey: 'level',
-        header: 'Level',
+        header: () => <div className="text-right">Level</div>,
         cell: ({ row }) => (
           <div className="text-right">{row.original.level}</div>
         ),
       },
       {
         accessorKey: 'step',
-        header: 'Step',
+        header: () => <div className="text-right">Step</div>,
         cell: ({ row }) => (
           <div className="text-right">{row.original.step}</div>
         ),
       },
       {
         accessorKey: 'totalSalary',
-        header: 'Total Salary ($)',
+        header: () => <div className="text-right">Total Salary ($)</div>,
         cell: ({ row }) => {
           const salary = row.original
           const expectedTotal =
@@ -269,7 +302,7 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'changeAmount',
-        header: 'Change ($)',
+        header: () => <div className="text-right">Change ($)</div>,
         cell: ({ row }) => (
           <div className="text-right">
             {formatCurrency(row.original.changeAmount)}
@@ -278,22 +311,26 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'changePercentage',
-        header: 'Change (%)',
+        header: () => <div className="text-right">Change (%)</div>,
         cell: ({ row }) => (
           <div className="text-right">
             {(row.original.changePercentage * 100).toFixed(2)}%
           </div>
         ),
       },
-      {
-        accessorKey: 'notes',
-        header: 'Notes',
-        cell: ({ row }) => (
-          <div className="min-w-[200px] whitespace-pre-line">
-            {row.original.notes}
-          </div>
-        ),
-      },
+      ...(user?.role === 'admin'
+        ? ([
+            {
+              accessorKey: 'notes',
+              header: 'Notes',
+              cell: ({ row }) => (
+                <div className="min-w-[200px] whitespace-pre-line">
+                  {row.original.notes}
+                </div>
+              ),
+            },
+          ] as ColumnDef<Salary>[])
+        : []),
     ]
 
     const expandIndicator: ColumnDef<Salary> = {
@@ -312,14 +349,14 @@ function EmployeeOverview() {
     const detailedColumns: Array<ColumnDef<Salary>> = [
       {
         accessorKey: 'exchangeRate',
-        header: 'Exchange Rate',
+        header: () => <div className="text-right">Exchange Rate</div>,
         cell: ({ row }) => (
           <div className="text-right">{row.original.exchangeRate}</div>
         ),
       },
       {
         accessorKey: 'totalSalaryLocal',
-        header: 'Total Salary (local)',
+        header: () => <div className="text-right">Total Salary (local)</div>,
         cell: ({ row }) => (
           <div className="text-right">
             {new Intl.NumberFormat('en-US', {
@@ -331,7 +368,9 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'amountTakenInOptions',
-        header: 'Amount Taken In Options ($)',
+        header: () => (
+          <div className="text-right">Amount Taken In Options ($)</div>
+        ),
         cell: ({ row }) => (
           <div className="text-right">
             {formatCurrency(row.original.amountTakenInOptions)}
@@ -340,7 +379,7 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'actualSalary',
-        header: 'Actual Salary ($)',
+        header: () => <div className="text-right">Actual Salary ($)</div>,
         cell: ({ row }) => (
           <div className="text-right">
             {formatCurrency(row.original.actualSalary)}
@@ -349,7 +388,7 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'actualSalaryLocal',
-        header: 'Actual Salary (local)',
+        header: () => <div className="text-right">Actual Salary (local)</div>,
         cell: ({ row }) => (
           <div className="text-right">
             {new Intl.NumberFormat('en-US', {
@@ -422,14 +461,16 @@ function EmployeeOverview() {
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => router.navigate({ to: '/' })}
-            >
-              Back to overview
-            </Button>
-            {reviewQueue.length > 0 && (
+            {user?.role === 'admin' ? (
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => router.navigate({ to: '/' })}
+              >
+                Back to overview
+              </Button>
+            ) : null}
+            {reviewQueue.length > 0 ? (
               <Button
                 variant="outline"
                 type="button"
@@ -437,7 +478,7 @@ function EmployeeOverview() {
               >
                 Move to next employee
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -517,13 +558,15 @@ function EmployeeOverview() {
                   : 'Enable override mode'}
               </Button>
             ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowInlineForm(!showInlineForm)}
-            >
-              {showInlineForm ? 'Cancel' : 'Add New Salary'}
-            </Button>
+            {user?.role === 'admin' ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowInlineForm(!showInlineForm)}
+              >
+                {showInlineForm ? 'Cancel' : 'Add New Salary'}
+              </Button>
+            ) : null}
           </div>
         </div>
 
@@ -538,7 +581,7 @@ function EmployeeOverview() {
 
             return (
               <>
-                {benchmarkUpdated && (
+                {benchmarkUpdated && user?.role === 'admin' && (
                   <Alert variant="default">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>
@@ -554,7 +597,7 @@ function EmployeeOverview() {
                   </Alert>
                 )}
 
-                {locationFactorUpdated && (
+                {locationFactorUpdated && user?.role === 'admin' && (
                   <Alert variant="default">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>
