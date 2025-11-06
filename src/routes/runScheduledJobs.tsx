@@ -3,6 +3,7 @@ import type { CyclotronJob } from '@prisma/client'
 import prisma from '@/db'
 
 export type KeeperTestJobPayload = {
+  title: string
   employee: {
     id: string
     email: string
@@ -36,13 +37,14 @@ export const Route = createFileRoute('/runScheduledJobs')({
           employeeId: string,
           managerName: string,
           jobId: string,
+          title: string,
         ) => ({
           blocks: [
             {
               type: 'section',
               text: {
                 type: 'mrkdwn',
-                text: `Hey! It's Keeper Test Time! Please submit feedback for ${email}. If you get stuck or aren't familiar, check out <https://posthog.com/handbook/company/management#the-keeper-test|this> section of the Handbook.`,
+                text: `Hey! It's ${title} Time! Please submit feedback for ${email}. If you get stuck or aren't familiar, check out <https://posthog.com/handbook/company/management#the-keeper-test|this> section of the Handbook.`,
               },
             },
             {
@@ -226,7 +228,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                     emoji: true,
                   },
                   action_id: 'submit_keeper_test',
-                  value: `${email}|${employeeId}|${managerName}|${jobId}`,
+                  value: `${email}|${employeeId}|${managerName}|${jobId}|${title}`,
                 },
               ],
             },
@@ -271,7 +273,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
           jobs.map(async (job) => {
             try {
               if (job.queue_name === 'send_keeper_test') {
-                const { employee, manager } = JSON.parse(
+                const { employee, manager, title } = JSON.parse(
                   job.data as string,
                 ) as KeeperTestJobPayload
 
@@ -306,6 +308,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                         employee.id,
                         manager.name,
                         job.id,
+                        title,
                       ).blocks,
                     }),
                   },
@@ -375,7 +378,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   id: job.id,
                   success: true,
                   data: {
-                    scheduled: new Date(Date.now() + 24 * 60 * 60 * 1000), // send another reminder after a day
+                    scheduled: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // send another reminder after 3 days
                   },
                 })
               }

@@ -23,7 +23,7 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
         const invalidFields = []
 
         if (body.actions[0].action_id === 'submit_keeper_test') {
-          const [employeeEmail, employeeId, managerName, jobId] =
+          const [employeeEmail, employeeId, managerName, jobId, title] =
             body.actions[0].value.split('|')
           for (const [, value] of Object.entries(
             body.state.values as Record<string, any>,
@@ -70,7 +70,7 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
           }
 
           const feedback =
-            `### Keeper test feedback from ${managerName}:\n` +
+            `### ${title} feedback from ${managerName}:\n` +
             `- If this team member was leaving for a similar role at another company, would you try to keep them?: ${fieldData['keeper-test-question-1']?.selected_option.value}\n` +
             `- If yes, what is it specifically that makes them so valuable to your team and PostHog?: ${fieldData['keeper-test-question-1-text']?.value}\n` +
             `- Are they a driver or a passenger?: ${fieldData['keeper-test-question-2']?.selected_option.value}\n` +

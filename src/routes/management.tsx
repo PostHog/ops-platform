@@ -564,6 +564,7 @@ export const scheduleKeeperTests = createServerFn({
         return {
           queue_name: 'send_keeper_test' as const,
           data: JSON.stringify({
+            title: 'Keeper test',
             employee: {
               id: employee.id,
               email: employee.email,
