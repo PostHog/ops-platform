@@ -79,6 +79,30 @@ const getEmployeeById = createUserFn({
           orderBy: {
             timestamp: 'desc',
           },
+          ...(isAdmin
+            ? {}
+            : {
+                select: {
+                  id: true,
+                  timestamp: true,
+                  country: true,
+                  area: true,
+                  locationFactor: true,
+                  level: true,
+                  step: true,
+                  benchmark: true,
+                  benchmarkFactor: true,
+                  totalSalary: true,
+                  changePercentage: true,
+                  changeAmount: true,
+                  exchangeRate: true,
+                  localCurrency: true,
+                  totalSalaryLocal: true,
+                  amountTakenInOptions: true,
+                  actualSalary: true,
+                  actualSalaryLocal: true,
+                },
+              }),
         },
         deelEmployee: {
           include: {
@@ -294,15 +318,19 @@ function EmployeeOverview() {
           </div>
         ),
       },
-      {
-        accessorKey: 'notes',
-        header: 'Notes',
-        cell: ({ row }) => (
-          <div className="min-w-[200px] whitespace-pre-line">
-            {row.original.notes}
-          </div>
-        ),
-      },
+      ...(user?.role === 'admin'
+        ? ([
+            {
+              accessorKey: 'notes',
+              header: 'Notes',
+              cell: ({ row }) => (
+                <div className="min-w-[200px] whitespace-pre-line">
+                  {row.original.notes}
+                </div>
+              ),
+            },
+          ] as ColumnDef<Salary>[])
+        : []),
     ]
 
     const expandIndicator: ColumnDef<Salary> = {
