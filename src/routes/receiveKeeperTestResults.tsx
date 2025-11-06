@@ -77,7 +77,12 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
             `- Do they get things done proactively, today?: ${fieldData['keeper-test-question-3']?.selected_option.value}\n` +
             `- Are they optimistic by default?: ${fieldData['keeper-test-question-4']?.selected_option.value}\n` +
             `- Areas to watch: ${fieldData['keeper-test-question-4-text']?.value}\n` +
-            `- Have you shared this feedback with your team member?: ${fieldData['keeper-test-question-5']?.selected_option.value}`
+            (['30 Day check-in', '60 Day check-in', '80 Day check-in'].includes(
+              title,
+            )
+              ? `- Recommendation: ${fieldData['keeper-test-question-5']?.selected_option.value}\n`
+              : '') +
+            `- Have you shared this feedback with your team member?: ${fieldData['keeper-test-question-6']?.selected_option.value}`
 
           await fetch(body.response_url, {
             method: 'POST',
