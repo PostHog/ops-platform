@@ -81,6 +81,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
               element: {
                 type: 'plain_text_input',
                 action_id: 'keeper-test-question-1-text',
+                multiline: true,
               },
               label: {
                 type: 'plain_text',
@@ -180,6 +181,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
               element: {
                 type: 'plain_text_input',
                 action_id: 'keeper-test-question-4-text',
+                multiline: true,
               },
               label: {
                 type: 'plain_text',
