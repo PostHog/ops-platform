@@ -40,7 +40,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
+    <div className="flex flex-col items-center justify-center h-full">
       <div className="w-full max-w-md px-6">
         <h1 className="text-3xl font-semibold text-center mb-8">
           Sign in to your account
