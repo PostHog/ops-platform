@@ -45,7 +45,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useQuery } from '@tanstack/react-query'
-import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
+import { useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -53,14 +54,20 @@ export const Route = createFileRoute('/employee/$employeeId')({
     await getEmployeeById({ data: { employeeId: params.employeeId } }),
 })
 
-const getEmployeeById = createAuthenticatedFn({
+const getEmployeeById = createUserFn({
   method: 'GET',
 })
   .inputValidator((d: { employeeId: string }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === 'admin'
     return await prisma.employee.findUnique({
       where: {
         id: data.employeeId,
+        ...(!isAdmin
+          ? {
+              email: context.user.email,
+            }
+          : {}),
       },
       include: {
         feedback: {
@@ -166,7 +173,9 @@ const updateSalary = createAuthenticatedFn({
   })
 
 function EmployeeOverview() {
-  const [showInlineForm, setShowInlineForm] = useState(true)
+  const { data: session } = useSession()
+  const user = session?.user
+  const [showInlineForm, setShowInlineForm] = useState(user?.role === 'admin')
   const [showOverrideMode, setShowOverrideMode] = useState(false)
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
   const [showDetailedColumns, setShowDetailedColumns] = useState(false)
@@ -188,7 +197,7 @@ function EmployeeOverview() {
       getReferenceEmployees({
         data: { level, step, benchmark },
       }),
-    enabled: !!level && !!step && !!benchmark,
+    enabled: !!level && !!step && !!benchmark && user?.role === 'admin',
   })
 
   const columns: Array<ColumnDef<Salary>> = useMemo(() => {
@@ -422,14 +431,16 @@ function EmployeeOverview() {
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => router.navigate({ to: '/' })}
-            >
-              Back to overview
-            </Button>
-            {reviewQueue.length > 0 && (
+            {user?.role === 'admin' ? (
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => router.navigate({ to: '/' })}
+              >
+                Back to overview
+              </Button>
+            ) : null}
+            {reviewQueue.length > 0 ? (
               <Button
                 variant="outline"
                 type="button"
@@ -437,7 +448,7 @@ function EmployeeOverview() {
               >
                 Move to next employee
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -517,13 +528,15 @@ function EmployeeOverview() {
                   : 'Enable override mode'}
               </Button>
             ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowInlineForm(!showInlineForm)}
-            >
-              {showInlineForm ? 'Cancel' : 'Add New Salary'}
-            </Button>
+            {user?.role === 'admin' ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowInlineForm(!showInlineForm)}
+              >
+                {showInlineForm ? 'Cancel' : 'Add New Salary'}
+              </Button>
+            ) : null}
           </div>
         </div>
 

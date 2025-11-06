@@ -56,3 +56,6 @@ export const createAuthenticatedFn = createServerFn().middleware([
   authMiddleware,
   adminCheckMiddleware,
 ])
+
+// all authenticated users will be able to access this function
+export const createUserFn = createServerFn().middleware([authMiddleware])
