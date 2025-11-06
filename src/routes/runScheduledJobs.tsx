@@ -187,6 +187,51 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 emoji: true,
               },
             },
+            ...([
+              '30 Day check-in',
+              '60 Day check-in',
+              '80 Day check-in',
+            ].includes(title)
+              ? [
+                  {
+                    type: 'section',
+                    text: {
+                      type: 'mrkdwn',
+                      text: 'Recommendation',
+                    },
+                    accessory: {
+                      type: 'radio_buttons',
+                      options: [
+                        {
+                          text: {
+                            type: 'plain_text',
+                            text: 'Strong Hire, on track to pass probation',
+                            emoji: true,
+                          },
+                          value: 'Strong Hire, on track to pass probation',
+                        },
+                        {
+                          text: {
+                            type: 'plain_text',
+                            text: 'Average Hire, need to see improvements',
+                            emoji: true,
+                          },
+                          value: 'Average Hire, need to see improvements',
+                        },
+                        {
+                          text: {
+                            type: 'plain_text',
+                            text: 'Not a fit, needs escalating',
+                            emoji: true,
+                          },
+                          value: 'Not a fit, needs escalating',
+                        },
+                      ],
+                      action_id: 'keeper-test-question-5',
+                    },
+                  },
+                ]
+              : []),
             {
               type: 'section',
               text: {
@@ -213,7 +258,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                     value: 'no',
                   },
                 ],
-                action_id: 'keeper-test-question-5',
+                action_id: 'keeper-test-question-6',
               },
             },
             {
