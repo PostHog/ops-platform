@@ -123,7 +123,7 @@ function AddProposedHirePanel({
           hiringProfile: '',
         },
     validators: {
-      onBlur: z.object({
+      onSubmit: z.object({
         title: z.string().min(1, 'You must enter a title'),
         managerEmail: z.string().min(1, 'You must select a manager'),
         priority: z.enum(['low', 'medium', 'high']),
@@ -249,8 +249,8 @@ function AddProposedHirePanel({
             />
           </div>
           <DialogFooter className="flex flex-row !justify-between">
-            {editingExisting ? (
-              <div className="flex flex-row gap-2">
+            <div className="flex flex-row gap-2">
+              {editingExisting ? (
                 <Button
                   variant="destructive"
                   onClick={async () => {
@@ -265,8 +265,8 @@ function AddProposedHirePanel({
                 >
                   Delete
                 </Button>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
             <div className="flex flex-row gap-2">
               <DialogClose asChild>
                 <Button variant="outline">Cancel</Button>
