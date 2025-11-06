@@ -3,7 +3,6 @@ import { Textarea } from '@/components/ui/textarea'
 import ReactMarkdown from 'react-markdown'
 import { useForm, useStore } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import 'vercel-toast/dist/vercel-toast.css'
 import { createToast } from 'vercel-toast'
 import { useEffect, useMemo, useState } from 'react'
@@ -46,6 +45,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useQuery } from '@tanstack/react-query'
+import { createAuthenticatedFn } from '@/lib/auth-middleware'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -53,7 +53,7 @@ export const Route = createFileRoute('/employee/$employeeId')({
     await getEmployeeById({ data: { employeeId: params.employeeId } }),
 })
 
-const getEmployeeById = createServerFn({
+const getEmployeeById = createAuthenticatedFn({
   method: 'GET',
 })
   .inputValidator((d: { employeeId: string }) => d)
@@ -98,7 +98,7 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
-const getReferenceEmployees = createServerFn({
+const getReferenceEmployees = createAuthenticatedFn({
   method: 'GET',
 })
   .inputValidator((d: { level: number; step: number; benchmark: string }) => d)
@@ -144,7 +144,7 @@ const getReferenceEmployees = createServerFn({
       .slice(0, 50)
   })
 
-const updateSalary = createServerFn({
+const updateSalary = createAuthenticatedFn({
   method: 'POST',
 })
   .inputValidator((d: Omit<Salary, 'id' | 'timestamp' | 'communicated'>) => d)

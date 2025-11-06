@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import {
   flexRender,
   getCoreRowModel,
@@ -30,6 +29,7 @@ import { currencyData, locationFactor, sfBenchmark } from '@/lib/utils'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { fetchDeelEmployees } from './syncDeelEmployees'
 import type { KeeperTestJobPayload } from './runScheduledJobs'
+import { createAuthenticatedFn } from '@/lib/auth-middleware'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
@@ -55,13 +55,13 @@ const fetchDeelContract = async (id: string) => {
   return data.data
 }
 
-const getUsers = createServerFn({
+const getUsers = createAuthenticatedFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.user.findMany({})
 })
 
-const updateUserRole = createServerFn({
+const updateUserRole = createAuthenticatedFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; role: string }) => d)
@@ -76,7 +76,7 @@ const updateUserRole = createServerFn({
     })
   })
 
-const startReviewCycle = createServerFn({
+const startReviewCycle = createAuthenticatedFn({
   method: 'POST',
 }).handler(async () => {
   return await prisma.employee.updateMany({
@@ -86,7 +86,7 @@ const startReviewCycle = createServerFn({
   })
 })
 
-const checkSalaryDeviation = createServerFn({
+const checkSalaryDeviation = createAuthenticatedFn({
   method: 'POST',
 }).handler(async () => {
   const deelEmployees = await fetchDeelEmployees()
@@ -188,7 +188,7 @@ const checkSalaryDeviation = createServerFn({
   }
 })
 
-const populateInitialEmployeeSalaries = createServerFn({
+const populateInitialEmployeeSalaries = createAuthenticatedFn({
   method: 'POST',
 }).handler(async () => {
   const employees = await prisma.deelEmployee.findMany({
@@ -532,7 +532,7 @@ function RouteComponent() {
   )
 }
 
-export const scheduleKeeperTests = createServerFn({
+export const scheduleKeeperTests = createAuthenticatedFn({
   method: 'POST',
 }).handler(async () => {
   const employees = await prisma.employee.findMany({

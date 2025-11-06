@@ -5,7 +5,6 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { MoreHorizontal } from 'lucide-react'
-import { createServerFn } from '@tanstack/react-start'
 import { useMemo } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
 import { months } from '.'
@@ -28,6 +27,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
+import { createAuthenticatedFn } from '@/lib/auth-middleware'
 
 type Salary = Prisma.SalaryGetPayload<{
   include: {
@@ -43,7 +43,7 @@ type Salary = Prisma.SalaryGetPayload<{
   }
 }>
 
-const getUpdatedSalaries = createServerFn({
+const getUpdatedSalaries = createAuthenticatedFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.salary.findMany({
@@ -72,7 +72,7 @@ const getUpdatedSalaries = createServerFn({
   })
 })
 
-const updateCommunicated = createServerFn({
+const updateCommunicated = createAuthenticatedFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; communicated: boolean }) => d)

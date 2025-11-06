@@ -23,16 +23,16 @@ import {
 import { type DeelEmployee, type Priority, type Prisma } from '@prisma/client'
 import OrgChartPanel from './OrgChartPanel'
 import prisma from '@/db'
-import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { z } from 'zod'
 import { useRouter } from '@tanstack/react-router'
+import { createAuthenticatedFn } from '@/lib/auth-middleware'
 
 type ProposedHire = Prisma.ProposedHireGetPayload<{}> & {
   manager: DeelEmployee
 }
 
-const addProposedHire = createServerFn({
+const addProposedHire = createAuthenticatedFn({
   method: 'POST',
 })
   .inputValidator(
@@ -54,7 +54,7 @@ const addProposedHire = createServerFn({
     })
   })
 
-const updateProposedHire = createServerFn({
+const updateProposedHire = createAuthenticatedFn({
   method: 'POST',
 })
   .inputValidator(
@@ -78,7 +78,7 @@ const updateProposedHire = createServerFn({
     })
   })
 
-const deleteProposedHire = createServerFn({
+const deleteProposedHire = createAuthenticatedFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string }) => d)
