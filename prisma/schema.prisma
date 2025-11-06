@@ -14,13 +14,16 @@ datasource db {
 }
 
 model Employee {
-  id           String        @id @default(cuid())
-  priority     Priority
-  reviewed     Boolean
-  email        String        @unique
-  salaries     Salary[]
-  deelEmployee DeelEmployee?
-  feedback     Feedback[]
+  id                     String        @id @default(cuid())
+  priority               Priority
+  reviewed               Boolean
+  email                  String        @unique
+  salaries               Salary[]
+  deelEmployee           DeelEmployee?
+  feedback               Feedback[]
+  checkIn30DaysScheduled Boolean       @default(true)
+  checkIn60DaysScheduled Boolean       @default(true)
+  checkIn80DaysScheduled Boolean       @default(true)
 }
 
 model DeelEmployee {

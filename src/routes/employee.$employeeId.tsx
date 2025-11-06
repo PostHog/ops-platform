@@ -516,6 +516,9 @@ function EmployeeOverview() {
                     ul: ({ children }) => (
                       <ul className="list-disc list-inside">{children}</ul>
                     ),
+                    ol: ({ children }) => (
+                      <ul className="list-decimal list-inside">{children}</ul>
+                    ),
                   }}
                 >
                   {feedback}

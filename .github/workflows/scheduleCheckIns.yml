@@ -1,22 +1,22 @@
-name: Sync Deel Employees
+name: Schedule check-ins
 on:
   schedule:
     - cron: '0 12 * * *'
   workflow_dispatch:
 
 jobs:
-  syncDeelEmployees:
+  scheduleCheckIns:
     runs-on: ubuntu-latest
     steps:
-      - name: Call syncDeelEmployees endpoint
-        id: syncDeelEmployees
+      - name: Call scheduleCheckIns endpoint
+        id: scheduleCheckIns
         uses: fjogeleit/http-request-action@v1
         with:
-          url: '${{ vars.BASE_URL }}/syncDeelEmployees'
+          url: '${{ vars.BASE_URL }}/scheduleCheckIns'
           method: 'POST'
           customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
           timeout: 30000
       - name: Show Response
         run: |
-          echo ${{ steps.syncDeelEmployees.outputs.status }}
-          echo ${{ steps.syncDeelEmployees.outputs.response }}
+          echo ${{ steps.scheduleCheckIns.outputs.status }}
+          echo ${{ steps.scheduleCheckIns.outputs.response }}
