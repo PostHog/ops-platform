@@ -185,7 +185,11 @@ function App() {
 
   const getEmployeesFn = useServerFn(getEmployees)
 
-  const { data: employees, refetch } = useQuery({
+  const {
+    data: employees,
+    refetch,
+    isFetching,
+  } = useQuery({
     queryKey: ['employees'],
     queryFn: () => getEmployeesFn(),
   })
@@ -574,7 +578,7 @@ function App() {
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    No results.
+                    {isFetching ? 'Loading...' : 'No results.'}
                   </TableCell>
                 </TableRow>
               )}
