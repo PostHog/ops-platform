@@ -551,7 +551,7 @@ function EmployeeOverview() {
 
             return (
               <>
-                {benchmarkUpdated && (
+                {benchmarkUpdated && user?.role === 'admin' && (
                   <Alert variant="default">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>
@@ -567,7 +567,7 @@ function EmployeeOverview() {
                   </Alert>
                 )}
 
-                {locationFactorUpdated && (
+                {locationFactorUpdated && user?.role === 'admin' && (
                   <Alert variant="default">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>
