@@ -377,12 +377,14 @@ function RouteComponent() {
             value={row.original.role ?? 'error'}
             onValueChange={handleRoleChange}
           >
-            <SelectTrigger className="w-24 h-6 text-xs px-1 py-0">
+            <SelectTrigger className="w-[240px] h-6 text-xs px-1 py-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="admin">Admin (full access)</SelectItem>
-              <SelectItem value="user">User (no access)</SelectItem>
+              <SelectItem value="user">
+                User (view own feedback + salary)
+              </SelectItem>
             </SelectContent>
           </Select>
         )
