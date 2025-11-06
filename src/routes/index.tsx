@@ -93,7 +93,7 @@ export const months = [
   'December',
 ]
 
-export const getEmployees = createAuthenticatedFn({
+const getEmployees = createAuthenticatedFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.employee.findMany({
@@ -102,6 +102,7 @@ export const getEmployees = createAuthenticatedFn({
         orderBy: {
           timestamp: 'desc',
         },
+        take: 1,
       },
       deelEmployee: {
         include: {
