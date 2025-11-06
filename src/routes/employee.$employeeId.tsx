@@ -255,28 +255,28 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'locationFactor',
-        header: 'Location',
+        header: () => <div className="text-right">Location</div>,
         cell: ({ row }) => (
           <div className="text-right">{row.original.locationFactor}</div>
         ),
       },
       {
         accessorKey: 'level',
-        header: 'Level',
+        header: () => <div className="text-right">Level</div>,
         cell: ({ row }) => (
           <div className="text-right">{row.original.level}</div>
         ),
       },
       {
         accessorKey: 'step',
-        header: 'Step',
+        header: () => <div className="text-right">Step</div>,
         cell: ({ row }) => (
           <div className="text-right">{row.original.step}</div>
         ),
       },
       {
         accessorKey: 'totalSalary',
-        header: 'Total Salary ($)',
+        header: () => <div className="text-right">Total Salary ($)</div>,
         cell: ({ row }) => {
           const salary = row.original
           const expectedTotal =
@@ -302,7 +302,7 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'changeAmount',
-        header: 'Change ($)',
+        header: () => <div className="text-right">Change ($)</div>,
         cell: ({ row }) => (
           <div className="text-right">
             {formatCurrency(row.original.changeAmount)}
@@ -311,7 +311,7 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'changePercentage',
-        header: 'Change (%)',
+        header: () => <div className="text-right">Change (%)</div>,
         cell: ({ row }) => (
           <div className="text-right">
             {(row.original.changePercentage * 100).toFixed(2)}%
@@ -349,14 +349,14 @@ function EmployeeOverview() {
     const detailedColumns: Array<ColumnDef<Salary>> = [
       {
         accessorKey: 'exchangeRate',
-        header: 'Exchange Rate',
+        header: () => <div className="text-right">Exchange Rate</div>,
         cell: ({ row }) => (
           <div className="text-right">{row.original.exchangeRate}</div>
         ),
       },
       {
         accessorKey: 'totalSalaryLocal',
-        header: 'Total Salary (local)',
+        header: () => <div className="text-right">Total Salary (local)</div>,
         cell: ({ row }) => (
           <div className="text-right">
             {new Intl.NumberFormat('en-US', {
@@ -368,7 +368,9 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'amountTakenInOptions',
-        header: 'Amount Taken In Options ($)',
+        header: () => (
+          <div className="text-right">Amount Taken In Options ($)</div>
+        ),
         cell: ({ row }) => (
           <div className="text-right">
             {formatCurrency(row.original.amountTakenInOptions)}
@@ -377,7 +379,7 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'actualSalary',
-        header: 'Actual Salary ($)',
+        header: () => <div className="text-right">Actual Salary ($)</div>,
         cell: ({ row }) => (
           <div className="text-right">
             {formatCurrency(row.original.actualSalary)}
@@ -386,7 +388,7 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'actualSalaryLocal',
-        header: 'Actual Salary (local)',
+        header: () => <div className="text-right">Actual Salary (local)</div>,
         cell: ({ row }) => (
           <div className="text-right">
             {new Intl.NumberFormat('en-US', {
