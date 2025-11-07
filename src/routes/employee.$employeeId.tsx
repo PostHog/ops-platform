@@ -11,7 +11,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Trash2 } from 'lucide-react'
 import { useAtom } from 'jotai'
 import { months } from '.'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -196,6 +196,32 @@ export const updateSalary = createAuthenticatedFn({
     return salary
   })
 
+export const deleteSalary = createAuthenticatedFn({
+  method: 'POST',
+})
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    const existingSalary = await prisma.salary.findUnique({
+      where: { id: data.id },
+    })
+
+    if (!existingSalary) {
+      throw new Error('Salary not found')
+    }
+
+    const hoursSinceCreation =
+      (Date.now() - existingSalary.timestamp.getTime()) / (1000 * 60 * 60)
+    if (hoursSinceCreation > 24) {
+      throw new Error('Cannot delete salary after 24 hours')
+    }
+
+    await prisma.salary.delete({
+      where: { id: data.id },
+    })
+
+    return { success: true }
+  })
+
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
@@ -329,22 +355,60 @@ function EmployeeOverview() {
                 </div>
               ),
             },
+            {
+              id: 'actions',
+              header: () => (
+                <button
+                  onClick={() => setShowDetailedColumns(!showDetailedColumns)}
+                  className="flex items-center justify-center text-gray-400 hover:text-gray-600 w-full"
+                >
+                  <span className="text-xs">
+                    {showDetailedColumns ? '▶' : '◀'}
+                  </span>
+                </button>
+              ),
+              cell: ({ row }) => {
+                const salary = row.original
+                const hoursSinceCreation =
+                  (Date.now() - salary.timestamp.getTime()) / (1000 * 60 * 60)
+                const isDeletable = hoursSinceCreation <= 24
+                return (
+                  <div className="flex items-center justify-center">
+                    {isDeletable && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={async () => {
+                          try {
+                            await deleteSalary({ data: { id: salary.id } })
+                            createToast('Salary deleted successfully.', {
+                              timeout: 3000,
+                            })
+                            router.invalidate()
+                          } catch (error) {
+                            createToast(
+                              error instanceof Error
+                                ? error.message
+                                : 'Failed to delete salary.',
+                              {
+                                timeout: 3000,
+                              },
+                            )
+                          }
+                        }}
+                        className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                )
+              },
+            },
           ] as ColumnDef<Salary>[])
         : []),
     ]
-
-    const expandIndicator: ColumnDef<Salary> = {
-      id: 'expandIndicator',
-      header: () => (
-        <button
-          onClick={() => setShowDetailedColumns(!showDetailedColumns)}
-          className="flex items-center justify-center text-gray-400 hover:text-gray-600 w-full"
-        >
-          <span className="text-xs">{showDetailedColumns ? '▶' : '◀'}</span>
-        </button>
-      ),
-      cell: () => null,
-    }
 
     const detailedColumns: Array<ColumnDef<Salary>> = [
       {
@@ -401,9 +465,9 @@ function EmployeeOverview() {
     ]
 
     return showDetailedColumns
-      ? [...baseColumns, expandIndicator, ...detailedColumns]
-      : [...baseColumns, expandIndicator]
-  }, [showDetailedColumns, user?.role])
+      ? [...baseColumns, ...detailedColumns]
+      : [...baseColumns]
+  }, [showDetailedColumns, user?.role, employee.salaries])
 
   const handleMoveToNextEmployee = () => {
     const currentIndex = reviewQueue.indexOf(employee.id)
