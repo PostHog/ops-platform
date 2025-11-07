@@ -175,7 +175,7 @@ const getReferenceEmployees = createAuthenticatedFn({
       .slice(0, 50)
   })
 
-const updateSalary = createAuthenticatedFn({
+export const updateSalary = createAuthenticatedFn({
   method: 'POST',
 })
   .inputValidator((d: Omit<Salary, 'id' | 'timestamp' | 'communicated'>) => d)
