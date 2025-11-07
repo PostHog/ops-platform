@@ -2,14 +2,15 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import {
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   useReactTable,
 } from '@tanstack/react-table'
 import { MoreHorizontal } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
-import { months } from '.'
+import { customFilterFns, Filter, months } from '.'
 import type { Prisma } from '@prisma/client'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, ColumnFiltersState, Row } from '@tanstack/react-table'
 import prisma from '@/db'
 import {
   DropdownMenu,
@@ -91,11 +92,25 @@ export const Route = createFileRoute('/actions')({
 function App() {
   const salaries: Array<Salary> = Route.useLoaderData()
   const router = useRouter()
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+
   const columns: Array<ColumnDef<Salary>> = useMemo(
     () => [
       {
         accessorKey: 'name',
         header: 'Name',
+        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
+          (row.original.employee.deelEmployee?.name &&
+            customFilterFns.containsText(
+              row.original.employee.deelEmployee?.name,
+              _,
+              filterValue,
+            )) ||
+          customFilterFns.containsText(
+            row.original.employee.email,
+            _,
+            filterValue,
+          ),
         cell: ({ row }) => (
           <div>{row.original.employee.deelEmployee?.name}</div>
         ),
@@ -108,6 +123,9 @@ function App() {
       {
         accessorKey: 'totalSalary',
         header: 'Total Salary',
+        meta: {
+          filterVariant: 'range',
+        },
         cell: ({ row }) => (
           <div>{formatCurrency(row.original.totalSalary)}</div>
         ),
@@ -115,6 +133,9 @@ function App() {
       {
         accessorKey: 'changePercentage',
         header: 'Change (%)',
+        meta: {
+          filterVariant: 'range',
+        },
         cell: ({ row }) => (
           <div>{(row.original.changePercentage * 100).toFixed(2)}%</div>
         ),
@@ -122,6 +143,12 @@ function App() {
       {
         accessorKey: 'reviewer',
         header: 'Reviewer',
+        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
+          customFilterFns.containsText(
+            row.original.employee.deelEmployee?.topLevelManager?.name ?? '',
+            _,
+            filterValue,
+          ),
         cell: ({ row }) => (
           <div>{row.original.employee.deelEmployee?.topLevelManager?.name}</div>
         ),
@@ -129,6 +156,19 @@ function App() {
       {
         accessorKey: 'communicated',
         header: 'Communicated',
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'Yes', value: 'true' },
+            { label: 'No', value: 'false' },
+          ],
+        },
+        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
+          customFilterFns.equals(
+            row.original.communicated.toString(),
+            _,
+            filterValue,
+          ),
         cell: ({ row }) => (
           <div>{row.original.communicated ? 'Yes' : 'No'}</div>
         ),
@@ -190,7 +230,12 @@ function App() {
   const table = useReactTable({
     data: salaries,
     columns,
+    onColumnFiltersChange: setColumnFilters,
+    state: {
+      columnFilters,
+    },
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     filterFns: {
       fuzzy: () => true,
     },
@@ -225,6 +270,11 @@ function App() {
                               header.column.columnDef.header,
                               header.getContext(),
                             )}
+                        {header.column.getCanFilter() ? (
+                          <div>
+                            <Filter column={header.column} />
+                          </div>
+                        ) : null}
                       </TableHead>
                     )
                   })}

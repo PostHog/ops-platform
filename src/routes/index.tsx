@@ -134,7 +134,7 @@ const updateEmployeePriority = createAuthenticatedFn({
     })
   })
 
-const customFilterFns = {
+export const customFilterFns = {
   inDateRange: (
     row: Row<Employee>,
     _: string,
@@ -590,7 +590,7 @@ function App() {
   )
 }
 
-function Filter({ column }: { column: Column<any, unknown> }) {
+export function Filter({ column }: { column: Column<any, unknown> }) {
   const columnFilterValue = column.getFilterValue()
   const { filterVariant, filterOptions } = column.columnDef.meta ?? {}
 
