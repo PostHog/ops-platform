@@ -355,59 +355,58 @@ function EmployeeOverview() {
                 </div>
               ),
             },
-            {
-              id: 'actions',
-              header: () => (
-                <button
-                  onClick={() => setShowDetailedColumns(!showDetailedColumns)}
-                  className="flex items-center justify-center text-gray-400 hover:text-gray-600 w-full"
-                >
-                  <span className="text-xs">
-                    {showDetailedColumns ? '▶' : '◀'}
-                  </span>
-                </button>
-              ),
-              cell: ({ row }) => {
-                const salary = row.original
-                const hoursSinceCreation =
-                  (Date.now() - salary.timestamp.getTime()) / (1000 * 60 * 60)
-                const isDeletable = hoursSinceCreation <= 24
-                return (
-                  <div className="flex items-center justify-center">
-                    {isDeletable && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={async () => {
-                          try {
-                            await deleteSalary({ data: { id: salary.id } })
-                            createToast('Salary deleted successfully.', {
-                              timeout: 3000,
-                            })
-                            router.invalidate()
-                          } catch (error) {
-                            createToast(
-                              error instanceof Error
-                                ? error.message
-                                : 'Failed to delete salary.',
-                              {
-                                timeout: 3000,
-                              },
-                            )
-                          }
-                        }}
-                        className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                )
-              },
-            },
           ] as ColumnDef<Salary>[])
         : []),
+      {
+        id: 'actions',
+        header: () => (
+          <button
+            onClick={() => setShowDetailedColumns(!showDetailedColumns)}
+            className="flex items-center justify-center text-gray-400 hover:text-gray-600 w-full"
+          >
+            <span className="text-xs">{showDetailedColumns ? '▶' : '◀'}</span>
+          </button>
+        ),
+        cell: ({ row }) => {
+          if (user?.role !== 'admin') return null
+          const salary = row.original
+          const hoursSinceCreation =
+            (Date.now() - salary.timestamp.getTime()) / (1000 * 60 * 60)
+          const isDeletable = hoursSinceCreation <= 24
+          return (
+            <div className="flex items-center justify-center">
+              {isDeletable && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={async () => {
+                    try {
+                      await deleteSalary({ data: { id: salary.id } })
+                      createToast('Salary deleted successfully.', {
+                        timeout: 3000,
+                      })
+                      router.invalidate()
+                    } catch (error) {
+                      createToast(
+                        error instanceof Error
+                          ? error.message
+                          : 'Failed to delete salary.',
+                        {
+                          timeout: 3000,
+                        },
+                      )
+                    }
+                  }}
+                  className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          )
+        },
+      },
     ]
 
     const detailedColumns: Array<ColumnDef<Salary>> = [
