@@ -403,7 +403,7 @@ function EmployeeOverview() {
     return showDetailedColumns
       ? [...baseColumns, expandIndicator, ...detailedColumns]
       : [...baseColumns, expandIndicator]
-  }, [showDetailedColumns])
+  }, [showDetailedColumns, user?.role])
 
   const handleMoveToNextEmployee = () => {
     const currentIndex = reviewQueue.indexOf(employee.id)
@@ -1262,6 +1262,10 @@ function ReferenceEmployeesTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
+                onClick={() =>
+                  window.open(`/employee/${row.original.id}`, '_blank')
+                }
+                className="cursor-pointer"
                 data-state={row.getIsSelected() && 'selected'}
               >
                 {row.getVisibleCells().map((cell) => (
