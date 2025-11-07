@@ -10,7 +10,12 @@ import { useMemo, useState } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
 import { customFilterFns, Filter, months } from '.'
 import type { Prisma } from '@prisma/client'
-import type { ColumnDef, ColumnFiltersState, Row } from '@tanstack/react-table'
+import type {
+  ColumnDef,
+  ColumnFiltersState,
+  Row,
+  RowSelectionState,
+} from '@tanstack/react-table'
 import prisma from '@/db'
 import {
   DropdownMenu,
@@ -29,6 +34,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { Checkbox } from '@/components/ui/checkbox'
 
 type Salary = Prisma.SalaryGetPayload<{
   include: {
@@ -93,9 +99,40 @@ function App() {
   const salaries: Array<Salary> = Route.useLoaderData()
   const router = useRouter()
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+
+  const handleMarkSelectedAsCommunicated = async () => {
+    for (const id of Object.keys(rowSelection)) {
+      await updateCommunicated({
+        data: { id, communicated: true },
+      })
+    }
+
+    router.invalidate()
+  }
 
   const columns: Array<ColumnDef<Salary>> = useMemo(
     () => [
+      {
+        id: 'select-col',
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsSomeRowsSelected()
+                ? 'indeterminate'
+                : table.getIsAllRowsSelected()
+            }
+            onClick={table.getToggleAllRowsSelectedHandler()}
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            disabled={!row.getCanSelect()}
+            onClick={row.getToggleSelectedHandler()}
+          />
+        ),
+      },
       {
         accessorKey: 'name',
         header: 'Name',
@@ -233,9 +270,12 @@ function App() {
     onColumnFiltersChange: setColumnFilters,
     state: {
       columnFilters,
+      rowSelection,
     },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    onRowSelectionChange: setRowSelection,
+    getRowId: (row) => row.id,
     filterFns: {
       fuzzy: () => true,
     },
@@ -247,6 +287,15 @@ function App() {
         <div className="flex justify-between py-4">
           <div></div>
           <div className="flex items-center space-x-2">
+            {Object.keys(rowSelection).length > 0 ? (
+              <Button
+                variant="outline"
+                className="ml-auto"
+                onClick={handleMarkSelectedAsCommunicated}
+              >
+                Mark selected as communicated
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               className="ml-auto"
