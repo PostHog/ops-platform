@@ -23,7 +23,7 @@ import {
 import { type DeelEmployee, type Priority, type Prisma } from '@prisma/client'
 import OrgChartPanel from './OrgChartPanel'
 import prisma from '@/db'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import { useRouter } from '@tanstack/react-router'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
@@ -100,9 +100,11 @@ function FieldInfo({ field }: { field: AnyFieldApi }) {
 function AddProposedHirePanel({
   employees,
   proposedHire,
+  onClose,
 }: {
   employees: Array<DeelEmployee>
   proposedHire?: ProposedHire
+  onClose?: () => void
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -158,8 +160,34 @@ function AddProposedHirePanel({
     },
   })
 
+  useEffect(() => {
+    if (proposedHire?.id) {
+      setOpen(true)
+      form.reset({
+        title: proposedHire.title,
+        managerEmail: proposedHire.manager.workEmail,
+        priority: proposedHire.priority,
+        hiringProfile: proposedHire.hiringProfile,
+      })
+    } else {
+      form.reset({
+        title: '',
+        managerEmail: null as string | null,
+        priority: 'medium' as Priority,
+        hiringProfile: '',
+      })
+    }
+  }, [proposedHire?.id])
+
+  const handleOpenChange = (open: boolean) => {
+    setOpen(open)
+    if (!open && onClose) {
+      onClose()
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <form>
         <DialogTrigger asChild>
           <Button variant="outline" className="w-full">

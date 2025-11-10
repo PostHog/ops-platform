@@ -1,5 +1,5 @@
 import React from 'react'
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import {
   ColumnDef,
   Column,
@@ -12,7 +12,7 @@ import {
   ColumnFiltersState,
   SortingState,
 } from '@tanstack/react-table'
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUpDown, ArrowUp, ArrowDown, Pencil } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import type { Prisma } from '@prisma/client'
 import {
@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
 import { Filter } from '.'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
@@ -61,10 +62,12 @@ function handleSortToggle(column: Column<any, unknown>) {
 }
 
 function RouteComponent() {
-  const router = useRouter()
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   )
+  const [editingProposedHireId, setEditingProposedHireId] = React.useState<
+    string | undefined
+  >(undefined)
   const [sorting, setSorting] = React.useState<SortingState>([
     {
       id: 'priority',
@@ -78,6 +81,10 @@ function RouteComponent() {
   })
   const proposedHires = data?.proposedHires || []
   const employees = data?.employees || []
+
+  const proposedHire = proposedHires.find(
+    (proposedHire) => proposedHire.id === editingProposedHireId,
+  )
 
   const columns: Array<ColumnDef<ProposedHire>> = [
     {
@@ -100,9 +107,22 @@ function RouteComponent() {
       accessorKey: 'hiringProfile',
       header: 'Hiring Profile',
     },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => {
+        return (
+          <Button
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            onClick={() => setEditingProposedHireId(row.original.id)}
+          >
+            <Pencil />
+          </Button>
+        )
+      },
+    },
   ]
-
-  console.log(proposedHires)
 
   const table = useReactTable({
     data: proposedHires || [],
@@ -125,7 +145,11 @@ function RouteComponent() {
         <div className="flex justify-between py-4">
           <div></div>
           <div className="flex items-center space-x-2">
-            <AddProposedHirePanel employees={employees} />
+            <AddProposedHirePanel
+              employees={employees}
+              proposedHire={proposedHire}
+              onClose={() => setEditingProposedHireId(undefined)}
+            />
           </div>
         </div>
         <div className="rounded-md border">
