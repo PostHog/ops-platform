@@ -30,6 +30,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { fetchDeelEmployees } from './syncDeelEmployees'
 import type { KeeperTestJobPayload } from './runScheduledJobs'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { ROLES } from '@/lib/consts'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
@@ -381,8 +382,11 @@ function RouteComponent() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="admin">Admin (full access)</SelectItem>
-              <SelectItem value="user">
+              <SelectItem value={ROLES.ADMIN}>Admin (full access)</SelectItem>
+              <SelectItem value={ROLES.ORG_CHART}>
+                Org Chart (access the org chart and proposed hires)
+              </SelectItem>
+              <SelectItem value={ROLES.USER}>
                 User (view own feedback + salary)
               </SelectItem>
             </SelectContent>

@@ -4,6 +4,7 @@ import { signIn, useSession } from '@/lib/auth-client'
 import { useEffect } from 'react'
 import { getMyEmployeeId } from '@/components/Header'
 import { useQuery } from '@tanstack/react-query'
+import { ROLES } from '@/lib/consts'
 
 export const Route = createFileRoute('/login')({
   component: RouteComponent,
@@ -20,7 +21,7 @@ function RouteComponent() {
 
   useEffect(() => {
     if (user && !isRefetching) {
-      if (user.role === 'admin') {
+      if (user.role === ROLES.ADMIN) {
         router.navigate({ to: '/' })
       } else {
         if (!myEmployeeId) return
