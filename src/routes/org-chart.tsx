@@ -19,7 +19,7 @@ import { nodeTypes } from '@/lib/org-chart/nodes'
 import useExpandCollapse from '@/lib/org-chart/useExpandCollapse'
 import OrgChartPanel from '@/components/OrgChartPanel'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
-import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { createOrgChartFn } from '@/lib/auth-middleware'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -56,7 +56,7 @@ export type OrgChartNode = Node<
   } & ProposedHireFields
 >
 
-export const getDeelEmployeesAndProposedHires = createAuthenticatedFn({
+export const getDeelEmployeesAndProposedHires = createOrgChartFn({
   method: 'GET',
 }).handler(async () => {
   const employees = await prisma.deelEmployee.findMany({

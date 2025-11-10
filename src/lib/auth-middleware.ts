@@ -2,8 +2,9 @@ import { createMiddleware, createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { redirect } from '@tanstack/react-router'
 import { auth } from './auth'
+import { ROLES } from './consts'
 
-export const authMiddleware = createMiddleware({ type: 'function' }).server(
+const authMiddleware = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
     let user = null
 
@@ -36,12 +37,27 @@ export const authMiddleware = createMiddleware({ type: 'function' }).server(
   },
 )
 
-export const adminCheckMiddleware = createMiddleware({
+const adminCheckMiddleware = createMiddleware({
   type: 'function',
 }).server(async ({ next, context }) => {
   const user = (context as unknown as { user?: { role?: string } })?.user
 
-  if (user?.role !== 'admin') {
+  if (user?.role !== ROLES.ADMIN) {
+    throw redirect({
+      to: '/error',
+      search: { message: 'You are not authorized to access this page' },
+    })
+  } else {
+    return await next()
+  }
+})
+
+const orgChartCheckMiddleware = createMiddleware({
+  type: 'function',
+}).server(async ({ next, context }) => {
+  const user = (context as unknown as { user?: { role?: string } })?.user
+
+  if (user?.role !== ROLES.ORG_CHART && user?.role !== ROLES.ADMIN) {
     throw redirect({
       to: '/error',
       search: { message: 'You are not authorized to access this page' },
@@ -55,6 +71,12 @@ export const adminCheckMiddleware = createMiddleware({
 export const createAuthenticatedFn = createServerFn().middleware([
   authMiddleware,
   adminCheckMiddleware,
+])
+
+// org chart and admin users will be able to access this function
+export const createOrgChartFn = createServerFn().middleware([
+  authMiddleware,
+  orgChartCheckMiddleware,
 ])
 
 // all authenticated users will be able to access this function

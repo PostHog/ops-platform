@@ -47,6 +47,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
+import { ROLES } from '@/lib/consts'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -59,7 +60,7 @@ const getEmployeeById = createUserFn({
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === 'admin'
+    const isAdmin = context.user.role === ROLES.ADMIN
     return await prisma.employee.findUnique({
       where: {
         id: data.employeeId,
@@ -225,7 +226,9 @@ export const deleteSalary = createAuthenticatedFn({
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
-  const [showInlineForm, setShowInlineForm] = useState(user?.role === 'admin')
+  const [showInlineForm, setShowInlineForm] = useState(
+    user?.role === ROLES.ADMIN,
+  )
   const [showOverrideMode, setShowOverrideMode] = useState(false)
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
   const [showDetailedColumns, setShowDetailedColumns] = useState(false)
@@ -247,7 +250,7 @@ function EmployeeOverview() {
       getReferenceEmployees({
         data: { level, step, benchmark },
       }),
-    enabled: !!level && !!step && !!benchmark && user?.role === 'admin',
+    enabled: !!level && !!step && !!benchmark && user?.role === ROLES.ADMIN,
   })
 
   const columns: Array<ColumnDef<Salary>> = useMemo(() => {
@@ -344,7 +347,7 @@ function EmployeeOverview() {
           </div>
         ),
       },
-      ...(user?.role === 'admin'
+      ...(user?.role === ROLES.ADMIN
         ? ([
             {
               accessorKey: 'notes',
@@ -368,7 +371,7 @@ function EmployeeOverview() {
           </button>
         ),
         cell: ({ row }) => {
-          if (user?.role !== 'admin') return null
+          if (user?.role !== ROLES.ADMIN) return null
           const salary = row.original
           const hoursSinceCreation =
             (Date.now() - salary.timestamp.getTime()) / (1000 * 60 * 60)
@@ -524,7 +527,7 @@ function EmployeeOverview() {
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            {user?.role === 'admin' ? (
+            {user?.role === ROLES.ADMIN ? (
               <Button
                 variant="outline"
                 type="button"
@@ -624,7 +627,7 @@ function EmployeeOverview() {
                   : 'Enable override mode'}
               </Button>
             ) : null}
-            {user?.role === 'admin' ? (
+            {user?.role === ROLES.ADMIN ? (
               <Button
                 type="button"
                 variant="outline"
@@ -647,7 +650,7 @@ function EmployeeOverview() {
 
             return (
               <>
-                {benchmarkUpdated && user?.role === 'admin' && (
+                {benchmarkUpdated && user?.role === ROLES.ADMIN && (
                   <Alert variant="default">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>
@@ -663,7 +666,7 @@ function EmployeeOverview() {
                   </Alert>
                 )}
 
-                {locationFactorUpdated && user?.role === 'admin' && (
+                {locationFactorUpdated && user?.role === ROLES.ADMIN && (
                   <Alert variant="default">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>
