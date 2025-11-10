@@ -64,7 +64,6 @@ const addProposedHire = createAuthenticatedFn({
     }) => d,
   )
   .handler(async ({ data }) => {
-    console.log(data)
     return await prisma.proposedHire.create({
       data: {
         title: data.title,
