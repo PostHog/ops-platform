@@ -149,6 +149,7 @@ function RouteComponent() {
               employees={employees}
               proposedHire={proposedHire}
               onClose={() => setEditingProposedHireId(undefined)}
+              openWhenIdChanges={true}
             />
           </div>
         </div>

@@ -101,10 +101,12 @@ function AddProposedHirePanel({
   employees,
   proposedHire,
   onClose,
+  openWhenIdChanges = false,
 }: {
   employees: Array<DeelEmployee>
   proposedHire?: ProposedHire
   onClose?: () => void
+  openWhenIdChanges?: boolean
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -162,7 +164,7 @@ function AddProposedHirePanel({
 
   useEffect(() => {
     if (proposedHire?.id) {
-      setOpen(true)
+      if (openWhenIdChanges) setOpen(true)
       form.reset({
         title: proposedHire.title,
         managerEmail: proposedHire.manager.workEmail,
