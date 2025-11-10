@@ -2,6 +2,7 @@ import { Handle, Position } from '@xyflow/react'
 import { memo } from 'react'
 import { cn } from '../utils'
 import { OrgChartNode } from '@/routes/org-chart'
+import { CalendarClockIcon, ClockIcon } from 'lucide-react'
 
 const NodeHandles = () => {
   return (
@@ -86,10 +87,34 @@ const EmployeeNode = memo(function EmployeeNode({
             <div className="text-sm font-bold truncate">{name}</div>
             <div className="text-gray-500 text-xs truncate">{title}</div>
             <div className="text-gray-400 text-xs truncate">{team}</div>
-            {childrenCount !== undefined && childrenCount > 0 && (
+            {childrenCount !== undefined &&
+            (childrenCount.active > 0 ||
+              childrenCount.pending > 0 ||
+              childrenCount.planned > 0) ? (
               <div className="flex items-center gap-2 mt-1">
-                <div className="text-blue-600 text-xs font-medium">
-                  {childrenCount} {childrenCount === 1 ? 'child' : 'children'}
+                <div className="text-blue-600 text-xs font-medium flex flex-col">
+                  {childrenCount.active > 0 ? (
+                    <div className="flex flex-row items-center gap-1">
+                      <span>{childrenCount.active}</span>
+                      <span>
+                        {childrenCount.active === 1 ? 'report' : 'reports'}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div className="flex flex-row gap-2">
+                    {childrenCount.pending > 0 ? (
+                      <div className="flex flex-row items-center gap-1">
+                        <span>{childrenCount.pending}</span>
+                        <ClockIcon className="w-3 h-3" />
+                      </div>
+                    ) : null}
+                    {childrenCount.planned > 0 ? (
+                      <div className="flex flex-row items-center gap-1">
+                        <span>{childrenCount.planned}</span>
+                        <CalendarClockIcon className="w-3 h-3" />
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
                 <button
                   onClick={(e) => {
@@ -101,7 +126,7 @@ const EmployeeNode = memo(function EmployeeNode({
                   {expanded ? 'Hide' : 'Show'}
                 </button>
               </div>
-            )}
+            ) : null}
             {isFutureHire && (
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-violet-600 text-xs font-medium">
