@@ -28,15 +28,15 @@ import { Filter } from '.'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
 
-type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
+type ProposedHire = Prisma.ProposedHireGetPayload<{
   include: {
-    employee: true
+    manager: {
+      include: {
+        deelEmployee: true
+      }
+    }
   }
 }>
-
-type ProposedHire = Prisma.ProposedHireGetPayload<{}> & {
-  manager: DeelEmployee
-}
 
 export const Route = createFileRoute('/proposed-hires')({
   component: RouteComponent,
@@ -92,11 +92,11 @@ function RouteComponent() {
       header: 'Title',
     },
     {
-      accessorKey: 'manager.name',
+      accessorKey: 'manager.deelEmployee.name',
       header: 'Manager',
     },
     {
-      accessorKey: 'manager.team',
+      accessorKey: 'manager.deelEmployee.team',
       header: 'Team',
     },
     {

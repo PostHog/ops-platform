@@ -15,7 +15,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import type { DeelEmployee } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
+
+type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
+  include: {
+    employee: true
+  }
+}>
 
 const OrgChartPanel = ({
   employees,
@@ -26,7 +32,7 @@ const OrgChartPanel = ({
   employees: Array<DeelEmployee>
   selectedNode: string | null
   setSelectedNode: (node: string | null) => void
-  idValue?: 'id' | 'email'
+  idValue?: 'id' | 'employeeId'
 }) => {
   const [open, setOpen] = useState(false)
 
@@ -43,7 +49,7 @@ const OrgChartPanel = ({
             ? employees.find((employee) =>
                 idValue === 'id'
                   ? employee.id === selectedNode
-                  : employee.workEmail === selectedNode,
+                  : employee.employee?.id === selectedNode,
               )?.name
             : 'Search employee...'}
           <ChevronsUpDown className="opacity-50" />
@@ -55,36 +61,40 @@ const OrgChartPanel = ({
           <CommandList>
             <CommandEmpty>No employee found.</CommandEmpty>
             <CommandGroup>
-              {employees.map((employee) => (
-                <CommandItem
-                  key={employee.id}
-                  value={`${employee.id} - ${employee.name} - ${employee.workEmail}`}
-                  onSelect={(currentValue) => {
-                    setSelectedNode(
-                      (
-                        idValue === 'id'
-                          ? currentValue.split(' - ')[0] === selectedNode
-                          : currentValue.split(' - ')[2] === selectedNode
+              {employees
+                .filter((employee) => employee.employee?.id)
+                .map((employee) => (
+                  <CommandItem
+                    key={employee.id}
+                    value={`${employee.id} - ${employee.name} - ${employee.employee?.id}`}
+                    onSelect={(currentValue) => {
+                      setSelectedNode(
+                        (
+                          idValue === 'id'
+                            ? currentValue.split(' - ')[0] === selectedNode
+                            : currentValue.split(' - ')[2] === selectedNode
+                        )
+                          ? null
+                          : idValue === 'id'
+                            ? currentValue.split(' - ')[0]
+                            : currentValue.split(' - ')[2],
                       )
-                        ? null
-                        : idValue === 'id'
-                          ? currentValue.split(' - ')[0]
-                          : currentValue.split(' - ')[2],
-                    )
-                    setOpen(false)
-                  }}
-                >
-                  {employee.name}
-                  <Check
-                    className={cn(
-                      'ml-auto',
-                      selectedNode === employee.id
-                        ? 'opacity-100'
-                        : 'opacity-0',
-                    )}
-                  />
-                </CommandItem>
-              ))}
+                      setOpen(false)
+                    }}
+                  >
+                    {employee.name}
+                    <Check
+                      className={cn(
+                        'ml-auto',
+                        idValue === 'id'
+                          ? selectedNode === employee.id
+                          : selectedNode === employee.employee?.id
+                            ? 'opacity-100'
+                            : 'opacity-0',
+                      )}
+                    />
+                  </CommandItem>
+                ))}
             </CommandGroup>
           </CommandList>
         </Command>

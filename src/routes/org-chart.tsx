@@ -27,9 +27,15 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   }
 }>
 
-type ProposedHire = Prisma.ProposedHireGetPayload<{}> & {
-  manager: DeelEmployee
-}
+type ProposedHire = Prisma.ProposedHireGetPayload<{
+  include: {
+    manager: {
+      include: {
+        deelEmployee: true
+      }
+    }
+  }
+}>
 
 type ProposedHireFields = {
   hiringPriority?: 'low' | 'medium' | 'high'
@@ -65,16 +71,15 @@ export const getDeelEmployeesAndProposedHires = createOrgChartFn({
     },
   })
 
-  const rawProposedHires = await prisma.proposedHire.findMany({})
-
-  const proposedHires: ProposedHire[] = rawProposedHires
-    .map((proposedHire) => ({
-      ...proposedHire,
-      manager: employees.find(
-        (employee) => employee.workEmail === proposedHire.managerEmail,
-      ),
-    }))
-    .filter((ph): ph is ProposedHire => ph.manager !== undefined)
+  const proposedHires = await prisma.proposedHire.findMany({
+    include: {
+      manager: {
+        include: {
+          deelEmployee: true,
+        },
+      },
+    },
+  })
 
   return { employees, proposedHires }
 })

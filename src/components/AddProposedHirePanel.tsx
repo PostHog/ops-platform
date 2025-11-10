@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select'
-import { type DeelEmployee, type Priority, type Prisma } from '@prisma/client'
+import { type Priority, type Prisma } from '@prisma/client'
 import OrgChartPanel from './OrgChartPanel'
 import prisma from '@/db'
 import { useEffect, useState } from 'react'
@@ -28,9 +28,21 @@ import { z } from 'zod'
 import { useRouter } from '@tanstack/react-router'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
 
-type ProposedHire = Prisma.ProposedHireGetPayload<{}> & {
-  manager: DeelEmployee
-}
+type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
+  include: {
+    employee: true
+  }
+}>
+
+type ProposedHire = Prisma.ProposedHireGetPayload<{
+  include: {
+    manager: {
+      include: {
+        deelEmployee: true
+      }
+    }
+  }
+}>
 
 const addProposedHire = createAuthenticatedFn({
   method: 'POST',
@@ -38,16 +50,17 @@ const addProposedHire = createAuthenticatedFn({
   .inputValidator(
     (d: {
       title: string
-      managerEmail: string
+      managerId: string
       priority: Priority
       hiringProfile: string
     }) => d,
   )
   .handler(async ({ data }) => {
+    console.log(data)
     return await prisma.proposedHire.create({
       data: {
         title: data.title,
-        managerEmail: data.managerEmail,
+        managerId: data.managerId,
         priority: data.priority,
         hiringProfile: data.hiringProfile,
       },
@@ -61,7 +74,7 @@ const updateProposedHire = createAuthenticatedFn({
     (d: {
       id: string
       title: string
-      managerEmail: string
+      managerId: string
       priority: Priority
       hiringProfile: string
     }) => d,
@@ -71,7 +84,7 @@ const updateProposedHire = createAuthenticatedFn({
       where: { id: data.id },
       data: {
         title: data.title,
-        managerEmail: data.managerEmail,
+        managerId: data.managerId,
         priority: data.priority,
         hiringProfile: data.hiringProfile,
       },
@@ -116,32 +129,32 @@ function AddProposedHirePanel({
     defaultValues: editingExisting
       ? {
           title: proposedHire.title,
-          managerEmail: proposedHire.manager.workEmail,
+          managerId: proposedHire.manager.id,
           priority: proposedHire.priority,
           hiringProfile: proposedHire.hiringProfile,
         }
       : {
           title: '',
-          managerEmail: null as string | null,
+          managerId: null as string | null,
           priority: 'medium' as Priority,
           hiringProfile: '',
         },
     validators: {
       onSubmit: z.object({
         title: z.string().min(1, 'You must enter a title'),
-        managerEmail: z.string().min(1, 'You must select a manager'),
+        managerId: z.string().min(1, 'You must select a manager'),
         priority: z.enum(['low', 'medium', 'high']),
         hiringProfile: z.string(),
       }),
     },
     onSubmit: async ({ value }) => {
-      if (!value.managerEmail) return
+      if (!value.managerId) return
       editingExisting
         ? await updateProposedHire({
             data: {
               id: proposedHire.id,
               title: value.title,
-              managerEmail: value.managerEmail,
+              managerId: value.managerId,
               priority: value.priority,
               hiringProfile: value.hiringProfile,
             },
@@ -149,7 +162,7 @@ function AddProposedHirePanel({
         : await addProposedHire({
             data: {
               title: value.title,
-              managerEmail: value.managerEmail,
+              managerId: value.managerId,
               priority: value.priority,
               hiringProfile: value.hiringProfile,
             },
@@ -167,14 +180,14 @@ function AddProposedHirePanel({
       if (openWhenIdChanges) setOpen(true)
       form.reset({
         title: proposedHire.title,
-        managerEmail: proposedHire.manager.workEmail,
+        managerId: proposedHire.manager.id,
         priority: proposedHire.priority,
         hiringProfile: proposedHire.hiringProfile,
       })
     } else {
       form.reset({
         title: '',
-        managerEmail: null as string | null,
+        managerId: null as string | null,
         priority: 'medium' as Priority,
         hiringProfile: '',
       })
@@ -224,7 +237,7 @@ function AddProposedHirePanel({
               )}
             />
             <form.Field
-              name="managerEmail"
+              name="managerId"
               children={(field) => (
                 <div className="grid gap-3 col-span-2">
                   <Label htmlFor={field.name}>Manager</Label>
@@ -232,7 +245,7 @@ function AddProposedHirePanel({
                     employees={employees}
                     selectedNode={field.state.value}
                     setSelectedNode={(value) => field.handleChange(value)}
-                    idValue="email"
+                    idValue="employeeId"
                   />
                   <FieldInfo field={field} />
                 </div>
