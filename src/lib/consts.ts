@@ -3,4 +3,3 @@ export const ROLES = {
   ORG_CHART: 'org-chart',
   USER: 'user',
 }
-
