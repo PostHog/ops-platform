@@ -13,6 +13,7 @@ import { Route as SyncDeelEmployeesRouteImport } from './routes/syncDeelEmployee
 import { Route as ScheduleCheckInsRouteImport } from './routes/scheduleCheckIns'
 import { Route as RunScheduledJobsRouteImport } from './routes/runScheduledJobs'
 import { Route as ReceiveKeeperTestResultsRouteImport } from './routes/receiveKeeperTestResults'
+import { Route as ProposedHiresRouteImport } from './routes/proposed-hires'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as LoginRouteImport } from './routes/login'
@@ -43,6 +44,11 @@ const ReceiveKeeperTestResultsRoute =
     path: '/receiveKeeperTestResults',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ProposedHiresRoute = ProposedHiresRouteImport.update({
+  id: '/proposed-hires',
+  path: '/proposed-hires',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrgChartRoute = OrgChartRouteImport.update({
   id: '/org-chart',
   path: '/org-chart',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
   '/org-chart': typeof OrgChartRoute
+  '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
   '/org-chart': typeof OrgChartRoute
+  '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
   '/org-chart': typeof OrgChartRoute
+  '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/management'
     | '/org-chart'
+    | '/proposed-hires'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
     | '/scheduleCheckIns'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/management'
     | '/org-chart'
+    | '/proposed-hires'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
     | '/scheduleCheckIns'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/management'
     | '/org-chart'
+    | '/proposed-hires'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
     | '/scheduleCheckIns'
@@ -179,6 +191,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ManagementRoute: typeof ManagementRoute
   OrgChartRoute: typeof OrgChartRoute
+  ProposedHiresRoute: typeof ProposedHiresRoute
   ReceiveKeeperTestResultsRoute: typeof ReceiveKeeperTestResultsRoute
   RunScheduledJobsRoute: typeof RunScheduledJobsRoute
   ScheduleCheckInsRoute: typeof ScheduleCheckInsRoute
@@ -215,6 +228,13 @@ declare module '@tanstack/react-router' {
       path: '/receiveKeeperTestResults'
       fullPath: '/receiveKeeperTestResults'
       preLoaderRoute: typeof ReceiveKeeperTestResultsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proposed-hires': {
+      id: '/proposed-hires'
+      path: '/proposed-hires'
+      fullPath: '/proposed-hires'
+      preLoaderRoute: typeof ProposedHiresRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/org-chart': {
@@ -283,6 +303,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ManagementRoute: ManagementRoute,
   OrgChartRoute: OrgChartRoute,
+  ProposedHiresRoute: ProposedHiresRoute,
   ReceiveKeeperTestResultsRoute: ReceiveKeeperTestResultsRoute,
   RunScheduledJobsRoute: RunScheduledJobsRoute,
   ScheduleCheckInsRoute: ScheduleCheckInsRoute,
