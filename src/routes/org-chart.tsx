@@ -34,6 +34,11 @@ type ProposedHire = Prisma.ProposedHireGetPayload<{
         deelEmployee: true
       }
     }
+    talentPartner: {
+      include: {
+        deelEmployee: true
+      }
+    }
   }
 }>
 
@@ -74,6 +79,11 @@ export const getDeelEmployeesAndProposedHires = createOrgChartFn({
   const proposedHires = await prisma.proposedHire.findMany({
     include: {
       manager: {
+        include: {
+          deelEmployee: true,
+        },
+      },
+      talentPartner: {
         include: {
           deelEmployee: true,
         },

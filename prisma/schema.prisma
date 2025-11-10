@@ -14,17 +14,18 @@ datasource db {
 }
 
 model Employee {
-  id                     String         @id @default(cuid())
-  priority               Priority
-  reviewed               Boolean
-  email                  String         @unique
-  salaries               Salary[]
-  deelEmployee           DeelEmployee?
-  feedback               Feedback[]
-  checkIn30DaysScheduled Boolean        @default(true)
-  checkIn60DaysScheduled Boolean        @default(true)
-  checkIn80DaysScheduled Boolean        @default(true)
-  ProposedHire           ProposedHire[]
+  id                         String         @id @default(cuid())
+  priority                   Priority
+  reviewed                   Boolean
+  email                      String         @unique
+  salaries                   Salary[]
+  deelEmployee               DeelEmployee?
+  feedback                   Feedback[]
+  checkIn30DaysScheduled     Boolean        @default(true)
+  checkIn60DaysScheduled     Boolean        @default(true)
+  checkIn80DaysScheduled     Boolean        @default(true)
+  proposedHires              ProposedHire[] @relation("manager")
+  proposedHiresTalentPartner ProposedHire[] @relation("talentPartner")
 }
 
 model DeelEmployee {
@@ -175,12 +176,14 @@ model Verification {
 }
 
 model ProposedHire {
-  id            String   @id @default(cuid())
-  title         String
-  managerId     String
-  manager       Employee @relation(fields: [managerId], references: [id])
-  priority      Priority
-  hiringProfile String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @default(now()) @updatedAt
+  id              String   @id @default(cuid())
+  title           String
+  managerId       String
+  manager         Employee @relation("manager", fields: [managerId], references: [id])
+  talentPartnerId String
+  talentPartner   Employee @relation("talentPartner", fields: [talentPartnerId], references: [id])
+  priority        Priority
+  hiringProfile   String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
 }

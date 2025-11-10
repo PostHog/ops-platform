@@ -23,7 +23,7 @@ import {
 import { type Priority, type Prisma } from '@prisma/client'
 import OrgChartPanel from './OrgChartPanel'
 import prisma from '@/db'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 import { useRouter } from '@tanstack/react-router'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
@@ -41,6 +41,11 @@ type ProposedHire = Prisma.ProposedHireGetPayload<{
         deelEmployee: true
       }
     }
+    talentPartner: {
+      include: {
+        deelEmployee: true
+      }
+    }
   }
 }>
 
@@ -51,6 +56,7 @@ const addProposedHire = createAuthenticatedFn({
     (d: {
       title: string
       managerId: string
+      talentPartnerId: string
       priority: Priority
       hiringProfile: string
     }) => d,
@@ -61,6 +67,7 @@ const addProposedHire = createAuthenticatedFn({
       data: {
         title: data.title,
         managerId: data.managerId,
+        talentPartnerId: data.talentPartnerId,
         priority: data.priority,
         hiringProfile: data.hiringProfile,
       },
@@ -75,6 +82,7 @@ const updateProposedHire = createAuthenticatedFn({
       id: string
       title: string
       managerId: string
+      talentPartnerId: string
       priority: Priority
       hiringProfile: string
     }) => d,
@@ -85,6 +93,7 @@ const updateProposedHire = createAuthenticatedFn({
       data: {
         title: data.title,
         managerId: data.managerId,
+        talentPartnerId: data.talentPartnerId,
         priority: data.priority,
         hiringProfile: data.hiringProfile,
       },
@@ -130,12 +139,14 @@ function AddProposedHirePanel({
       ? {
           title: proposedHire.title,
           managerId: proposedHire.manager.id,
+          talentPartnerId: proposedHire.talentPartner.id,
           priority: proposedHire.priority,
           hiringProfile: proposedHire.hiringProfile,
         }
       : {
           title: '',
           managerId: null as string | null,
+          talentPartnerId: null as string | null,
           priority: 'medium' as Priority,
           hiringProfile: '',
         },
@@ -143,18 +154,20 @@ function AddProposedHirePanel({
       onSubmit: z.object({
         title: z.string().min(1, 'You must enter a title'),
         managerId: z.string().min(1, 'You must select a manager'),
+        talentPartnerId: z.string().min(1, 'You must select a talent partner'),
         priority: z.enum(['low', 'medium', 'high']),
         hiringProfile: z.string(),
       }),
     },
     onSubmit: async ({ value }) => {
-      if (!value.managerId) return
+      if (!value.managerId || !value.talentPartnerId) return
       editingExisting
         ? await updateProposedHire({
             data: {
               id: proposedHire.id,
               title: value.title,
               managerId: value.managerId,
+              talentPartnerId: value.talentPartnerId,
               priority: value.priority,
               hiringProfile: value.hiringProfile,
             },
@@ -163,6 +176,7 @@ function AddProposedHirePanel({
             data: {
               title: value.title,
               managerId: value.managerId,
+              talentPartnerId: value.talentPartnerId,
               priority: value.priority,
               hiringProfile: value.hiringProfile,
             },
@@ -181,6 +195,7 @@ function AddProposedHirePanel({
       form.reset({
         title: proposedHire.title,
         managerId: proposedHire.manager.id,
+        talentPartnerId: proposedHire.talentPartner.id,
         priority: proposedHire.priority,
         hiringProfile: proposedHire.hiringProfile,
       })
@@ -188,6 +203,7 @@ function AddProposedHirePanel({
       form.reset({
         title: '',
         managerId: null as string | null,
+        talentPartnerId: null as string | null,
         priority: 'medium' as Priority,
         hiringProfile: '',
       })
@@ -200,6 +216,16 @@ function AddProposedHirePanel({
       onClose()
     }
   }
+
+  const talentTeamEmployees = useMemo(
+    () =>
+      employees.filter(
+        (employee) =>
+          employee.employee?.id &&
+          employee.team?.toLowerCase().includes('talent'),
+      ),
+    [employees],
+  )
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -243,6 +269,21 @@ function AddProposedHirePanel({
                   <Label htmlFor={field.name}>Manager</Label>
                   <OrgChartPanel
                     employees={employees}
+                    selectedNode={field.state.value}
+                    setSelectedNode={(value) => field.handleChange(value)}
+                    idValue="employeeId"
+                  />
+                  <FieldInfo field={field} />
+                </div>
+              )}
+            />
+            <form.Field
+              name="talentPartnerId"
+              children={(field) => (
+                <div className="grid gap-3 col-span-2">
+                  <Label htmlFor={field.name}>Talent Partner</Label>
+                  <OrgChartPanel
+                    employees={talentTeamEmployees}
                     selectedNode={field.state.value}
                     setSelectedNode={(value) => field.handleChange(value)}
                     idValue="employeeId"
