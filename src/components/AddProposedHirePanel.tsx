@@ -20,17 +20,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select'
-import { type DeelEmployee, type Priority, type Prisma } from '@prisma/client'
+import { type Priority, type Prisma } from '@prisma/client'
 import OrgChartPanel from './OrgChartPanel'
 import prisma from '@/db'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { z } from 'zod'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { Pencil } from 'lucide-react'
 
-type ProposedHire = Prisma.ProposedHireGetPayload<{}> & {
-  manager: DeelEmployee
-}
+type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
+  include: {
+    employee: true
+  }
+}>
+
+type ProposedHire = Prisma.ProposedHireGetPayload<{
+  include: {
+    manager: {
+      include: {
+        deelEmployee: true
+      }
+    }
+    talentPartner: {
+      include: {
+        deelEmployee: true
+      }
+    }
+  }
+}>
 
 const addProposedHire = createAuthenticatedFn({
   method: 'POST',
@@ -38,7 +57,8 @@ const addProposedHire = createAuthenticatedFn({
   .inputValidator(
     (d: {
       title: string
-      managerEmail: string
+      managerId: string
+      talentPartnerId: string
       priority: Priority
       hiringProfile: string
     }) => d,
@@ -47,7 +67,8 @@ const addProposedHire = createAuthenticatedFn({
     return await prisma.proposedHire.create({
       data: {
         title: data.title,
-        managerEmail: data.managerEmail,
+        managerId: data.managerId,
+        talentPartnerId: data.talentPartnerId,
         priority: data.priority,
         hiringProfile: data.hiringProfile,
       },
@@ -61,7 +82,8 @@ const updateProposedHire = createAuthenticatedFn({
     (d: {
       id: string
       title: string
-      managerEmail: string
+      managerId: string
+      talentPartnerId: string
       priority: Priority
       hiringProfile: string
     }) => d,
@@ -71,7 +93,8 @@ const updateProposedHire = createAuthenticatedFn({
       where: { id: data.id },
       data: {
         title: data.title,
-        managerEmail: data.managerEmail,
+        managerId: data.managerId,
+        talentPartnerId: data.talentPartnerId,
         priority: data.priority,
         hiringProfile: data.hiringProfile,
       },
@@ -100,11 +123,16 @@ function FieldInfo({ field }: { field: AnyFieldApi }) {
 function AddProposedHirePanel({
   employees,
   proposedHire,
+  onClose,
+  buttonType = 'default',
 }: {
   employees: Array<DeelEmployee>
   proposedHire?: ProposedHire
+  onClose?: () => void
+  buttonType?: 'default' | 'icon'
 }) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const editingExisting = !!proposedHire
 
@@ -112,32 +140,36 @@ function AddProposedHirePanel({
     defaultValues: editingExisting
       ? {
           title: proposedHire.title,
-          managerEmail: proposedHire.manager.workEmail,
+          managerId: proposedHire.manager.id,
+          talentPartnerId: proposedHire.talentPartner.id,
           priority: proposedHire.priority,
           hiringProfile: proposedHire.hiringProfile,
         }
       : {
           title: '',
-          managerEmail: null as string | null,
+          managerId: null as string | null,
+          talentPartnerId: null as string | null,
           priority: 'medium' as Priority,
           hiringProfile: '',
         },
     validators: {
       onSubmit: z.object({
         title: z.string().min(1, 'You must enter a title'),
-        managerEmail: z.string().min(1, 'You must select a manager'),
+        managerId: z.string().min(1, 'You must select a manager'),
+        talentPartnerId: z.string().min(1, 'You must select a talent partner'),
         priority: z.enum(['low', 'medium', 'high']),
         hiringProfile: z.string(),
       }),
     },
     onSubmit: async ({ value }) => {
-      if (!value.managerEmail) return
+      if (!value.managerId || !value.talentPartnerId) return
       editingExisting
         ? await updateProposedHire({
             data: {
               id: proposedHire.id,
               title: value.title,
-              managerEmail: value.managerEmail,
+              managerId: value.managerId,
+              talentPartnerId: value.talentPartnerId,
               priority: value.priority,
               hiringProfile: value.hiringProfile,
             },
@@ -145,26 +177,56 @@ function AddProposedHirePanel({
         : await addProposedHire({
             data: {
               title: value.title,
-              managerEmail: value.managerEmail,
+              managerId: value.managerId,
+              talentPartnerId: value.talentPartnerId,
               priority: value.priority,
               hiringProfile: value.hiringProfile,
             },
           })
       router.invalidate()
+      queryClient.invalidateQueries({ queryKey: ['proposedHires'] })
       setOpen(false)
-      createToast('Successfully added proposed hire.', {
-        timeout: 3000,
-      })
+      createToast(
+        editingExisting
+          ? 'Successfully updated proposed hire.'
+          : 'Successfully added proposed hire.',
+        {
+          timeout: 3000,
+        },
+      )
     },
   })
 
+  const handleOpenChange = (open: boolean) => {
+    setOpen(open)
+    if (!open && onClose) {
+      onClose()
+    }
+  }
+
+  const talentTeamEmployees = useMemo(
+    () =>
+      employees.filter(
+        (employee) =>
+          employee.employee?.id &&
+          employee.team?.toLowerCase().includes('talent'),
+      ),
+    [employees],
+  )
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <form>
         <DialogTrigger asChild>
-          <Button variant="outline" className="w-full">
-            {editingExisting ? 'Edit proposed hire' : 'Add proposed hire'}
-          </Button>
+          {buttonType === 'default' ? (
+            <Button variant="outline" className="w-full">
+              {editingExisting ? 'Edit proposed hire' : 'Add proposed hire'}
+            </Button>
+          ) : (
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <Pencil />
+            </Button>
+          )}
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -194,7 +256,7 @@ function AddProposedHirePanel({
               )}
             />
             <form.Field
-              name="managerEmail"
+              name="managerId"
               children={(field) => (
                 <div className="grid gap-3 col-span-2">
                   <Label htmlFor={field.name}>Manager</Label>
@@ -202,7 +264,22 @@ function AddProposedHirePanel({
                     employees={employees}
                     selectedNode={field.state.value}
                     setSelectedNode={(value) => field.handleChange(value)}
-                    idValue="email"
+                    idValue="employeeId"
+                  />
+                  <FieldInfo field={field} />
+                </div>
+              )}
+            />
+            <form.Field
+              name="talentPartnerId"
+              children={(field) => (
+                <div className="grid gap-3 col-span-2">
+                  <Label htmlFor={field.name}>Talent Partner</Label>
+                  <OrgChartPanel
+                    employees={talentTeamEmployees}
+                    selectedNode={field.state.value}
+                    setSelectedNode={(value) => field.handleChange(value)}
+                    idValue="employeeId"
                   />
                   <FieldInfo field={field} />
                 </div>
@@ -256,6 +333,9 @@ function AddProposedHirePanel({
                   onClick={async () => {
                     await deleteProposedHire({ data: { id: proposedHire.id } })
                     router.invalidate()
+                    queryClient.invalidateQueries({
+                      queryKey: ['proposedHires'],
+                    })
                     setOpen(false)
                     createToast('Successfully deleted proposed hire.', {
                       timeout: 3000,

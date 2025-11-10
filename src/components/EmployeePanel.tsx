@@ -11,9 +11,20 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   }
 }>
 
-type ProposedHire = Prisma.ProposedHireGetPayload<{}> & {
-  manager: DeelEmployee
-}
+type ProposedHire = Prisma.ProposedHireGetPayload<{
+  include: {
+    manager: {
+      include: {
+        deelEmployee: true
+      }
+    }
+    talentPartner: {
+      include: {
+        deelEmployee: true
+      }
+    }
+  }
+}>
 
 const EmployeePanel = ({
   selectedNode,
@@ -45,7 +56,7 @@ const EmployeePanel = ({
           <h1 className="text-lg font-bold mb-4">
             {employee?.name || proposedHire?.title}
           </h1>
-          <pre className="bg-gray-50 p-4 rounded-lg overflow-auto">
+          <pre className="bg-gray-50 p-4 rounded-lg overflow-auto max-h-[80vh]">
             {JSON.stringify(employee || proposedHire, null, 2)}
           </pre>
           {employee && user?.role === ROLES.ADMIN ? (
