@@ -36,23 +36,60 @@ function buildChildrenMap(edges: Edge[]): Map<string, string[]> {
 function filterCollapsedChildren(
   dagre: Dagre.graphlib.Graph,
   node: OrgChartNode,
+  allNodes: OrgChartNode[],
+  childrenMap: Map<string, string[]>,
 ) {
   // 🚨 The current types for some of dagre's methods are incorrect. In future
   // versions of dagre this should be fixed, but for now we need to cast the return
   // value to keep TypeScript happy.
   const children = dagre.successors(node.id) as unknown as string[] | undefined
 
+  // Calculate childrenCount based on all children (not just visible ones)
+  const allChildIds = childrenMap.get(node.id) || []
+  let active = 0
+  let pending = 0
+  let planned = 0
+
+  for (const childId of allChildIds) {
+    const childNode = allNodes.find((n) => n.id === childId)
+    if (!childNode) continue
+
+    // Check if it's a proposed hire (has hiringPriority)
+    if ('hiringPriority' in childNode.data && childNode.data.hiringPriority) {
+      planned++
+    } else if (childNode.data.name) {
+      // It's a real employee - check if start date is in the future
+      if (childNode.data.startDate) {
+        const startDate = new Date(childNode.data.startDate)
+        const now = new Date()
+        if (startDate > now) {
+          pending++
+        } else {
+          active++
+        }
+      } else {
+        // No start date means they're already active
+        active++
+      }
+    }
+  }
+
   // Update this node's props so it knows if it has children and can be expanded
   // or not.
-  node.data.childrenCount = children?.length
+  node.data.childrenCount = {
+    active,
+    pending,
+    planned,
+  }
 
   // If the node is collpased (ie it is not expanded) then we want to remove all
   // of its children from the graph *and* any of their children.
   if (!node.data.expanded) {
-    while (children?.length) {
-      const child = children.pop()!
+    const childrenToRemove = [...(children || [])]
+    while (childrenToRemove.length) {
+      const child = childrenToRemove.pop()!
 
-      children.push(...(dagre.successors(child) as unknown as string[]))
+      childrenToRemove.push(...(dagre.successors(child) as unknown as string[]))
       dagre.removeNode(child)
     }
   }
@@ -156,11 +193,14 @@ function useExpandCollapse(
       dagre.setEdge(edge.source, edge.target)
     }
 
+    // Build children map before filtering
+    const childrenMap = buildChildrenMap(edges)
+
     // 3. Iterate over the nodes *again* to determine which ones should be hidden
     // based on expand/collapse state. Hidden nodes are removed from the dagre
     // graph entirely.
     for (const node of nodes) {
-      filterCollapsedChildren(dagre, node)
+      filterCollapsedChildren(dagre, node, nodes, childrenMap)
     }
 
     // 4. Create leaf containers for employees without direct reports

@@ -45,7 +45,11 @@ export type OrgChartNode = Node<
     manager?: string
     startDate?: Date
     expanded: boolean
-    childrenCount?: number
+    childrenCount?: {
+      active: number
+      pending: number
+      planned: number
+    }
     toggleExpanded: () => void
     handleClick?: (id: string) => void
     selectedNode: string | null
