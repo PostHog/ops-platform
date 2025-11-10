@@ -23,10 +23,11 @@ import {
 import { type Priority, type Prisma } from '@prisma/client'
 import OrgChartPanel from './OrgChartPanel'
 import prisma from '@/db'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { z } from 'zod'
 import { useRouter } from '@tanstack/react-router'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { Pencil } from 'lucide-react'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -123,12 +124,12 @@ function AddProposedHirePanel({
   employees,
   proposedHire,
   onClose,
-  openWhenIdChanges = false,
+  buttonType = 'default',
 }: {
   employees: Array<DeelEmployee>
   proposedHire?: ProposedHire
   onClose?: () => void
-  openWhenIdChanges?: boolean
+  buttonType?: 'default' | 'icon'
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -189,27 +190,6 @@ function AddProposedHirePanel({
     },
   })
 
-  useEffect(() => {
-    if (proposedHire?.id) {
-      if (openWhenIdChanges) setOpen(true)
-      form.reset({
-        title: proposedHire.title,
-        managerId: proposedHire.manager.id,
-        talentPartnerId: proposedHire.talentPartner.id,
-        priority: proposedHire.priority,
-        hiringProfile: proposedHire.hiringProfile,
-      })
-    } else {
-      form.reset({
-        title: '',
-        managerId: null as string | null,
-        talentPartnerId: null as string | null,
-        priority: 'medium' as Priority,
-        hiringProfile: '',
-      })
-    }
-  }, [proposedHire?.id])
-
   const handleOpenChange = (open: boolean) => {
     setOpen(open)
     if (!open && onClose) {
@@ -231,9 +211,15 @@ function AddProposedHirePanel({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <form>
         <DialogTrigger asChild>
-          <Button variant="outline" className="w-full">
-            {editingExisting ? 'Edit proposed hire' : 'Add proposed hire'}
-          </Button>
+          {buttonType === 'default' ? (
+            <Button variant="outline" className="w-full">
+              {editingExisting ? 'Edit proposed hire' : 'Add proposed hire'}
+            </Button>
+          ) : (
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <Pencil />
+            </Button>
+          )}
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

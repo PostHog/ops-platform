@@ -70,9 +70,6 @@ function RouteComponent() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   )
-  const [editingProposedHireId, setEditingProposedHireId] = React.useState<
-    string | undefined
-  >(undefined)
   const [sorting, setSorting] = React.useState<SortingState>([
     {
       id: 'priority',
@@ -86,10 +83,6 @@ function RouteComponent() {
   })
   const proposedHires = data?.proposedHires || []
   const employees = data?.employees || []
-
-  const proposedHire = proposedHires.find(
-    (proposedHire) => proposedHire.id === editingProposedHireId,
-  )
 
   const columns: Array<ColumnDef<ProposedHire>> = [
     {
@@ -121,13 +114,11 @@ function RouteComponent() {
       header: 'Actions',
       cell: ({ row }) => {
         return (
-          <Button
-            variant="ghost"
-            className="h-8 w-8 p-0"
-            onClick={() => setEditingProposedHireId(row.original.id)}
-          >
-            <Pencil />
-          </Button>
+          <AddProposedHirePanel
+            employees={employees}
+            proposedHire={row.original}
+            buttonType="icon"
+          />
         )
       },
     },
@@ -154,12 +145,7 @@ function RouteComponent() {
         <div className="flex justify-between py-4">
           <div></div>
           <div className="flex items-center space-x-2">
-            <AddProposedHirePanel
-              employees={employees}
-              proposedHire={proposedHire}
-              onClose={() => setEditingProposedHireId(undefined)}
-              openWhenIdChanges={true}
-            />
+            <AddProposedHirePanel employees={employees} />
           </div>
         </div>
         <div className="rounded-md border">
