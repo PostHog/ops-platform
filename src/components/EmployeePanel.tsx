@@ -2,6 +2,8 @@ import { Link } from '@tanstack/react-router'
 import { Button } from './ui/button'
 import type { Prisma } from '@prisma/client'
 import AddProposedHirePanel from './AddProposedHirePanel'
+import { ROLES } from '@/lib/consts'
+import { useSession } from '@/lib/auth-client'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -22,6 +24,8 @@ const EmployeePanel = ({
   employees: Array<DeelEmployee>
   proposedHires: Array<ProposedHire>
 }) => {
+  const { data: session } = useSession()
+  const user = session?.user
   const employee = employees.find((employee) => employee.id === selectedNode)
   const proposedHire = proposedHires.find(
     (proposedHire) => proposedHire.id === selectedNode,
@@ -44,7 +48,7 @@ const EmployeePanel = ({
           <pre className="bg-gray-50 p-4 rounded-lg overflow-auto">
             {JSON.stringify(employee || proposedHire, null, 2)}
           </pre>
-          {employee ? (
+          {employee && user?.role === ROLES.ADMIN ? (
             <Link
               to="/employee/$employeeId"
               params={{ employeeId: employee.employee?.id ?? '' }}

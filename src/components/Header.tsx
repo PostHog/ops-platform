@@ -1,4 +1,4 @@
-import { Link, redirect, useRouter } from '@tanstack/react-router'
+import { Link, useRouter } from '@tanstack/react-router'
 import { Button } from './ui/button'
 import { signOut, useSession } from '@/lib/auth-client'
 import { createUserFn } from '@/lib/auth-middleware'
@@ -18,7 +18,7 @@ export const getMyEmployeeId = createUserFn({
   })
 
   if (!employee) {
-    throw redirect({ to: '/error', search: { message: 'No employee found' } })
+    throw Error('No employee found')
   }
 
   return employee.id
@@ -63,15 +63,16 @@ export default function Header() {
             <Link to="/management">Management</Link>
           </div>
         ) : null}
-        <div className="px-2 font-bold">
-          <Link
-            to="/employee/$employeeId"
-            disabled={!myEmployeeId}
-            params={{ employeeId: myEmployeeId ?? '' }}
-          >
-            My employee page
-          </Link>
-        </div>
+        {myEmployeeId ? (
+          <div className="px-2 font-bold">
+            <Link
+              to="/employee/$employeeId"
+              params={{ employeeId: myEmployeeId }}
+            >
+              My employee page
+            </Link>
+          </div>
+        ) : null}
       </nav>
       <div className="flex flex-row gap-2 items-center">
         {session ? (
