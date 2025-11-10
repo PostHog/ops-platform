@@ -23,6 +23,8 @@ export type JobResult = {
   data?: Record<string, any>
 }
 
+const FAILURE_COUNT_THRESHOLD = 5
+
 export const Route = createFileRoute('/runScheduledJobs')({
   server: {
     handlers: {
@@ -336,6 +338,13 @@ export const Route = createFileRoute('/runScheduledJobs')({
 
                 // @ts-ignore
                 const userBody = await userRes.json()
+
+                if (userRes.status !== 200) {
+                  throw Error(
+                    `Error from Slack API: ${userRes.status}: ${JSON.stringify(userBody)}`,
+                  )
+                }
+
                 // const slackUserId = userBody.user.id
                 const slackUserId = 'U05LD9R5P6E'
 
@@ -361,6 +370,12 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   },
                 )
                 const messageResponse = await response.json()
+
+                if (response.status !== 200) {
+                  throw Error(
+                    `Error from Slack API: ${response.status}: ${JSON.stringify(messageResponse)}`,
+                  )
+                }
 
                 jobResults.push({
                   id: job.id,
@@ -405,21 +420,38 @@ export const Route = createFileRoute('/runScheduledJobs')({
 
                 // @ts-ignore
                 const userBody = await userRes.json()
+
+                if (userRes.status !== 200) {
+                  throw Error(
+                    `Error from Slack API: ${userRes.status}: ${JSON.stringify(userBody)}`,
+                  )
+                }
+
                 // const slackUserId = userBody.user.id
                 const slackUserId = 'U05LD9R5P6E'
 
-                await fetch('https://slack.com/api/chat.postMessage', {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
-                    'Content-Type': 'application/json',
+                const response = await fetch(
+                  'https://slack.com/api/chat.postMessage',
+                  {
+                    method: 'POST',
+                    headers: {
+                      Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      channel: slackUserId,
+                      thread_ts: thread_id,
+                      text: `<@${slackUserId}> please make sure to submit this feedback`,
+                    }),
                   },
-                  body: JSON.stringify({
-                    channel: slackUserId,
-                    thread_ts: thread_id,
-                    text: `<@${slackUserId}> please make sure to submit this feedback`,
-                  }),
-                })
+                )
+                const messageResponse = await response.json()
+
+                if (response.status !== 200) {
+                  throw Error(
+                    `Error from Slack API: ${response.status}: ${JSON.stringify(messageResponse)}`,
+                  )
+                }
 
                 jobResults.push({
                   id: job.id,
@@ -455,7 +487,9 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 },
               })
             } else {
-              const isDead = data?.failure_count && data.failure_count >= 5
+              const isDead =
+                data?.failure_count &&
+                data.failure_count >= FAILURE_COUNT_THRESHOLD
               await prisma.cyclotronJob.update({
                 where: { id, lock_id },
                 data: {
