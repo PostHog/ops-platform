@@ -86,11 +86,13 @@ const OrgChartPanel = ({
                     <Check
                       className={cn(
                         'ml-auto',
-                        idValue === 'id'
-                          ? selectedNode === employee.id
-                          : selectedNode === employee.employee?.id
-                            ? 'opacity-100'
-                            : 'opacity-0',
+                        (
+                          idValue === 'id'
+                            ? selectedNode === employee.id
+                            : selectedNode === employee.employee?.id
+                        )
+                          ? 'opacity-100'
+                          : 'opacity-0',
                       )}
                     />
                   </CommandItem>
