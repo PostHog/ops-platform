@@ -25,6 +25,7 @@ import OrgChartPanel from './OrgChartPanel'
 import prisma from '@/db'
 import { useMemo, useState } from 'react'
 import { z } from 'zod'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
 import { Pencil } from 'lucide-react'
@@ -132,6 +133,7 @@ function AddProposedHirePanel({
   buttonType?: 'default' | 'icon'
 }) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const editingExisting = !!proposedHire
 
@@ -183,10 +185,16 @@ function AddProposedHirePanel({
             },
           })
       router.invalidate()
+      queryClient.invalidateQueries({ queryKey: ['proposedHires'] })
       setOpen(false)
-      createToast('Successfully added proposed hire.', {
-        timeout: 3000,
-      })
+      createToast(
+        editingExisting
+          ? 'Successfully updated proposed hire.'
+          : 'Successfully added proposed hire.',
+        {
+          timeout: 3000,
+        },
+      )
     },
   })
 
@@ -326,6 +334,9 @@ function AddProposedHirePanel({
                   onClick={async () => {
                     await deleteProposedHire({ data: { id: proposedHire.id } })
                     router.invalidate()
+                    queryClient.invalidateQueries({
+                      queryKey: ['proposedHires'],
+                    })
                     setOpen(false)
                     createToast('Successfully deleted proposed hire.', {
                       timeout: 3000,
