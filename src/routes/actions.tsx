@@ -58,8 +58,8 @@ const getUpdatedSalaries = createAuthenticatedFn({
       timestamp: {
         gte: new Date(new Date().setDate(new Date().getDate() - 30)),
       },
-      changeAmount: {
-        gt: 0,
+      changePercentage: {
+        not: 0,
       },
     },
     include: {
