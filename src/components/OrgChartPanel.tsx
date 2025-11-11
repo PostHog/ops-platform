@@ -66,7 +66,7 @@ const OrgChartPanel = ({
                 .map((employee) => (
                   <CommandItem
                     key={employee.id}
-                    value={`${employee.id} - ${employee.name} - ${employee.employee?.id}`}
+                    value={`${employee.id} - ${employee.name} - ${employee.employee?.id} - ${employee.workEmail}`}
                     onSelect={(currentValue) => {
                       setSelectedNode(
                         (
