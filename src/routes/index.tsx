@@ -112,7 +112,11 @@ const getEmployees = createAuthenticatedFn({
     },
     where: {
       salaries: { some: {} },
-      deelEmployee: { isNot: null },
+      deelEmployee: {
+        startDate: {
+          lte: new Date(),
+        },
+      },
     },
     orderBy: {
       deelEmployee: {
