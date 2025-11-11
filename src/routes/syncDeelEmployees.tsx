@@ -41,7 +41,12 @@ export const fetchDeelEmployees = async () => {
             .customFields.full_time_headcount === 'Full-Time',
       ).map((employee: any) => ({
         id: employee.id,
-        name: employee.name.givenName + ' ' + employee.name.familyName,
+        name:
+          (employee['urn:ietf:params:scim:schemas:extension:2.0:User']
+            ?.preferredFirstName || employee.name.givenName) +
+          ' ' +
+          (employee['urn:ietf:params:scim:schemas:extension:2.0:User']
+            ?.preferredLastName || employee.name.familyName),
         title: employee.title,
         workEmail: employee.emails.find(
           (email: { type: string; value: string }) => email.type === 'work',
