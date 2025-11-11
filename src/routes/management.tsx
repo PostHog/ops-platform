@@ -229,6 +229,7 @@ const populateInitialEmployeeSalaries = createAuthenticatedFn({
   }
 
   let successCount = 0
+  const logs: Array<string> = []
   const errors: Array<string> = []
 
   const deelEmployees = await fetchDeelEmployees()
@@ -318,7 +319,7 @@ const populateInitialEmployeeSalaries = createAuthenticatedFn({
         },
       })
       successCount++
-      console.log(
+      logs.push(
         'Successfully imported salary for employee: ' + employee.workEmail,
       )
     } catch (error) {
@@ -327,12 +328,6 @@ const populateInitialEmployeeSalaries = createAuthenticatedFn({
       errors.push(
         `Error processing employee ${employee.workEmail}: ${errorMessage}`,
       )
-      console.error(
-        'Error processing employee: ' +
-          employee.workEmail +
-          ' - ' +
-          errorMessage,
-      )
     }
   }
 
@@ -340,6 +335,7 @@ const populateInitialEmployeeSalaries = createAuthenticatedFn({
     successCount,
     errorCount: errors.length,
     errors,
+    logs,
   }
 })
 
@@ -473,21 +469,29 @@ function RouteComponent() {
           </Button>
           <Button
             onClick={async () => {
-              const { successCount, errorCount, errors } =
+              const { successCount, errorCount, errors, logs } =
                 await populateInitialEmployeeSalaries()
               router.invalidate()
 
+              console.log({ successCount, errorCount, errors, logs })
               const message = document.createElement('div')
               message.className = 'flex flex-col gap-2'
               message.innerHTML = renderToStaticMarkup(
                 <>
                   <span>
-                    Successfully imported {successCount} employee salaries.
+                    Successfully imported {successCount} employee{' '}
+                    {successCount === 1 ? 'salary' : 'salaries'}.
                   </span>
-                  <span>Failed to import {errorCount} employee salaries.</span>
+                  <span>
+                    Failed to import {errorCount} employee{' '}
+                    {errorCount === 1 ? 'salary' : 'salaries'}.
+                  </span>
                   <div className="flex flex-col gap-1">
                     {errors.map((error) => (
                       <span key={error}>{error}</span>
+                    ))}
+                    {logs.map((log) => (
+                      <span key={log}>{log}</span>
                     ))}
                   </div>
                 </>,
