@@ -70,7 +70,10 @@ const getEmployeeById = createUserFn({
             }
           : {}),
       },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        ...(isAdmin ? { priority: true, reviewed: true } : {}),
         feedback: {
           orderBy: {
             timestamp: 'desc',
@@ -517,13 +520,17 @@ function EmployeeOverview() {
             </span>
             <div className="text-sm text-gray-600 mt-1 flex gap-4">
               <span>Email: {employee.email}</span>
-              <span>Priority: {employee.priority}</span>
+              {employee.priority ? (
+                <span>Priority: {employee.priority}</span>
+              ) : null}
               {employee.deelEmployee?.topLevelManager?.name && (
                 <span>
                   Reviewer: {employee.deelEmployee.topLevelManager.name}
                 </span>
               )}
-              <span>Reviewed: {employee.reviewed ? 'Yes' : 'No'}</span>
+              {typeof employee.reviewed === 'boolean' ? (
+                <span>Reviewed: {employee.reviewed ? 'Yes' : 'No'}</span>
+              ) : null}
             </div>
           </div>
           <div className="flex gap-2 justify-end">
