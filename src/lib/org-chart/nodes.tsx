@@ -86,7 +86,9 @@ const EmployeeNode = memo(function EmployeeNode({
           <div className="flex-1 min-w-0">
             <div className="text-sm font-bold truncate">{name}</div>
             <div className="text-gray-500 text-xs truncate">{title}</div>
-            <div className="text-gray-400 text-xs truncate">{team}</div>
+            <div className="text-yellow-600 font-bold text-xs truncate">
+              {team}
+            </div>
             {childrenCount !== undefined &&
             (childrenCount.active > 0 ||
               childrenCount.pending > 0 ||
