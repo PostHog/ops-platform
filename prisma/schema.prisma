@@ -21,9 +21,9 @@ model Employee {
   salaries                   Salary[]
   deelEmployee               DeelEmployee?
   feedback                   Feedback[]
-  checkIn30DaysScheduled     Boolean        @default(true)
-  checkIn60DaysScheduled     Boolean        @default(true)
-  checkIn80DaysScheduled     Boolean        @default(true)
+  checkIn30DaysScheduled     Boolean
+  checkIn60DaysScheduled     Boolean
+  checkIn80DaysScheduled     Boolean
   proposedHires              ProposedHire[] @relation("manager")
   proposedHiresTalentPartner ProposedHire[] @relation("talentPartner")
 }

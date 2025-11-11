@@ -100,11 +100,19 @@ export const Route = createFileRoute('/syncDeelEmployees')({
         const deelEmployees = await fetchDeelEmployees()
 
         await prisma.employee.createMany({
-          data: deelEmployees.map(({ workEmail }) => ({
-            email: workEmail ?? '',
-            priority: 'low',
-            reviewed: false,
-          })),
+          data: deelEmployees
+            .filter(({ workEmail }) => workEmail)
+            .map(({ workEmail, startDate }) => ({
+              email: workEmail ?? '',
+              priority: 'low',
+              reviewed: false,
+              checkIn30DaysScheduled:
+                startDate < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+              checkIn60DaysScheduled:
+                startDate < new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+              checkIn80DaysScheduled:
+                startDate < new Date(Date.now() - 80 * 24 * 60 * 60 * 1000),
+            })),
           skipDuplicates: true,
         })
 
