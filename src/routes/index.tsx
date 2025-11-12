@@ -408,7 +408,11 @@ function App() {
           _,
           filterValue,
         ),
-      cell: ({ row }) => <div>{row.original.salaries[0].notes}</div>,
+      cell: ({ row }) => (
+        <div className="whitespace-pre-line">
+          {row.original.salaries[0].notes}
+        </div>
+      ),
     },
     {
       accessorKey: 'reviewed',

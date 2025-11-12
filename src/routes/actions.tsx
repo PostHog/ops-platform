@@ -164,7 +164,9 @@ function App() {
       {
         accessorKey: 'notes',
         header: 'Notes',
-        cell: ({ row }) => <div>{row.original.notes}</div>,
+        cell: ({ row }) => (
+          <div className="whitespace-pre-line">{row.original.notes}</div>
+        ),
       },
       {
         accessorKey: 'totalSalary',
