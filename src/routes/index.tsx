@@ -560,12 +560,20 @@ function App() {
                   <TableRow
                     key={row.id}
                     className="cursor-pointer hover:bg-gray-50"
-                    onClick={() =>
-                      router.navigate({
-                        to: '/employee/$employeeId',
-                        params: { employeeId: row.original.id },
-                      })
-                    }
+                    onClick={(e) => {
+                      const url = `/employee/${row.original.id}`
+                      if (e.metaKey || e.ctrlKey) {
+                        // Cmd/Ctrl+click: open in new tab
+                        e.preventDefault()
+                        window.open(url, '_blank')
+                      } else {
+                        // Regular click: navigate normally
+                        router.navigate({
+                          to: '/employee/$employeeId',
+                          params: { employeeId: row.original.id },
+                        })
+                      }
+                    }}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="py-1 px-1">
