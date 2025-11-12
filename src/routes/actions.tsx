@@ -169,13 +169,33 @@ function App() {
         ),
       },
       {
-        accessorKey: 'totalSalary',
-        header: 'Total Salary',
+        accessorKey: 'actualSalary',
+        header: 'Salary ($)',
         meta: {
           filterVariant: 'range',
         },
         cell: ({ row }) => (
-          <div>{formatCurrency(row.original.totalSalary)}</div>
+          <div>{formatCurrency(row.original.actualSalary)}</div>
+        ),
+      },
+      {
+        accessorKey: 'localCurrency',
+        header: 'Currency',
+        cell: ({ row }) => <div>{row.original.localCurrency}</div>,
+      },
+      {
+        accessorKey: 'actualSalaryLocal',
+        header: 'Salary (local)',
+        meta: {
+          filterVariant: 'range',
+        },
+        cell: ({ row }) => (
+          <div>
+            {new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: row.original.localCurrency,
+            }).format(row.original.actualSalaryLocal)}
+          </div>
         ),
       },
       {
@@ -265,7 +285,12 @@ function App() {
       salaries.map((salary) => ({
         name: salary.employee.deelEmployee?.name,
         notes: salary.notes,
-        totalSalary: salary.totalSalary,
+        salary: formatCurrency(salary.actualSalary),
+        currency: salary.localCurrency,
+        salaryLocal: new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: salary.localCurrency,
+        }).format(salary.actualSalaryLocal),
         changePercentage: salary.changePercentage,
         reviewer: salary.employee.deelEmployee?.topLevelManager?.name,
         communicated: salary.communicated ? 'Yes' : 'No',
