@@ -36,6 +36,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import prisma from '@/db'
 import {
   Select,
@@ -136,17 +138,37 @@ type Employee = Prisma.EmployeeGetPayload<{
 const getReferenceEmployees = createAuthenticatedFn({
   method: 'GET',
 })
-  .inputValidator((d: { level: number; step: number; benchmark: string }) => d)
+  .inputValidator(
+    (d: {
+      level: number
+      step: number
+      benchmark: string
+      filterByExec?: boolean
+      filterByTitle?: boolean
+      topLevelManagerId?: string | null
+    }) => d,
+  )
   .handler(async ({ data }) => {
-    const employees = await prisma.employee.findMany({
-      where: {
-        salaries: {
-          some: {
-            level: data.level,
-            benchmark: data.benchmark,
-          },
+    const whereClause: Prisma.EmployeeWhereInput = {
+      salaries: {
+        some: {
+          level: data.level,
+          ...(data.filterByTitle !== false
+            ? { benchmark: data.benchmark }
+            : {}),
         },
       },
+      ...(data.filterByExec && data.topLevelManagerId
+        ? {
+            deelEmployee: {
+              topLevelManagerId: data.topLevelManagerId,
+            },
+          }
+        : {}),
+    }
+
+    const employees = await prisma.employee.findMany({
+      where: whereClause,
       include: {
         salaries: {
           orderBy: {
@@ -165,7 +187,9 @@ const getReferenceEmployees = createAuthenticatedFn({
       .filter(
         (employee) =>
           employee.salaries[0]?.level === data.level &&
-          employee.salaries[0]?.benchmark === data.benchmark,
+          (data.filterByTitle !== false
+            ? employee.salaries[0]?.benchmark === data.benchmark
+            : true),
       )
       .map((employee) => ({
         id: employee.id,
@@ -235,6 +259,8 @@ function EmployeeOverview() {
   const [showOverrideMode, setShowOverrideMode] = useState(false)
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
   const [showDetailedColumns, setShowDetailedColumns] = useState(false)
+  const [filterByExec, setFilterByExec] = useState(false)
+  const [filterByTitle, setFilterByTitle] = useState(true)
 
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
@@ -248,10 +274,25 @@ function EmployeeOverview() {
   if (!employee) return null
 
   const { data: referenceEmployees } = useQuery({
-    queryKey: ['referenceEmployees', employee.id, level, step, benchmark],
+    queryKey: [
+      'referenceEmployees',
+      employee.id,
+      level,
+      step,
+      benchmark,
+      filterByExec,
+      filterByTitle,
+    ],
     queryFn: () =>
       getReferenceEmployees({
-        data: { level, step, benchmark },
+        data: {
+          level,
+          step,
+          benchmark,
+          filterByExec,
+          filterByTitle,
+          topLevelManagerId: employee.deelEmployee?.topLevelManagerId ?? null,
+        },
       }),
     enabled: !!level && !!step && !!benchmark && user?.role === ROLES.ADMIN,
   })
@@ -767,6 +808,28 @@ function EmployeeOverview() {
           <>
             <div className="flex flex-row gap-2 justify-between items-center mt-2">
               <span className="text-md font-bold">Reference employees</span>
+              <div className="flex gap-4 items-center">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="filter-by-exec"
+                    checked={filterByExec}
+                    onCheckedChange={setFilterByExec}
+                  />
+                  <Label htmlFor="filter-by-exec" className="text-sm">
+                    Filter by exec
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="filter-by-title"
+                    checked={filterByTitle}
+                    onCheckedChange={setFilterByTitle}
+                  />
+                  <Label htmlFor="filter-by-title" className="text-sm">
+                    Filter by title
+                  </Label>
+                </div>
+              </div>
             </div>
 
             <div className="w-full flex-grow">
