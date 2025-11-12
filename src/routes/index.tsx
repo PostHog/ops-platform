@@ -1,4 +1,4 @@
-import React from 'react'
+import { InputHTMLAttributes, useEffect, useState } from 'react'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import {
   flexRender,
@@ -22,6 +22,7 @@ import type {
   VisibilityState,
 } from '@tanstack/react-table'
 import type { Priority, Prisma } from '@prisma/client'
+import { useLocalStorage } from 'usehooks-ts'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -179,12 +180,12 @@ export const customFilterFns = {
 
 function App() {
   const router = useRouter()
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useLocalStorage<ColumnFiltersState>(
+    'employees.table',
     [],
   )
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [_, setReviewQueue] = useAtom(reviewQueueAtom)
 
   const getEmployeesFn = useServerFn(getEmployees)
@@ -682,14 +683,14 @@ function DebouncedInput({
   value: string | number
   onChange: (value: string | number) => void
   debounce?: number
-} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'>) {
-  const [value, setValue] = React.useState(initialValue)
+} & Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'>) {
+  const [value, setValue] = useState(initialValue)
 
-  React.useEffect(() => {
+  useEffect(() => {
     setValue(initialValue)
   }, [initialValue])
 
-  React.useEffect(() => {
+  useEffect(() => {
     const timeout = setTimeout(() => {
       onChange(value)
     }, debounce)
