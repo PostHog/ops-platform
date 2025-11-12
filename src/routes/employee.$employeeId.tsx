@@ -5,7 +5,7 @@ import { useForm, useStore } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import 'vercel-toast/dist/vercel-toast.css'
 import { createToast } from 'vercel-toast'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -197,10 +197,7 @@ const getReferenceEmployees = createAuthenticatedFn({
         level: employee.salaries[0]?.level,
         step: employee.salaries[0]?.step,
       }))
-      .sort(
-        (a, b) => Math.abs(data.step - a.step) - Math.abs(data.step - b.step),
-      )
-      .slice(0, 50)
+      .sort((a, b) => a.step - b.step)
   })
 
 export const updateSalary = createAuthenticatedFn({
@@ -294,8 +291,27 @@ function EmployeeOverview() {
           topLevelManagerId: employee.deelEmployee?.topLevelManagerId ?? null,
         },
       }),
+    placeholderData: (prev) => prev,
     enabled: !!level && !!step && !!benchmark && user?.role === ROLES.ADMIN,
   })
+
+  // Combine reference employees with current employee (using form values if available)
+  const combinedReferenceEmployees = useMemo(() => {
+    const refs = referenceEmployees ?? []
+    const currentEmployeeRef: ReferenceEmployee = {
+      id: employee.id,
+      name: employee.deelEmployee?.name ?? employee.email,
+      level: level,
+      step: step,
+    }
+
+    // Filter out current employee from refs if it exists, then add it back with updated values
+    const filteredRefs = refs.filter((ref) => ref.id !== employee.id)
+    const combined = [...filteredRefs, currentEmployeeRef]
+
+    // Sort by step
+    return combined.sort((a, b) => a.step - b.step)
+  }, [referenceEmployees, employee, level, step])
 
   const columns: Array<ColumnDef<Salary>> = useMemo(() => {
     const baseColumns: Array<ColumnDef<Salary>> = [
@@ -834,7 +850,8 @@ function EmployeeOverview() {
 
             <div className="w-full flex-grow">
               <ReferenceEmployeesTable
-                referenceEmployees={referenceEmployees ?? []}
+                referenceEmployees={combinedReferenceEmployees}
+                currentEmployee={employee}
               />
             </div>
           </>
@@ -1002,7 +1019,7 @@ function InlineSalaryFormRow({
     setLevel(level)
     setStep(step)
     setBenchmark(benchmark)
-  }, [level, step, benchmark])
+  }, [level, step, benchmark, setLevel, setStep, setBenchmark])
 
   useEffect(() => {
     form.reset(getDefaultValues())
@@ -1339,9 +1356,14 @@ type ReferenceEmployee = {
 
 function ReferenceEmployeesTable({
   referenceEmployees,
+  currentEmployee,
 }: {
   referenceEmployees: ReferenceEmployee[]
+  currentEmployee: Employee
 }) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const currentEmployeeRowRef = useRef<HTMLTableRowElement>(null)
+
   const columns: Array<ColumnDef<ReferenceEmployee>> = useMemo(
     () => [
       {
@@ -1372,8 +1394,25 @@ function ReferenceEmployeesTable({
     },
   })
 
+  useEffect(() => {
+    if (currentEmployeeRowRef.current && scrollContainerRef.current) {
+      // Use requestAnimationFrame to ensure the DOM has updated
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          currentEmployeeRowRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          })
+        })
+      })
+    }
+  }, [referenceEmployees, currentEmployee.id])
+
   return (
-    <div className="overflow-hidden max-h-[300px] overflow-y-auto rounded-md border">
+    <div
+      ref={scrollContainerRef}
+      className="overflow-hidden max-h-[300px] overflow-y-auto rounded-md border"
+    >
       <Table className="text-xs">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -1398,10 +1437,15 @@ function ReferenceEmployeesTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
+                ref={(el) => {
+                  if (currentEmployee.id === row.original.id) {
+                    currentEmployeeRowRef.current = el
+                  }
+                }}
                 onClick={() =>
                   window.open(`/employee/${row.original.id}`, '_blank')
                 }
-                className="cursor-pointer"
+                className={`cursor-pointer ${currentEmployee.id === row.original.id ? 'bg-blue-200 font-semibold' : ''}`}
                 data-state={row.getIsSelected() && 'selected'}
               >
                 {row.getVisibleCells().map((cell) => (
