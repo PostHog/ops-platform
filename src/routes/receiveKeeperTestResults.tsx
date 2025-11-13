@@ -77,18 +77,85 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
 
           const feedback =
             `### ${title} feedback from ${managerName}:\n` +
-            `- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${fieldData['keeper-test-question-1']?.selected_option.value}\n` +
-            `- **If yes, what is it specifically that makes them so valuable to your team and PostHog?** ${fieldData['keeper-test-question-1-text']?.value}\n` +
-            `- **Are they a driver or a passenger?** ${fieldData['keeper-test-question-2']?.selected_option.value}\n` +
-            `- **Do they get things done proactively, today?** ${fieldData['keeper-test-question-3']?.selected_option.value}\n` +
-            `- **Are they optimistic by default?** ${fieldData['keeper-test-question-4']?.selected_option.value}\n` +
-            `- **Areas to watch:** ${fieldData['keeper-test-question-4-text']?.value}\n` +
+            `- If this team member was leaving for a similar role at another company, would you try to keep them? ${fieldData['keeper-test-question-1']?.selected_option.value}\n` +
+            `- If yes, what is it specifically that makes them so valuable to your team and PostHog? ${fieldData['keeper-test-question-1-text']?.value}\n` +
+            `- Are they a driver or a passenger? ${fieldData['keeper-test-question-2']?.selected_option.value}\n` +
+            `- Do they get things done proactively, today? ${fieldData['keeper-test-question-3']?.selected_option.value}\n` +
+            `- Are they optimistic by default? ${fieldData['keeper-test-question-4']?.selected_option.value}\n` +
+            `- Areas to watch: ${fieldData['keeper-test-question-4-text']?.value}\n` +
             (['30 Day check-in', '60 Day check-in', '80 Day check-in'].includes(
               title,
             )
-              ? `- **Recommendation**: ${fieldData['keeper-test-question-5']?.selected_option.value}\n`
+              ? `- Recommendation: ${fieldData['keeper-test-question-5']?.selected_option.value}\n`
               : '') +
-            `- **Have you shared this feedback with your team member?** ${fieldData['keeper-test-question-6']?.selected_option.value}`
+            `- Have you shared this feedback with your team member? ${fieldData['keeper-test-question-6']?.selected_option.value}`
+
+          const deelManager = await prisma.deelEmployee.findUnique({
+            where: {
+              id: managerId,
+            },
+            select: {
+              id: true,
+              employee: {
+                select: {
+                  id: true,
+                },
+              },
+            },
+          })
+
+          if (!deelManager?.employee?.id) {
+            return new Response(
+              JSON.stringify({
+                success: false,
+                error: 'Manager not found',
+              }),
+              { status: 400 },
+            )
+          }
+
+          await prisma.keeperTestFeedback.create({
+            data: {
+              employeeId: employeeId,
+              managerId: deelManager?.employee?.id,
+              title: title,
+              wouldYouTryToKeepThem:
+                fieldData['keeper-test-question-1']?.selected_option.value ===
+                'yes',
+              whatMakesThemValuable:
+                fieldData['keeper-test-question-1-text']?.value,
+              driverOrPassenger:
+                fieldData['keeper-test-question-2']?.selected_option.value ===
+                'driver'
+                  ? 'DRIVER'
+                  : 'PASSENGER',
+              proactiveToday:
+                fieldData['keeper-test-question-3']?.selected_option.value ===
+                'yes',
+              optimisticByDefault:
+                fieldData['keeper-test-question-4']?.selected_option.value ===
+                'yes',
+              areasToWatch: fieldData['keeper-test-question-4-text']?.value,
+              recommendation:
+                fieldData['keeper-test-question-5']?.selected_option.value ===
+                'Strong Hire, on track to pass probation'
+                  ? 'STRONG_HIRE_ON_TRACK_TO_PASS_PROBATION'
+                  : fieldData['keeper-test-question-5']?.selected_option
+                        .value === 'Average Hire, need to see improvements'
+                    ? 'AVERAGE_HIRE_NEED_TO_SEE_IMPROVEMENTS'
+                    : fieldData['keeper-test-question-5']?.selected_option
+                          .value === 'Not a fit, needs escalating'
+                      ? 'NOT_A_FIT_NEEDS_ESCALATING'
+                      : null,
+              sharedWithTeamMember:
+                fieldData['keeper-test-question-6']?.selected_option.value ===
+                'yes',
+            },
+          })
+
+          await prisma.cyclotronJob.delete({
+            where: { id: jobId },
+          })
 
           await fetch(body.response_url, {
             method: 'POST',
@@ -100,51 +167,6 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
                 `Successfully submitted keeper test feedback for ${employeeEmail}\n\nSummary:\n\n` +
                 feedback,
             }),
-          })
-
-          await prisma.keeperTestFeedback.create({
-            data: {
-              employeeId: employeeId,
-              managerId: managerId,
-              title: title,
-              wouldYouTryToKeepThem:
-                fieldData['keeper-test-question-1']?.selected_option.value,
-              whatMakesThemValuable:
-                fieldData['keeper-test-question-1-text']?.value,
-              driverOrPassenger:
-                fieldData['keeper-test-question-2']?.selected_option.value ===
-                'Driver'
-                  ? 'DRIVER'
-                  : 'PASSENGER',
-              proactiveToday:
-                fieldData['keeper-test-question-3']?.selected_option.value ===
-                'Yes'
-                  ? true
-                  : false,
-              optimisticByDefault:
-                fieldData['keeper-test-question-4']?.selected_option.value ===
-                'Yes'
-                  ? true
-                  : false,
-              areasToWatch: fieldData['keeper-test-question-4-text']?.value,
-              recommendation:
-                fieldData['keeper-test-question-5']?.selected_option.value ===
-                'Strong Hire, on track to pass probation'
-                  ? 'STRONG_HIRE_ON_TRACK_TO_PASS_PROBATION'
-                  : fieldData['keeper-test-question-5']?.selected_option
-                        .value === 'Average Hire, need to see improvements'
-                    ? 'AVERAGE_HIRE_NEED_TO_SEE_IMPROVEMENTS'
-                    : 'NOT_A_FIT_NEEDS_ESCALATING',
-              sharedWithTeamMember:
-                fieldData['keeper-test-question-6']?.selected_option.value ===
-                'Yes'
-                  ? true
-                  : false,
-            },
-          })
-
-          await prisma.cyclotronJob.delete({
-            where: { id: jobId },
           })
         }
 
