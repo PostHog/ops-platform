@@ -928,11 +928,11 @@ function InlineSalaryFormRow({
 }) {
   const getDefaultValues = () => ({
     country: latestSalary?.country ?? 'United States',
-    area: latestSalary?.area ?? 'San Francisco Bay Area',
+    area: latestSalary?.area ?? 'San Francisco, California',
     locationFactor: latestSalary?.locationFactor ?? 0,
     level: latestSalary?.level ?? 1,
     step: latestSalary?.step ?? 1,
-    benchmark: latestSalary?.benchmark ?? 'Senior Software Engineer',
+    benchmark: latestSalary?.benchmark ?? 'Product Engineer',
     benchmarkFactor: latestSalary?.benchmarkFactor ?? 0,
     totalSalary: latestSalary?.totalSalary ?? 0,
     changePercentage: 0, // Always 0 for new entries
