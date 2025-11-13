@@ -595,7 +595,21 @@ function App() {
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    {isFetching ? 'Loading...' : 'No results.'}
+                    {isFetching ? (
+                      'Loading...'
+                    ) : (
+                      <div>
+                        <span>No results. </span>
+                        {columnFilters.some((filter) => filter) && (
+                          <span
+                            className="text-blue-500 cursor-pointer"
+                            onClick={() => setColumnFilters([])}
+                          >
+                            Clear filters
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
               )}
@@ -618,18 +632,38 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
         <DebouncedInput
           type="number"
           value={(columnFilterValue as [number, number])?.[0] ?? ''}
-          onChange={(value) =>
-            column.setFilterValue((old: [number, number]) => [value, old?.[1]])
-          }
+          onChange={(value) => {
+            const old = (columnFilterValue as [number, number]) ?? ['', '']
+            const newValue: [string | number, string | number] = [
+              value,
+              old?.[1] ?? '',
+            ]
+            // Remove filter if both values are empty
+            if (newValue[0] === '' && newValue[1] === '') {
+              column.setFilterValue(undefined)
+            } else {
+              column.setFilterValue(newValue)
+            }
+          }}
           placeholder={`Min`}
           className="w-16 border shadow rounded"
         />
         <DebouncedInput
           type="number"
           value={(columnFilterValue as [number, number])?.[1] ?? ''}
-          onChange={(value) =>
-            column.setFilterValue((old: [number, number]) => [old?.[0], value])
-          }
+          onChange={(value) => {
+            const old = (columnFilterValue as [number, number]) ?? ['', '']
+            const newValue: [string | number, string | number] = [
+              old?.[0] ?? '',
+              value,
+            ]
+            // Remove filter if both values are empty
+            if (newValue[0] === '' && newValue[1] === '') {
+              column.setFilterValue(undefined)
+            } else {
+              column.setFilterValue(newValue)
+            }
+          }}
           placeholder={`Max`}
           className="w-16 border shadow rounded"
         />
@@ -642,18 +676,38 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
         <DebouncedInput
           type="date"
           value={(columnFilterValue as [string, string])?.[0] ?? ''}
-          onChange={(value) =>
-            column.setFilterValue((old: [string, string]) => [value, old?.[1]])
-          }
+          onChange={(value) => {
+            const old = (columnFilterValue as [string, string]) ?? ['', '']
+            const newValue: [string, string] = [
+              value as string,
+              (old?.[1] ?? '') as string,
+            ]
+            // Remove filter if both values are empty
+            if (newValue[0] === '' && newValue[1] === '') {
+              column.setFilterValue(undefined)
+            } else {
+              column.setFilterValue(newValue)
+            }
+          }}
           placeholder={`Min`}
           className="w-24 border shadow rounded"
         />
         <DebouncedInput
           type="date"
           value={(columnFilterValue as [string, string])?.[1] ?? ''}
-          onChange={(value) =>
-            column.setFilterValue((old: [string, string]) => [old?.[0], value])
-          }
+          onChange={(value) => {
+            const old = (columnFilterValue as [string, string]) ?? ['', '']
+            const newValue: [string, string] = [
+              (old?.[0] ?? '') as string,
+              value as string,
+            ]
+            // Remove filter if both values are empty
+            if (newValue[0] === '' && newValue[1] === '') {
+              column.setFilterValue(undefined)
+            } else {
+              column.setFilterValue(newValue)
+            }
+          }}
           placeholder={`Max`}
           className="w-24 border shadow rounded"
         />
