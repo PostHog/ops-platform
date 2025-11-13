@@ -306,7 +306,9 @@ function EmployeeOverview() {
           topLevelManagerId: employee.deelEmployee?.topLevelManagerId ?? null,
         },
       }),
-    placeholderData: (prev) => prev,
+    placeholderData: (prevData, prevQuery) => {
+      if (prevQuery?.queryKey[1] === employee.id) return prevData
+    },
     enabled: !!level && !!step && !!benchmark && user?.role === ROLES.ADMIN,
   })
 
@@ -1439,9 +1441,24 @@ function ReferenceEmployeesTable({
       // Use requestAnimationFrame to ensure the DOM has updated
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          currentEmployeeRowRef.current?.scrollIntoView({
+          const row = currentEmployeeRowRef.current
+          const container = scrollContainerRef.current
+          if (!row || !container) return
+
+          // Calculate position relative to the scroll container
+          const containerRect = container.getBoundingClientRect()
+          const rowRect = row.getBoundingClientRect()
+          const rowOffsetTop =
+            rowRect.top - containerRect.top + container.scrollTop
+          const rowHeight = rowRect.height
+          const containerHeight = container.clientHeight
+
+          // Scroll to center the row in the container
+          const scrollTop = rowOffsetTop - containerHeight / 2 + rowHeight / 2
+
+          container.scrollTo({
+            top: scrollTop,
             behavior: 'smooth',
-            block: 'center',
           })
         })
       })
