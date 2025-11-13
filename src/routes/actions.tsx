@@ -524,7 +524,7 @@ function App() {
                   <code className="bg-muted px-1 py-0.5 rounded">
                     {'{changePercentage}'}
                   </code>{' '}
-                  - Change ($)
+                  - Change (%)
                 </div>
                 <div>
                   <code className="bg-muted px-1 py-0.5 rounded">
