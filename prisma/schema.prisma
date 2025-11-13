@@ -14,18 +14,19 @@ datasource db {
 }
 
 model Employee {
-  id                         String         @id @default(cuid())
-  priority                   Priority
-  reviewed                   Boolean
-  email                      String         @unique
-  salaries                   Salary[]
-  deelEmployee               DeelEmployee?
-  feedback                   Feedback[]
-  checkIn30DaysScheduled     Boolean
-  checkIn60DaysScheduled     Boolean
-  checkIn80DaysScheduled     Boolean
-  proposedHires              ProposedHire[] @relation("manager")
-  proposedHiresTalentPartner ProposedHire[] @relation("talentPartner")
+  id                          String               @id @default(cuid())
+  priority                    Priority
+  reviewed                    Boolean
+  email                       String               @unique
+  salaries                    Salary[]
+  deelEmployee                DeelEmployee?
+  keeperTestFeedback          KeeperTestFeedback[] @relation("employee")
+  checkIn30DaysScheduled      Boolean
+  checkIn60DaysScheduled      Boolean
+  checkIn80DaysScheduled      Boolean
+  proposedHires               ProposedHire[]       @relation("manager")
+  proposedHiresTalentPartner  ProposedHire[]       @relation("talentPartner")
+  keeperTestFeedbackSubmitted KeeperTestFeedback[] @relation("manager")
 }
 
 model DeelEmployee {
@@ -76,12 +77,33 @@ model Salary {
   employee             Employee @relation(fields: [employeeId], references: [id])
 }
 
-model Feedback {
-  id         String   @id @default(cuid())
-  employeeId String
-  employee   Employee @relation(fields: [employeeId], references: [id])
-  feedback   String
-  timestamp  DateTime @default(now())
+enum DriverOrPassenger {
+  DRIVER
+  PASSENGER
+}
+
+enum KeeperTestRecommendation {
+  STRONG_HIRE_ON_TRACK_TO_PASS_PROBATION
+  AVERAGE_HIRE_NEED_TO_SEE_IMPROVEMENTS
+  NOT_A_FIT_NEEDS_ESCALATING
+}
+
+model KeeperTestFeedback {
+  id                    String                    @id @default(cuid())
+  title                 String
+  employeeId            String
+  employee              Employee                  @relation("employee", fields: [employeeId], references: [id])
+  managerId             String
+  manager               Employee                  @relation("manager", fields: [managerId], references: [id])
+  wouldYouTryToKeepThem Boolean
+  whatMakesThemValuable String
+  driverOrPassenger     DriverOrPassenger
+  proactiveToday        Boolean
+  optimisticByDefault   Boolean
+  areasToWatch          String
+  recommendation        KeeperTestRecommendation?
+  sharedWithTeamMember  Boolean
+  timestamp             DateTime                  @default(now())
 }
 
 enum CyclotronQueueName {
