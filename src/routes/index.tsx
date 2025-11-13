@@ -409,7 +409,7 @@ function App() {
           filterValue,
         ),
       cell: ({ row }) => (
-        <div className="whitespace-pre-line">
+        <div className="whitespace-pre-line min-w-[200px]">
           {row.original.salaries[0].notes}
         </div>
       ),
