@@ -8,6 +8,7 @@ import {
 import { MoreHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
+import { useLocalStorage } from 'usehooks-ts'
 import { customFilterFns, Filter, months } from '.'
 import type { Prisma } from '@prisma/client'
 import type {
@@ -35,6 +36,15 @@ import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 
 type Salary = Prisma.SalaryGetPayload<{
   include: {
@@ -104,11 +114,46 @@ export const Route = createFileRoute('/actions')({
   loader: async () => await getUpdatedSalaries(),
 })
 
+const defaultTemplate = `Hey {name}! I just wanted to let you know that we're giving you a raise of {changePercentage}%, which works out to a {changeAmountLocal} increase for a total salary of {salaryLocal}. Thanks for the hard work you do for PostHog and let me konw if you have any questions!`
+
+function processTemplate(template: string, salary: Salary): string {
+  const name = salary.employee.deelEmployee?.name || ''
+  const changePercentage = (salary.changePercentage * 100).toFixed(2)
+  const changeAmount = formatCurrency(salary.changeAmount)
+  const changeAmountLocal = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: salary.localCurrency,
+  }).format(salary.changeAmount * salary.exchangeRate)
+  const actualSalary = formatCurrency(salary.actualSalary)
+  const actualSalaryLocal = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: salary.localCurrency,
+  }).format(salary.actualSalaryLocal)
+  const localCurrency = salary.localCurrency
+  const reviewer = salary.employee.deelEmployee?.topLevelManager?.name || ''
+
+  return template
+    .replace(/\{name\}/g, name)
+    .replace(/\{changePercentage\}/g, changePercentage)
+    .replace(/\{changeAmount\}/g, changeAmount)
+    .replace(/\{changeAmountLocal\}/g, changeAmountLocal)
+    .replace(/\{salary\}/g, actualSalary)
+    .replace(/\{salaryLocal\}/g, actualSalaryLocal)
+    .replace(/\{localCurrency\}/g, localCurrency)
+    .replace(/\{reviewer\}/g, reviewer)
+}
+
 function App() {
   const salaries: Array<Salary> = Route.useLoaderData()
   const router = useRouter()
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [template, setTemplate] = useLocalStorage<string>(
+    'actions-template-text',
+    defaultTemplate,
+  )
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
+  const [templateInput, setTemplateInput] = useState<string>(template)
 
   const handleMarkSelectedAsCommunicated = async () => {
     for (const id of Object.keys(rowSelection)) {
@@ -118,6 +163,11 @@ function App() {
     }
 
     router.invalidate()
+  }
+
+  const handleSaveTemplate = () => {
+    setTemplate(templateInput)
+    setIsTemplateDialogOpen(false)
   }
 
   const columns: Array<ColumnDef<Salary>> = useMemo(
@@ -165,7 +215,9 @@ function App() {
         accessorKey: 'notes',
         header: 'Notes',
         cell: ({ row }) => (
-          <div className="whitespace-pre-line">{row.original.notes}</div>
+          <div className="whitespace-pre-line min-w-[200px]">
+            {row.original.notes}
+          </div>
         ),
       },
       {
@@ -222,6 +274,21 @@ function App() {
         ),
       },
       {
+        accessorKey: 'templateText',
+        header: 'Template Text',
+        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
+          customFilterFns.containsText(
+            processTemplate(template, row.original),
+            _,
+            filterValue,
+          ),
+        cell: ({ row }) => (
+          <div className="whitespace-pre-line max-w-md min-w-[200px]">
+            {processTemplate(template, row.original)}
+          </div>
+        ),
+      },
+      {
         accessorKey: 'communicated',
         header: 'Communicated',
         meta: {
@@ -272,7 +339,7 @@ function App() {
         },
       },
     ],
-    [],
+    [template],
   )
 
   const handleExportAsCSV = () => {
@@ -332,6 +399,16 @@ function App() {
                 Mark selected as communicated
               </Button>
             ) : null}
+            <Button
+              variant="outline"
+              className="ml-auto"
+              onClick={() => {
+                setTemplateInput(template)
+                setIsTemplateDialogOpen(true)
+              }}
+            >
+              Edit template
+            </Button>
             <Button
               variant="outline"
               className="ml-auto"
@@ -397,6 +474,99 @@ function App() {
           </Table>
         </div>
       </div>
+      <Dialog
+        open={isTemplateDialogOpen}
+        onOpenChange={(open) => {
+          setIsTemplateDialogOpen(open)
+          if (!open) {
+            // Reset to current template when dialog closes without saving
+            setTemplateInput(template)
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="template">Template</Label>
+              <Textarea
+                id="template"
+                value={templateInput}
+                onChange={(e) => setTemplateInput(e.target.value)}
+                placeholder="Enter template text with placeholders..."
+                className="min-h-[200px] font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Available Placeholders</Label>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div>
+                  <code className="bg-muted px-1 py-0.5 rounded">
+                    {'{name}'}
+                  </code>{' '}
+                  - Employee name
+                </div>
+                <div>
+                  <code className="bg-muted px-1 py-0.5 rounded">
+                    {'{salary}'}
+                  </code>{' '}
+                  - Salary ($)
+                </div>
+                <div>
+                  <code className="bg-muted px-1 py-0.5 rounded">
+                    {'{salaryLocal}'}
+                  </code>{' '}
+                  - Salary (local)
+                </div>
+                <div>
+                  <code className="bg-muted px-1 py-0.5 rounded">
+                    {'{changePercentage}'}
+                  </code>{' '}
+                  - Change ($)
+                </div>
+                <div>
+                  <code className="bg-muted px-1 py-0.5 rounded">
+                    {'{changeAmount}'}
+                  </code>{' '}
+                  - Change ($)
+                </div>
+                <div>
+                  <code className="bg-muted px-1 py-0.5 rounded">
+                    {'{changeAmountLocal}'}
+                  </code>{' '}
+                  - Change (local)
+                </div>
+                <div>
+                  <code className="bg-muted px-1 py-0.5 rounded">
+                    {'{localCurrency}'}
+                  </code>{' '}
+                  - Currency
+                </div>
+                <div>
+                  <code className="bg-muted px-1 py-0.5 rounded">
+                    {'{reviewer}'}
+                  </code>{' '}
+                  - Reviewer
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setTemplateInput(template)
+                setIsTemplateDialogOpen(false)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveTemplate}>Save Template</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
