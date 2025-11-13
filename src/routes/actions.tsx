@@ -208,7 +208,10 @@ function App() {
             filterValue,
           ),
         cell: ({ row }) => (
-          <div>{row.original.employee.deelEmployee?.name}</div>
+          <div>
+            {row.original.employee.deelEmployee?.name ||
+              row.original.employee.email}
+          </div>
         ),
       },
       {
