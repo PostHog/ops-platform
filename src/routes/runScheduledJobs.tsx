@@ -337,7 +337,6 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   },
                 )
 
-                // @ts-ignore
                 const userBody = await userRes.json()
 
                 if (userRes.status !== 200) {
@@ -346,8 +345,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   )
                 }
 
-                // const slackUserId = userBody.user.id
-                const slackUserId = 'U05LD9R5P6E'
+                const slackUserId = userBody.user.id
 
                 const response = await fetch(
                   'https://slack.com/api/chat.postMessage',
@@ -358,7 +356,6 @@ export const Route = createFileRoute('/runScheduledJobs')({
                       'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                      // channel: slackUserId,
                       channel: slackUserId,
                       blocks: getSlackMessageBody(
                         employee.email,
@@ -420,7 +417,6 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   },
                 )
 
-                // @ts-ignore
                 const userBody = await userRes.json()
 
                 if (userRes.status !== 200) {
@@ -429,8 +425,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   )
                 }
 
-                // const slackUserId = userBody.user.id
-                const slackUserId = 'U05LD9R5P6E'
+                const slackUserId = userBody.user.id
 
                 const response = await fetch(
                   'https://slack.com/api/chat.postMessage',
