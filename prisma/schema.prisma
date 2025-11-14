@@ -50,6 +50,8 @@ enum Priority {
   low
   high
   medium
+  pushed_to_next_quarter
+  filled
 }
 
 model Salary {
@@ -207,5 +209,4 @@ model ProposedHire {
   hiringProfile  String
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @default(now()) @updatedAt
-  filled         Boolean
 }

@@ -75,7 +75,6 @@ const addProposedHire = createAuthenticatedFn({
               managerId: data.managerId,
               priority: data.priority,
               hiringProfile: data.hiringProfile,
-              filled: false,
               talentPartners: {
                 connect: data.talentPartnerIds.map((id) => ({ id })),
               },
@@ -194,7 +193,13 @@ function AddProposedHirePanel({
         talentPartnerIds: z
           .array(z.string())
           .min(1, 'You must select at least one talent partner'),
-        priority: z.enum(['low', 'medium', 'high']),
+        priority: z.enum([
+          'low',
+          'medium',
+          'high',
+          'pushed_to_next_quarter',
+          'filled',
+        ]),
         hiringProfile: z.string(),
         quantity: z.number().int().min(1, 'Quantity must be at least 1'),
       }),
@@ -389,6 +394,10 @@ function AddProposedHirePanel({
                       <SelectItem value="low">Low</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
                       <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="pushed_to_next_quarter">
+                        Pushed to Next Quarter
+                      </SelectItem>
+                      <SelectItem value="filled">Filled</SelectItem>
                     </SelectContent>
                   </Select>
                   <FieldInfo field={field} />
