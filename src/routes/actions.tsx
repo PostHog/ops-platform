@@ -321,8 +321,6 @@ function App() {
         id: 'actions',
         enableHiding: false,
         cell: ({ row }) => {
-          const { communicated, id } = row.original
-
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
