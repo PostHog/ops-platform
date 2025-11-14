@@ -301,7 +301,9 @@ export default function OrgChart() {
   // Update proposed hire nodes when proposedHires changes
   useEffect(() => {
     const validProposedHires = proposedHires.filter(
-      (ph) => ph.manager.deelEmployee,
+      (ph) =>
+        ph.manager.deelEmployee &&
+        ['low', 'medium', 'high'].includes(ph.priority),
     )
     const proposedHireMap = new Map(
       validProposedHires.map((ph) => [`employee-${ph.id}`, ph]),
@@ -324,7 +326,10 @@ export default function OrgChart() {
                 ...node.data,
                 title: proposedHire.title,
                 manager: proposedHire.manager.deelEmployee!.id,
-                hiringPriority: proposedHire.priority,
+                hiringPriority: proposedHire.priority as
+                  | 'low'
+                  | 'medium'
+                  | 'high',
                 hiringProfile: proposedHire.hiringProfile,
               },
             }
@@ -348,7 +353,7 @@ export default function OrgChart() {
                 title,
                 team: '',
                 manager: manager.deelEmployee!.id,
-                hiringPriority: priority,
+                hiringPriority: priority as 'low' | 'medium' | 'high',
                 hiringProfile,
                 expanded: false,
                 toggleExpanded: () => toggleExpanded(newNode),
