@@ -34,7 +34,7 @@ type ProposedHire = Prisma.ProposedHireGetPayload<{
         deelEmployee: true
       }
     }
-    talentPartner: {
+    talentPartners: {
       include: {
         deelEmployee: true
       }
@@ -83,7 +83,7 @@ export const getDeelEmployeesAndProposedHires = createOrgChartFn({
           deelEmployee: true,
         },
       },
-      talentPartner: {
+      talentPartners: {
         include: {
           deelEmployee: true,
         },

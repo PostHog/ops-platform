@@ -34,7 +34,7 @@ type ProposedHire = Prisma.ProposedHireGetPayload<{
         deelEmployee: true
       }
     }
-    talentPartner: {
+    talentPartners: {
       include: {
         deelEmployee: true
       }
@@ -89,8 +89,20 @@ function RouteComponent() {
       header: 'Title',
     },
     {
-      accessorKey: 'talentPartner.deelEmployee.name',
-      header: 'Talent Partner',
+      accessorKey: 'talentPartners',
+      header: 'Talent Partners',
+      cell: ({ row }) => {
+        const partners = row.original.talentPartners
+        return (
+          <div>
+            {partners.length > 0
+              ? partners
+                  .map((tp) => tp.deelEmployee?.name ?? tp.email)
+                  .join(', ')
+              : 'None'}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'manager.deelEmployee.name',

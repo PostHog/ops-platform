@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { AnyFieldApi, useForm } from '@tanstack/react-form'
 import { createToast } from 'vercel-toast'
 import {
@@ -43,7 +44,7 @@ type ProposedHire = Prisma.ProposedHireGetPayload<{
         deelEmployee: true
       }
     }
-    talentPartner: {
+    talentPartners: {
       include: {
         deelEmployee: true
       }
@@ -58,20 +59,38 @@ const addProposedHire = createAuthenticatedFn({
     (d: {
       title: string
       managerId: string
-      talentPartnerId: string
+      talentPartnerIds: string[]
       priority: Priority
       hiringProfile: string
+      quantity: number
     }) => d,
   )
   .handler(async ({ data }) => {
-    return await prisma.proposedHire.create({
-      data: {
-        title: data.title,
-        managerId: data.managerId,
-        talentPartnerId: data.talentPartnerId,
-        priority: data.priority,
-        hiringProfile: data.hiringProfile,
-      },
+    return await prisma.$transaction(async (tx) => {
+      return await Promise.all(
+        Array.from({ length: data.quantity }, () =>
+          tx.proposedHire.create({
+            data: {
+              title: data.title,
+              managerId: data.managerId,
+              priority: data.priority,
+              hiringProfile: data.hiringProfile,
+              filled: false,
+              talentPartners: {
+                connect: data.talentPartnerIds.map((id) => ({ id })),
+              },
+            },
+            include: {
+              manager: {
+                include: { deelEmployee: true },
+              },
+              talentPartners: {
+                include: { deelEmployee: true },
+              },
+            },
+          }),
+        ),
+      )
     })
   })
 
@@ -83,7 +102,7 @@ const updateProposedHire = createAuthenticatedFn({
       id: string
       title: string
       managerId: string
-      talentPartnerId: string
+      talentPartnerIds: string[]
       priority: Priority
       hiringProfile: string
     }) => d,
@@ -94,9 +113,23 @@ const updateProposedHire = createAuthenticatedFn({
       data: {
         title: data.title,
         managerId: data.managerId,
-        talentPartnerId: data.talentPartnerId,
         priority: data.priority,
         hiringProfile: data.hiringProfile,
+        talentPartners: {
+          set: data.talentPartnerIds.map((id) => ({ id })),
+        },
+      },
+      include: {
+        manager: {
+          include: {
+            deelEmployee: true,
+          },
+        },
+        talentPartners: {
+          include: {
+            deelEmployee: true,
+          },
+        },
       },
     })
   })
@@ -141,35 +174,45 @@ function AddProposedHirePanel({
       ? {
           title: proposedHire.title,
           managerId: proposedHire.manager.id,
-          talentPartnerId: proposedHire.talentPartner.id,
+          talentPartnerIds: proposedHire.talentPartners.map((tp) => tp.id),
           priority: proposedHire.priority,
           hiringProfile: proposedHire.hiringProfile,
+          quantity: 1,
         }
       : {
           title: '',
           managerId: null as string | null,
-          talentPartnerId: null as string | null,
+          talentPartnerIds: [] as string[],
           priority: 'medium' as Priority,
           hiringProfile: '',
+          quantity: 1,
         },
     validators: {
       onSubmit: z.object({
         title: z.string().min(1, 'You must enter a title'),
         managerId: z.string().min(1, 'You must select a manager'),
-        talentPartnerId: z.string().min(1, 'You must select a talent partner'),
+        talentPartnerIds: z
+          .array(z.string())
+          .min(1, 'You must select at least one talent partner'),
         priority: z.enum(['low', 'medium', 'high']),
         hiringProfile: z.string(),
+        quantity: z.number().int().min(1, 'Quantity must be at least 1'),
       }),
     },
     onSubmit: async ({ value }) => {
-      if (!value.managerId || !value.talentPartnerId) return
+      if (
+        !value.managerId ||
+        !value.talentPartnerIds ||
+        value.talentPartnerIds.length === 0
+      )
+        return
       editingExisting
         ? await updateProposedHire({
             data: {
               id: proposedHire.id,
               title: value.title,
               managerId: value.managerId,
-              talentPartnerId: value.talentPartnerId,
+              talentPartnerIds: value.talentPartnerIds,
               priority: value.priority,
               hiringProfile: value.hiringProfile,
             },
@@ -178,9 +221,10 @@ function AddProposedHirePanel({
             data: {
               title: value.title,
               managerId: value.managerId,
-              talentPartnerId: value.talentPartnerId,
+              talentPartnerIds: value.talentPartnerIds,
               priority: value.priority,
               hiringProfile: value.hiringProfile,
+              quantity: value.quantity,
             },
           })
       router.invalidate()
@@ -189,7 +233,7 @@ function AddProposedHirePanel({
       createToast(
         editingExisting
           ? 'Successfully updated proposed hire.'
-          : 'Successfully added proposed hire.',
+          : `Successfully added ${value.quantity} proposed hire${value.quantity > 1 ? 's' : ''}.`,
         {
           timeout: 3000,
         },
@@ -271,16 +315,58 @@ function AddProposedHirePanel({
               )}
             />
             <form.Field
-              name="talentPartnerId"
+              name="talentPartnerIds"
               children={(field) => (
                 <div className="grid gap-3 col-span-2">
-                  <Label htmlFor={field.name}>Talent Partner</Label>
-                  <OrgChartPanel
-                    employees={talentTeamEmployees}
-                    selectedNode={field.state.value}
-                    setSelectedNode={(value) => field.handleChange(value)}
-                    idValue="employeeId"
-                  />
+                  <Label htmlFor={field.name}>Talent Partners</Label>
+                  <div className="border rounded-md p-3 max-h-[200px] overflow-y-auto">
+                    {talentTeamEmployees.length === 0 ? (
+                      <div className="text-sm text-gray-500">
+                        No talent team employees found.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {talentTeamEmployees.map((employee) => {
+                          const employeeId = employee.employee?.id
+                          if (!employeeId) return null
+                          const isChecked =
+                            field.state.value.includes(employeeId)
+                          return (
+                            <div
+                              key={employeeId}
+                              className="flex items-center space-x-2"
+                            >
+                              <Checkbox
+                                id={`talent-partner-${employeeId}`}
+                                checked={isChecked}
+                                onCheckedChange={(checked) => {
+                                  const currentIds = field.state.value
+                                  if (checked) {
+                                    field.handleChange([
+                                      ...currentIds,
+                                      employeeId,
+                                    ])
+                                  } else {
+                                    field.handleChange(
+                                      currentIds.filter(
+                                        (id) => id !== employeeId,
+                                      ),
+                                    )
+                                  }
+                                }}
+                              />
+                              <Label
+                                htmlFor={`talent-partner-${employeeId}`}
+                                className="text-sm font-normal cursor-pointer"
+                              >
+                                {employee.name}
+                              </Label>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                   <FieldInfo field={field} />
                 </div>
               )}
@@ -324,6 +410,28 @@ function AddProposedHirePanel({
                 </div>
               )}
             />
+            {!editingExisting && (
+              <form.Field
+                name="quantity"
+                children={(field) => (
+                  <div className="grid gap-3 col-span-2">
+                    <Label htmlFor={field.name}>Quantity</Label>
+                    <Input
+                      name={field.name}
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) =>
+                        field.handleChange(Number(e.target.value))
+                      }
+                    />
+                    <FieldInfo field={field} />
+                  </div>
+                )}
+              />
+            )}
           </div>
           <DialogFooter className="flex flex-row !justify-between">
             <div className="flex flex-row gap-2">
@@ -357,7 +465,11 @@ function AddProposedHirePanel({
                   form.handleSubmit()
                 }}
               >
-                {editingExisting ? 'Save changes' : 'Add proposed hire'}
+                {editingExisting
+                  ? 'Save changes'
+                  : form.state.values.quantity > 1
+                    ? 'Add proposed hires'
+                    : 'Add proposed hire'}
               </Button>
             </div>
           </DialogFooter>
