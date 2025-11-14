@@ -51,9 +51,13 @@ export const fetchDeelEmployees = async () => {
         workEmail: employee.emails.find(
           (email: { type: string; value: string }) => email.type === 'work',
         )?.value,
-        team: employee[
-          'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
-        ].department,
+        team:
+          employee[
+            'urn:ietf:params:scim:schemas:extension:2.0:User'
+          ].organizationalStructures.filter(
+            (structure: { name: string }) =>
+              !['S&M', 'R&D/Tech', 'G&A'].includes(structure.name),
+          )[0]?.name ?? '',
         managerId:
           employee['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']
             .manager.value,
