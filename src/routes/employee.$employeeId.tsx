@@ -76,18 +76,22 @@ const getEmployeeById = createUserFn({
         id: true,
         email: true,
         ...(isAdmin ? { priority: true, reviewed: true } : {}),
-        keeperTestFeedback: {
-          orderBy: {
-            timestamp: 'desc',
-          },
-          include: {
-            manager: {
-              include: {
-                deelEmployee: true,
+        ...(isAdmin
+          ? {
+              keeperTestFeedback: {
+                orderBy: {
+                  timestamp: 'desc',
+                },
+                include: {
+                  manager: {
+                    include: {
+                      deelEmployee: true,
+                    },
+                  },
+                },
               },
-            },
-          },
-        },
+            }
+          : {}),
         salaries: {
           orderBy: {
             timestamp: 'desc',
@@ -629,82 +633,93 @@ function EmployeeOverview() {
           </div>
         </div>
 
-        <div className="flex flex-row gap-2 justify-between items-center mt-2">
-          <span className="text-md font-bold">Feedback</span>
-        </div>
+        {user?.role === ROLES.ADMIN ? (
+          <>
+            <div className="flex flex-row gap-2 justify-between items-center mt-2">
+              <span className="text-md font-bold">Feedback</span>
+            </div>
 
-        <div className="w-full flex-grow">
-          <div className="mb-4 p-4 border rounded-lg bg-gray-50 max-h-[300px] overflow-y-auto">
-            {employee.keeperTestFeedback.map(
-              ({
-                id,
-                title,
-                manager,
-                wouldYouTryToKeepThem,
-                whatMakesThemValuable,
-                driverOrPassenger,
-                proactiveToday,
-                optimisticByDefault,
-                areasToWatch,
-                recommendation,
-                sharedWithTeamMember,
-                timestamp,
-              }) => (
-                <div key={id} className="mb-4 p-4 border rounded-lg bg-gray-50">
-                  <span className="text-sm text-gray-500 w-full text-right list-disc">
-                    {new Date(timestamp).toLocaleDateString()}
-                  </span>
-                  <ReactMarkdown
-                    components={{
-                      h1: ({ children }) => (
-                        <h1 className="text-2xl font-bold">{children}</h1>
-                      ),
-                      h2: ({ children }) => (
-                        <h2 className="text-xl font-bold">{children}</h2>
-                      ),
-                      h3: ({ children }) => (
-                        <h3 className="text-lg font-bold">{children}</h3>
-                      ),
-                      h4: ({ children }) => (
-                        <h4 className="text-base font-bold">{children}</h4>
-                      ),
-                      h5: ({ children }) => (
-                        <h5 className="text-sm font-bold">{children}</h5>
-                      ),
-                      h6: ({ children }) => (
-                        <h6 className="text-xs font-bold">{children}</h6>
-                      ),
-                      ul: ({ children }) => (
-                        <ul className="list-disc list-inside">{children}</ul>
-                      ),
-                      ol: ({ children }) => (
-                        <ul className="list-decimal list-inside">{children}</ul>
-                      ),
-                    }}
-                  >
-                    {`### ${title} feedback from ${manager.deelEmployee?.name ?? manager.email}:\n` +
-                      `- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${wouldYouTryToKeepThem ? 'Yes' : 'No'}\n` +
-                      `- **What makes them so valuable to your team and PostHog?** ${whatMakesThemValuable}\n` +
-                      `- **Are they a driver or a passenger?** ${driverOrPassenger}\n` +
-                      `- **Do they get things done proactively, today?** ${proactiveToday ? 'Yes' : 'No'}\n` +
-                      `- **Are they optimistic by default?** ${optimisticByDefault ? 'Yes' : 'No'}\n` +
-                      `- **Areas to watch:** ${areasToWatch}\n` +
-                      (recommendation
-                        ? `- **Recommendation**: ${recommendation}\n`
-                        : '') +
-                      `- **Have you shared this feedback with your team member?** ${sharedWithTeamMember ? 'Yes' : 'No, but I will do right now!'}`}
-                  </ReactMarkdown>
-                </div>
-              ),
-            )}
+            <div className="w-full flex-grow">
+              <div className="mb-4 p-4 border rounded-lg bg-gray-50 max-h-[300px] overflow-y-auto">
+                {employee.keeperTestFeedback.map(
+                  ({
+                    id,
+                    title,
+                    manager,
+                    wouldYouTryToKeepThem,
+                    whatMakesThemValuable,
+                    driverOrPassenger,
+                    proactiveToday,
+                    optimisticByDefault,
+                    areasToWatch,
+                    recommendation,
+                    sharedWithTeamMember,
+                    timestamp,
+                  }) => (
+                    <div
+                      key={id}
+                      className="mb-4 p-4 border rounded-lg bg-gray-50"
+                    >
+                      <span className="text-sm text-gray-500 w-full text-right list-disc">
+                        {new Date(timestamp).toLocaleDateString()}
+                      </span>
+                      <ReactMarkdown
+                        components={{
+                          h1: ({ children }) => (
+                            <h1 className="text-2xl font-bold">{children}</h1>
+                          ),
+                          h2: ({ children }) => (
+                            <h2 className="text-xl font-bold">{children}</h2>
+                          ),
+                          h3: ({ children }) => (
+                            <h3 className="text-lg font-bold">{children}</h3>
+                          ),
+                          h4: ({ children }) => (
+                            <h4 className="text-base font-bold">{children}</h4>
+                          ),
+                          h5: ({ children }) => (
+                            <h5 className="text-sm font-bold">{children}</h5>
+                          ),
+                          h6: ({ children }) => (
+                            <h6 className="text-xs font-bold">{children}</h6>
+                          ),
+                          ul: ({ children }) => (
+                            <ul className="list-disc list-inside">
+                              {children}
+                            </ul>
+                          ),
+                          ol: ({ children }) => (
+                            <ul className="list-decimal list-inside">
+                              {children}
+                            </ul>
+                          ),
+                        }}
+                      >
+                        {`### ${title} feedback from ${manager.deelEmployee?.name ?? manager.email}:\n` +
+                          `- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${wouldYouTryToKeepThem ? 'Yes' : 'No'}\n` +
+                          `- **What makes them so valuable to your team and PostHog?** ${whatMakesThemValuable}\n` +
+                          `- **Are they a driver or a passenger?** ${driverOrPassenger}\n` +
+                          `- **Do they get things done proactively, today?** ${proactiveToday ? 'Yes' : 'No'}\n` +
+                          `- **Are they optimistic by default?** ${optimisticByDefault ? 'Yes' : 'No'}\n` +
+                          `- **Areas to watch:** ${areasToWatch}\n` +
+                          (recommendation
+                            ? `- **Recommendation**: ${recommendation}\n`
+                            : '') +
+                          `- **Have you shared this feedback with your team member?** ${sharedWithTeamMember ? 'Yes' : 'No, but I will do right now!'}`}
+                      </ReactMarkdown>
+                    </div>
+                  ),
+                )}
 
-            {employee.keeperTestFeedback.length === 0 && (
-              <div className="text-center text-sm text-gray-500">
-                No feedback yet.
+                {employee.keeperTestFeedback.length === 0 && (
+                  <div className="text-center text-sm text-gray-500">
+                    No feedback yet.
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          </>
+        ) : null}
 
         <div className="flex flex-row gap-2 justify-between items-center mt-2">
           <span className="text-md font-bold">Salary history</span>
