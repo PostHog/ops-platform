@@ -23,19 +23,28 @@ import { createOrgChartFn } from '@/lib/auth-middleware'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
-    employee: true
+    employee: {
+      select: {
+        id: true
+        email: true
+      }
+    }
   }
 }>
 
 type ProposedHire = Prisma.ProposedHireGetPayload<{
   include: {
     manager: {
-      include: {
+      select: {
+        id: true
+        email: true
         deelEmployee: true
       }
     }
     talentPartners: {
-      include: {
+      select: {
+        id: true
+        email: true
         deelEmployee: true
       }
     }
@@ -84,12 +93,16 @@ export const getDeelEmployeesAndProposedHires = createOrgChartFn({
   const proposedHires = await prisma.proposedHire.findMany({
     include: {
       manager: {
-        include: {
+        select: {
+          id: true,
+          email: true,
           deelEmployee: true,
         },
       },
       talentPartners: {
-        include: {
+        select: {
+          id: true,
+          email: true,
           deelEmployee: true,
         },
       },
