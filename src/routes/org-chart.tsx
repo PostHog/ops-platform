@@ -72,7 +72,12 @@ export const getDeelEmployeesAndProposedHires = createOrgChartFn({
 }).handler(async () => {
   const employees = await prisma.deelEmployee.findMany({
     include: {
-      employee: true,
+      employee: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
     },
   })
 
