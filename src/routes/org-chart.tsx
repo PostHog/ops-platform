@@ -295,9 +295,11 @@ export default function OrgChart() {
         nodes: [
           {
             id:
-              expanded || node.data.title === 'Cofounder'
+              node.data.title === 'Cofounder' && !expanded
                 ? node.id
-                : `leaf-container-employee-${node.data.manager}`,
+                : expanded
+                  ? `leaf-container-${node.id}`
+                  : `leaf-container-employee-${node.data.manager}`,
           },
         ],
         duration: 300,
