@@ -14,19 +14,19 @@ datasource db {
 }
 
 model Employee {
-  id                          String               @id @default(cuid())
-  priority                    Priority
-  reviewed                    Boolean
-  email                       String               @unique
-  salaries                    Salary[]
-  deelEmployee                DeelEmployee?
-  keeperTestFeedback          KeeperTestFeedback[] @relation("employee")
-  checkIn30DaysScheduled      Boolean
-  checkIn60DaysScheduled      Boolean
-  checkIn80DaysScheduled      Boolean
-  proposedHires               ProposedHire[]       @relation("manager")
-  proposedHiresTalentPartner  ProposedHire[]       @relation("talentPartner")
-  keeperTestFeedbackSubmitted KeeperTestFeedback[] @relation("manager")
+  id                           String               @id @default(cuid())
+  priority                     Priority
+  reviewed                     Boolean
+  email                        String               @unique
+  salaries                     Salary[]
+  deelEmployee                 DeelEmployee?
+  keeperTestFeedback           KeeperTestFeedback[] @relation("employee")
+  checkIn30DaysScheduled       Boolean
+  checkIn60DaysScheduled       Boolean
+  checkIn80DaysScheduled       Boolean
+  proposedHires                ProposedHire[]       @relation("manager")
+  proposedHiresAsTalentPartner ProposedHire[]
+  keeperTestFeedbackSubmitted  KeeperTestFeedback[] @relation("manager")
 }
 
 model DeelEmployee {
@@ -50,6 +50,8 @@ enum Priority {
   low
   high
   medium
+  pushed_to_next_quarter
+  filled
 }
 
 model Salary {
@@ -198,14 +200,13 @@ model Verification {
 }
 
 model ProposedHire {
-  id              String   @id @default(cuid())
-  title           String
-  managerId       String
-  manager         Employee @relation("manager", fields: [managerId], references: [id])
-  talentPartnerId String
-  talentPartner   Employee @relation("talentPartner", fields: [talentPartnerId], references: [id])
-  priority        Priority
-  hiringProfile   String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @default(now()) @updatedAt
+  id             String     @id @default(cuid())
+  title          String
+  managerId      String
+  manager        Employee   @relation("manager", fields: [managerId], references: [id])
+  talentPartners Employee[]
+  priority       Priority
+  hiringProfile  String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @default(now()) @updatedAt
 }

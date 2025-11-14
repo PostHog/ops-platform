@@ -1,4 +1,3 @@
-import React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import {
   ColumnDef,
@@ -11,6 +10,7 @@ import {
   RowData,
   ColumnFiltersState,
   SortingState,
+  Row,
 } from '@tanstack/react-table'
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -23,9 +23,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Filter } from '.'
+import { customFilterFns, Filter } from '.'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
+import { useLocalStorage } from 'usehooks-ts'
 
 type ProposedHire = Prisma.ProposedHireGetPayload<{
   include: {
@@ -34,7 +35,7 @@ type ProposedHire = Prisma.ProposedHireGetPayload<{
         deelEmployee: true
       }
     }
-    talentPartner: {
+    talentPartners: {
       include: {
         deelEmployee: true
       }
@@ -66,15 +67,19 @@ function handleSortToggle(column: Column<any, unknown>) {
 }
 
 function RouteComponent() {
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+  const [columnFilters, setColumnFilters] = useLocalStorage<ColumnFiltersState>(
+    'proposed-hires.table.columnFilters',
     [],
   )
-  const [sorting, setSorting] = React.useState<SortingState>([
-    {
-      id: 'priority',
-      desc: false,
-    },
-  ])
+  const [sorting, setSorting] = useLocalStorage<SortingState>(
+    'proposed-hires.table.sorting',
+    [
+      {
+        id: 'priority',
+        desc: false,
+      },
+    ],
+  )
 
   const { data, isLoading } = useQuery({
     queryKey: ['proposedHires'],
@@ -89,8 +94,28 @@ function RouteComponent() {
       header: 'Title',
     },
     {
-      accessorKey: 'talentPartner.deelEmployee.name',
-      header: 'Talent Partner',
+      accessorKey: 'talentPartners',
+      header: 'Talent Partners',
+      filterFn: (row: Row<ProposedHire>, _: string, filterValue: string) =>
+        row.original.talentPartners.some((tp) =>
+          customFilterFns.containsText(
+            tp.deelEmployee?.name ?? '',
+            _,
+            filterValue,
+          ),
+        ),
+      cell: ({ row }) => {
+        const partners = row.original.talentPartners
+        return (
+          <div>
+            {partners.length > 0
+              ? partners
+                  .map((tp) => tp.deelEmployee?.name ?? tp.email)
+                  .join(', ')
+              : 'None'}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'manager.deelEmployee.name',
@@ -103,10 +128,30 @@ function RouteComponent() {
     {
       accessorKey: 'priority',
       header: 'Priority',
+      sortingFn: (rowA, rowB) => {
+        const priorityOrder = [
+          'high',
+          'medium',
+          'low',
+          'filled',
+          'pushed_to_next_quarter',
+        ]
+        return (
+          priorityOrder.indexOf(rowA.original.priority) -
+          priorityOrder.indexOf(rowB.original.priority)
+        )
+      },
     },
     {
       accessorKey: 'hiringProfile',
       header: 'Hiring Profile',
+      cell: ({ row }) => {
+        return (
+          <div className="whitespace-pre-line min-w-[200px]">
+            {row.original.hiringProfile}
+          </div>
+        )
+      },
     },
     {
       id: 'actions',

@@ -18,7 +18,7 @@ type ProposedHire = Prisma.ProposedHireGetPayload<{
         deelEmployee: true
       }
     }
-    talentPartner: {
+    talentPartners: {
       include: {
         deelEmployee: true
       }
