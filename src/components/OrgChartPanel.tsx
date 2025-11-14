@@ -19,7 +19,12 @@ import type { Prisma } from '@prisma/client'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
-    employee: true
+    employee: {
+      select: {
+        id: true
+        email: true
+      }
+    }
   }
 }>
 

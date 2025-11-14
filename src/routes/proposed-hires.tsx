@@ -31,12 +31,16 @@ import { useLocalStorage } from 'usehooks-ts'
 type ProposedHire = Prisma.ProposedHireGetPayload<{
   include: {
     manager: {
-      include: {
+      select: {
+        id: true
+        email: true
         deelEmployee: true
       }
     }
     talentPartners: {
-      include: {
+      select: {
+        id: true
+        email: true
         deelEmployee: true
       }
     }

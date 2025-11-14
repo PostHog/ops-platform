@@ -7,19 +7,28 @@ import { useSession } from '@/lib/auth-client'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
-    employee: true
+    employee: {
+      select: {
+        id: true
+        email: true
+      }
+    }
   }
 }>
 
 type ProposedHire = Prisma.ProposedHireGetPayload<{
   include: {
     manager: {
-      include: {
+      select: {
+        id: true
+        email: true
         deelEmployee: true
       }
     }
     talentPartners: {
-      include: {
+      select: {
+        id: true
+        email: true
         deelEmployee: true
       }
     }
