@@ -115,7 +115,7 @@ export const Route = createFileRoute('/actions')({
   loader: async () => await getUpdatedSalaries(),
 })
 
-const defaultTemplate = `Hey {firstName}! I just wanted to let you know that we're giving you a raise of {changePercentage}%, which works out to a {changeAmountLocal} increase for a total salary of {salaryLocal}. Thanks for the hard work you do for PostHog and let me konw if you have any questions!`
+const defaultTemplate = `Hey {firstName}! I just wanted to let you know that we're giving you a raise of {changePercentage}%, which works out to a {changeAmountLocal} increase for a total salary of {salaryLocal}. Thanks for the hard work you do for PostHog, and let me know if you have any questions!`
 
 function processTemplate(template: string, salary: Salary): string {
   const name = salary.employee.deelEmployee?.name || ''
