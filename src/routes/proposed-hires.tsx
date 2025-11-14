@@ -115,10 +115,30 @@ function RouteComponent() {
     {
       accessorKey: 'priority',
       header: 'Priority',
+      sortingFn: (rowA, rowB) => {
+        const priorityOrder = [
+          'high',
+          'medium',
+          'low',
+          'filled',
+          'pushed_to_next_quarter',
+        ]
+        return (
+          priorityOrder.indexOf(rowA.original.priority) -
+          priorityOrder.indexOf(rowB.original.priority)
+        )
+      },
     },
     {
       accessorKey: 'hiringProfile',
       header: 'Hiring Profile',
+      cell: ({ row }) => {
+        return (
+          <div className="whitespace-pre-line min-w-[200px]">
+            {row.original.hiringProfile}
+          </div>
+        )
+      },
     },
     {
       id: 'actions',
