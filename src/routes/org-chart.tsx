@@ -89,6 +89,9 @@ export const getDeelEmployeesAndProposedHires = createOrgChartFn({
         },
       },
     },
+    orderBy: {
+      createdAt: 'asc',
+    },
   })
 
   return { employees, proposedHires }
