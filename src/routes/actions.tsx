@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { createToast } from 'vercel-toast'
 
 type Salary = Prisma.SalaryGetPayload<{
   include: {
@@ -114,10 +115,11 @@ export const Route = createFileRoute('/actions')({
   loader: async () => await getUpdatedSalaries(),
 })
 
-const defaultTemplate = `Hey {name}! I just wanted to let you know that we're giving you a raise of {changePercentage}%, which works out to a {changeAmountLocal} increase for a total salary of {salaryLocal}. Thanks for the hard work you do for PostHog and let me konw if you have any questions!`
+const defaultTemplate = `Hey {firstName}! I just wanted to let you know that we're giving you a raise of {changePercentage}%, which works out to a {changeAmountLocal} increase for a total salary of {salaryLocal}. Thanks for the hard work you do for PostHog and let me konw if you have any questions!`
 
 function processTemplate(template: string, salary: Salary): string {
   const name = salary.employee.deelEmployee?.name || ''
+  const firstName = salary.employee.deelEmployee?.name?.split(' ')[0] || ''
   const changePercentage = (salary.changePercentage * 100).toFixed(2)
   const changeAmount = formatCurrency(salary.changeAmount)
   const changeAmountLocal = new Intl.NumberFormat('en-US', {
@@ -134,6 +136,7 @@ function processTemplate(template: string, salary: Salary): string {
 
   return template
     .replace(/\{name\}/g, name)
+    .replace(/\{firstName\}/g, firstName)
     .replace(/\{changePercentage\}/g, changePercentage)
     .replace(/\{changeAmount\}/g, changeAmount)
     .replace(/\{changeAmountLocal\}/g, changeAmountLocal)
@@ -277,21 +280,6 @@ function App() {
         ),
       },
       {
-        accessorKey: 'templateText',
-        header: 'Template Text',
-        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
-          customFilterFns.containsText(
-            processTemplate(template, row.original),
-            _,
-            filterValue,
-          ),
-        cell: ({ row }) => (
-          <div className="whitespace-pre-line max-w-md min-w-[200px]">
-            {processTemplate(template, row.original)}
-          </div>
-        ),
-      },
-      {
         accessorKey: 'communicated',
         header: 'Communicated',
         meta: {
@@ -308,7 +296,25 @@ function App() {
             filterValue,
           ),
         cell: ({ row }) => (
-          <div>{row.original.communicated ? 'Yes' : 'No'}</div>
+          <div>
+            <span>{row.original.communicated ? 'Yes' : 'No'}</span>
+            <Button
+              variant="outline"
+              className="ml-2"
+              size="sm"
+              onClick={async () => {
+                await updateCommunicated({
+                  data: {
+                    id: row.original.id,
+                    communicated: !row.original.communicated,
+                  },
+                })
+                router.invalidate()
+              }}
+            >
+              Toggle
+            </Button>
+          </div>
         ),
       },
       {
@@ -327,14 +333,16 @@ function App() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  onClick={async () => {
-                    await updateCommunicated({
-                      data: { id, communicated: !communicated },
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      processTemplate(template, row.original),
+                    )
+                    createToast('Template text copied to clipboard', {
+                      timeout: 3000,
                     })
-                    router.invalidate()
                   }}
                 >
-                  Toggle communicated
+                  Copy template text
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -505,6 +513,12 @@ function App() {
             <div className="space-y-2">
               <Label>Available Placeholders</Label>
               <div className="text-sm text-muted-foreground space-y-1">
+                <div>
+                  <code className="bg-muted px-1 py-0.5 rounded">
+                    {'{firstName}'}
+                  </code>{' '}
+                  - Employee first name
+                </div>
                 <div>
                   <code className="bg-muted px-1 py-0.5 rounded">
                     {'{name}'}
