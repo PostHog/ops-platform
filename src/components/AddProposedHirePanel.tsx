@@ -28,7 +28,7 @@ import { useMemo, useState } from 'react'
 import { z } from 'zod'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { createOrgChartFn } from '@/lib/auth-middleware'
 import { Pencil } from 'lucide-react'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
@@ -52,7 +52,7 @@ type ProposedHire = Prisma.ProposedHireGetPayload<{
   }
 }>
 
-const addProposedHire = createAuthenticatedFn({
+const addProposedHire = createOrgChartFn({
   method: 'POST',
 })
   .inputValidator(
@@ -93,7 +93,7 @@ const addProposedHire = createAuthenticatedFn({
     })
   })
 
-const updateProposedHire = createAuthenticatedFn({
+const updateProposedHire = createOrgChartFn({
   method: 'POST',
 })
   .inputValidator(
@@ -133,7 +133,7 @@ const updateProposedHire = createAuthenticatedFn({
     })
   })
 
-const deleteProposedHire = createAuthenticatedFn({
+const deleteProposedHire = createOrgChartFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string }) => d)
