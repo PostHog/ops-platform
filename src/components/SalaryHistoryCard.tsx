@@ -6,9 +6,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { formatCurrency } from '@/lib/utils'
-import { months } from '@/routes'
 import { MoreVertical, Trash2 } from 'lucide-react'
 import type { Salary } from '@prisma/client'
+import { TimelineItemBadge } from './TimelineItemBadge'
 
 interface SalaryHistoryCardProps {
   salary: Salary
@@ -22,23 +22,11 @@ export function SalaryHistoryCard({
   onDelete,
 }: SalaryHistoryCardProps) {
   const date = new Date(salary.timestamp)
-  const timeAgo = (() => {
-    const now = new Date()
-    const diffMonths =
-      (now.getFullYear() - date.getFullYear()) * 12 +
-      (now.getMonth() - date.getMonth())
-
-    if (diffMonths === 0) return 'This month'
-    if (diffMonths === 1) return '1 month ago'
-    if (diffMonths < 12) return `${diffMonths} months ago`
-
-    const years = Math.floor(diffMonths / 12)
-    const remainingMonths = diffMonths % 12
-    if (remainingMonths === 0) {
-      return years === 1 ? '1 year ago' : `${years} years ago`
-    }
-    return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} ago`
-  })()
+  const formattedDate = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 
   const expectedTotal =
     salary.locationFactor * salary.level * salary.step * salary.benchmarkFactor
@@ -50,58 +38,13 @@ export function SalaryHistoryCard({
 
   return (
     <div className="bg-white max-w-3xl">
-      <div className="flex items-center mb-2">
-        <h3 className="text-lg font-bold">
-          {months[date.getMonth()]} {date.getFullYear()}
-        </h3>
-        <span className="mx-2">·</span>
-        <p className="text-sm text-gray-500">{timeAgo.toLocaleLowerCase()}</p>
-      </div>
-      <div className="border rounded-lg p-6 ml-8">
-        <div className="flex justify-between">
-          {/* total salary */}
-          <div className="mb-4">
-            <div
-              className={`font-semibold mb-1 ${isMismatch ? 'text-red-600' : ''}`}
-              title={
-                isMismatch
-                  ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(salary.totalSalary)}`
-                  : ''
-              }
-            >
-              {formatCurrency(salary.totalSalary)}
-            </div>
-            {/* salary change */}
-            <div className="flex items-center gap-2 text-lg">
-              <span
-                className={`font-bold ${salary.changePercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}
-              >
-                {salary.changePercentage >= 0 ? '+' : ''}
-                {(salary.changePercentage * 100).toFixed(2)}%
-              </span>
-              <span className="text-gray-400">·</span>
-              <span className="text-gray-700">
-                {formatCurrency(salary.changeAmount)}
-              </span>
-            </div>
-          </div>
-          {/* level / step */}
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex gap-2">
-              <div className="flex justify-end gap-2">
-                <div>
-                  <div className="text-2xl font-bold">
-                    {salary.level}.{Math.floor((salary.step - 1) / 3)}
-                  </div>
-                  <div className="text-xs text-gray-500 text-center">level</div>
-                </div>
-                <div className="text-2xl text-gray-300">/</div>
-                <div>
-                  <div className="text-2xl font-bold">{salary.step}</div>
-                  <div className="text-xs text-gray-500 text-center">step</div>
-                </div>
-              </div>
-              {isAdmin && isDeletable && onDelete && (
+      <div className="border rounded-lg p-4">
+        <div className="flex justify-between items-start mb-2">
+          <TimelineItemBadge type="salary" />
+          <div className="flex">
+            <p className="text-xs text-gray-500">{formattedDate}</p>
+            {isAdmin && isDeletable && onDelete && (
+              <div className="-mt-2 -mr-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -122,13 +65,62 @@ export function SalaryHistoryCard({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              )}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex justify-between mb-2">
+          <div>
+            {/* salary change */}
+            <div className="flex items-center gap-2 text-xl">
+              <span
+                className={`font-bold ${salary.changePercentage > 0 ? 'text-green-600' : salary.changePercentage < 0 ? 'text-red-600' : ''}`}
+              >
+                {salary.changePercentage >= 0 ? '+' : ''}
+                {(salary.changePercentage * 100).toFixed(2)}%
+              </span>
+              <span className="text-gray-400">·</span>
+              <span className="text-gray-700">
+                {formatCurrency(salary.changeAmount)}
+              </span>
+            </div>
+            {/* total salary */}
+            <div
+              className={`font-semibold mb-1 ${isMismatch ? 'text-red-600' : ''}`}
+              title={
+                isMismatch
+                  ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(salary.totalSalary)}`
+                  : ''
+              }
+            >
+              {formatCurrency(salary.totalSalary)}{' '}
+              <span className="font-normal text-sm text-gray-600">
+                total salary
+              </span>
+            </div>
+          </div>
+          {/* level / step */}
+          <div className="flex justify-between items-start">
+            <div className="flex gap-2">
+              <div className="flex justify-end gap-2">
+                <div>
+                  <div className="text-2xl font-bold">
+                    {salary.level}.{Math.floor((salary.step - 1) / 3)}
+                  </div>
+                  <div className="text-xs text-gray-500 text-center">level</div>
+                </div>
+                <div className="text-2xl text-gray-300">/</div>
+                <div>
+                  <div className="text-2xl font-bold">{salary.step}</div>
+                  <div className="text-xs text-gray-500 text-center">step</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="mb-4 flex">
-          <div className="text-sm font-semibold mb-1">
+        <div className="mb-2 flex">
+          <div className="text-sm font-semibold">
             {salary.benchmark} ({salary.benchmarkFactor})
           </div>
           <div className="text-sm text-gray-600 ml-1">

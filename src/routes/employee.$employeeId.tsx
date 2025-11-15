@@ -20,6 +20,7 @@ import type { AnyFormApi } from '@tanstack/react-form'
 import { reviewQueueAtom } from '@/atoms'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
+import { FeedbackCard } from '@/components/FeedbackCard'
 import {
   currencyData,
   formatCurrency,
@@ -352,6 +353,53 @@ function EmployeeOverview() {
     // Sort by step
     return combined.sort((a, b) => a.step - b.step)
   }, [referenceEmployees, employee, level, step])
+
+  // Combine and sort salary history with feedback, grouped by month
+  const timelineByMonth = useMemo(() => {
+    const salaryItems = employee.salaries.map((salary) => ({
+      type: 'salary' as const,
+      timestamp: salary.timestamp,
+      data: salary,
+    }))
+
+    const feedbackItems = (employee.keeperTestFeedback || []).map(
+      (feedback) => ({
+        type: 'feedback' as const,
+        timestamp: feedback.timestamp,
+        data: feedback,
+      }),
+    )
+
+    const allItems = [...salaryItems, ...feedbackItems].sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+    )
+
+    // Group items by month/year
+    const grouped = new Map<
+      string,
+      {
+        month: number
+        year: number
+        items: typeof allItems
+      }
+    >()
+
+    allItems.forEach((item) => {
+      const date = new Date(item.timestamp)
+      const key = `${date.getFullYear()}-${date.getMonth()}`
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          month: date.getMonth(),
+          year: date.getFullYear(),
+          items: [],
+        })
+      }
+      grouped.get(key)!.items.push(item)
+    })
+
+    return Array.from(grouped.values())
+  }, [employee.salaries, employee.keeperTestFeedback])
 
   const columns: Array<ColumnDef<Salary>> = useMemo(() => {
     const baseColumns: Array<ColumnDef<Salary>> = [
@@ -897,19 +945,59 @@ function EmployeeOverview() {
               </Table>
             </div>
           ) : (
-            <div className="space-y-6">
-              {employee.salaries.length > 0 ? (
-                employee.salaries.map((salary) => (
-                  <SalaryHistoryCard
-                    key={salary.id}
-                    salary={salary}
-                    isAdmin={user?.role === ROLES.ADMIN}
-                    onDelete={handleDeleteSalary}
-                  />
+            <div className="space-y-8">
+              {timelineByMonth.length > 0 ? (
+                timelineByMonth.map((monthGroup) => (
+                  <div key={`${monthGroup.year}-${monthGroup.month}`}>
+                    <div className="flex items-center mb-4">
+                      <h3 className="text-lg font-bold">
+                        {months[monthGroup.month]} {monthGroup.year}
+                      </h3>
+                      <span className="mx-2">·</span>
+                      <p className="text-sm text-gray-500">
+                        {(() => {
+                          const now = new Date()
+                          const diffMonths =
+                            (now.getFullYear() - monthGroup.year) * 12 +
+                            (now.getMonth() - monthGroup.month)
+
+                          if (diffMonths === 0) return 'this month'
+                          if (diffMonths === 1) return '1 month ago'
+                          if (diffMonths < 12) return `${diffMonths} months ago`
+
+                          const years = Math.floor(diffMonths / 12)
+                          const remainingMonths = diffMonths % 12
+                          if (remainingMonths === 0) {
+                            return years === 1
+                              ? '1 year ago'
+                              : `${years} years ago`
+                          }
+                          return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} ago`
+                        })()}
+                      </p>
+                    </div>
+                    <div className="space-y-4 ml-8">
+                      {monthGroup.items.map((item) =>
+                        item.type === 'salary' ? (
+                          <SalaryHistoryCard
+                            key={`salary-${item.data.id}`}
+                            salary={item.data}
+                            isAdmin={user?.role === ROLES.ADMIN}
+                            onDelete={handleDeleteSalary}
+                          />
+                        ) : (
+                          <FeedbackCard
+                            key={`feedback-${item.data.id}`}
+                            feedback={item.data}
+                          />
+                        ),
+                      )}
+                    </div>
+                  </div>
                 ))
               ) : (
                 <div className="text-center py-12 text-gray-500">
-                  No salary history available.
+                  No history available.
                 </div>
               )}
             </div>
