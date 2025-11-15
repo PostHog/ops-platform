@@ -13,7 +13,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createToast } from 'vercel-toast'
 import { useAtom } from 'jotai'
 import { useLocalStorage } from 'usehooks-ts'
-import type { InputHTMLAttributes} from 'react';
+import type { InputHTMLAttributes } from 'react'
 import type {
   Column,
   ColumnDef,
@@ -726,10 +726,7 @@ function FilterContent({ column }: { column: Column<any, unknown> }) {
           value={(columnFilterValue as [string, string])?.[0] ?? ''}
           onChange={(value) => {
             const old = (columnFilterValue as [string, string]) ?? ['', '']
-            const newValue: [string, string] = [
-              value as string,
-              (old?.[1] ?? ''),
-            ]
+            const newValue: [string, string] = [value as string, old?.[1] ?? '']
             if (newValue[0] === '' && newValue[1] === '') {
               column.setFilterValue(undefined)
             } else {
@@ -744,10 +741,7 @@ function FilterContent({ column }: { column: Column<any, unknown> }) {
           value={(columnFilterValue as [string, string])?.[1] ?? ''}
           onChange={(value) => {
             const old = (columnFilterValue as [string, string]) ?? ['', '']
-            const newValue: [string, string] = [
-              (old?.[0] ?? ''),
-              value as string,
-            ]
+            const newValue: [string, string] = [old?.[0] ?? '', value as string]
             if (newValue[0] === '' && newValue[1] === '') {
               column.setFilterValue(undefined)
             } else {
