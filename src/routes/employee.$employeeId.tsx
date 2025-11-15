@@ -1,19 +1,20 @@
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import ReactMarkdown from 'react-markdown'
 import { useForm, useStore } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import 'vercel-toast/dist/vercel-toast.css'
-import { createToast } from 'vercel-toast'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useAtom } from 'jotai'
+import { AlertCircle, ArrowLeft, Trash2 } from 'lucide-react'
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { AlertCircle, Trash2 } from 'lucide-react'
-import { useAtom } from 'jotai'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createToast } from 'vercel-toast'
+import { useQuery } from '@tanstack/react-query'
 import { months } from '.'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import 'vercel-toast/dist/vercel-toast.css'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { Prisma, Salary } from '@prisma/client'
 import type { AnyFormApi } from '@tanstack/react-form'
@@ -21,6 +22,7 @@ import { reviewQueueAtom } from '@/atoms'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
 import { FeedbackCard } from '@/components/FeedbackCard'
+import { SalaryEntryForm } from '@/components/SalaryEntryForm'
 import {
   currencyData,
   formatCurrency,
@@ -48,7 +50,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useQuery } from '@tanstack/react-query'
 import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
@@ -506,7 +507,7 @@ function EmployeeOverview() {
                 </div>
               ),
             },
-          ] as ColumnDef<Salary>[])
+          ] as Array<ColumnDef<Salary>>)
         : []),
       {
         id: 'actions',
@@ -635,12 +636,23 @@ function EmployeeOverview() {
 
   const benchmarkUpdated =
     employee.salaries[0] &&
-    sfBenchmark[employee.salaries[0]?.benchmark as keyof typeof sfBenchmark] !==
+    sfBenchmark[employee.salaries[0]?.benchmark] !==
       employee.salaries[0].benchmarkFactor
 
   return (
     <div className="pt-8 flex justify-center flex flex-col items-center gap-5">
       <div className="2xl:w-[80%] max-w-full px-4 flex flex-col gap-5">
+        {user?.role === ROLES.ADMIN ? (
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => router.navigate({ to: '/' })}
+            className="self-start -ml-2"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to overview
+          </Button>
+        ) : null}
         <div className="flex flex-row justify-between items-center">
           <div className="flex flex-col">
             <span className="text-xl font-bold">
@@ -662,15 +674,24 @@ function EmployeeOverview() {
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            {user?.role === ROLES.ADMIN ? (
+            <div className="flex gap-1 border rounded-md">
               <Button
-                variant="outline"
                 type="button"
-                onClick={() => router.navigate({ to: '/' })}
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
               >
-                Back to overview
+                Table view
               </Button>
-            ) : null}
+              <Button
+                type="button"
+                variant={viewMode === 'card' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('card')}
+              >
+                Timeline view
+              </Button>
+            </div>
             {reviewQueue.length > 0 ? (
               <Button
                 variant="outline"
@@ -683,7 +704,7 @@ function EmployeeOverview() {
           </div>
         </div>
 
-        {user?.role === ROLES.ADMIN ? (
+        {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
           <>
             <div className="flex flex-row gap-2 justify-between items-center mt-2">
               <span className="text-md font-bold">Feedback</span>
@@ -772,26 +793,10 @@ function EmployeeOverview() {
         ) : null}
 
         <div className="flex flex-row gap-2 justify-between items-center mt-2">
-          <span className="text-md font-bold">Salary history</span>
+          {viewMode === 'table' && (
+            <span className="text-md font-bold">Salary history</span>
+          )}
           <div className="flex gap-2">
-            <div className="flex gap-1 border rounded-md">
-              <Button
-                type="button"
-                variant={viewMode === 'table' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('table')}
-              >
-                Table view
-              </Button>
-              <Button
-                type="button"
-                variant={viewMode === 'card' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('card')}
-              >
-                Card view
-              </Button>
-            </div>
             {showInlineForm ? (
               <Button
                 type="button"
@@ -946,6 +951,22 @@ function EmployeeOverview() {
             </div>
           ) : (
             <div className="space-y-8">
+              {showInlineForm && (
+                <SalaryEntryForm
+                  employeeId={employee.id}
+                  latestSalary={employee.salaries[0]}
+                  benchmarkUpdated={benchmarkUpdated}
+                  onSubmit={async (data) => {
+                    await updateSalary({ data })
+                    createToast('Salary added successfully.', {
+                      timeout: 3000,
+                    })
+                    setShowInlineForm(false)
+                    router.invalidate()
+                  }}
+                  onCancel={() => setShowInlineForm(false)}
+                />
+              )}
               {timelineByMonth.length > 0 ? (
                 timelineByMonth.map((monthGroup) => (
                   <div key={`${monthGroup.year}-${monthGroup.month}`}>
@@ -1542,7 +1563,7 @@ function ReferenceEmployeesTable({
   referenceEmployees,
   currentEmployee,
 }: {
-  referenceEmployees: ReferenceEmployee[]
+  referenceEmployees: Array<ReferenceEmployee>
   currentEmployee: Employee
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
