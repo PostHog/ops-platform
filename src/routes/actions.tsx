@@ -9,7 +9,8 @@ import { MoreHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
 import { useLocalStorage } from 'usehooks-ts'
-import { customFilterFns, Filter, months } from '.'
+import { createToast } from 'vercel-toast'
+import { FilterButton, customFilterFns, months } from '.'
 import type { Prisma } from '@prisma/client'
 import type {
   ColumnDef,
@@ -45,7 +46,6 @@ import {
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { createToast } from 'vercel-toast'
 
 type Salary = Prisma.SalaryGetPayload<{
   include: {
@@ -434,18 +434,18 @@ function App() {
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                        {header.column.getCanFilter() ? (
-                          <div>
-                            <Filter column={header.column} />
-                          </div>
-                        ) : null}
+                      <TableHead key={header.id} className="group">
+                        <div className="flex items-center gap-1">
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
+                          {header.column.getCanFilter() ? (
+                            <FilterButton column={header.column} />
+                          ) : null}
+                        </div>
                       </TableHead>
                     )
                   })}

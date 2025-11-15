@@ -1,19 +1,23 @@
 import { createFileRoute } from '@tanstack/react-router'
 import {
-  ColumnDef,
-  Column,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-  useReactTable,
-  RowData,
-  ColumnFiltersState,
-  SortingState,
-  Row,
+  useReactTable
 } from '@tanstack/react-table'
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
+import { useLocalStorage } from 'usehooks-ts'
+import { getDeelEmployeesAndProposedHires } from './org-chart'
+import { FilterButton, customFilterFns } from '.'
+import type {
+  Column,
+  ColumnDef,
+  ColumnFiltersState,
+  Row,
+  RowData,
+  SortingState} from '@tanstack/react-table';
 import type { Prisma } from '@prisma/client'
 import {
   Table,
@@ -23,10 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { customFilterFns, Filter } from '.'
-import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
-import { useLocalStorage } from 'usehooks-ts'
 
 type ProposedHire = Prisma.ProposedHireGetPayload<{
   include: {
@@ -204,9 +205,9 @@ function RouteComponent() {
                   {headerGroup.headers.map((header) => {
                     const sortState = header.column.getIsSorted()
                     return (
-                      <TableHead key={header.id}>
+                      <TableHead key={header.id} className="group">
                         {header.isPlaceholder ? null : (
-                          <>
+                          <div className="flex items-center gap-1">
                             <div
                               {...{
                                 className: header.column.getCanSort()
@@ -231,11 +232,9 @@ function RouteComponent() {
                                 ))}
                             </div>
                             {header.column.getCanFilter() ? (
-                              <div>
-                                <Filter column={header.column} />
-                              </div>
+                              <FilterButton column={header.column} />
                             ) : null}
-                          </>
+                          </div>
                         )}
                       </TableHead>
                     )
