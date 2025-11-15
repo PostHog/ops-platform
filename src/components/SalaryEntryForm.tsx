@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm, useStore } from '@tanstack/react-form'
+import { MoreVertical } from 'lucide-react'
 
 import { TimelineItemBadge } from './TimelineItemBadge'
 import type { Salary } from '@prisma/client'
@@ -7,6 +8,12 @@ import type { Salary } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Select,
   SelectContent,
@@ -38,6 +45,8 @@ export function SalaryEntryForm({
   onSubmit,
   onCancel,
 }: SalaryEntryFormProps) {
+  const [showOverride, setShowOverride] = useState(false)
+
   const form = useForm({
     defaultValues: {
       country: latestSalary?.country ?? 'United States',
@@ -132,6 +141,10 @@ export function SalaryEntryForm({
 
     const totalSalaryLocal = currentTotalSalary * exchangeRate
     form.setFieldValue('totalSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
+
+    // Set actualSalary to match totalSalary by default
+    form.setFieldValue('actualSalary', Number(currentTotalSalary.toFixed(2)))
+    form.setFieldValue('actualSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
   }, [country, area, benchmark, level, step, latestSalary, form])
 
   // When country changes, reset area to first available area
@@ -155,6 +168,25 @@ export function SalaryEntryForm({
           <div className="flex justify-between items-start mb-2">
             <TimelineItemBadge type="new salary" />
             <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => setShowOverride(!showOverride)}
+                  >
+                    {showOverride ? 'Disable' : 'Enable'} salary override
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 type="button"
                 variant="outline"
@@ -221,7 +253,31 @@ export function SalaryEntryForm({
                 </div>
               )}
             </form.Field>
-            <div>{/* empty column */}</div>
+
+            {/* Actual Salary Override - conditionally shown */}
+            {showOverride ? (
+              <form.Field name="actualSalary">
+                {(field) => (
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">
+                      Actual Salary (USD) Override
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={field.state.value}
+                      onChange={(e) =>
+                        field.handleChange(Number(e.target.value))
+                      }
+                      className="text-sm"
+                      placeholder="Override total salary"
+                    />
+                  </div>
+                )}
+              </form.Field>
+            ) : (
+              <div>{/* empty column */}</div>
+            )}
 
             {/* Benchmark */}
             <form.Field name="benchmark">

@@ -282,6 +282,13 @@ function EmployeeOverview() {
   const [filterByTitle, setFilterByTitle] = useState(true)
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
 
+  // Hide inline form when switching to timeline view
+  useEffect(() => {
+    if (viewMode === 'card') {
+      setShowInlineForm(false)
+    }
+  }, [viewMode])
+
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
   const [reviewQueue, setReviewQueue] = useAtom(reviewQueueAtom)
@@ -952,20 +959,66 @@ function EmployeeOverview() {
           ) : (
             <div className="space-y-8">
               {showInlineForm && (
-                <SalaryEntryForm
-                  employeeId={employee.id}
-                  latestSalary={employee.salaries[0]}
-                  benchmarkUpdated={benchmarkUpdated}
-                  onSubmit={async (data) => {
-                    await updateSalary({ data })
-                    createToast('Salary added successfully.', {
-                      timeout: 3000,
-                    })
-                    setShowInlineForm(false)
-                    router.invalidate()
-                  }}
-                  onCancel={() => setShowInlineForm(false)}
-                />
+                <>
+                  <SalaryEntryForm
+                    employeeId={employee.id}
+                    latestSalary={employee.salaries[0]}
+                    benchmarkUpdated={benchmarkUpdated}
+                    onSubmit={async (data) => {
+                      await updateSalary({ data })
+                      createToast('Salary added successfully.', {
+                        timeout: 3000,
+                      })
+                      setShowInlineForm(false)
+                      router.invalidate()
+                    }}
+                    onCancel={() => setShowInlineForm(false)}
+                  />
+                  {showReferenceEmployees && (
+                    <>
+                      <div className="flex flex-row gap-2 justify-between items-center mt-2">
+                        <span className="text-md font-bold">
+                          Reference employees
+                        </span>
+                        <div className="flex gap-4 items-center">
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              id="filter-by-exec-timeline"
+                              checked={filterByExec}
+                              onCheckedChange={setFilterByExec}
+                            />
+                            <Label
+                              htmlFor="filter-by-exec-timeline"
+                              className="text-sm"
+                            >
+                              Filter by exec
+                            </Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              id="filter-by-title-timeline"
+                              checked={filterByTitle}
+                              onCheckedChange={setFilterByTitle}
+                            />
+                            <Label
+                              htmlFor="filter-by-title-timeline"
+                              className="text-sm"
+                            >
+                              Filter by title
+                            </Label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="w-full flex-grow mb-8">
+                        <ReferenceEmployeesTable
+                          referenceEmployees={combinedReferenceEmployees}
+                          currentEmployee={employee}
+                        />
+                      </div>
+                    </>
+                  )}
+                </>
               )}
               {timelineByMonth.length > 0 ? (
                 timelineByMonth.map((monthGroup) => (
