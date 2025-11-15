@@ -19,6 +19,7 @@ import type { Prisma, Salary } from '@prisma/client'
 import type { AnyFormApi } from '@tanstack/react-form'
 import { reviewQueueAtom } from '@/atoms'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
 import {
   currencyData,
   formatCurrency,
@@ -277,6 +278,7 @@ function EmployeeOverview() {
   const [showDetailedColumns, setShowDetailedColumns] = useState(false)
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByTitle, setFilterByTitle] = useState(true)
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
 
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
@@ -288,6 +290,23 @@ function EmployeeOverview() {
   )
 
   if (!employee) return null
+
+  const handleDeleteSalary = async (salaryId: string) => {
+    try {
+      await deleteSalary({ data: { id: salaryId } })
+      createToast('Salary deleted successfully.', {
+        timeout: 3000,
+      })
+      router.invalidate()
+    } catch (error) {
+      createToast(
+        error instanceof Error ? error.message : 'Failed to delete salary.',
+        {
+          timeout: 3000,
+        },
+      )
+    }
+  }
 
   const { data: referenceEmployees } = useQuery({
     queryKey: [
@@ -464,24 +483,7 @@ function EmployeeOverview() {
                   type="button"
                   size="sm"
                   variant="ghost"
-                  onClick={async () => {
-                    try {
-                      await deleteSalary({ data: { id: salary.id } })
-                      createToast('Salary deleted successfully.', {
-                        timeout: 3000,
-                      })
-                      router.invalidate()
-                    } catch (error) {
-                      createToast(
-                        error instanceof Error
-                          ? error.message
-                          : 'Failed to delete salary.',
-                        {
-                          timeout: 3000,
-                        },
-                      )
-                    }
-                  }}
+                  onClick={() => handleDeleteSalary(salary.id)}
                   className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
                   <Trash2 className="h-3 w-3" />
@@ -724,6 +726,24 @@ function EmployeeOverview() {
         <div className="flex flex-row gap-2 justify-between items-center mt-2">
           <span className="text-md font-bold">Salary history</span>
           <div className="flex gap-2">
+            <div className="flex gap-1 border rounded-md">
+              <Button
+                type="button"
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+              >
+                Table view
+              </Button>
+              <Button
+                type="button"
+                variant={viewMode === 'card' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('card')}
+              >
+                Card view
+              </Button>
+            </div>
             {showInlineForm ? (
               <Button
                 type="button"
@@ -804,77 +824,96 @@ function EmployeeOverview() {
           })()}
 
         <div className="w-full flex-grow">
-          <div className="overflow-hidden rounded-md border">
-            <Table className="text-xs">
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                        </TableHead>
-                      )
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {showInlineForm && (
-                  <InlineSalaryFormRow
-                    employeeId={employee.id}
-                    showOverrideMode={showOverrideMode}
-                    latestSalary={employee.salaries[0]}
-                    showDetailedColumns={showDetailedColumns}
-                    totalAmountInStockOptions={employee.salaries.reduce(
-                      (acc, salary) => acc + salary.amountTakenInOptions,
-                      0,
-                    )}
-                    onSuccess={() => {
-                      setShowInlineForm(false)
-                      router.invalidate()
-                    }}
-                    onCancel={() => setShowInlineForm(false)}
-                    benchmarkUpdated={benchmarkUpdated}
-                    setLevel={setLevel}
-                    setStep={setStep}
-                    setBenchmark={setBenchmark}
-                  />
-                )}
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && 'selected'}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
-                      ))}
+          {viewMode === 'table' ? (
+            <div className="overflow-hidden rounded-md border">
+              <Table className="text-xs">
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => {
+                        return (
+                          <TableHead key={header.id}>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
+                          </TableHead>
+                        )
+                      })}
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      No results.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {showInlineForm && (
+                    <InlineSalaryFormRow
+                      employeeId={employee.id}
+                      showOverrideMode={showOverrideMode}
+                      latestSalary={employee.salaries[0]}
+                      showDetailedColumns={showDetailedColumns}
+                      totalAmountInStockOptions={employee.salaries.reduce(
+                        (acc, salary) => acc + salary.amountTakenInOptions,
+                        0,
+                      )}
+                      onSuccess={() => {
+                        setShowInlineForm(false)
+                        router.invalidate()
+                      }}
+                      onCancel={() => setShowInlineForm(false)}
+                      benchmarkUpdated={benchmarkUpdated}
+                      setLevel={setLevel}
+                      setStep={setStep}
+                      setBenchmark={setBenchmark}
+                    />
+                  )}
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && 'selected'}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                      >
+                        No results.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {employee.salaries.length > 0 ? (
+                employee.salaries.map((salary) => (
+                  <SalaryHistoryCard
+                    key={salary.id}
+                    salary={salary}
+                    isAdmin={user?.role === ROLES.ADMIN}
+                    onDelete={handleDeleteSalary}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  No salary history available.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {showInlineForm && showReferenceEmployees && (
