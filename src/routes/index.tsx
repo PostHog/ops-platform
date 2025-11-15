@@ -1,4 +1,4 @@
-import { InputHTMLAttributes, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import {
   flexRender,
@@ -7,11 +7,13 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { ChevronDown, MoreHorizontal } from 'lucide-react'
+import { ChevronDown, Filter as FilterIcon, MoreHorizontal } from 'lucide-react'
 import { useServerFn } from '@tanstack/react-start'
 import { useQuery } from '@tanstack/react-query'
 import { createToast } from 'vercel-toast'
 import { useAtom } from 'jotai'
+import { useLocalStorage } from 'usehooks-ts'
+import type { InputHTMLAttributes} from 'react';
 import type {
   Column,
   ColumnDef,
@@ -22,7 +24,6 @@ import type {
   VisibilityState,
 } from '@tanstack/react-table'
 import type { Priority, Prisma } from '@prisma/client'
-import { useLocalStorage } from 'usehooks-ts'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -39,6 +40,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import prisma from '@/db'
 import { formatCurrency } from '@/lib/utils'
 import {
@@ -540,18 +546,18 @@ function App() {
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                        {header.column.getCanFilter() ? (
-                          <div>
-                            <Filter column={header.column} />
-                          </div>
-                        ) : null}
+                      <TableHead key={header.id} className="group">
+                        <div className="flex items-center gap-1">
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
+                          {header.column.getCanFilter() ? (
+                            <FilterButton column={header.column} />
+                          ) : null}
+                        </div>
                       </TableHead>
                     )
                   })}
@@ -621,14 +627,57 @@ function App() {
   )
 }
 
+export function FilterButton({ column }: { column: Column<any, unknown> }) {
+  const columnFilterValue = column.getFilterValue()
+  const hasFilter = columnFilterValue !== undefined && columnFilterValue !== ''
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity ${
+            hasFilter ? 'opacity-100 text-blue-600' : ''
+          }`}
+        >
+          <FilterIcon className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-sm">Filter</h4>
+            {hasFilter && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => column.setFilterValue(undefined)}
+                className="h-6 px-2 text-xs"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+          <FilterContent column={column} />
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+// Legacy Filter component for backward compatibility with other pages
 export function Filter({ column }: { column: Column<any, unknown> }) {
+  return <FilterContent column={column} />
+}
+
+function FilterContent({ column }: { column: Column<any, unknown> }) {
   const columnFilterValue = column.getFilterValue()
   const { filterVariant, filterOptions } = column.columnDef.meta ?? {}
 
-  return filterVariant === 'range' ? (
-    <div>
-      <div className="flex flex-col space-y-1">
-        {/* See faceted column filters example for min max values functionality */}
+  if (filterVariant === 'range') {
+    return (
+      <div className="flex flex-col space-y-2">
         <DebouncedInput
           type="number"
           value={(columnFilterValue as [number, number])?.[0] ?? ''}
@@ -638,15 +687,14 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
               value,
               old?.[1] ?? '',
             ]
-            // Remove filter if both values are empty
             if (newValue[0] === '' && newValue[1] === '') {
               column.setFilterValue(undefined)
             } else {
               column.setFilterValue(newValue)
             }
           }}
-          placeholder={`Min`}
-          className="w-16 border shadow rounded"
+          placeholder="Min"
+          className="w-full border shadow-sm rounded px-2 py-1 text-sm"
         />
         <DebouncedInput
           type="number"
@@ -657,22 +705,22 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
               old?.[0] ?? '',
               value,
             ]
-            // Remove filter if both values are empty
             if (newValue[0] === '' && newValue[1] === '') {
               column.setFilterValue(undefined)
             } else {
               column.setFilterValue(newValue)
             }
           }}
-          placeholder={`Max`}
-          className="w-16 border shadow rounded"
+          placeholder="Max"
+          className="w-full border shadow-sm rounded px-2 py-1 text-sm"
         />
       </div>
-      <div className="h-1" />
-    </div>
-  ) : filterVariant === 'dateRange' ? (
-    <div>
-      <div className="flex flex-col space-y-1">
+    )
+  }
+
+  if (filterVariant === 'dateRange') {
+    return (
+      <div className="flex flex-col space-y-2">
         <DebouncedInput
           type="date"
           value={(columnFilterValue as [string, string])?.[0] ?? ''}
@@ -680,17 +728,16 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
             const old = (columnFilterValue as [string, string]) ?? ['', '']
             const newValue: [string, string] = [
               value as string,
-              (old?.[1] ?? '') as string,
+              (old?.[1] ?? ''),
             ]
-            // Remove filter if both values are empty
             if (newValue[0] === '' && newValue[1] === '') {
               column.setFilterValue(undefined)
             } else {
               column.setFilterValue(newValue)
             }
           }}
-          placeholder={`Min`}
-          className="w-24 border shadow rounded"
+          placeholder="From"
+          className="w-full border shadow-sm rounded px-2 py-1 text-sm"
         />
         <DebouncedInput
           type="date"
@@ -698,44 +745,47 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
           onChange={(value) => {
             const old = (columnFilterValue as [string, string]) ?? ['', '']
             const newValue: [string, string] = [
-              (old?.[0] ?? '') as string,
+              (old?.[0] ?? ''),
               value as string,
             ]
-            // Remove filter if both values are empty
             if (newValue[0] === '' && newValue[1] === '') {
               column.setFilterValue(undefined)
             } else {
               column.setFilterValue(newValue)
             }
           }}
-          placeholder={`Max`}
-          className="w-24 border shadow rounded"
+          placeholder="To"
+          className="w-full border shadow-sm rounded px-2 py-1 text-sm"
         />
       </div>
-      <div className="h-1" />
-    </div>
-  ) : filterVariant === 'select' ? (
-    <select
-      onChange={(e) => column.setFilterValue(e.target.value)}
-      value={columnFilterValue?.toString()}
-    >
-      {/* See faceted column filters example for dynamic select options */}
-      <option value="">All</option>
-      {filterOptions?.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  ) : (
+    )
+  }
+
+  if (filterVariant === 'select') {
+    return (
+      <select
+        onChange={(e) => column.setFilterValue(e.target.value)}
+        value={columnFilterValue?.toString()}
+        className="w-full border shadow-sm rounded px-2 py-1.5 text-sm"
+      >
+        <option value="">All</option>
+        {filterOptions?.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
+  return (
     <DebouncedInput
-      className="w-36 border shadow rounded"
+      className="w-full border shadow-sm rounded px-2 py-1 text-sm"
       onChange={(value) => column.setFilterValue(value)}
-      placeholder={`Search...`}
+      placeholder="Search..."
       type="text"
       value={(columnFilterValue ?? '') as string}
     />
-    // See faceted column filters example for datalist search suggestions
   )
 }
 
