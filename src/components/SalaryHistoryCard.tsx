@@ -105,7 +105,7 @@ export function SalaryHistoryCard({
                 <div className="flex justify-end gap-2">
                   <div>
                     <div className="text-xl font-bold">
-                      {salary.level}.{Math.floor((salary.step - 1) / 3)}
+                      {salary.level == 1 ? '1.0' : salary.level}
                     </div>
                     <div className="text-xs text-gray-500 text-center">
                       level
