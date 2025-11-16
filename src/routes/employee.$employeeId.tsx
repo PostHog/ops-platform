@@ -957,7 +957,7 @@ function EmployeeOverview() {
               </Table>
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="mb-8">
               {showInlineForm && (
                 <>
                   <SalaryEntryForm
@@ -1021,9 +1021,11 @@ function EmployeeOverview() {
                 </>
               )}
               {timelineByMonth.length > 0 ? (
-                timelineByMonth.map((monthGroup) => (
+                timelineByMonth.map((monthGroup, monthGroupIndex) => (
                   <div key={`${monthGroup.year}-${monthGroup.month}`}>
-                    <div className="flex items-center mb-4">
+                    <div
+                      className={`flex items-center border border-gray-200 px-4 py-2 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
+                    >
                       <h3 className="text-lg font-bold">
                         {months[monthGroup.month]} {monthGroup.year}
                       </h3>
@@ -1050,22 +1052,28 @@ function EmployeeOverview() {
                         })()}
                       </p>
                     </div>
-                    <div className="space-y-4 ml-8">
-                      {monthGroup.items.map((item) =>
-                        item.type === 'salary' ? (
+                    <div className="max-w-5xl">
+                      {monthGroup.items.map((item, itemIndex) => {
+                        const isLastMonth = monthGroupIndex === timelineByMonth.length - 1
+                        const isLastItemInMonth = itemIndex === monthGroup.items.length - 1
+                        const lastTableItem = isLastMonth && isLastItemInMonth
+
+                        return item.type === 'salary' ? (
                           <SalaryHistoryCard
                             key={`salary-${item.data.id}`}
                             salary={item.data}
                             isAdmin={user?.role === ROLES.ADMIN}
                             onDelete={handleDeleteSalary}
+                            lastTableItem={lastTableItem}
                           />
                         ) : (
                           <FeedbackCard
                             key={`feedback-${item.data.id}`}
                             feedback={item.data}
+                            lastTableItem={lastTableItem}
                           />
-                        ),
-                      )}
+                        )
+                      })}
                     </div>
                   </div>
                 ))

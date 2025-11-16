@@ -5,21 +5,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { formatCurrency } from '@/lib/utils'
-import { MoreVertical, Trash2 } from 'lucide-react'
+import { MoreVertical, NotebookText, Trash2 } from 'lucide-react'
 import type { Salary } from '@prisma/client'
-import { TimelineItemBadge } from './TimelineItemBadge'
 
 interface SalaryHistoryCardProps {
   salary: Salary
   isAdmin: boolean
   onDelete?: (salaryId: string) => Promise<void>
+  lastTableItem?: boolean
 }
 
 export function SalaryHistoryCard({
   salary,
   isAdmin,
   onDelete,
+  lastTableItem = false,
 }: SalaryHistoryCardProps) {
   const date = new Date(salary.timestamp)
   const formattedDate = date.toLocaleDateString('en-US', {
@@ -37,107 +44,116 @@ export function SalaryHistoryCard({
   const isDeletable = hoursSinceCreation <= 24
 
   return (
-    <div className="bg-white max-w-3xl">
-      <div className="border rounded-lg p-4">
-        <div className="flex justify-between items-start mb-2">
-          <TimelineItemBadge type="salary" />
-          <div className="flex">
-            <p className="text-xs text-gray-500">{formattedDate}</p>
-            {isAdmin && isDeletable && onDelete && (
-              <div className="-mt-2 -mr-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 ml-2"
+    <TooltipProvider>
+      <div
+        className={`bg-white w-full border border-t-0 ${lastTableItem ? 'rounded-b-md' : ''}`}
+      >
+        <div className="ml-8 border-l-3 border-gray-200 px-4 py-2">
+          <div className="flex justify-between gap-x-4 mb-2">
+            <div>
+              {/* salary change */}
+              <div className="flex items-center gap-2 text-xl mb-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className={`font-bold cursor-help ${salary.changePercentage > 0 ? 'text-green-600' : salary.changePercentage < 0 ? 'text-red-600' : ''}`}
                     >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => onDelete(salary.id)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      {salary.changePercentage >= 0 ? '+' : ''}
+                      {(salary.changePercentage * 100).toFixed(2)}%
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Change: {formatCurrency(salary.changeAmount)}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-gray-400">·</span>
+                {isMismatch ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-red-600">
+                        {formatCurrency(salary.totalSalary)}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Mismatch detected! Expected:{' '}
+                        {formatCurrency(expectedTotal)}, Actual:{' '}
+                        {formatCurrency(salary.totalSalary)}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <span className="text-gray-700">
+                    {formatCurrency(salary.totalSalary)}
+                  </span>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-        <div className="flex justify-between mb-2">
-          <div>
-            {/* salary change */}
-            <div className="flex items-center gap-2 text-xl">
-              <span
-                className={`font-bold ${salary.changePercentage > 0 ? 'text-green-600' : salary.changePercentage < 0 ? 'text-red-600' : ''}`}
-              >
-                {salary.changePercentage >= 0 ? '+' : ''}
-                {(salary.changePercentage * 100).toFixed(2)}%
-              </span>
-              <span className="text-gray-400">·</span>
-              <span className="text-gray-700">
-                {formatCurrency(salary.changeAmount)}
-              </span>
+              <div className="mb-2 leading-none text-xs">
+                <span className="font-semibold">
+                  {salary.benchmark} ({salary.benchmarkFactor})
+                </span>
+                <span className="text-gray-600 ml-1">
+                  <span className="italic">in</span> {salary.area},{' '}
+                  {salary.country} ({salary.locationFactor})
+                </span>
+              </div>
             </div>
-            {/* total salary */}
-            <div
-              className={`font-semibold mb-1 ${isMismatch ? 'text-red-600' : ''}`}
-              title={
-                isMismatch
-                  ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(salary.totalSalary)}`
-                  : ''
-              }
-            >
-              {formatCurrency(salary.totalSalary)}{' '}
-              <span className="font-normal text-sm text-gray-600">
-                total salary
-              </span>
-            </div>
-          </div>
-          {/* level / step */}
-          <div className="flex justify-between items-start">
-            <div className="flex gap-2">
-              <div className="flex justify-end gap-2">
-                <div>
-                  <div className="text-2xl font-bold">
-                    {salary.level}.{Math.floor((salary.step - 1) / 3)}
+            {/* level / step */}
+            <div className="flex justify-between items-start">
+              <div className="flex gap-2">
+                <div className="flex justify-end gap-2">
+                  <div>
+                    <div className="text-xl font-bold">
+                      {salary.level}.{Math.floor((salary.step - 1) / 3)}
+                    </div>
+                    <div className="text-xs text-gray-500 text-center">
+                      level
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500 text-center">level</div>
-                </div>
-                <div className="text-2xl text-gray-300">/</div>
-                <div>
-                  <div className="text-2xl font-bold">{salary.step}</div>
-                  <div className="text-xs text-gray-500 text-center">step</div>
+                  <div className="text-2xl text-gray-300">/</div>
+                  <div>
+                    <div className="text-xl font-bold">{salary.step}</div>
+                    <div className="text-xs text-gray-500 text-center">
+                      step
+                    </div>
+                  </div>
                 </div>
               </div>
+              {isAdmin && isDeletable && onDelete && (
+                <div className="-mr-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 ml-2"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => onDelete(salary.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
             </div>
           </div>
-        </div>
 
-        <div className="mb-2 flex">
-          <div className="text-sm font-semibold">
-            {salary.benchmark} ({salary.benchmarkFactor})
-          </div>
-          <div className="text-sm text-gray-600 ml-1">
-            <span className="italic">in</span> {salary.area}, {salary.country} (
-            {salary.locationFactor})
-          </div>
-        </div>
-
-        {salary.notes && isAdmin && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-md border-l-4 border-gray-300">
-            <p className="text-sm mb-2">Notes:</p>
-            <div className="text-sm italic text-gray-700 whitespace-pre-line">
+          {salary.notes && isAdmin && (
+            <div className="text-xs italic text-gray-700 whitespace-pre-line flex mb-1">
+              <NotebookText className="mr-2 h-4 w-4 text-gray-500" />
               {salary.notes}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }

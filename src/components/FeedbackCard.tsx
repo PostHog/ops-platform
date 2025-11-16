@@ -1,6 +1,5 @@
 import ReactMarkdown from 'react-markdown'
 import type { KeeperTestFeedback } from '@prisma/client'
-import { TimelineItemBadge } from './TimelineItemBadge'
 
 interface FeedbackCardProps {
   feedback: KeeperTestFeedback & {
@@ -11,26 +10,17 @@ interface FeedbackCardProps {
       } | null
     }
   }
+  lastTableItem?: boolean
 }
 
-export function FeedbackCard({ feedback }: FeedbackCardProps) {
-  const date = new Date(feedback.timestamp)
-  const formattedDate = date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-
+export function FeedbackCard({ feedback, lastTableItem = false }: FeedbackCardProps) {
   return (
-    <div className="bg-white max-w-3xl">
-      <div className="border rounded-lg p-4 bg-blue-50 border-blue-200">
-        <div className="flex justify-between items-start mb-2">
-          <TimelineItemBadge type="feedback" />
-          <p className="text-xs text-gray-500">{formattedDate}</p>
-        </div>
+    <div className={`border border-t-0 border-gray-200 ${lastTableItem ? 'rounded-b-md' : ''}`}>
+      <div className="border-l-3 border-blue-300 px-4 py-2 ml-8">
         <div className="mb-4">
-          <h4 className="text-base font-semibold text-blue-900">
+          <h4 className="text-sm font-semibold text-blue-900">
             {feedback.title} feedback from{' '}
+            {/* TODO: this info on submitter should be stored in the models here itself, as managers change */}
             {feedback.manager.deelEmployee?.name ?? feedback.manager.email}
           </h4>
         </div>
