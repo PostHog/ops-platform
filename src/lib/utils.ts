@@ -119,6 +119,104 @@ export const stepModifier: Record<string, Array<number>> = {
   Expert: [1.11, 1.2],
 }
 
+export function getCountryFlag(countryName: string): string {
+  const countryToCode: Record<string, string> = {
+    'United States': 'US',
+    'Canada': 'CA',
+    'Bermuda': 'BM',
+    'Bahamas': 'BS',
+    'Dominican Republic': 'DO',
+    'Jamaica': 'JM',
+    'Puerto Rico': 'PR',
+    'Cuba': 'CU',
+    'Trinidad and Tobago': 'TT',
+    'El Salvador': 'SV',
+    'Guatemala': 'GT',
+    'Mexico': 'MX',
+    'Costa Rica': 'CR',
+    'Nicaragua': 'NI',
+    'Panama': 'PA',
+    'Suriname': 'SR',
+    'Venezuela': 'VE',
+    'Paraguay': 'PY',
+    'Colombia': 'CO',
+    'Ecuador': 'EC',
+    'Argentina': 'AR',
+    'Chile': 'CL',
+    'Peru': 'PE',
+    'Uruguay': 'UY',
+    'Brazil': 'BR',
+    'Algeria': 'DZ',
+    'Egypt': 'EG',
+    'Libya': 'LY',
+    'Morocco': 'MA',
+    'Tunisia': 'TN',
+    'Uganda': 'UG',
+    'Rwanda': 'RW',
+    'Zimbabwe': 'ZW',
+    'Zambia': 'ZM',
+    'Kenya': 'KE',
+    'Ethiopia': 'ET',
+    'Tanzania': 'TZ',
+    'Namibia': 'NA',
+    'Ghana': 'GH',
+    'South Africa': 'ZA',
+    'Nigeria': 'NG',
+    'Benin': 'BJ',
+    'Singapore': 'SG',
+    'Cyprus': 'CY',
+    'Turkey': 'TR',
+    'Israel': 'IL',
+    'Bulgaria': 'BG',
+    'Moldova': 'MD',
+    'Romania': 'RO',
+    'Ukraine': 'UA',
+    'Slovakia': 'SK',
+    'Hungary': 'HU',
+    'Poland': 'PL',
+    'Czech Republic': 'CZ',
+    'Denmark': 'DK',
+    'Finland': 'FI',
+    'Ireland': 'IE',
+    'Norway': 'NO',
+    'Latvia': 'LV',
+    'Lithuania': 'LT',
+    'Estonia': 'EE',
+    'United Kingdom': 'GB',
+    'Albania': 'AL',
+    'Bosnia and Herzegovina': 'BA',
+    'Croatia': 'HR',
+    'Greece': 'GR',
+    'Malta': 'MT',
+    'Montenegro': 'ME',
+    'Belgium': 'BE',
+    'Portugal': 'PT',
+    'Serbia': 'RS',
+    'Slovenia': 'SI',
+    'Spain': 'ES',
+    'Macedonia': 'MK',
+    'Kosovo': 'XK',
+    'Austria': 'AT',
+    'France': 'FR',
+    'Germany': 'DE',
+    'Netherlands': 'NL',
+    'Andorra': 'AD',
+  }
+
+  const countryCode = countryToCode[countryName]
+  if (!countryCode) return ''
+
+  // Convert country code to flag emoji
+  // Flag emojis are created using regional indicator symbols
+  // Each letter is offset from 'A' (0x1F1E6)
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map((char) => 0x1f1e6 + char.charCodeAt(0) - 65)
+
+  return String.fromCodePoint(...codePoints)
+}
+
 export const locationFactor: Array<CompensationCalculatorLocation> = [
   {
     country: 'United States',

@@ -11,7 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, getCountryFlag } from '@/lib/utils'
 import { MoreVertical, PencilLine, Trash2 } from 'lucide-react'
 import type { Salary } from '@prisma/client'
 
@@ -94,7 +94,8 @@ export function SalaryHistoryCard({
                 </span>
                 <span className="text-gray-600 ml-1">
                   <span className="italic">in</span> {salary.area},{' '}
-                  {salary.country} ({salary.locationFactor})
+                  {salary.country} ({salary.locationFactor}){' '}
+                  {getCountryFlag(salary.country)}
                 </span>
               </div>
             </div>
