@@ -280,7 +280,16 @@ function EmployeeOverview() {
   const [showDetailedColumns, setShowDetailedColumns] = useState(false)
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByTitle, setFilterByTitle] = useState(true)
-  const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
+  const [viewMode, setViewMode] = useState<'table' | 'card'>(() => {
+    // Load preferred view from localStorage on initial render
+    const savedView = localStorage.getItem('preferredEmployeeView')
+    return (savedView === 'table' || savedView === 'card') ? savedView : 'table'
+  })
+
+  // Save view preference to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('preferredEmployeeView', viewMode)
+  }, [viewMode])
 
   // Hide inline form when switching to timeline view
   useEffect(() => {

@@ -101,7 +101,9 @@ export function SalaryEntryForm({
       employeeId: employeeId,
     },
     onSubmit: async ({ value }) => {
-      await onSubmit(value)
+      // Exclude levelName from submission as it doesn't exist in the database
+      const { levelName, ...dbData } = value
+      await onSubmit(dbData)
     },
   })
 

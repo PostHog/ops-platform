@@ -1,6 +1,4 @@
-import ReactMarkdown from 'react-markdown'
 import type { KeeperTestFeedback } from '@prisma/client'
-import { TimelineItemBadge } from './TimelineItemBadge'
 import {
   TrendingUp,
   TrendingDown,
@@ -8,8 +6,8 @@ import {
   Clock,
   Sun,
   CloudRain,
-  Check,
   X,
+  CheckCircle,
 } from 'lucide-react'
 
 interface FeedbackCardProps {
@@ -61,7 +59,7 @@ export function FeedbackCard({
             }`}
           >
             {feedback.wouldYouTryToKeepThem ? (
-              <Check className="w-4 h-4" />
+              <CheckCircle className="w-4 h-4" />
             ) : (
               <X className="w-4 h-4" />
             )}
