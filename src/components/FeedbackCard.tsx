@@ -1,5 +1,16 @@
 import ReactMarkdown from 'react-markdown'
 import type { KeeperTestFeedback } from '@prisma/client'
+import { TimelineItemBadge } from './TimelineItemBadge'
+import {
+  TrendingUp,
+  TrendingDown,
+  Zap,
+  Clock,
+  Sun,
+  CloudRain,
+  Check,
+  X,
+} from 'lucide-react'
 
 interface FeedbackCardProps {
   feedback: KeeperTestFeedback & {
@@ -13,44 +24,125 @@ interface FeedbackCardProps {
   lastTableItem?: boolean
 }
 
-export function FeedbackCard({ feedback, lastTableItem = false }: FeedbackCardProps) {
+interface TraitBadgeProps {
+  icon: React.ReactNode
+  label: string
+  isPositive: boolean
+}
+
+function TraitBadge({ icon, label, isPositive }: TraitBadgeProps) {
   return (
-    <div className={`border border-t-0 border-gray-200 ${lastTableItem ? 'rounded-b-md' : ''}`}>
-      <div className="border-l-3 border-blue-300 px-4 py-2 ml-8">
-        <div className="mb-4">
-          <h4 className="text-sm font-semibold text-blue-900">
-            {feedback.title} feedback from{' '}
-            {/* TODO: this info on submitter should be stored in the models here itself, as managers change */}
-            {feedback.manager.deelEmployee?.name ?? feedback.manager.email}
+    <span
+      className={`inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-xs font-medium ring-1 ring-inset ${
+        isPositive
+          ? 'bg-green-50 text-green-700 ring-green-600/20'
+          : 'bg-red-50 text-red-700 ring-red-600/20'
+      }`}
+    >
+      {icon}
+      <span className="lowercase">{label}</span>
+    </span>
+  )
+}
+
+export function FeedbackCard({
+  feedback,
+  lastTableItem = false,
+}: FeedbackCardProps) {
+  return (
+    <div
+      className={`border border-t-0 border-gray-200 ${lastTableItem ? 'rounded-b-md' : ''}`}
+    >
+      <div className="border-l-3 border-gray-200 px-4 py-2 ml-8 flex flex-col gap-3">
+        <div className="">
+          <h4
+            className={`text-sm font-semibold flex items-center gap-1.5 ${
+              feedback.wouldYouTryToKeepThem ? 'text-green-700' : 'text-red-700'
+            }`}
+          >
+            {feedback.wouldYouTryToKeepThem ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <X className="w-4 h-4" />
+            )}
+            {feedback.wouldYouTryToKeepThem
+              ? 'I would fight to keep'
+              : 'I would not fight to keep'}
+            <span className="font-normal text-gray-500">
+              {' '}
+              - submitted by{' '}
+              {feedback.manager.deelEmployee?.name || feedback.manager.email}
+            </span>
           </h4>
         </div>
 
-        <ReactMarkdown
-          components={{
-            ul: ({ children }) => (
-              <ul className="list-disc list-inside space-y-2">{children}</ul>
-            ),
-            li: ({ children }) => (
-              <li className="text-sm text-gray-700">{children}</li>
-            ),
-            strong: ({ children }) => (
-              <strong className="font-semibold text-gray-800">
-                {children}
-              </strong>
-            ),
-          }}
-        >
-          {`- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${feedback.wouldYouTryToKeepThem ? 'Yes' : 'No'}\n` +
-            `- **What makes them so valuable to your team and PostHog?** ${feedback.whatMakesThemValuable}\n` +
-            `- **Are they a driver or a passenger?** ${feedback.driverOrPassenger}\n` +
-            `- **Do they get things done proactively, today?** ${feedback.proactiveToday ? 'Yes' : 'No'}\n` +
-            `- **Are they optimistic by default?** ${feedback.optimisticByDefault ? 'Yes' : 'No'}\n` +
-            `- **Areas to watch:** ${feedback.areasToWatch}\n` +
-            (feedback.recommendation
-              ? `- **Recommendation**: ${feedback.recommendation}\n`
-              : '') +
-            `- **Have you shared this feedback with your team member?** ${feedback.sharedWithTeamMember ? 'Yes' : 'No, but I will do right now!'}`}
-        </ReactMarkdown>
+        <div className=" flex flex-wrap gap-1.5">
+          <TraitBadge
+            icon={
+              feedback.driverOrPassenger === 'DRIVER' ? (
+                <TrendingUp className="w-3 h-3" />
+              ) : (
+                <TrendingDown className="w-3 h-3" />
+              )
+            }
+            label={
+              feedback.driverOrPassenger === 'DRIVER' ? 'Driver' : 'Passenger'
+            }
+            isPositive={feedback.driverOrPassenger === 'DRIVER'}
+          />
+          <TraitBadge
+            icon={
+              feedback.proactiveToday ? (
+                <Zap className="w-3 h-3" />
+              ) : (
+                <Clock className="w-3 h-3" />
+              )
+            }
+            label={feedback.proactiveToday ? 'Proactive' : 'Reactive'}
+            isPositive={feedback.proactiveToday}
+          />
+          <TraitBadge
+            icon={
+              feedback.optimisticByDefault ? (
+                <Sun className="w-3 h-3" />
+              ) : (
+                <CloudRain className="w-3 h-3" />
+              )
+            }
+            label={
+              feedback.optimisticByDefault ? 'Optimistic' : 'Not Optimistic'
+            }
+            isPositive={feedback.optimisticByDefault}
+          />
+        </div>
+        {feedback.whatMakesThemValuable && (
+          <div>
+            <p className="text-sm font-bold mb-1 text-gray-700">
+              What makes them so valuable to your team and PostHog?
+            </p>
+            <p className="italic text-sm text-gray-500">
+              {feedback.whatMakesThemValuable}
+            </p>
+          </div>
+        )}
+        <div>
+          <p className="text-sm font-bold mb-1 text-gray-700">
+            Areas to watch:
+          </p>
+          <p className="italic text-sm text-gray-500">
+            {feedback.areasToWatch}
+          </p>
+        </div>
+        {feedback.recommendation && (
+          <div>
+            <p className="text-sm font-bold mb-1 text-gray-700">
+              Recommendation:
+            </p>
+            <p className="italic text-sm text-gray-500">
+              {feedback.recommendation}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
