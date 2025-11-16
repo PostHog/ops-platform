@@ -12,7 +12,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { formatCurrency } from '@/lib/utils'
-import { MoreVertical, NotebookText, Trash2 } from 'lucide-react'
+import { MoreVertical, PencilLine, Trash2 } from 'lucide-react'
 import type { Salary } from '@prisma/client'
 
 interface SalaryHistoryCardProps {
@@ -148,7 +148,7 @@ export function SalaryHistoryCard({
 
           {salary.notes && isAdmin && (
             <div className="text-xs italic text-gray-700 whitespace-pre-line flex mb-1">
-              <NotebookText className="mr-2 h-4 w-4 text-gray-500" />
+              <PencilLine className="mr-2 h-4 w-4 text-gray-500" />
               {salary.notes}
             </div>
           )}
