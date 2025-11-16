@@ -410,7 +410,7 @@ export function SalaryEntryForm({
 
           {/* Calculated values display */}
           <div className="bg-green-50 rounded-lg p-4 mb-4">
-            <div className="flex justify-between items-start mb-2">
+            <div className="flex justify-between items-start">
               <div>
                 <div className="flex items-center gap-2 text-xl mb-2">
                   <span
@@ -418,6 +418,11 @@ export function SalaryEntryForm({
                   >
                     {changePercentage >= 0 ? '+' : ''}
                     {(changePercentage * 100).toFixed(2)}%
+                  </span>
+                  <span className="text-gray-400">·</span>
+                  <span className="text-gray-400">
+                    {changeAmount >= 0 ? '+' : ''}
+                    {formatCurrency(changeAmount)}
                   </span>
                   <span className="text-gray-400">·</span>
                   <span className="text-gray-700">
@@ -437,7 +442,7 @@ export function SalaryEntryForm({
               <div className="flex gap-2">
                 <div>
                   <div className="text-xl font-bold">
-                    {level}.{Math.floor((step - 1) / 3)}
+                    {level == 1 ? '1.0' : level}
                   </div>
                   <div className="text-xs text-gray-500 text-center">level</div>
                 </div>
