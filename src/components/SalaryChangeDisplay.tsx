@@ -5,6 +5,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { formatCurrency } from '@/lib/utils'
+import { SalaryWithMismatchIndicator } from './SalaryWithMismatchIndicator'
 
 interface SalaryChangeDisplayProps {
   changePercentage: number
@@ -31,13 +32,6 @@ export function SalaryChangeDisplay({
   level,
   step,
 }: SalaryChangeDisplayProps) {
-  const expectedTotal =
-    benchmarkFactor && locationFactor && level && step
-      ? locationFactor * level * step * benchmarkFactor
-      : null
-  const isMismatch =
-    expectedTotal !== null && Math.abs(totalSalary - expectedTotal) > 0.01
-
   const textSize = size === 'lg' ? 'text-xl' : 'text-sm'
 
   const formatDate = (date: Date) => {
@@ -84,23 +78,14 @@ export function SalaryChangeDisplay({
             </TooltipContent>
           </Tooltip>
           <span className="text-gray-400">·</span>
-          {isMismatch ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-red-600">
-                  {formatCurrency(totalSalary)}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  Mismatch detected! Expected: {formatCurrency(expectedTotal!)},
-                  Actual: {formatCurrency(totalSalary)}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <span className="text-gray-700">{formatCurrency(totalSalary)}</span>
-          )}
+          <SalaryWithMismatchIndicator
+            totalSalary={totalSalary}
+            benchmarkFactor={benchmarkFactor}
+            locationFactor={locationFactor}
+            level={level}
+            step={step}
+            className="text-gray-700"
+          />
         </div>
         {showDate && timestamp && (
           <div className="text-xs text-gray-500 flex items-center gap-1">

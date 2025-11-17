@@ -23,6 +23,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
 import { FeedbackCard } from '@/components/FeedbackCard'
 import { SalaryEntryForm } from '@/components/SalaryEntryForm'
+import { SalaryWithMismatchIndicator } from '@/components/SalaryWithMismatchIndicator'
 import {
   currencyData,
   formatCurrency,
@@ -473,24 +474,15 @@ function EmployeeOverview() {
         header: () => <div className="text-right">Total Salary ($)</div>,
         cell: ({ row }) => {
           const salary = row.original
-          const expectedTotal =
-            salary.locationFactor *
-            salary.level *
-            salary.step *
-            salary.benchmarkFactor
-          const isMismatch = Math.abs(salary.totalSalary - expectedTotal) > 0.01 // Allow for small floating point differences
-
           return (
-            <div
-              className={`text-right ${isMismatch ? 'text-red-600 font-medium' : ''}`}
-              title={
-                isMismatch
-                  ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(salary.totalSalary)}`
-                  : ''
-              }
-            >
-              {formatCurrency(salary.totalSalary)}
-            </div>
+            <SalaryWithMismatchIndicator
+              totalSalary={salary.totalSalary}
+              benchmarkFactor={salary.benchmarkFactor}
+              locationFactor={salary.locationFactor}
+              level={salary.level}
+              step={salary.step}
+              align="right"
+            />
           )
         },
       },
@@ -1453,10 +1445,6 @@ function InlineSalaryFormRow({
             const level = form.getFieldValue('level') ?? 1
             const step = form.getFieldValue('step') ?? 1
             const benchmarkFactor = form.getFieldValue('benchmarkFactor') ?? 0
-            const expectedTotal =
-              locationFactor * level * step * benchmarkFactor
-            const isMismatch =
-              Math.abs(field.state.value - expectedTotal) > 0.01
 
             if (showOverrideMode) {
               return (
@@ -1471,16 +1459,15 @@ function InlineSalaryFormRow({
             }
 
             return (
-              <div
-                className={`text-xs py-1 px-1 text-right ${isMismatch ? 'text-red-600 font-medium' : ''}`}
-                title={
-                  isMismatch
-                    ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(field.state.value)}`
-                    : ''
-                }
-              >
-                {formatCurrency(field.state.value)}
-              </div>
+              <SalaryWithMismatchIndicator
+                totalSalary={field.state.value}
+                benchmarkFactor={benchmarkFactor}
+                locationFactor={locationFactor}
+                level={level}
+                step={step}
+                className="text-xs py-1 px-1"
+                align="right"
+              />
             )
           }}
         />
