@@ -55,6 +55,7 @@ import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
 import { LevelStepDisplay } from '@/components/LevelStepDisplay'
 import { PriorityBadge } from '@/components/PriorityBadge'
 import { StatusCell } from '@/components/StatusCell'
+import { ReviewerAvatar } from '@/components/ReviewerAvatar'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -345,9 +346,11 @@ function App() {
           _,
           filterValue,
         ),
-      cell: ({ row }) => (
-        <div>{row.original.deelEmployee?.topLevelManager?.name}</div>
-      ),
+      cell: ({ row }) => {
+        const reviewerName = row.original.deelEmployee?.topLevelManager?.name
+        if (!reviewerName) return null
+        return <ReviewerAvatar name={reviewerName} />
+      },
     },
     {
       accessorKey: 'reviewed',
