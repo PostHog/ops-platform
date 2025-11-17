@@ -48,8 +48,8 @@ export function SalaryHistoryCard({
       <div
         className={`bg-white w-full border border-t-0${lastTableItem ? ' rounded-b-md' : ''}`}
       >
-        <div className="ml-8 border-l-[3px] border-gray-200 px-4 py-2">
-          <div className="flex justify-between gap-x-4 mb-2">
+        <div className="ml-8 border-l-[3px] border-gray-200 px-4 py-2 flex flex-col gap-y-2">
+          <div className="flex justify-between gap-x-4">
             <div className="flex items-center gap-x-4">
               {/* salary change */}
               <div className="flex items-center gap-2 text-xl">
