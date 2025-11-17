@@ -375,36 +375,6 @@ function App() {
         />
       ),
     },
-    {
-      id: 'actions',
-      enableHiding: false,
-      cell: ({ row }) => {
-        const employee = row.original
-
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() =>
-                  router.navigate({
-                    to: '/employee/$employeeId',
-                    params: { employeeId: employee.id },
-                  })
-                }
-              >
-                Edit person
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )
-      },
-    },
   ]
 
   const table = useReactTable({
@@ -437,7 +407,7 @@ function App() {
 
   return (
     <div className="flex justify-center">
-      <div className="max-w-[80%] flex-grow">
+      <div className="max-w-7xl width-full flex-grow">
         <div className="flex justify-between py-4">
           <div></div>
           <div className="flex items-center space-x-2">
