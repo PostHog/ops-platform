@@ -40,7 +40,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import prisma from '@/db'
-import { formatCurrency } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -53,6 +52,7 @@ import { reviewQueueAtom } from '@/atoms'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
 import { EmployeeNameCell } from '@/components/EmployeeNameCell'
 import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
+import { LevelStepDisplay } from '@/components/LevelStepDisplay'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -256,28 +256,8 @@ function App() {
       },
     },
     {
-      accessorKey: 'level',
-      header: 'Level',
-      meta: {
-        filterVariant: 'range',
-      },
-      filterFn: (
-        row: Row<Employee>,
-        _: string,
-        filterValue: [number | undefined, number | undefined],
-      ) =>
-        customFilterFns.inNumberRange(
-          row.original.salaries?.[0]?.level,
-          _,
-          filterValue,
-        ),
-      cell: ({ row }) => (
-        <div className="text-right">{row.original.salaries[0].level}</div>
-      ),
-    },
-    {
-      accessorKey: 'step',
-      header: 'Step',
+      accessorKey: 'stepLevel',
+      header: 'Step / Level',
       meta: {
         filterVariant: 'range',
       },
@@ -290,10 +270,19 @@ function App() {
           row.original.salaries?.[0]?.step,
           _,
           filterValue,
+        ) ||
+        customFilterFns.inNumberRange(
+          row.original.salaries?.[0]?.level,
+          _,
+          filterValue,
         ),
-      cell: ({ row }) => (
-        <div className="text-right">{row.original.salaries[0].step}</div>
-      ),
+      cell: ({ row }) => {
+        const salary = row.original.salaries?.[0]
+        if (!salary) return null
+        return (
+          <LevelStepDisplay level={salary.level} step={salary.step} size="sm" />
+        )
+      },
     },
     {
       accessorKey: 'priority',

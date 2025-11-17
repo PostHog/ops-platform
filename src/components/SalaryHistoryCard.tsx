@@ -10,6 +10,7 @@ import { getCountryFlag } from '@/lib/utils'
 import { MoreVertical, PencilLine, Trash2 } from 'lucide-react'
 import type { Salary } from '@prisma/client'
 import { SalaryChangeDisplay } from './SalaryChangeDisplay'
+import { LevelStepDisplay } from './LevelStepDisplay'
 
 interface SalaryHistoryCardProps {
   salary: Salary
@@ -60,19 +61,7 @@ export function SalaryHistoryCard({
             </div>
             {/* level / step */}
             <div className="flex justify-between items-start">
-              <div className="flex justify-end gap-2">
-                <div>
-                  <div className="text-xl font-bold">
-                    {salary.level === 1 ? '1.0' : salary.level}
-                  </div>
-                  <div className="text-xs text-gray-500 text-center">level</div>
-                </div>
-                <div className="text-2xl text-gray-300">/</div>
-                <div>
-                  <div className="text-xl font-bold">{salary.step}</div>
-                  <div className="text-xs text-gray-500 text-center">step</div>
-                </div>
-              </div>
+              <LevelStepDisplay level={salary.level} step={salary.step} />
               {isAdmin && isDeletable && onDelete && (
                 <div className="-mr-2">
                   <DropdownMenu>
