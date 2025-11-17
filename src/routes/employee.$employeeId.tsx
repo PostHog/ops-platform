@@ -1192,6 +1192,7 @@ function InlineSalaryFormRow({
                 <SelectItem value="0.78">Intermediate (0.78)</SelectItem>
                 <SelectItem value="1">Senior (1)</SelectItem>
                 <SelectItem value="1.2">Staff (1.2)</SelectItem>
+                <SelectItem value="1.4">Director (1.4)</SelectItem>
               </SelectContent>
             </Select>
           )}

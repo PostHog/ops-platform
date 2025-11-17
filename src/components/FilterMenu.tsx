@@ -42,6 +42,7 @@ const FilterMenu: React.FC<{
         { label: 'Intermediate (0.78)', value: '0.78' },
         { label: 'Senior (1)', value: '1' },
         { label: 'Staff (1.2)', value: '1.2' },
+        { label: 'Director (1.4)', value: '1.4' },
       ],
     },
     {
