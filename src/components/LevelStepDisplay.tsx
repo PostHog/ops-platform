@@ -14,7 +14,7 @@ export function LevelStepDisplay({
   const separatorSize = size === 'lg' ? 'text-2xl' : 'text-lg'
 
   return (
-    <div className="flex justify-end gap-2">
+    <div className="flex gap-2">
       <div>
         <div className={`${numberSize} font-bold`}>
           {level === 1 ? '1.0' : level}
