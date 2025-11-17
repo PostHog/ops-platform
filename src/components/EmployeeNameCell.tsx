@@ -25,10 +25,10 @@ export function EmployeeNameCell({ name, notes }: EmployeeNameCellProps) {
   }, [notes, isExpanded])
 
   return (
-    <div className="max-w-[300px] pl-2">
+    <div className="max-w-[300px] pl-4">
       <div className="font-bold text-sm">{name}</div>
       {notes && (
-        <div className="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2 py-1 mt-1 mb-2">
+        <div className="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2 py-1 mt-1 mb-2 ml-2">
           <div className="relative">
             <p
               ref={textRef}

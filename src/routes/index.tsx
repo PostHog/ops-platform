@@ -207,7 +207,7 @@ function App() {
   const columns: Array<ColumnDef<Employee>> = [
     {
       accessorKey: 'name',
-      header: 'Name/notes',
+      header: () => <span className="font-bold pl-2">Employee</span>,
       meta: {
         filterVariant: 'text',
       },
@@ -233,7 +233,7 @@ function App() {
     },
     {
       accessorKey: 'lastChange',
-      header: 'Last change',
+      header: () => <span className="font-bold">Last Change</span>,
       meta: {
         filterVariant: 'dateRange',
       },
@@ -260,7 +260,7 @@ function App() {
     },
     {
       accessorKey: 'stepLevel',
-      header: 'Level / Step',
+      header: () => <span className="font-bold">Level / Step</span>,
       meta: {
         filterVariant: 'range',
       },
@@ -311,7 +311,10 @@ function App() {
         }
 
         // Ensure we're working with a number
-        const percentage = typeof rawPercentage === 'number' ? rawPercentage : parseFloat(String(rawPercentage))
+        const percentage =
+          typeof rawPercentage === 'number'
+            ? rawPercentage
+            : parseFloat(String(rawPercentage))
 
         // If conversion failed, don't filter
         if (isNaN(percentage)) {
@@ -329,7 +332,7 @@ function App() {
     },
     {
       accessorKey: 'priority',
-      header: 'Priority',
+      header: () => <span className="font-bold">Priority</span>,
       meta: {
         filterVariant: 'select',
         filterOptions: [
@@ -379,7 +382,7 @@ function App() {
     },
     {
       accessorKey: 'reviewer',
-      header: 'Reviewer',
+      header: () => <span className="font-bold">Reviewer</span>,
       meta: {
         filterVariant: 'text',
       },
@@ -397,7 +400,7 @@ function App() {
     },
     {
       accessorKey: 'reviewed',
-      header: 'Status',
+      header: () => <span className="font-bold">Status</span>,
       meta: {
         filterVariant: 'select',
         filterOptions: [
