@@ -54,6 +54,7 @@ import { EmployeeNameCell } from '@/components/EmployeeNameCell'
 import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
 import { LevelStepDisplay } from '@/components/LevelStepDisplay'
 import { PriorityBadge } from '@/components/PriorityBadge'
+import { StatusCell } from '@/components/StatusCell'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -350,12 +351,12 @@ function App() {
     },
     {
       accessorKey: 'reviewed',
-      header: 'reviewed',
+      header: 'Status',
       meta: {
         filterVariant: 'select',
         filterOptions: [
-          { label: 'Yes', value: 'true' },
-          { label: 'No', value: 'false' },
+          { label: 'Reviewed', value: 'true' },
+          { label: 'Needs Review', value: 'false' },
         ],
       },
       filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
@@ -364,7 +365,12 @@ function App() {
           _,
           filterValue,
         ),
-      cell: ({ row }) => <div>{row.original.reviewed ? 'Yes' : 'No'}</div>,
+      cell: ({ row }) => (
+        <StatusCell
+          reviewed={row.original.reviewed}
+          employeeId={row.original.id}
+        />
+      ),
     },
     {
       id: 'actions',
