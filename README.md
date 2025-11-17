@@ -2,16 +2,29 @@ Welcome to your new TanStack app!
 
 # Getting Started
 
-To run this application:
+First, request the `.env` and `historicalImporter.ts` files from a friend and put them in the project root.
+
+Download and activate services:
 
 ```bash
 flox activate
 flox services start
 npx prisma db push
-pnpm import-historical // You'll need to place the historicalImporter.ts into the root folder
 pnpm install
 pnpm dev
 ```
+
+If this is the first time you're running the app, you'll need to sync from Deel and import historical data. The CURL request requires a bearer token - get that from a friend as well.
+
+```bash
+curl --request POST \
+  --url 'http://localhost:3000/syncDeelEmployees?=' \
+  --header 'Authorization: Bearer {{token}}' \
+  --header 'User-Agent: insomnia/11.6.1'
+pnpm import-historical
+```
+
+After starting the application, log in with your posthog google account.
 
 # Building For Production
 
