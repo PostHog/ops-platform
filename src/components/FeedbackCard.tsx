@@ -114,7 +114,7 @@ export function FeedbackCard({
           />
         </div>
         {feedback.whatMakesThemValuable && (
-          <div>
+          <div className="max-w-4xl">
             <p className="text-sm font-bold mb-1 text-gray-700">
               What makes them so valuable to your team and PostHog?
             </p>
@@ -123,7 +123,7 @@ export function FeedbackCard({
             </p>
           </div>
         )}
-        <div>
+        <div className="max-w-4xl">
           <p className="text-sm font-bold mb-1 text-gray-700">
             Areas to watch:
           </p>

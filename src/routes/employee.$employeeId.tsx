@@ -283,7 +283,7 @@ function EmployeeOverview() {
   const [viewMode, setViewMode] = useState<'table' | 'card'>(() => {
     // Load preferred view from localStorage on initial render
     const savedView = localStorage.getItem('preferredEmployeeView')
-    return (savedView === 'table' || savedView === 'card') ? savedView : 'table'
+    return savedView === 'table' || savedView === 'card' ? savedView : 'table'
   })
 
   // Save view preference to localStorage whenever it changes
@@ -657,7 +657,7 @@ function EmployeeOverview() {
 
   return (
     <div className="pt-8 flex justify-center flex flex-col items-center gap-5">
-      <div className="2xl:w-[80%] max-w-full px-4 flex flex-col gap-5">
+      <div className="2xl:max-w-7xl w-full px-4 flex flex-col gap-5">
         {user?.role === ROLES.ADMIN ? (
           <Button
             variant="ghost"
@@ -1061,10 +1061,12 @@ function EmployeeOverview() {
                         })()}
                       </p>
                     </div>
-                    <div className="max-w-5xl">
+                    <div className="w-full">
                       {monthGroup.items.map((item, itemIndex) => {
-                        const isLastMonth = monthGroupIndex === timelineByMonth.length - 1
-                        const isLastItemInMonth = itemIndex === monthGroup.items.length - 1
+                        const isLastMonth =
+                          monthGroupIndex === timelineByMonth.length - 1
+                        const isLastItemInMonth =
+                          itemIndex === monthGroup.items.length - 1
                         const lastTableItem = isLastMonth && isLastItemInMonth
 
                         return item.type === 'salary' ? (

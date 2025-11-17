@@ -119,6 +119,37 @@ export const stepModifier: Record<string, Array<number>> = {
   Expert: [1.11, 1.2],
 }
 
+export type SeniorityLevel = 'Junior' | 'Intermediate' | 'Senior' | 'Staff'
+
+export const SALARY_LEVELS = {
+  Junior: 0.59,
+  Intermediate: 0.78,
+  Senior: 1,
+  Staff: 1.2,
+} as const
+
+export const SALARY_LEVEL_OPTIONS: Array<{
+  name: SeniorityLevel
+  value: number
+}> = [
+  { name: 'Junior', value: SALARY_LEVELS.Junior },
+  { name: 'Intermediate', value: SALARY_LEVELS.Intermediate },
+  { name: 'Senior', value: SALARY_LEVELS.Senior },
+  { name: 'Staff', value: SALARY_LEVELS.Staff },
+]
+
+export function getLevelName(level: number): SeniorityLevel {
+  if (level === SALARY_LEVELS.Junior) return 'Junior'
+  if (level === SALARY_LEVELS.Intermediate) return 'Intermediate'
+  if (level === SALARY_LEVELS.Senior) return 'Senior'
+  if (level === SALARY_LEVELS.Staff) return 'Staff'
+  return 'Invalid' as SeniorityLevel
+}
+
+export function getLevelValue(levelName: string): number {
+  return SALARY_LEVELS[levelName as SeniorityLevel] ?? SALARY_LEVELS.Senior
+}
+
 export function getCountryFlag(countryName: string): string {
   const countryToCode: Record<string, string> = {
     'United States': 'US',

@@ -27,16 +27,23 @@ import {
   getAreasByCountry,
   getCountries,
   getCountryFlag,
+  getLevelName,
+  getLevelValue,
   locationFactor,
+  SALARY_LEVEL_OPTIONS,
   sfBenchmark,
-  stepModifier,
 } from '@/lib/utils'
+
+type SalaryFormData = Omit<
+  Salary,
+  'id' | 'timestamp' | 'communicated' | 'employee'
+>
 
 interface SalaryEntryFormProps {
   employeeId: string
   latestSalary: Salary | undefined
   benchmarkUpdated: boolean
-  onSubmit: (data: any) => Promise<void>
+  onSubmit: (data: SalaryFormData) => Promise<void>
   onCancel: () => void
 }
 
@@ -48,35 +55,6 @@ export function SalaryEntryForm({
   onCancel,
 }: SalaryEntryFormProps) {
   const [showOverride, setShowOverride] = useState(false)
-
-  // Map numeric level to seniority level
-  const getLevelName = (level: number): string => {
-    if (level === 0.59) return 'Junior'
-    if (level === 0.78) return 'Intermediate'
-    if (level === 1) return 'Senior'
-    if (level === 1.2) return 'Staff'
-    // Default based on closest match
-    if (level < 0.69) return 'Junior'
-    if (level < 0.89) return 'Intermediate'
-    if (level < 1.1) return 'Senior'
-    return 'Staff'
-  }
-
-  // Map seniority level to numeric value
-  const getLevelValue = (levelName: string): number => {
-    switch (levelName) {
-      case 'Junior':
-        return 0.59
-      case 'Intermediate':
-        return 0.78
-      case 'Senior':
-        return 1
-      case 'Staff':
-        return 1.2
-      default:
-        return 1
-    }
-  }
 
   const form = useForm({
     defaultValues: {
@@ -137,8 +115,10 @@ export function SalaryEntryForm({
     if (levelName) {
       form.setFieldValue('level', getLevelValue(levelName))
     }
-  }, [levelName, form])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [levelName])
 
+  // Update location factor when country or area changes
   useEffect(() => {
     const location = locationFactor.find(
       (l) => l.country === country && l.area === area,
@@ -148,7 +128,11 @@ export function SalaryEntryForm({
       'locationFactor',
       Number(currentLocationFactor.toFixed(2)),
     )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [country, area])
 
+  // Update benchmark factor when benchmark changes
+  useEffect(() => {
     const currentBenchmarkFactor = benchmark.includes('(old)')
       ? (latestSalary?.benchmarkFactor ?? 0)
       : (sfBenchmark[benchmark.replace(' (old)', '')] ?? 0)
@@ -156,9 +140,13 @@ export function SalaryEntryForm({
       'benchmarkFactor',
       Number(currentBenchmarkFactor.toFixed(2)),
     )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [benchmark, latestSalary?.benchmarkFactor])
 
+  // Calculate total salary when any factor changes
+  useEffect(() => {
     const currentTotalSalary =
-      currentLocationFactor * level * step * currentBenchmarkFactor
+      locationFactorValue * level * step * benchmarkFactor
     form.setFieldValue('totalSalary', Number(currentTotalSalary.toFixed(2)))
 
     const latestTotalSalary = latestSalary?.totalSalary ?? 0
@@ -172,22 +160,36 @@ export function SalaryEntryForm({
     const currentChangeAmount = currentTotalSalary - latestTotalSalary
     form.setFieldValue('changeAmount', Number(currentChangeAmount.toFixed(2)))
 
-    const exchangeRate = currencyData[location?.currency ?? ''] ?? 1
-    form.setFieldValue('exchangeRate', exchangeRate)
-    form.setFieldValue(
-      'localCurrency',
-      currencyData[location?.currency ?? '']
-        ? (location?.currency ?? 'USD')
-        : 'USD',
-    )
+    // Set actualSalary to match totalSalary by default (unless override is active)
+    if (!showOverride) {
+      form.setFieldValue('actualSalary', Number(currentTotalSalary.toFixed(2)))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationFactorValue, level, step, benchmarkFactor, latestSalary?.totalSalary, showOverride])
 
-    const totalSalaryLocal = currentTotalSalary * exchangeRate
+  // Update currency and exchange rate when location changes
+  useEffect(() => {
+    const location = locationFactor.find(
+      (l) => l.country === country && l.area === area,
+    )
+    const currency = location?.currency ?? 'USD'
+    const exchangeRate = currencyData[currency] ?? 1
+
+    form.setFieldValue('exchangeRate', exchangeRate)
+    form.setFieldValue('localCurrency', currencyData[currency] ? currency : 'USD')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [country, area])
+
+  // Calculate local currency amounts when total salary or exchange rate changes
+  useEffect(() => {
+    const totalSalaryLocal = totalSalary * form.getFieldValue('exchangeRate')
     form.setFieldValue('totalSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
 
-    // Set actualSalary to match totalSalary by default
-    form.setFieldValue('actualSalary', Number(currentTotalSalary.toFixed(2)))
-    form.setFieldValue('actualSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
-  }, [country, area, benchmark, level, step, latestSalary, form])
+    if (!showOverride) {
+      form.setFieldValue('actualSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalSalary, showOverride])
 
   // When country changes, reset area to first available area
   useEffect(() => {
@@ -195,7 +197,8 @@ export function SalaryEntryForm({
     if (areas.length > 0 && !areas.includes(area)) {
       form.setFieldValue('area', areas[0])
     }
-  }, [country, area, form])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [country, area])
 
   return (
     <div className="bg-white max-w-5xl mb-4">
@@ -337,18 +340,17 @@ export function SalaryEntryForm({
                   </label>
                   <Select
                     value={field.state.value}
-                    onValueChange={field.handleChange}
+                    onValueChange={(value) => field.handleChange(value as any)}
                   >
                     <SelectTrigger className="text-sm w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Junior">Junior (0.59)</SelectItem>
-                      <SelectItem value="Intermediate">
-                        Intermediate (0.78)
-                      </SelectItem>
-                      <SelectItem value="Senior">Senior (1)</SelectItem>
-                      <SelectItem value="Staff">Staff (1.2)</SelectItem>
+                      {SALARY_LEVEL_OPTIONS.map((option) => (
+                        <SelectItem key={option.name} value={option.name}>
+                          {option.name} ({option.value})
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -444,7 +446,7 @@ export function SalaryEntryForm({
               <div className="flex gap-2">
                 <div>
                   <div className="text-xl font-bold">
-                    {level == 1 ? '1.0' : level}
+                    {level === 1 ? '1.0' : level}
                   </div>
                   <div className="text-xs text-gray-500 text-center">level</div>
                 </div>

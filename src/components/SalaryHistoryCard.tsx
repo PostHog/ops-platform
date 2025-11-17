@@ -50,9 +50,9 @@ export function SalaryHistoryCard({
       >
         <div className="ml-8 border-l-3 border-gray-200 px-4 py-2">
           <div className="flex justify-between gap-x-4 mb-2">
-            <div>
+            <div className="flex items-center gap-x-4">
               {/* salary change */}
-              <div className="flex items-center gap-2 text-xl mb-2">
+              <div className="flex items-center gap-2 text-xl">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span
@@ -88,7 +88,7 @@ export function SalaryHistoryCard({
                   </span>
                 )}
               </div>
-              <div className="mb-2 leading-none text-xs">
+              <div className="leading-none text-xs">
                 <span className="font-semibold">
                   {salary.benchmark} ({salary.benchmarkFactor})
                 </span>
