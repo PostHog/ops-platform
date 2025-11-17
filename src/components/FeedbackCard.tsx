@@ -49,10 +49,10 @@ export function FeedbackCard({
 }: FeedbackCardProps) {
   return (
     <div
-      className={`border border-t-0 border-gray-200 ${lastTableItem ? 'rounded-b-md' : ''}`}
+      className={`border border-t-0 border-gray-200${lastTableItem ? ' rounded-b-md' : ''}`}
     >
-      <div className="border-l-3 border-gray-200 px-4 py-2 ml-8 flex flex-col gap-3">
-        <div className="">
+      <div className="border-l-[3px] border-gray-200 px-4 py-2 ml-8 flex flex-col gap-3">
+        <div>
           <h4
             className={`text-sm font-semibold flex items-center gap-1.5 ${
               feedback.wouldYouTryToKeepThem ? 'text-green-700' : 'text-red-700'
@@ -74,7 +74,7 @@ export function FeedbackCard({
           </h4>
         </div>
 
-        <div className=" flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           <TraitBadge
             icon={
               feedback.driverOrPassenger === 'DRIVER' ? (

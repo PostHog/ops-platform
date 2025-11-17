@@ -46,9 +46,9 @@ export function SalaryHistoryCard({
   return (
     <TooltipProvider>
       <div
-        className={`bg-white w-full border border-t-0 ${lastTableItem ? 'rounded-b-md' : ''}`}
+        className={`bg-white w-full border border-t-0${lastTableItem ? ' rounded-b-md' : ''}`}
       >
-        <div className="ml-8 border-l-3 border-gray-200 px-4 py-2">
+        <div className="ml-8 border-l-[3px] border-gray-200 px-4 py-2">
           <div className="flex justify-between gap-x-4 mb-2">
             <div className="flex items-center gap-x-4">
               {/* salary change */}
@@ -101,22 +101,20 @@ export function SalaryHistoryCard({
             </div>
             {/* level / step */}
             <div className="flex justify-between items-start">
-              <div className="flex gap-2">
-                <div className="flex justify-end gap-2">
-                  <div>
-                    <div className="text-xl font-bold">
-                      {salary.level == 1 ? '1.0' : salary.level}
-                    </div>
-                    <div className="text-xs text-gray-500 text-center">
-                      level
-                    </div>
+              <div className="flex justify-end gap-2">
+                <div>
+                  <div className="text-xl font-bold">
+                    {salary.level === 1 ? '1.0' : salary.level}
                   </div>
-                  <div className="text-2xl text-gray-300">/</div>
-                  <div>
-                    <div className="text-xl font-bold">{salary.step}</div>
-                    <div className="text-xs text-gray-500 text-center">
-                      step
-                    </div>
+                  <div className="text-xs text-gray-500 text-center">
+                    level
+                  </div>
+                </div>
+                <div className="text-2xl text-gray-300">/</div>
+                <div>
+                  <div className="text-xl font-bold">{salary.step}</div>
+                  <div className="text-xs text-gray-500 text-center">
+                    step
                   </div>
                 </div>
               </div>
