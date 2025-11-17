@@ -88,7 +88,7 @@ export function SalaryHistoryCard({
                   </span>
                 )}
               </div>
-              <div className="leading-none text-xs">
+              <div className="leading-none text-sm">
                 <span className="font-semibold">
                   {salary.benchmark} ({salary.benchmarkFactor})
                 </span>
@@ -106,16 +106,12 @@ export function SalaryHistoryCard({
                   <div className="text-xl font-bold">
                     {salary.level === 1 ? '1.0' : salary.level}
                   </div>
-                  <div className="text-xs text-gray-500 text-center">
-                    level
-                  </div>
+                  <div className="text-xs text-gray-500 text-center">level</div>
                 </div>
                 <div className="text-2xl text-gray-300">/</div>
                 <div>
                   <div className="text-xl font-bold">{salary.step}</div>
-                  <div className="text-xs text-gray-500 text-center">
-                    step
-                  </div>
+                  <div className="text-xs text-gray-500 text-center">step</div>
                 </div>
               </div>
               {isAdmin && isDeletable && onDelete && (
