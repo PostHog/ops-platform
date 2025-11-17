@@ -53,6 +53,7 @@ import { createAuthenticatedFn } from '@/lib/auth-middleware'
 import { EmployeeNameCell } from '@/components/EmployeeNameCell'
 import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
 import { LevelStepDisplay } from '@/components/LevelStepDisplay'
+import { PriorityBadge } from '@/components/PriorityBadge'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -311,13 +312,21 @@ function App() {
             value={row.original.priority}
             onValueChange={handlePriorityChange}
           >
-            <SelectTrigger className="w-24 h-6 text-xs px-1 py-0">
-              <SelectValue />
+            <SelectTrigger className="h-auto border-0 shadow-none p-0 hover:bg-transparent focus:ring-0 w-24">
+              <SelectValue>
+                <PriorityBadge priority={row.original.priority} />
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="low">
+                <PriorityBadge priority="low" />
+              </SelectItem>
+              <SelectItem value="medium">
+                <PriorityBadge priority="medium" />
+              </SelectItem>
+              <SelectItem value="high">
+                <PriorityBadge priority="high" />
+              </SelectItem>
             </SelectContent>
           </Select>
         )
