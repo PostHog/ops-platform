@@ -34,6 +34,8 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
   const [priorityFilterOpen, setPriorityFilterOpen] = useState(false)
   const [reviewerFilterOpen, setReviewerFilterOpen] = useState(false)
   const [statusFilterOpen, setStatusFilterOpen] = useState(false)
+  const [dateFilterOpen, setDateFilterOpen] = useState(false)
+  const [percentageFilterOpen, setPercentageFilterOpen] = useState(false)
 
   const nameColumn = table.getColumn('name')
   const nameFilterValue = (nameColumn?.getFilterValue() ?? '') as string
@@ -56,6 +58,22 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
 
   const statusColumn = table.getColumn('reviewed')
   const statusFilterValue = (statusColumn?.getFilterValue() ?? []) as boolean[]
+
+  const lastChangeColumn = table.getColumn('lastChange')
+  const lastChangeFilterValue = (lastChangeColumn?.getFilterValue() ?? [
+    '',
+    '',
+  ]) as [string, string]
+
+  const changePercentageColumn = table.getColumn('changePercentage')
+  const changePercentageFilterValue = (changePercentageColumn?.getFilterValue() ??
+    ['', '']) as [number | '', number | '']
+
+  // Debug: log if column exists
+  if (!changePercentageColumn) {
+    console.error('changePercentage column not found in table')
+    console.log('Available columns:', table.getAllColumns().map(c => c.id))
+  }
 
   const toggleLevel = (levelValue: number) => {
     const current = levelFilterValue
@@ -86,6 +104,12 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
 
   const hasStepFilter =
     stepLevelFilterValue[0] !== '' || stepLevelFilterValue[1] !== ''
+
+  const hasDateFilter =
+    lastChangeFilterValue[0] !== '' || lastChangeFilterValue[1] !== ''
+
+  const hasPercentageFilter =
+    changePercentageFilterValue[0] !== '' || changePercentageFilterValue[1] !== ''
 
   return (
     <div className="flex items-center gap-2 py-4">
@@ -409,6 +433,166 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
                   onClick={() => {
                     statusColumn?.setFilterValue(undefined)
                     setStatusFilterOpen(false)
+                  }}
+                  className="h-7 text-xs"
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <Popover open={dateFilterOpen} onOpenChange={setDateFilterOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant={hasDateFilter ? 'default' : 'outline'}
+            size="sm"
+            className="h-8"
+          >
+            Date
+            {hasDateFilter && (
+              <span className="ml-1 rounded-full bg-background px-1.5 text-xs text-foreground">
+                1
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80" align="start">
+          <div className="space-y-3">
+            <div className="font-medium text-sm">Filter by last change date</div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground">From</label>
+                <Input
+                  type="date"
+                  value={lastChangeFilterValue[0]}
+                  onChange={(e) => {
+                    const newValue: [string, string] = [
+                      e.target.value,
+                      lastChangeFilterValue[1],
+                    ]
+                    lastChangeColumn?.setFilterValue(
+                      newValue[0] === '' && newValue[1] === ''
+                        ? undefined
+                        : newValue,
+                    )
+                  }}
+                  className="h-8"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground">To</label>
+                <Input
+                  type="date"
+                  value={lastChangeFilterValue[1]}
+                  onChange={(e) => {
+                    const newValue: [string, string] = [
+                      lastChangeFilterValue[0],
+                      e.target.value,
+                    ]
+                    lastChangeColumn?.setFilterValue(
+                      newValue[0] === '' && newValue[1] === ''
+                        ? undefined
+                        : newValue,
+                    )
+                  }}
+                  className="h-8"
+                />
+              </div>
+            </div>
+            {hasDateFilter && (
+              <div className="flex justify-end pt-2 border-t">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    lastChangeColumn?.setFilterValue(undefined)
+                    setDateFilterOpen(false)
+                  }}
+                  className="h-7 text-xs"
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <Popover open={percentageFilterOpen} onOpenChange={setPercentageFilterOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant={hasPercentageFilter ? 'default' : 'outline'}
+            size="sm"
+            className="h-8"
+          >
+            Change %
+            {hasPercentageFilter && (
+              <span className="ml-1 rounded-full bg-background px-1.5 text-xs text-foreground">
+                1
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-64" align="start">
+          <div className="space-y-3">
+            <div className="font-medium text-sm">Filter by change percentage</div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground">Min %</label>
+                <Input
+                  type="number"
+                  placeholder="Min"
+                  value={changePercentageFilterValue[0]}
+                  onChange={(e) => {
+                    const value =
+                      e.target.value === '' ? '' : Number(e.target.value)
+                    const newValue: [number | '', number | ''] = [
+                      value,
+                      changePercentageFilterValue[1],
+                    ]
+                    changePercentageColumn?.setFilterValue(
+                      newValue[0] === '' && newValue[1] === ''
+                        ? undefined
+                        : newValue,
+                    )
+                  }}
+                  className="h-8"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground">Max %</label>
+                <Input
+                  type="number"
+                  placeholder="Max"
+                  value={changePercentageFilterValue[1]}
+                  onChange={(e) => {
+                    const value =
+                      e.target.value === '' ? '' : Number(e.target.value)
+                    const newValue: [number | '', number | ''] = [
+                      changePercentageFilterValue[0],
+                      value,
+                    ]
+                    changePercentageColumn?.setFilterValue(
+                      newValue[0] === '' && newValue[1] === ''
+                        ? undefined
+                        : newValue,
+                    )
+                  }}
+                  className="h-8"
+                />
+              </div>
+            </div>
+            {hasPercentageFilter && (
+              <div className="flex justify-end pt-2 border-t">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    changePercentageColumn?.setFilterValue(undefined)
+                    setPercentageFilterOpen(false)
                   }}
                   className="h-7 text-xs"
                 >

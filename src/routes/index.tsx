@@ -260,7 +260,7 @@ function App() {
     },
     {
       accessorKey: 'stepLevel',
-      header: 'Step / Level',
+      header: 'Level / Step',
       meta: {
         filterVariant: 'range',
       },
@@ -291,6 +291,40 @@ function App() {
         const level = row.original.salaries?.[0]?.level
         if (!level) return false
         return filterValue.includes(level)
+      },
+    },
+    {
+      id: 'changePercentage',
+      accessorFn: (row) => row.salaries?.[0]?.changePercentage,
+      enableColumnFilter: true,
+      enableHiding: false,
+      filterFn: (
+        row: Row<Employee>,
+        _: string,
+        filterValue: [number | '', number | ''],
+      ) => {
+        const rawPercentage = row.original.salaries?.[0]?.changePercentage
+
+        // Don't filter out rows without percentage data
+        if (rawPercentage == null || rawPercentage === undefined) {
+          return true
+        }
+
+        // Ensure we're working with a number
+        const percentage = typeof rawPercentage === 'number' ? rawPercentage : parseFloat(String(rawPercentage))
+
+        // If conversion failed, don't filter
+        if (isNaN(percentage)) {
+          return true
+        }
+
+        // Convert empty string to undefined for the filter function
+        const normalizedFilter: [number | undefined, number | undefined] = [
+          filterValue[0] === '' ? undefined : filterValue[0],
+          filterValue[1] === '' ? undefined : filterValue[1],
+        ]
+
+        return customFilterFns.inNumberRange(percentage, _, normalizedFilter)
       },
     },
     {
@@ -459,7 +493,11 @@ function App() {
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers
-                    .filter((header) => header.column.id !== 'level')
+                    .filter(
+                      (header) =>
+                        header.column.id !== 'level' &&
+                        header.column.id !== 'changePercentage',
+                    )
                     .map((header) => {
                       return (
                         <TableHead key={header.id}>
@@ -475,7 +513,8 @@ function App() {
                           header.column.id !== 'stepLevel' &&
                           header.column.id !== 'priority' &&
                           header.column.id !== 'reviewer' &&
-                          header.column.id !== 'reviewed' ? (
+                          header.column.id !== 'reviewed' &&
+                          header.column.id !== 'lastChange' ? (
                             <div>
                               <Filter column={header.column} />
                             </div>
@@ -509,7 +548,11 @@ function App() {
                   >
                     {row
                       .getVisibleCells()
-                      .filter((cell) => cell.column.id !== 'level')
+                      .filter(
+                        (cell) =>
+                          cell.column.id !== 'level' &&
+                          cell.column.id !== 'changePercentage',
+                      )
                       .map((cell) => (
                         <TableCell key={cell.id} className="py-1 px-1">
                           {flexRender(
