@@ -55,6 +55,7 @@ import { LevelStepDisplay } from '@/components/LevelStepDisplay'
 import { PriorityBadge } from '@/components/PriorityBadge'
 import { StatusCell } from '@/components/StatusCell'
 import { ReviewerAvatar } from '@/components/ReviewerAvatar'
+import { TableFilters } from '@/components/TableFilters'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -272,11 +273,6 @@ function App() {
           row.original.salaries?.[0]?.step,
           _,
           filterValue,
-        ) ||
-        customFilterFns.inNumberRange(
-          row.original.salaries?.[0]?.level,
-          _,
-          filterValue,
         ),
       cell: ({ row }) => {
         const salary = row.original.salaries?.[0]
@@ -284,6 +280,17 @@ function App() {
         return (
           <LevelStepDisplay level={salary.level} step={salary.step} size="sm" />
         )
+      },
+    },
+    {
+      id: 'level',
+      accessorFn: (row) => row.salaries?.[0]?.level,
+      enableColumnFilter: true,
+      enableHiding: false,
+      filterFn: (row: Row<Employee>, _: string, filterValue: number[]) => {
+        const level = row.original.salaries?.[0]?.level
+        if (!level) return false
+        return filterValue.includes(level)
       },
     },
     {
@@ -296,6 +303,9 @@ function App() {
           { label: 'Medium', value: 'medium' },
           { label: 'High', value: 'high' },
         ],
+      },
+      filterFn: (row: Row<Employee>, _: string, filterValue: string[]) => {
+        return filterValue.includes(row.original.priority)
       },
       cell: ({ row }) => {
         const handlePriorityChange = async (value: string) => {
@@ -361,12 +371,9 @@ function App() {
           { label: 'Needs Review', value: 'false' },
         ],
       },
-      filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
-        customFilterFns.equals(
-          row.original.reviewed.toString(),
-          _,
-          filterValue,
-        ),
+      filterFn: (row: Row<Employee>, _: string, filterValue: boolean[]) => {
+        return filterValue.includes(row.original.reviewed)
+      },
       cell: ({ row }) => (
         <StatusCell
           reviewed={row.original.reviewed}
@@ -445,28 +452,37 @@ function App() {
             </DropdownMenu>
           </div>
         </div>
+        <TableFilters table={table} />
         <div className="rounded-md border">
           <Table className="text-xs">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                        {header.column.getCanFilter() ? (
-                          <div>
-                            <Filter column={header.column} />
-                          </div>
-                        ) : null}
-                      </TableHead>
-                    )
-                  })}
+                  {headerGroup.headers
+                    .filter((header) => header.column.id !== 'level')
+                    .map((header) => {
+                      return (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
+                          {header.column.getCanFilter() &&
+                          header.column.id !== 'name' &&
+                          header.column.id !== 'level' &&
+                          header.column.id !== 'stepLevel' &&
+                          header.column.id !== 'priority' &&
+                          header.column.id !== 'reviewer' &&
+                          header.column.id !== 'reviewed' ? (
+                            <div>
+                              <Filter column={header.column} />
+                            </div>
+                          ) : null}
+                        </TableHead>
+                      )
+                    })}
                 </TableRow>
               ))}
             </TableHeader>
@@ -491,14 +507,17 @@ function App() {
                       }
                     }}
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-1 px-1">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
+                    {row
+                      .getVisibleCells()
+                      .filter((cell) => cell.column.id !== 'level')
+                      .map((cell) => (
+                        <TableCell key={cell.id} className="py-1 px-1">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      ))}
                   </TableRow>
                 ))
               ) : (
