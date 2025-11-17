@@ -19,32 +19,44 @@ export function EmployeeNameCell({ name, notes }: EmployeeNameCellProps) {
     }
 
     checkTruncation()
-    // Also check after a brief delay to ensure styles are applied
     const timeoutId = setTimeout(checkTruncation, 0)
 
     return () => clearTimeout(timeoutId)
   }, [notes, isExpanded])
 
   return (
-    <div className="max-w-[300px]">
-      <div className="font-bold">{name}</div>
+    <div className="max-w-[300px] pl-2">
+      <div className="font-bold text-sm">{name}</div>
       {notes && (
-        <div className="text-xs text-gray-500 italic">
-          <div
-            ref={textRef}
-            className={isExpanded ? '' : 'line-clamp-2'}
-          >
-            {notes}
+        <div className="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2 py-1 mt-1 mb-2">
+          <div className="relative">
+            <p
+              ref={textRef}
+              className={`whitespace-normal break-words ${isExpanded ? '' : 'line-clamp-2'}`}
+            >
+              {notes}
+            </p>
+            {isTruncated && !isExpanded && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsExpanded(true)
+                }}
+                className="absolute bottom-0 right-0 text-gray-500 font-semibold not-italic hover:text-blue-700 bg-gradient-to-l from-white from-50% via-white via-70% to-transparent pl-10"
+              >
+                read more
+              </button>
+            )}
           </div>
-          {isTruncated && (
+          {isExpanded && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                setIsExpanded(!isExpanded)
+                setIsExpanded(false)
               }}
-              className="text-blue-500 hover:text-blue-700 mt-1"
+              className="text-gray-500 hover:text-blue-700 mt-1 not-italic font-semibold"
             >
-              {isExpanded ? 'read less' : 'read more'}
+              read less
             </button>
           )}
         </div>
