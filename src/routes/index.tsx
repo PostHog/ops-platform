@@ -51,6 +51,8 @@ import {
 import 'vercel-toast/dist/vercel-toast.css'
 import { reviewQueueAtom } from '@/atoms'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { EmployeeNameCell } from '@/components/EmployeeNameCell'
+import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -202,7 +204,7 @@ function App() {
   const columns: Array<ColumnDef<Employee>> = [
     {
       accessorKey: 'name',
-      header: 'Name',
+      header: 'Name/notes',
       meta: {
         filterVariant: 'text',
       },
@@ -213,25 +215,43 @@ function App() {
             _,
             filterValue,
           )) ||
-        customFilterFns.containsText(row.original.email, _, filterValue),
+        customFilterFns.containsText(row.original.email, _, filterValue) ||
+        customFilterFns.containsText(
+          row.original.salaries?.[0]?.notes ?? '',
+          _,
+          filterValue,
+        ),
       cell: ({ row }) => (
-        <div>{row.original.deelEmployee?.name || row.original.email}</div>
+        <EmployeeNameCell
+          name={row.original.deelEmployee?.name || row.original.email}
+          notes={row.original.salaries?.[0]?.notes}
+        />
       ),
     },
     {
-      accessorKey: 'timestamp',
-      header: 'Last Change (date)',
+      accessorKey: 'lastChange',
+      header: 'Last change',
       meta: {
         filterVariant: 'dateRange',
       },
       filterFn: customFilterFns.inDateRange,
       enableColumnFilter: true,
       cell: ({ row }) => {
-        const date = new Date(row.original.salaries?.[0]?.timestamp)
+        const salary = row.original.salaries?.[0]
+        if (!salary) return null
         return (
-          <div>
-            {months[date.getMonth()]} {date.getFullYear()}
-          </div>
+          <SalaryChangeDisplay
+            changePercentage={salary.changePercentage}
+            changeAmount={salary.changeAmount}
+            totalSalary={salary.totalSalary}
+            timestamp={new Date(salary.timestamp)}
+            showDate={true}
+            size="sm"
+            benchmarkFactor={salary.benchmarkFactor}
+            locationFactor={salary.locationFactor}
+            level={salary.level}
+            step={salary.step}
+          />
         )
       },
     },
@@ -273,72 +293,6 @@ function App() {
         ),
       cell: ({ row }) => (
         <div className="text-right">{row.original.salaries[0].step}</div>
-      ),
-    },
-    {
-      accessorKey: 'totalSalary',
-      header: 'Total Salary',
-      meta: {
-        filterVariant: 'range',
-      },
-      filterFn: (
-        row: Row<Employee>,
-        _: string,
-        filterValue: [number | undefined, number | undefined],
-      ) =>
-        customFilterFns.inNumberRange(
-          row.original.salaries?.[0]?.totalSalary,
-          _,
-          filterValue,
-        ),
-      cell: ({ row }) => (
-        <div className="text-right">
-          {formatCurrency(row.original.salaries[0].totalSalary)}
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'changePercentage',
-      header: 'Last Change (%)',
-      meta: {
-        filterVariant: 'range',
-      },
-      filterFn: (
-        row: Row<Employee>,
-        _: string,
-        filterValue: [number | undefined, number | undefined],
-      ) =>
-        customFilterFns.inNumberRange(
-          row.original.salaries?.[0]?.changePercentage * 100,
-          _,
-          filterValue,
-        ),
-      cell: ({ row }) => (
-        <div className="text-right">
-          {(row.original.salaries[0].changePercentage * 100).toFixed(2)}%
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'changeAmount',
-      header: 'Last Change ($)',
-      meta: {
-        filterVariant: 'range',
-      },
-      filterFn: (
-        row: Row<Employee>,
-        _: string,
-        filterValue: [number | undefined, number | undefined],
-      ) =>
-        customFilterFns.inNumberRange(
-          row.original.salaries?.[0]?.changeAmount,
-          _,
-          filterValue,
-        ),
-      cell: ({ row }) => (
-        <div className="text-right">
-          {formatCurrency(row.original.salaries[0].changeAmount)}
-        </div>
       ),
     },
     {
@@ -394,24 +348,6 @@ function App() {
         ),
       cell: ({ row }) => (
         <div>{row.original.deelEmployee?.topLevelManager?.name}</div>
-      ),
-    },
-    {
-      accessorKey: 'notes',
-      header: 'Notes',
-      meta: {
-        filterVariant: 'text',
-      },
-      filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
-        customFilterFns.containsText(
-          row.original.salaries?.[0]?.notes,
-          _,
-          filterValue,
-        ),
-      cell: ({ row }) => (
-        <div className="whitespace-pre-line min-w-[200px]">
-          {row.original.salaries[0].notes}
-        </div>
       ),
     },
     {

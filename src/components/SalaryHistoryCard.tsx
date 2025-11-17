@@ -5,15 +5,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import { formatCurrency, getCountryFlag } from '@/lib/utils'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { getCountryFlag } from '@/lib/utils'
 import { MoreVertical, PencilLine, Trash2 } from 'lucide-react'
 import type { Salary } from '@prisma/client'
+import { SalaryChangeDisplay } from './SalaryChangeDisplay'
 
 interface SalaryHistoryCardProps {
   salary: Salary
@@ -28,17 +24,6 @@ export function SalaryHistoryCard({
   onDelete,
   lastTableItem = false,
 }: SalaryHistoryCardProps) {
-  const date = new Date(salary.timestamp)
-  const formattedDate = date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-
-  const expectedTotal =
-    salary.locationFactor * salary.level * salary.step * salary.benchmarkFactor
-  const isMismatch = Math.abs(salary.totalSalary - expectedTotal) > 0.01
-
   const hoursSinceCreation =
     (Date.now() - salary.timestamp.getTime()) / (1000 * 60 * 60)
   const isDeletable = hoursSinceCreation <= 24
@@ -52,42 +37,16 @@ export function SalaryHistoryCard({
           <div className="flex justify-between gap-x-4">
             <div className="flex items-center gap-x-4">
               {/* salary change */}
-              <div className="flex items-center gap-2 text-xl">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span
-                      className={`font-bold cursor-help ${salary.changePercentage > 0 ? 'text-green-600' : salary.changePercentage < 0 ? 'text-red-600' : ''}`}
-                    >
-                      {salary.changePercentage >= 0 ? '+' : ''}
-                      {(salary.changePercentage * 100).toFixed(2)}%
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Change: {formatCurrency(salary.changeAmount)}</p>
-                  </TooltipContent>
-                </Tooltip>
-                <span className="text-gray-400">·</span>
-                {isMismatch ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="text-red-600">
-                        {formatCurrency(salary.totalSalary)}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        Mismatch detected! Expected:{' '}
-                        {formatCurrency(expectedTotal)}, Actual:{' '}
-                        {formatCurrency(salary.totalSalary)}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <span className="text-gray-700">
-                    {formatCurrency(salary.totalSalary)}
-                  </span>
-                )}
-              </div>
+              <SalaryChangeDisplay
+                changePercentage={salary.changePercentage}
+                changeAmount={salary.changeAmount}
+                totalSalary={salary.totalSalary}
+                size="lg"
+                benchmarkFactor={salary.benchmarkFactor}
+                locationFactor={salary.locationFactor}
+                level={salary.level}
+                step={salary.step}
+              />
               <div className="leading-none text-sm">
                 <span className="font-semibold">
                   {salary.benchmark} ({salary.benchmarkFactor})
