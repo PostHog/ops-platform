@@ -28,13 +28,6 @@ export function SalaryHistoryCard({
   onDelete,
   lastTableItem = false,
 }: SalaryHistoryCardProps) {
-  const date = new Date(salary.timestamp)
-  const formattedDate = date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-
   const expectedTotal =
     salary.locationFactor * salary.level * salary.step * salary.benchmarkFactor
   const isMismatch = Math.abs(salary.totalSalary - expectedTotal) > 0.01
