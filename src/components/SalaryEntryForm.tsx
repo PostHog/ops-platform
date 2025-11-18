@@ -165,7 +165,14 @@ export function SalaryEntryForm({
       form.setFieldValue('actualSalary', Number(currentTotalSalary.toFixed(2)))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locationFactorValue, level, step, benchmarkFactor, latestSalary?.totalSalary, showOverride])
+  }, [
+    locationFactorValue,
+    level,
+    step,
+    benchmarkFactor,
+    latestSalary?.totalSalary,
+    showOverride,
+  ])
 
   // Update currency and exchange rate when location changes
   useEffect(() => {
@@ -176,7 +183,10 @@ export function SalaryEntryForm({
     const exchangeRate = currencyData[currency] ?? 1
 
     form.setFieldValue('exchangeRate', exchangeRate)
-    form.setFieldValue('localCurrency', currencyData[currency] ? currency : 'USD')
+    form.setFieldValue(
+      'localCurrency',
+      currencyData[currency] ? currency : 'USD',
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [country, area])
 
@@ -186,7 +196,10 @@ export function SalaryEntryForm({
     form.setFieldValue('totalSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
 
     if (!showOverride) {
-      form.setFieldValue('actualSalaryLocal', Number(totalSalaryLocal.toFixed(2)))
+      form.setFieldValue(
+        'actualSalaryLocal',
+        Number(totalSalaryLocal.toFixed(2)),
+      )
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalSalary, showOverride])
