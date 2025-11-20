@@ -51,6 +51,7 @@ type Salary = Prisma.SalaryGetPayload<{
   include: {
     employee: {
       include: {
+        salaries: true
         deelEmployee: {
           include: {
             topLevelManager: true
@@ -85,6 +86,7 @@ const getUpdatedSalaries = createAuthenticatedFn({
     include: {
       employee: {
         include: {
+          salaries: true,
           deelEmployee: {
             include: {
               topLevelManager: true,
@@ -133,6 +135,14 @@ function processTemplate(template: string, salary: Salary): string {
   }).format(salary.actualSalaryLocal)
   const localCurrency = salary.localCurrency
   const reviewer = salary.employee.deelEmployee?.topLevelManager?.name || ''
+  const step = salary.step
+  const level = salary.level
+  const benchmark = salary.benchmark
+  const locationFactor = salary.locationFactor
+  const previousStep = salary.employee.salaries[1]?.step
+  const previousLevel = salary.employee.salaries[1]?.level
+  const previousBenchmark = salary.employee.salaries[1]?.benchmark
+  const previousLocationFactor = salary.employee.salaries[1]?.locationFactor
 
   return template
     .replace(/\{name\}/g, name)
@@ -144,6 +154,14 @@ function processTemplate(template: string, salary: Salary): string {
     .replace(/\{salaryLocal\}/g, actualSalaryLocal)
     .replace(/\{localCurrency\}/g, localCurrency)
     .replace(/\{reviewer\}/g, reviewer)
+    .replace(/\{step\}/g, step.toString())
+    .replace(/\{level\}/g, level.toString())
+    .replace(/\{benchmark\}/g, benchmark)
+    .replace(/\{locationFactor\}/g, locationFactor.toString())
+    .replace(/\{previousStep\}/g, previousStep.toString())
+    .replace(/\{previousLevel\}/g, previousLevel.toString())
+    .replace(/\{previousBenchmark\}/g, previousBenchmark)
+    .replace(/\{previousLocationFactor\}/g, previousLocationFactor.toString())
 }
 
 function App() {
@@ -511,59 +529,33 @@ function App() {
             <div className="space-y-2">
               <Label>Available Placeholders</Label>
               <div className="text-sm text-muted-foreground space-y-1">
-                <div>
-                  <code className="bg-muted px-1 py-0.5 rounded">
-                    {'{firstName}'}
-                  </code>{' '}
-                  - Employee first name
-                </div>
-                <div>
-                  <code className="bg-muted px-1 py-0.5 rounded">
-                    {'{name}'}
-                  </code>{' '}
-                  - Employee name
-                </div>
-                <div>
-                  <code className="bg-muted px-1 py-0.5 rounded">
-                    {'{salary}'}
-                  </code>{' '}
-                  - Salary ($)
-                </div>
-                <div>
-                  <code className="bg-muted px-1 py-0.5 rounded">
-                    {'{salaryLocal}'}
-                  </code>{' '}
-                  - Salary (local)
-                </div>
-                <div>
-                  <code className="bg-muted px-1 py-0.5 rounded">
-                    {'{changePercentage}'}
-                  </code>{' '}
-                  - Change (%)
-                </div>
-                <div>
-                  <code className="bg-muted px-1 py-0.5 rounded">
-                    {'{changeAmount}'}
-                  </code>{' '}
-                  - Change ($)
-                </div>
-                <div>
-                  <code className="bg-muted px-1 py-0.5 rounded">
-                    {'{changeAmountLocal}'}
-                  </code>{' '}
-                  - Change (local)
-                </div>
-                <div>
-                  <code className="bg-muted px-1 py-0.5 rounded">
-                    {'{localCurrency}'}
-                  </code>{' '}
-                  - Currency
-                </div>
-                <div>
-                  <code className="bg-muted px-1 py-0.5 rounded">
-                    {'{reviewer}'}
-                  </code>{' '}
-                  - Reviewer
+                <div className="flex flex-wrap gap-1">
+                  {[
+                    { key: 'firstName', label: 'Employee first name' },
+                    { key: 'name', label: 'Employee name' },
+                    { key: 'salary', label: 'Salary ($)' },
+                    { key: 'salaryLocal', label: 'Salary (local)' },
+                    { key: 'changePercentage', label: 'Change (%)' },
+                    { key: 'changeAmount', label: 'Change ($)' },
+                    { key: 'changeAmountLocal', label: 'Change (local)' },
+                    { key: 'localCurrency', label: 'Currency' },
+                    { key: 'reviewer', label: 'Reviewer' },
+                    { key: 'previousStep', label: 'Previous step' },
+                    { key: 'previousLevel', label: 'Previous level' },
+                    { key: 'previousBenchmark', label: 'Previous benchmark' },
+                    {
+                      key: 'previousLocationFactor',
+                      label: 'Previous location factor',
+                    },
+                    { key: 'step', label: 'Step' },
+                    { key: 'level', label: 'Level' },
+                    { key: 'benchmark', label: 'Benchmark' },
+                    { key: 'locationFactor', label: 'Location factor' },
+                  ].map((placeholder) => (
+                    <code className="bg-muted px-1 py-0.5 rounded">
+                      {`{${placeholder.key}}`}
+                    </code>
+                  ))}
                 </div>
               </div>
             </div>
