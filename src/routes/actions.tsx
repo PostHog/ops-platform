@@ -412,8 +412,8 @@ function App() {
   })
 
   return (
-    <div className="w-full h-full flex justify-center">
-      <div className="max-w-[80%] flex-grow">
+    <div className="w-full h-full flex justify-center px-4">
+      <div className="max-w-full 2xl:max-w-[80%] flex-grow">
         <div className="flex justify-between py-4">
           <div></div>
           <div className="flex items-center space-x-2">
