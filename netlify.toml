@@ -3,7 +3,7 @@
   publish = "dist/client"
 
 [[redirects]]
-  from = "https://ops-platform.netlify.app"
-  to = "https://ops.posthog.dev"
+  from = "https://ops-platform.netlify.app/*"
+  to = "https://ops.posthog.dev/:splat"
   status = 301
   force = true
