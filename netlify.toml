@@ -1,3 +1,9 @@
 [build]
   command = "pnpm prisma generate && pnpm build"
   publish = "dist/client"
+
+[[redirects]]
+  from = "https://ops-platform.netlify.app"
+  to = "https://ops.posthog.dev"
+  status = 301
+  force = true
