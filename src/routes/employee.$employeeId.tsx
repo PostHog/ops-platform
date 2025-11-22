@@ -1,24 +1,28 @@
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import ReactMarkdown from 'react-markdown'
 import { useForm, useStore } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import 'vercel-toast/dist/vercel-toast.css'
-import { createToast } from 'vercel-toast'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useAtom } from 'jotai'
+import { AlertCircle, ArrowLeft, Trash2 } from 'lucide-react'
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { AlertCircle, Trash2 } from 'lucide-react'
-import { useAtom } from 'jotai'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createToast } from 'vercel-toast'
+import { useQuery } from '@tanstack/react-query'
 import { months } from '.'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import 'vercel-toast/dist/vercel-toast.css'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { Prisma, Salary } from '@prisma/client'
 import type { AnyFormApi } from '@tanstack/react-form'
 import { reviewQueueAtom } from '@/atoms'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
+import { FeedbackCard } from '@/components/FeedbackCard'
+import { SalaryEntryForm } from '@/components/SalaryEntryForm'
 import {
   currencyData,
   formatCurrency,
@@ -46,7 +50,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useQuery } from '@tanstack/react-query'
 import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
@@ -277,6 +280,23 @@ function EmployeeOverview() {
   const [showDetailedColumns, setShowDetailedColumns] = useState(false)
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByTitle, setFilterByTitle] = useState(true)
+  const [viewMode, setViewMode] = useState<'table' | 'card'>(() => {
+    // Load preferred view from localStorage on initial render
+    const savedView = localStorage.getItem('preferredEmployeeView')
+    return savedView === 'table' || savedView === 'card' ? savedView : 'table'
+  })
+
+  // Save view preference to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('preferredEmployeeView', viewMode)
+  }, [viewMode])
+
+  // Hide inline form when switching to timeline view
+  useEffect(() => {
+    if (viewMode === 'card') {
+      setShowInlineForm(false)
+    }
+  }, [viewMode])
 
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
@@ -288,6 +308,23 @@ function EmployeeOverview() {
   )
 
   if (!employee) return null
+
+  const handleDeleteSalary = async (salaryId: string) => {
+    try {
+      await deleteSalary({ data: { id: salaryId } })
+      createToast('Salary deleted successfully.', {
+        timeout: 3000,
+      })
+      router.invalidate()
+    } catch (error) {
+      createToast(
+        error instanceof Error ? error.message : 'Failed to delete salary.',
+        {
+          timeout: 3000,
+        },
+      )
+    }
+  }
 
   const { data: referenceEmployees } = useQuery({
     queryKey: [
@@ -333,6 +370,53 @@ function EmployeeOverview() {
     // Sort by step
     return combined.sort((a, b) => a.step - b.step)
   }, [referenceEmployees, employee, level, step])
+
+  // Combine and sort salary history with feedback, grouped by month
+  const timelineByMonth = useMemo(() => {
+    const salaryItems = employee.salaries.map((salary) => ({
+      type: 'salary' as const,
+      timestamp: salary.timestamp,
+      data: salary,
+    }))
+
+    const feedbackItems = (employee.keeperTestFeedback || []).map(
+      (feedback) => ({
+        type: 'feedback' as const,
+        timestamp: feedback.timestamp,
+        data: feedback,
+      }),
+    )
+
+    const allItems = [...salaryItems, ...feedbackItems].sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+    )
+
+    // Group items by month/year
+    const grouped = new Map<
+      string,
+      {
+        month: number
+        year: number
+        items: typeof allItems
+      }
+    >()
+
+    allItems.forEach((item) => {
+      const date = new Date(item.timestamp)
+      const key = `${date.getFullYear()}-${date.getMonth()}`
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          month: date.getMonth(),
+          year: date.getFullYear(),
+          items: [],
+        })
+      }
+      grouped.get(key)!.items.push(item)
+    })
+
+    return Array.from(grouped.values())
+  }, [employee.salaries, employee.keeperTestFeedback])
 
   const columns: Array<ColumnDef<Salary>> = useMemo(() => {
     const baseColumns: Array<ColumnDef<Salary>> = [
@@ -439,7 +523,7 @@ function EmployeeOverview() {
                 </div>
               ),
             },
-          ] as ColumnDef<Salary>[])
+          ] as Array<ColumnDef<Salary>>)
         : []),
       {
         id: 'actions',
@@ -464,24 +548,7 @@ function EmployeeOverview() {
                   type="button"
                   size="sm"
                   variant="ghost"
-                  onClick={async () => {
-                    try {
-                      await deleteSalary({ data: { id: salary.id } })
-                      createToast('Salary deleted successfully.', {
-                        timeout: 3000,
-                      })
-                      router.invalidate()
-                    } catch (error) {
-                      createToast(
-                        error instanceof Error
-                          ? error.message
-                          : 'Failed to delete salary.',
-                        {
-                          timeout: 3000,
-                        },
-                      )
-                    }
-                  }}
+                  onClick={() => handleDeleteSalary(salary.id)}
                   className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
                   <Trash2 className="h-3 w-3" />
@@ -585,12 +652,23 @@ function EmployeeOverview() {
 
   const benchmarkUpdated =
     employee.salaries[0] &&
-    sfBenchmark[employee.salaries[0]?.benchmark as keyof typeof sfBenchmark] !==
+    sfBenchmark[employee.salaries[0]?.benchmark] !==
       employee.salaries[0].benchmarkFactor
 
   return (
     <div className="pt-8 flex justify-center flex flex-col items-center gap-5">
-      <div className="2xl:w-[80%] max-w-full px-4 flex flex-col gap-5">
+      <div className="2xl:max-w-7xl w-full px-4 flex flex-col gap-5">
+        {user?.role === ROLES.ADMIN ? (
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => router.navigate({ to: '/' })}
+            className="self-start -ml-2"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to overview
+          </Button>
+        ) : null}
         <div className="flex flex-row justify-between items-center">
           <div className="flex flex-col">
             <span className="text-xl font-bold">
@@ -612,15 +690,24 @@ function EmployeeOverview() {
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            {user?.role === ROLES.ADMIN ? (
+            <div className="flex gap-1 border rounded-md">
               <Button
-                variant="outline"
                 type="button"
-                onClick={() => router.navigate({ to: '/' })}
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
               >
-                Back to overview
+                Table view
               </Button>
-            ) : null}
+              <Button
+                type="button"
+                variant={viewMode === 'card' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('card')}
+              >
+                Timeline view
+              </Button>
+            </div>
             {reviewQueue.length > 0 ? (
               <Button
                 variant="outline"
@@ -633,7 +720,7 @@ function EmployeeOverview() {
           </div>
         </div>
 
-        {user?.role === ROLES.ADMIN ? (
+        {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
           <>
             <div className="flex flex-row gap-2 justify-between items-center mt-2">
               <span className="text-md font-bold">Feedback</span>
@@ -722,7 +809,9 @@ function EmployeeOverview() {
         ) : null}
 
         <div className="flex flex-row gap-2 justify-between items-center mt-2">
-          <span className="text-md font-bold">Salary history</span>
+          {viewMode === 'table' && (
+            <span className="text-md font-bold">Salary history</span>
+          )}
           <div className="flex gap-2">
             {showInlineForm ? (
               <Button
@@ -804,77 +893,208 @@ function EmployeeOverview() {
           })()}
 
         <div className="w-full flex-grow">
-          <div className="overflow-hidden rounded-md border">
-            <Table className="text-xs">
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                        </TableHead>
-                      )
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {showInlineForm && (
-                  <InlineSalaryFormRow
+          {viewMode === 'table' ? (
+            <div className="overflow-hidden rounded-md border">
+              <Table className="text-xs">
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => {
+                        return (
+                          <TableHead key={header.id}>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
+                          </TableHead>
+                        )
+                      })}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {showInlineForm && (
+                    <InlineSalaryFormRow
+                      employeeId={employee.id}
+                      showOverrideMode={showOverrideMode}
+                      latestSalary={employee.salaries[0]}
+                      showDetailedColumns={showDetailedColumns}
+                      totalAmountInStockOptions={employee.salaries.reduce(
+                        (acc, salary) => acc + salary.amountTakenInOptions,
+                        0,
+                      )}
+                      onSuccess={() => {
+                        setShowInlineForm(false)
+                        router.invalidate()
+                      }}
+                      onCancel={() => setShowInlineForm(false)}
+                      benchmarkUpdated={benchmarkUpdated}
+                      setLevel={setLevel}
+                      setStep={setStep}
+                      setBenchmark={setBenchmark}
+                    />
+                  )}
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && 'selected'}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                      >
+                        No results.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="mb-8">
+              {showInlineForm && (
+                <>
+                  <SalaryEntryForm
                     employeeId={employee.id}
-                    showOverrideMode={showOverrideMode}
                     latestSalary={employee.salaries[0]}
-                    showDetailedColumns={showDetailedColumns}
-                    totalAmountInStockOptions={employee.salaries.reduce(
-                      (acc, salary) => acc + salary.amountTakenInOptions,
-                      0,
-                    )}
-                    onSuccess={() => {
+                    benchmarkUpdated={benchmarkUpdated}
+                    onSubmit={async (data) => {
+                      await updateSalary({ data })
+                      createToast('Salary added successfully.', {
+                        timeout: 3000,
+                      })
                       setShowInlineForm(false)
                       router.invalidate()
                     }}
                     onCancel={() => setShowInlineForm(false)}
-                    benchmarkUpdated={benchmarkUpdated}
-                    setLevel={setLevel}
-                    setStep={setStep}
-                    setBenchmark={setBenchmark}
                   />
-                )}
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && 'selected'}
+                  {showReferenceEmployees && (
+                    <>
+                      <div className="flex flex-row gap-2 justify-between items-center mt-2">
+                        <span className="text-md font-bold">
+                          Reference employees
+                        </span>
+                        <div className="flex gap-4 items-center">
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              id="filter-by-exec-timeline"
+                              checked={filterByExec}
+                              onCheckedChange={setFilterByExec}
+                            />
+                            <Label
+                              htmlFor="filter-by-exec-timeline"
+                              className="text-sm"
+                            >
+                              Filter by exec
+                            </Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              id="filter-by-title-timeline"
+                              checked={filterByTitle}
+                              onCheckedChange={setFilterByTitle}
+                            />
+                            <Label
+                              htmlFor="filter-by-title-timeline"
+                              className="text-sm"
+                            >
+                              Filter by title
+                            </Label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="w-full flex-grow mb-8">
+                        <ReferenceEmployeesTable
+                          referenceEmployees={combinedReferenceEmployees}
+                          currentEmployee={employee}
+                        />
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+              {timelineByMonth.length > 0 ? (
+                timelineByMonth.map((monthGroup, monthGroupIndex) => (
+                  <div key={`${monthGroup.year}-${monthGroup.month}`}>
+                    <div
+                      className={`flex items-center border border-gray-200 px-4 py-2 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
                     >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      No results.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                      <h3 className="text-lg font-bold">
+                        {months[monthGroup.month]} {monthGroup.year}
+                      </h3>
+                      <span className="mx-2">·</span>
+                      <p className="text-sm text-gray-500">
+                        {(() => {
+                          const now = new Date()
+                          const diffMonths =
+                            (now.getFullYear() - monthGroup.year) * 12 +
+                            (now.getMonth() - monthGroup.month)
+
+                          if (diffMonths === 0) return 'this month'
+                          if (diffMonths === 1) return '1 month ago'
+                          if (diffMonths < 12) return `${diffMonths} months ago`
+
+                          const years = Math.floor(diffMonths / 12)
+                          const remainingMonths = diffMonths % 12
+                          if (remainingMonths === 0) {
+                            return years === 1
+                              ? '1 year ago'
+                              : `${years} years ago`
+                          }
+                          return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} ago`
+                        })()}
+                      </p>
+                    </div>
+                    <div className="w-full">
+                      {monthGroup.items.map((item, itemIndex) => {
+                        const isLastMonth =
+                          monthGroupIndex === timelineByMonth.length - 1
+                        const isLastItemInMonth =
+                          itemIndex === monthGroup.items.length - 1
+                        const lastTableItem = isLastMonth && isLastItemInMonth
+
+                        return item.type === 'salary' ? (
+                          <SalaryHistoryCard
+                            key={`salary-${item.data.id}`}
+                            salary={item.data}
+                            isAdmin={user?.role === ROLES.ADMIN}
+                            onDelete={handleDeleteSalary}
+                            lastTableItem={lastTableItem}
+                          />
+                        ) : (
+                          <FeedbackCard
+                            key={`feedback-${item.data.id}`}
+                            feedback={item.data}
+                            lastTableItem={lastTableItem}
+                          />
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  No history available.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {showInlineForm && showReferenceEmployees && (
@@ -1416,7 +1636,7 @@ function ReferenceEmployeesTable({
   referenceEmployees,
   currentEmployee,
 }: {
-  referenceEmployees: ReferenceEmployee[]
+  referenceEmployees: Array<ReferenceEmployee>
   currentEmployee: Employee
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
