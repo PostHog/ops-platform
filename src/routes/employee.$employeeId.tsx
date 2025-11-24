@@ -50,7 +50,6 @@ import { useQuery } from '@tanstack/react-query'
 import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
-import { LevelStepSalaryChart } from './analytics'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -155,7 +154,7 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
-const getReferenceEmployees = createAuthenticatedFn({
+export const getReferenceEmployees = createAuthenticatedFn({
   method: 'GET',
 })
   .inputValidator(
@@ -285,7 +284,6 @@ function EmployeeOverview() {
   const [showDetailedColumns, setShowDetailedColumns] = useState(false)
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByLevel, setFilterByLevel] = useState(true)
-  const [showAsATableChart, setShowAsATableChart] = useState(false)
   const [filterByTitle, setFilterByTitle] = useState(true)
 
   const router = useRouter()
@@ -899,19 +897,6 @@ function EmployeeOverview() {
               <span className="text-md font-bold">Reference employees</span>
               <div className="flex gap-4 items-center">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="show-as-a-table-chart" className="text-sm">
-                    Show as a table
-                  </Label>
-                  <Switch
-                    id="show-as-a-table-chart"
-                    checked={showAsATableChart}
-                    onCheckedChange={setShowAsATableChart}
-                  />
-                  <Label htmlFor="show-as-a-table-chart" className="text-sm">
-                    chart
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
                   <Switch
                     id="filter-by-level"
                     checked={filterByLevel}
@@ -945,22 +930,10 @@ function EmployeeOverview() {
             </div>
 
             <div className="w-full flex-grow">
-              {showAsATableChart ? (
-                <LevelStepSalaryChart
-                  chartData={combinedReferenceEmployees.map((employee) => ({
-                    name: employee.name,
-                    levelStep: employee.level * employee.step,
-                    locationFactor: employee.locationFactor,
-                    location: employee.location,
-                    salary: employee.salary,
-                  }))}
-                />
-              ) : (
-                <ReferenceEmployeesTable
-                  referenceEmployees={combinedReferenceEmployees}
-                  currentEmployee={employee}
-                />
-              )}
+              <ReferenceEmployeesTable
+                referenceEmployees={combinedReferenceEmployees}
+                currentEmployee={employee}
+              />
             </div>
           </>
         )}
