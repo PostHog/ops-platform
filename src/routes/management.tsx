@@ -255,7 +255,7 @@ const populateInitialEmployeeSalaries = createAuthenticatedFn({
         throw new Error('Start date is missing: ' + employee.workEmail)
       }
 
-      if (!['1.2', '1', '0.78', '.78', '0.59', '.59'].includes(level)) {
+      if (!['1.2', '1', '1.0', '0.78', '.78', '0.59', '.59'].includes(level)) {
         throw new Error('Invalid level: ' + level)
       }
 
