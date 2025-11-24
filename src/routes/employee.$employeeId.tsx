@@ -119,6 +119,20 @@ const getEmployeeById = createUserFn({
                   actualSalary: true,
                   actualSalaryLocal: true,
                 },
+                where: {
+                  OR: [
+                    {
+                      communicated: true,
+                    },
+                    {
+                      timestamp: {
+                        lte: new Date(
+                          new Date().setDate(new Date().getDate() - 30),
+                        ),
+                      },
+                    },
+                  ],
+                },
               }),
         },
         deelEmployee: {
