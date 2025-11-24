@@ -18,24 +18,11 @@ import { formatCurrency } from '@/lib/utils'
 import OrgChartPanel from '@/components/OrgChartPanel'
 import prisma from '@/db'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
-import type { Prisma } from '@prisma/client'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { getReferenceEmployees } from './employee.$employeeId'
-
-type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
-  include: {
-    employee: {
-      select: {
-        id: true
-        email: true
-        salaries: true
-      }
-    }
-  }
-}>
 
 const getEmployees = createAuthenticatedFn({
   method: 'GET',
