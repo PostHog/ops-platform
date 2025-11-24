@@ -94,7 +94,7 @@ export const months = [
   'December',
 ]
 
-const getEmployees = createAuthenticatedFn({
+export const getEmployees = createAuthenticatedFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.employee.findMany({
