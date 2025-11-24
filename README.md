@@ -9,6 +9,7 @@ Download and activate services:
 ```bash
 flox activate
 flox services start
+pnpm import-historical
 npx prisma db push
 pnpm install
 pnpm dev
