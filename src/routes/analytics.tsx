@@ -40,14 +40,36 @@ function RouteComponent() {
       <div className="max-w-full 2xl:max-w-[80%] flex-grow">
         <div className="flex flex-col gap-16">
           {/* <LevelStepChart deelEmployees={deelEmployees} /> */}
-          <LevelStepSalaryChart deelEmployees={deelEmployees} />
+          <LevelStepSalaryChart
+            chartData={deelEmployees.map((employee) => ({
+              name: employee.deelEmployee?.name ?? employee.email,
+              levelStep:
+                employee.salaries[0]?.level * employee.salaries[0]?.step,
+              locationFactor: employee.salaries[0]?.locationFactor,
+              location:
+                employee.salaries[0]?.country +
+                ', ' +
+                employee.salaries[0]?.area,
+              salary: employee.salaries[0]?.totalSalary,
+            }))}
+          />
         </div>
       </div>
     </div>
   )
 }
 
-const LevelStepChart = ({ deelEmployees }: { deelEmployees: Employee[] }) => {
+const LevelStepChart = ({
+  chartData,
+}: {
+  chartData: {
+    name: string
+    levelStep: number
+    locationFactor: number
+    location: string
+    salary: number
+  }[]
+}) => {
   const chartConfig = {
     name: {
       label: 'Name',
@@ -62,12 +84,6 @@ const LevelStepChart = ({ deelEmployees }: { deelEmployees: Employee[] }) => {
       color: '#60a5fa',
     },
   } satisfies ChartConfig
-
-  const chartData = deelEmployees.map((employee) => ({
-    name: employee.deelEmployee?.name ?? employee.email,
-    level: employee.salaries[0]?.level,
-    step: employee.salaries[0]?.step,
-  }))
 
   return (
     <div className="flex flex-col justify-between items-center gap-6">
@@ -109,10 +125,16 @@ const LevelStepChart = ({ deelEmployees }: { deelEmployees: Employee[] }) => {
   )
 }
 
-const LevelStepSalaryChart = ({
-  deelEmployees,
+export const LevelStepSalaryChart = ({
+  chartData,
 }: {
-  deelEmployees: Employee[]
+  chartData: {
+    name: string
+    levelStep: number
+    locationFactor: number
+    location: string
+    salary: number
+  }[]
 }) => {
   const chartConfig = {
     name: {
@@ -132,14 +154,6 @@ const LevelStepSalaryChart = ({
       color: '#60a5fa',
     },
   } satisfies ChartConfig
-
-  const chartData = deelEmployees.map((employee) => ({
-    name: employee.deelEmployee?.name ?? employee.email,
-    levelStep: employee.salaries[0]?.level * employee.salaries[0]?.step,
-    locationFactor: employee.salaries[0]?.locationFactor,
-    location: employee.salaries[0]?.country + ', ' + employee.salaries[0]?.area,
-    salary: employee.salaries[0]?.totalSalary,
-  }))
 
   return (
     <div className="flex flex-col justify-between items-center gap-6">
