@@ -50,6 +50,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
+import { LevelStepSalaryChart } from './analytics'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -162,6 +163,7 @@ const getReferenceEmployees = createAuthenticatedFn({
       level: number
       step: number
       benchmark: string
+      filterByLevel?: boolean
       filterByExec?: boolean
       filterByTitle?: boolean
       topLevelManagerId?: string | null
@@ -171,7 +173,7 @@ const getReferenceEmployees = createAuthenticatedFn({
     const whereClause: Prisma.EmployeeWhereInput = {
       salaries: {
         some: {
-          level: data.level,
+          ...(data.filterByLevel !== false ? { level: data.level } : {}),
           ...(data.filterByTitle !== false
             ? { benchmark: data.benchmark }
             : {}),
@@ -205,7 +207,9 @@ const getReferenceEmployees = createAuthenticatedFn({
     return employees
       .filter(
         (employee) =>
-          employee.salaries[0]?.level === data.level &&
+          (data.filterByLevel !== false
+            ? employee.salaries[0]?.level === data.level
+            : true) &&
           (data.filterByTitle !== false
             ? employee.salaries[0]?.benchmark === data.benchmark
             : true),
@@ -215,8 +219,12 @@ const getReferenceEmployees = createAuthenticatedFn({
         name: employee.deelEmployee?.name ?? employee.email,
         level: employee.salaries[0]?.level,
         step: employee.salaries[0]?.step,
+        locationFactor: employee.salaries[0]?.locationFactor ?? 1,
+        location:
+          employee.salaries[0]?.country + ', ' + employee.salaries[0]?.area,
+        salary: employee.salaries[0]?.totalSalary ?? 0,
       }))
-      .sort((a, b) => a.step - b.step)
+      .sort((a, b) => a.step * a.level - b.step * b.level)
   })
 
 export const updateSalary = createAuthenticatedFn({
@@ -276,6 +284,8 @@ function EmployeeOverview() {
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
   const [showDetailedColumns, setShowDetailedColumns] = useState(false)
   const [filterByExec, setFilterByExec] = useState(false)
+  const [filterByLevel, setFilterByLevel] = useState(true)
+  const [showAsATableChart, setShowAsATableChart] = useState(false)
   const [filterByTitle, setFilterByTitle] = useState(true)
 
   const router = useRouter()
@@ -297,6 +307,7 @@ function EmployeeOverview() {
       step,
       benchmark,
       filterByExec,
+      filterByLevel,
       filterByTitle,
     ],
     queryFn: () =>
@@ -306,6 +317,7 @@ function EmployeeOverview() {
           step,
           benchmark,
           filterByExec,
+          filterByLevel,
           filterByTitle,
           topLevelManagerId: employee.deelEmployee?.topLevelManagerId ?? null,
         },
@@ -324,6 +336,10 @@ function EmployeeOverview() {
       name: employee.deelEmployee?.name ?? employee.email,
       level: level,
       step: step,
+      locationFactor: employee.salaries[0]?.locationFactor ?? 1,
+      location:
+        employee.salaries[0]?.country + ', ' + employee.salaries[0]?.area,
+      salary: employee.salaries[0]?.totalSalary ?? 0,
     }
 
     // Filter out current employee from refs if it exists, then add it back with updated values
@@ -331,7 +347,7 @@ function EmployeeOverview() {
     const combined = [...filteredRefs, currentEmployeeRef]
 
     // Sort by step
-    return combined.sort((a, b) => a.step - b.step)
+    return combined.sort((a, b) => a.step * a.level - b.step * b.level)
   }, [referenceEmployees, employee, level, step])
 
   const columns: Array<ColumnDef<Salary>> = useMemo(() => {
@@ -883,6 +899,29 @@ function EmployeeOverview() {
               <span className="text-md font-bold">Reference employees</span>
               <div className="flex gap-4 items-center">
                 <div className="flex items-center gap-2">
+                  <Label htmlFor="show-as-a-table-chart" className="text-sm">
+                    Show as a table
+                  </Label>
+                  <Switch
+                    id="show-as-a-table-chart"
+                    checked={showAsATableChart}
+                    onCheckedChange={setShowAsATableChart}
+                  />
+                  <Label htmlFor="show-as-a-table-chart" className="text-sm">
+                    chart
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="filter-by-level"
+                    checked={filterByLevel}
+                    onCheckedChange={setFilterByLevel}
+                  />
+                  <Label htmlFor="filter-by-level" className="text-sm">
+                    Filter by level
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
                   <Switch
                     id="filter-by-exec"
                     checked={filterByExec}
@@ -906,10 +945,22 @@ function EmployeeOverview() {
             </div>
 
             <div className="w-full flex-grow">
-              <ReferenceEmployeesTable
-                referenceEmployees={combinedReferenceEmployees}
-                currentEmployee={employee}
-              />
+              {showAsATableChart ? (
+                <LevelStepSalaryChart
+                  chartData={combinedReferenceEmployees.map((employee) => ({
+                    name: employee.name,
+                    levelStep: employee.level * employee.step,
+                    locationFactor: employee.locationFactor,
+                    location: employee.location,
+                    salary: employee.salary,
+                  }))}
+                />
+              ) : (
+                <ReferenceEmployeesTable
+                  referenceEmployees={combinedReferenceEmployees}
+                  currentEmployee={employee}
+                />
+              )}
             </div>
           </>
         )}
@@ -1410,6 +1461,9 @@ type ReferenceEmployee = {
   name: string
   level: number
   step: number
+  locationFactor: number
+  location: string
+  salary: number
 }
 
 function ReferenceEmployeesTable({
