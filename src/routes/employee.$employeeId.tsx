@@ -937,7 +937,7 @@ function EmployeeOverview() {
                     onCheckedChange={setFilterByTitle}
                   />
                   <Label htmlFor="filter-by-title" className="text-sm">
-                    Filter by title
+                    Filter by titled
                   </Label>
                 </div>
               </div>
