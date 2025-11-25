@@ -122,6 +122,20 @@ const getEmployeeById = createUserFn({
                   actualSalary: true,
                   actualSalaryLocal: true,
                 },
+                where: {
+                  OR: [
+                    {
+                      communicated: true,
+                    },
+                    {
+                      timestamp: {
+                        lte: new Date(
+                          new Date().setDate(new Date().getDate() - 30),
+                        ),
+                      },
+                    },
+                  ],
+                },
               }),
         },
         deelEmployee: {
@@ -157,7 +171,7 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
-const getReferenceEmployees = createAuthenticatedFn({
+export const getReferenceEmployees = createAuthenticatedFn({
   method: 'GET',
 })
   .inputValidator(
@@ -165,6 +179,7 @@ const getReferenceEmployees = createAuthenticatedFn({
       level: number
       step: number
       benchmark: string
+      filterByLevel?: boolean
       filterByExec?: boolean
       filterByTitle?: boolean
       topLevelManagerId?: string | null
@@ -174,7 +189,7 @@ const getReferenceEmployees = createAuthenticatedFn({
     const whereClause: Prisma.EmployeeWhereInput = {
       salaries: {
         some: {
-          level: data.level,
+          ...(data.filterByLevel !== false ? { level: data.level } : {}),
           ...(data.filterByTitle !== false
             ? { benchmark: data.benchmark }
             : {}),
@@ -208,7 +223,9 @@ const getReferenceEmployees = createAuthenticatedFn({
     return employees
       .filter(
         (employee) =>
-          employee.salaries[0]?.level === data.level &&
+          (data.filterByLevel !== false
+            ? employee.salaries[0]?.level === data.level
+            : true) &&
           (data.filterByTitle !== false
             ? employee.salaries[0]?.benchmark === data.benchmark
             : true),
@@ -218,8 +235,12 @@ const getReferenceEmployees = createAuthenticatedFn({
         name: employee.deelEmployee?.name ?? employee.email,
         level: employee.salaries[0]?.level,
         step: employee.salaries[0]?.step,
+        locationFactor: employee.salaries[0]?.locationFactor ?? 1,
+        location:
+          employee.salaries[0]?.country + ', ' + employee.salaries[0]?.area,
+        salary: employee.salaries[0]?.totalSalary ?? 0,
       }))
-      .sort((a, b) => a.step - b.step)
+      .sort((a, b) => a.step * a.level - b.step * b.level)
   })
 
 export const updateSalary = createAuthenticatedFn({
@@ -279,6 +300,7 @@ function EmployeeOverview() {
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
   const [showDetailedColumns, setShowDetailedColumns] = useState(false)
   const [filterByExec, setFilterByExec] = useState(false)
+  const [filterByLevel, setFilterByLevel] = useState(true)
   const [filterByTitle, setFilterByTitle] = useState(true)
   const [viewMode, setViewMode] = useState<'table' | 'card'>(() => {
     // Load preferred view from localStorage on initial render
@@ -334,6 +356,7 @@ function EmployeeOverview() {
       step,
       benchmark,
       filterByExec,
+      filterByLevel,
       filterByTitle,
     ],
     queryFn: () =>
@@ -343,6 +366,7 @@ function EmployeeOverview() {
           step,
           benchmark,
           filterByExec,
+          filterByLevel,
           filterByTitle,
           topLevelManagerId: employee.deelEmployee?.topLevelManagerId ?? null,
         },
@@ -361,6 +385,10 @@ function EmployeeOverview() {
       name: employee.deelEmployee?.name ?? employee.email,
       level: level,
       step: step,
+      locationFactor: employee.salaries[0]?.locationFactor ?? 1,
+      location:
+        employee.salaries[0]?.country + ', ' + employee.salaries[0]?.area,
+      salary: employee.salaries[0]?.totalSalary ?? 0,
     }
 
     // Filter out current employee from refs if it exists, then add it back with updated values
@@ -368,7 +396,7 @@ function EmployeeOverview() {
     const combined = [...filteredRefs, currentEmployeeRef]
 
     // Sort by step
-    return combined.sort((a, b) => a.step - b.step)
+    return combined.sort((a, b) => a.step * a.level - b.step * b.level)
   }, [referenceEmployees, employee, level, step])
 
   // Combine and sort salary history with feedback, grouped by month
@@ -1104,6 +1132,16 @@ function EmployeeOverview() {
               <div className="flex gap-4 items-center">
                 <div className="flex items-center gap-2">
                   <Switch
+                    id="filter-by-level"
+                    checked={filterByLevel}
+                    onCheckedChange={setFilterByLevel}
+                  />
+                  <Label htmlFor="filter-by-level" className="text-sm">
+                    Filter by level
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
                     id="filter-by-exec"
                     checked={filterByExec}
                     onCheckedChange={setFilterByExec}
@@ -1412,6 +1450,7 @@ function InlineSalaryFormRow({
                 <SelectItem value="0.78">Intermediate (0.78)</SelectItem>
                 <SelectItem value="1">Senior (1)</SelectItem>
                 <SelectItem value="1.2">Staff (1.2)</SelectItem>
+                <SelectItem value="1.4">Director (1.4)</SelectItem>
               </SelectContent>
             </Select>
           )}
@@ -1629,6 +1668,9 @@ type ReferenceEmployee = {
   name: string
   level: number
   step: number
+  locationFactor: number
+  location: string
+  salary: number
 }
 
 function ReferenceEmployeesTable({

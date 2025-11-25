@@ -255,7 +255,7 @@ const populateInitialEmployeeSalaries = createAuthenticatedFn({
         throw new Error('Start date is missing: ' + employee.workEmail)
       }
 
-      if (!['1.2', '1', '0.78', '.78', '0.59', '.59'].includes(level)) {
+      if (!['1.2', '1', '1.0', '0.78', '.78', '0.59', '.59'].includes(level)) {
         throw new Error('Invalid level: ' + level)
       }
 
@@ -400,8 +400,8 @@ function RouteComponent() {
   })
 
   return (
-    <div className="w-screen flex justify-center">
-      <div className="max-w-[80%] flex-grow">
+    <div className="w-screen flex px-4 justify-center">
+      <div className="max-w-full 2xl:max-w-[80%] flex-grow">
         <div className="flex justify-between py-4">
           <div className="text-lg font-bold">User management</div>
         </div>

@@ -38,7 +38,11 @@ export const fetchDeelEmployees = async () => {
         (employee: any) =>
           employee.active &&
           employee['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']
-            .customFields.full_time_headcount === 'Full-Time',
+            .customFields.full_time_headcount === 'Full-Time' &&
+          !['inactive', 'no_active_contracts'].includes(
+            employee['urn:ietf:params:scim:schemas:extension:2.0:User']
+              .hiringStatus,
+          ),
       ).map((employee: any) => ({
         id: employee.id,
         name:
