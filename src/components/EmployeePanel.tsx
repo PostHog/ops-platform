@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client'
 import AddProposedHirePanel from './AddProposedHirePanel'
 import { ROLES } from '@/lib/consts'
 import { useSession } from '@/lib/auth-client'
+import { TeamEditPanel } from './TeamEditPanel'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -11,6 +12,12 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
       select: {
         id: true
         email: true
+      }
+    }
+    manager: {
+      select: {
+        id: true
+        name: true
       }
     }
   }
@@ -68,16 +75,32 @@ const EmployeePanel = ({
           <pre className="bg-gray-50 p-4 rounded-lg overflow-auto max-h-[80vh]">
             {JSON.stringify(employee || proposedHire, null, 2)}
           </pre>
-          {employee && user?.role === ROLES.ADMIN ? (
-            <Link
-              to="/employee/$employeeId"
-              params={{ employeeId: employee.employee?.id ?? '' }}
-            >
-              <Button variant="outline" className="w-full my-4">
-                View employee
-              </Button>
-            </Link>
-          ) : null}
+          <div className="flex flex-col gap-2 mt-2">
+            {employee && user?.role === ROLES.ADMIN ? (
+              <Link
+                to="/employee/$employeeId"
+                params={{ employeeId: employee.employee?.id ?? '' }}
+              >
+                <Button variant="outline" className="w-full">
+                  View employee
+                </Button>
+              </Link>
+            ) : null}
+            <div className="flex flex-row justify-between items-center gap-2 px-2">
+              <span>Manager</span>
+              <div className="flex flex-row items-center gap-2">
+                <span>{employee?.manager?.name ?? 'None'}</span>
+                <Button variant="outline">Edit</Button>
+              </div>
+            </div>
+            <div className="flex flex-row justify-between items-center gap-2 px-2">
+              <span>Team</span>
+              <div className="flex flex-row items-center gap-2">
+                <span>{employee?.team ?? 'None'}</span>
+                {employee ? <TeamEditPanel employee={employee} /> : null}
+              </div>
+            </div>
+          </div>
           {proposedHire ? (
             <div className="w-full my-4">
               <AddProposedHirePanel
