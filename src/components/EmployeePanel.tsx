@@ -5,6 +5,7 @@ import AddProposedHirePanel from './AddProposedHirePanel'
 import { ROLES } from '@/lib/consts'
 import { useSession } from '@/lib/auth-client'
 import { TeamEditPanel } from './TeamEditPanel'
+import { ManagerEditPanel } from './ManagerEditPanel'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -90,7 +91,9 @@ const EmployeePanel = ({
               <span>Manager</span>
               <div className="flex flex-row items-center gap-2">
                 <span>{employee?.manager?.name ?? 'None'}</span>
-                <Button variant="outline">Edit</Button>
+                {employee ? (
+                  <ManagerEditPanel employees={employees} employee={employee} />
+                ) : null}
               </div>
             </div>
             <div className="flex flex-row justify-between items-center gap-2 px-2">
