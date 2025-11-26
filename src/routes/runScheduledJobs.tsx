@@ -339,7 +339,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
 
                 const userBody = await userRes.json()
 
-                if (userRes.status !== 200) {
+                if (userRes.status !== 200 || !userBody.ok) {
                   throw Error(
                     `Error from Slack API: ${userRes.status}: ${JSON.stringify(userBody)}`,
                   )
@@ -370,7 +370,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 )
                 const messageResponse = await response.json()
 
-                if (response.status !== 200) {
+                if (response.status !== 200 || !messageResponse.ok) {
                   throw Error(
                     `Error from Slack API: ${response.status}: ${JSON.stringify(messageResponse)}`,
                   )
@@ -419,7 +419,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
 
                 const userBody = await userRes.json()
 
-                if (userRes.status !== 200) {
+                if (userRes.status !== 200 || !userBody.ok) {
                   throw Error(
                     `Error from Slack API: ${userRes.status}: ${JSON.stringify(userBody)}`,
                   )
@@ -444,7 +444,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 )
                 const messageResponse = await response.json()
 
-                if (response.status !== 200) {
+                if (response.status !== 200 || !messageResponse.ok) {
                   throw Error(
                     `Error from Slack API: ${response.status}: ${JSON.stringify(messageResponse)}`,
                   )
@@ -464,14 +464,15 @@ export const Route = createFileRoute('/runScheduledJobs')({
                         'Content-Type': 'application/json',
                       },
                       body: JSON.stringify({
-                        channel: 'C09D5B4AYG3',
+                        channel:
+                          process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
                         text: `${manager.name} hasn't submitted feedback for ${employee.name} within ${daysSinceCreation} days. Please follow up with them.`,
                       }),
                     },
                   )
                   const body = await res.json()
 
-                  if (res.status !== 200) {
+                  if (res.status !== 200 || !body.ok) {
                     throw Error(
                       `Error from Slack API: ${res.status}: ${JSON.stringify(body)}`,
                     )
