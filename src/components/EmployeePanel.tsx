@@ -99,7 +99,7 @@ const EmployeePanel = ({
             <div className="flex flex-row justify-between items-center gap-2 px-2">
               <span>Team</span>
               <div className="flex flex-row items-center gap-2">
-                <span>{employee?.team ?? 'None'}</span>
+                <span>{employee?.team || 'None'}</span>
                 {employee ? <TeamEditPanel employee={employee} /> : null}
               </div>
             </div>

@@ -55,6 +55,12 @@ const getDeelTeams = createOrgChartFn({
 
   const data: { data: RawDeelTeam[] } = await response.json()
 
+  if (response.status !== 200) {
+    throw Error(
+      `Error from Deel API: ${response.status}: ${JSON.stringify(data)}`,
+    )
+  }
+
   const buildTeam = (team: RawDeelTeam): DeelTeam => {
     const parentTeam = data.data.find(({ name }) => name === team.parent)
     return {
