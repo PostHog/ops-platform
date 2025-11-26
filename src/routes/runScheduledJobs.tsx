@@ -464,7 +464,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                         'Content-Type': 'application/json',
                       },
                       body: JSON.stringify({
-                        channel: 'U05LD9R5P6E',
+                        channel: 'C09D5B4AYG3',
                         text: `${manager.name} hasn't submitted feedback for ${employee.name} within ${daysSinceCreation} days. Please follow up with them.`,
                       }),
                     },
