@@ -1,7 +1,7 @@
 name: Run scheduled jobs
 on:
   schedule:
-    - cron: '0 12 * * *'
+    - cron: '*/10 12 * * *' # every 10 minutes at 12:00 PM UTC
   workflow_dispatch:
 
 jobs:

@@ -16,6 +16,9 @@ const config = defineConfig({
     netlify(),
     viteReact(),
   ],
+  server: {
+    allowedHosts: ['summary-krill-allowing.ngrok-free.app'],
+  },
 })
 
 export default config
