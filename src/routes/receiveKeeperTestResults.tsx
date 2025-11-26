@@ -153,10 +153,6 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
             },
           })
 
-          await prisma.cyclotronJob.delete({
-            where: { id: jobId },
-          })
-
           if (
             ['30 Day check-in', '60 Day check-in', '80 Day check-in'].includes(
               title,
@@ -197,6 +193,10 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
               )
             }
           }
+
+          await prisma.cyclotronJob.delete({
+            where: { id: jobId },
+          })
 
           await fetch(body.response_url, {
             method: 'POST',
