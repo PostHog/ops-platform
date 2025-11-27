@@ -174,7 +174,7 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
                 Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
               },
               body: JSON.stringify({
-                channel: 'C09D5B4AYG3',
+                channel: process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
                 text:
                   `${flag} ${managerName} has submitted keeper test feedback for ${employeeEmail}\n\nSummary:\n\n` +
                   feedback,
@@ -183,7 +183,7 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
 
             const body = await res.json()
 
-            if (res.status !== 200) {
+            if (res.status !== 200 || !body.ok) {
               return new Response(
                 JSON.stringify({
                   success: false,
