@@ -7,7 +7,7 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
       POST: async ({ request }) => {
         const token = new URL(request.url).searchParams.get('token')
         if (token !== process.env.SYNC_ENDPOINT_KEY) {
-          return new Response('Unauthorized' + token, { status: 401 })
+          return new Response('Unauthorized', { status: 401 })
         }
 
         const formData = await request.formData()
