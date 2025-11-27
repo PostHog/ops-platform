@@ -1,0 +1,23 @@
+name: Salary Deviation Checker
+permissions: {}
+on:
+  schedule:
+    - cron: '0 14 * * *'
+  workflow_dispatch:
+
+jobs:
+  salaryDeviationChecker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call salaryDeviationChecker endpoint
+        id: salaryDeviationChecker
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: '${{ vars.BASE_URL }}/salaryDeviationChecker'
+          method: 'POST'
+          customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
+          timeout: 30000
+      - name: Show Response
+        run: |
+          echo ${{ steps.salaryDeviationChecker.outputs.status }}
+          echo ${{ steps.salaryDeviationChecker.outputs.response }}

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SyncDeelEmployeesRouteImport } from './routes/syncDeelEmployees'
 import { Route as ScheduleCheckInsRouteImport } from './routes/scheduleCheckIns'
+import { Route as SalaryDeviationCheckerRouteImport } from './routes/salaryDeviationChecker'
 import { Route as RunScheduledJobsRouteImport } from './routes/runScheduledJobs'
 import { Route as ReceiveKeeperTestResultsRouteImport } from './routes/receiveKeeperTestResults'
 import { Route as ProposedHiresRouteImport } from './routes/proposed-hires'
@@ -32,6 +33,11 @@ const SyncDeelEmployeesRoute = SyncDeelEmployeesRouteImport.update({
 const ScheduleCheckInsRoute = ScheduleCheckInsRouteImport.update({
   id: '/scheduleCheckIns',
   path: '/scheduleCheckIns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalaryDeviationCheckerRoute = SalaryDeviationCheckerRouteImport.update({
+  id: '/salaryDeviationChecker',
+  path: '/salaryDeviationChecker',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RunScheduledJobsRoute = RunScheduledJobsRouteImport.update({
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
+  '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
+  '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
+  '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/proposed-hires'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
+    | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/proposed-hires'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
+    | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/proposed-hires'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
+    | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
     | '/syncDeelEmployees'
     | '/employee/$employeeId'
@@ -207,6 +219,7 @@ export interface RootRouteChildren {
   ProposedHiresRoute: typeof ProposedHiresRoute
   ReceiveKeeperTestResultsRoute: typeof ReceiveKeeperTestResultsRoute
   RunScheduledJobsRoute: typeof RunScheduledJobsRoute
+  SalaryDeviationCheckerRoute: typeof SalaryDeviationCheckerRoute
   ScheduleCheckInsRoute: typeof ScheduleCheckInsRoute
   SyncDeelEmployeesRoute: typeof SyncDeelEmployeesRoute
   EmployeeEmployeeIdRoute: typeof EmployeeEmployeeIdRoute
@@ -227,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/scheduleCheckIns'
       fullPath: '/scheduleCheckIns'
       preLoaderRoute: typeof ScheduleCheckInsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/salaryDeviationChecker': {
+      id: '/salaryDeviationChecker'
+      path: '/salaryDeviationChecker'
+      fullPath: '/salaryDeviationChecker'
+      preLoaderRoute: typeof SalaryDeviationCheckerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/runScheduledJobs': {
@@ -327,6 +347,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProposedHiresRoute: ProposedHiresRoute,
   ReceiveKeeperTestResultsRoute: ReceiveKeeperTestResultsRoute,
   RunScheduledJobsRoute: RunScheduledJobsRoute,
+  SalaryDeviationCheckerRoute: SalaryDeviationCheckerRoute,
   ScheduleCheckInsRoute: ScheduleCheckInsRoute,
   SyncDeelEmployeesRoute: SyncDeelEmployeesRoute,
   EmployeeEmployeeIdRoute: EmployeeEmployeeIdRoute,
