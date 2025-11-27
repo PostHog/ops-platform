@@ -65,6 +65,8 @@ model Salary {
   benchmark            String
   benchmarkFactor      Float
   totalSalary          Float
+  bonusPercentage      Float    @default(0)
+  bonusAmount          Float    @default(0)
   changePercentage     Float
   changeAmount         Float
   exchangeRate         Float
