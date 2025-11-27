@@ -68,6 +68,11 @@ export default function Header() {
             <Link to="/management">Management</Link>
           </div>
         ) : null}
+        {user?.role === ROLES.ADMIN ? (
+          <div className="px-2 font-bold">
+            <Link to="/analytics">Analytics</Link>
+          </div>
+        ) : null}
         {myEmployeeId ? (
           <div className="px-2 font-bold">
             <Link

@@ -77,18 +77,18 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
 
           const feedback =
             `### ${title} feedback from ${managerName}:\n` +
-            `- If this team member was leaving for a similar role at another company, would you try to keep them? ${fieldData['keeper-test-question-1']?.selected_option.value}\n` +
-            `- If yes, what is it specifically that makes them so valuable to your team and PostHog? ${fieldData['keeper-test-question-1-text']?.value}\n` +
-            `- Are they a driver or a passenger? ${fieldData['keeper-test-question-2']?.selected_option.value}\n` +
-            `- Do they get things done proactively, today? ${fieldData['keeper-test-question-3']?.selected_option.value}\n` +
-            `- Are they optimistic by default? ${fieldData['keeper-test-question-4']?.selected_option.value}\n` +
-            `- Areas to watch: ${fieldData['keeper-test-question-4-text']?.value}\n` +
+            `- *If this team member was leaving for a similar role at another company, would you try to keep them?* ${fieldData['keeper-test-question-1']?.selected_option.value}\n` +
+            `- *If yes, what is it specifically that makes them so valuable to your team and PostHog?* ${fieldData['keeper-test-question-1-text']?.value}\n` +
+            `- *Are they a driver or a passenger?* ${fieldData['keeper-test-question-2']?.selected_option.value}\n` +
+            `- *Do they get things done proactively, today?* ${fieldData['keeper-test-question-3']?.selected_option.value}\n` +
+            `- *Are they optimistic by default?* ${fieldData['keeper-test-question-4']?.selected_option.value}\n` +
+            `- *Areas to watch:* ${fieldData['keeper-test-question-4-text']?.value}\n` +
             (['30 Day check-in', '60 Day check-in', '80 Day check-in'].includes(
               title,
             )
-              ? `- Recommendation: ${fieldData['keeper-test-question-5']?.selected_option.value}\n`
+              ? `- *Recommendation:* ${fieldData['keeper-test-question-5']?.selected_option.value}\n`
               : '') +
-            `- Have you shared this feedback with your team member? ${fieldData['keeper-test-question-6']?.selected_option.value}`
+            `- *Have you shared this feedback with your team member?* ${fieldData['keeper-test-question-6']?.selected_option.value}`
 
           const deelManager = await prisma.deelEmployee.findUnique({
             where: {
@@ -114,7 +114,7 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
             )
           }
 
-          await prisma.keeperTestFeedback.create({
+          const createdFeedback = await prisma.keeperTestFeedback.create({
             data: {
               employeeId: employeeId,
               managerId: deelManager?.employee?.id,
@@ -152,6 +152,47 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
                 'yes',
             },
           })
+
+          if (
+            ['30 Day check-in', '60 Day check-in', '80 Day check-in'].includes(
+              title,
+            )
+          ) {
+            const flag =
+              createdFeedback.driverOrPassenger === 'DRIVER' &&
+              createdFeedback.proactiveToday &&
+              createdFeedback.optimisticByDefault &&
+              createdFeedback.wouldYouTryToKeepThem &&
+              createdFeedback.recommendation ===
+                'STRONG_HIRE_ON_TRACK_TO_PASS_PROBATION'
+                ? ':large_green_circle:'
+                : ':red_circle:'
+            const res = await fetch('https://slack.com/api/chat.postMessage', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+              },
+              body: JSON.stringify({
+                channel: process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
+                text:
+                  `${flag} ${managerName} has submitted keeper test feedback for ${employeeEmail}\n\nSummary:\n\n` +
+                  feedback,
+              }),
+            })
+
+            const body = await res.json()
+
+            if (res.status !== 200 || !body.ok) {
+              return new Response(
+                JSON.stringify({
+                  success: false,
+                  error: `Error from Slack API: ${res.status}: ${JSON.stringify(body)}`,
+                }),
+                { status: 500 },
+              )
+            }
+          }
 
           await prisma.cyclotronJob.delete({
             where: { id: jobId },

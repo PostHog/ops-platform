@@ -295,7 +295,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                             state = 'available'::"CyclotronJobState"
                             AND scheduled <= NOW()
                         ORDER BY scheduled ASC
-                        LIMIT 100
+                        LIMIT 50
                         FOR UPDATE SKIP LOCKED
                     )
                     UPDATE "CyclotronJob"
@@ -339,7 +339,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
 
                 const userBody = await userRes.json()
 
-                if (userRes.status !== 200) {
+                if (userRes.status !== 200 || !userBody.ok) {
                   throw Error(
                     `Error from Slack API: ${userRes.status}: ${JSON.stringify(userBody)}`,
                   )
@@ -370,7 +370,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 )
                 const messageResponse = await response.json()
 
-                if (response.status !== 200) {
+                if (response.status !== 200 || !messageResponse.ok) {
                   throw Error(
                     `Error from Slack API: ${response.status}: ${JSON.stringify(messageResponse)}`,
                   )
@@ -391,7 +391,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   },
                 })
               } else if (job.queue_name === 'receive_keeper_test_results') {
-                const { thread_id, manager } = JSON.parse(
+                const { thread_id, manager, employee } = JSON.parse(
                   job.data as string,
                 ) as KeeperTestJobPayload
 
@@ -419,7 +419,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
 
                 const userBody = await userRes.json()
 
-                if (userRes.status !== 200) {
+                if (userRes.status !== 200 || !userBody.ok) {
                   throw Error(
                     `Error from Slack API: ${userRes.status}: ${JSON.stringify(userBody)}`,
                   )
@@ -444,17 +444,46 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 )
                 const messageResponse = await response.json()
 
-                if (response.status !== 200) {
+                if (response.status !== 200 || !messageResponse.ok) {
                   throw Error(
                     `Error from Slack API: ${response.status}: ${JSON.stringify(messageResponse)}`,
                   )
+                }
+
+                const daysSinceCreation = Math.floor(
+                  (Date.now() - new Date(job.created).getTime()) /
+                    (1000 * 60 * 60 * 24),
+                )
+                if (daysSinceCreation >= 3) {
+                  const res = await fetch(
+                    'https://slack.com/api/chat.postMessage',
+                    {
+                      method: 'POST',
+                      headers: {
+                        Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        channel:
+                          process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
+                        text: `${manager.name} hasn't submitted feedback for ${employee.name} within ${daysSinceCreation} days. Please follow up with them.`,
+                      }),
+                    },
+                  )
+                  const body = await res.json()
+
+                  if (res.status !== 200 || !body.ok) {
+                    throw Error(
+                      `Error from Slack API: ${res.status}: ${JSON.stringify(body)}`,
+                    )
+                  }
                 }
 
                 jobResults.push({
                   id: job.id,
                   success: true,
                   data: {
-                    scheduled: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // send another reminder after 3 days
+                    scheduled: new Date(Date.now() + 24 * 60 * 60 * 1000), // send another reminder after 24 hours
                   },
                 })
               }

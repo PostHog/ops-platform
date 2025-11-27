@@ -29,6 +29,12 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
         email: true
       }
     }
+    manager: {
+      select: {
+        id: true
+        name: true
+      }
+    }
   }
 }>
 
@@ -85,6 +91,12 @@ export const getDeelEmployeesAndProposedHires = createOrgChartFn({
         select: {
           id: true,
           email: true,
+        },
+      },
+      manager: {
+        select: {
+          id: true,
+          name: true,
         },
       },
     },
@@ -408,6 +420,46 @@ export default function OrgChart() {
       return [...employeeEdges, ...newProposedHireEdges]
     })
   }, [proposedHires])
+
+  // Ensure employee nodes stay in sync with latest team/manager info
+  useEffect(() => {
+    const employeeMap = new Map(
+      employees.map((employee) => [`employee-${employee.id}`, employee]),
+    )
+
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => {
+        const employee = employeeMap.get(node.id)
+        if (!employee) return node
+
+        const hasTeamChange = node.data.team !== employee.team
+        const hasManagerChange = node.data.manager !== employee.managerId
+
+        if (!hasTeamChange && !hasManagerChange) {
+          return node
+        }
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            team: employee.team,
+            manager: employee.managerId ?? undefined,
+          },
+        }
+      }),
+    )
+
+    setEdges((currentEdges) => {
+      const proposedHireEdges = currentEdges.filter((edge) =>
+        edge.id.startsWith('proposedHire-'),
+      )
+      const employeeEdges = getInitialEdges(employees, []).filter(
+        (edge) => !edge.id.startsWith('proposedHire-'),
+      )
+      return [...employeeEdges, ...proposedHireEdges]
+    })
+  }, [employees])
 
   return (
     <div className="h-full w-full">
