@@ -124,24 +124,28 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
           }),
         )
 
-        console.log({
-          filteredResults: results
-            .filter(
-              (x) =>
-                x.deviationPercentage > 0.001 &&
-                x.compensation_details.currency_code !== 'GBP',
-            )
-            .map((x) => ({
-              deelSalary: x.deelSalary,
-              deviation: x.deviation,
-              deviationPercentage: x.deviationPercentage,
-              email: x.email,
-              salary: x.salary,
-              currency: x.compensation_details.currency_code,
-              team: x.team,
-            })),
-          errors,
-        })
+        // console.log({
+        //   filteredResults: results
+        //     .filter(
+        //       (x) =>
+        //         x.deviationPercentage > 0.001 &&
+        //         x.compensation_details.currency_code !== 'GBP',
+        //     )
+        //     .map((x) => ({
+        //       deelSalary: x.deelSalary,
+        //       deviation: x.deviation,
+        //       deviationPercentage: x.deviationPercentage,
+        //       email: x.email,
+        //       salary: x.salary,
+        //       currency: x.compensation_details.currency_code,
+        //       team: x.team,
+        //     })),
+        //   errors,
+        // })
+
+        if (errors.length > 0) {
+          console.log(errors)
+        }
 
         return new Response('OK')
       },
