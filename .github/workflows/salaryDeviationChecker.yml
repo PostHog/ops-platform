@@ -1,4 +1,5 @@
 name: Salary Deviation Checker
+permissions: {}
 on:
   schedule:
     - cron: '0 14 * * *'

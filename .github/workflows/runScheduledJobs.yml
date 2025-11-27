@@ -1,4 +1,5 @@
 name: Run scheduled jobs
+permissions: {}
 on:
   schedule:
     - cron: '*/10 12 * * *' # every 10 minutes at 12:00 PM UTC

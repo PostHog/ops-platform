@@ -1,4 +1,5 @@
 name: Schedule check-ins
+permissions: {}
 on:
   schedule:
     - cron: '0 13 * * *'
