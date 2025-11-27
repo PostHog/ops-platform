@@ -2,7 +2,7 @@ name: Salary Deviation Checker
 permissions: {}
 on:
   schedule:
-    - cron: '0 14 * * *'
+    - cron: '*/10 14 * * *' # every 10 minutes at 2:00 PM UTC
   workflow_dispatch:
 
 jobs:
