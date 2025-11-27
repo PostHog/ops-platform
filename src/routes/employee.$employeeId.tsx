@@ -20,6 +20,7 @@ import type { AnyFormApi } from '@tanstack/react-form'
 import { reviewQueueAtom } from '@/atoms'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
+  bonusPercentage,
   currencyData,
   formatCurrency,
   getAreasByCountry,
@@ -107,6 +108,8 @@ const getEmployeeById = createUserFn({
                   locationFactor: true,
                   level: true,
                   step: true,
+                  bonusPercentage: true,
+                  bonusAmount: true,
                   benchmark: true,
                   benchmarkFactor: true,
                   totalSalary: true,
@@ -309,6 +312,10 @@ function EmployeeOverview() {
     employee.salaries[0]?.benchmark ?? 'Product Engineer',
   )
 
+  const showBonusPercentage =
+    employee.salaries.some((salary) => salary.bonusPercentage > 0) ||
+    Object.keys(bonusPercentage).includes(benchmark)
+
   if (!employee) return null
 
   const { data: referenceEmployees } = useQuery({
@@ -412,6 +419,19 @@ function EmployeeOverview() {
           <div className="text-right">{row.original.step}</div>
         ),
       },
+      ...(showBonusPercentage
+        ? ([
+            {
+              accessorKey: 'bonusPercentage',
+              header: () => <div className="text-right">Bonus (%)</div>,
+              cell: ({ row }) => (
+                <div className="text-right">
+                  {(row.original.bonusPercentage * 100).toFixed(2)}%
+                </div>
+              ),
+            },
+          ] as ColumnDef<Salary>[])
+        : []),
       {
         accessorKey: 'totalSalary',
         header: () => <div className="text-right">Total Salary ($)</div>,
@@ -578,7 +598,7 @@ function EmployeeOverview() {
     return showDetailedColumns
       ? [...baseColumns, ...detailedColumns]
       : [...baseColumns]
-  }, [showDetailedColumns, user?.role, employee.salaries])
+  }, [showDetailedColumns, user?.role, employee.salaries, showBonusPercentage])
 
   const handleMoveToNextEmployee = () => {
     const currentIndex = reviewQueue.indexOf(employee.id)
@@ -872,6 +892,7 @@ function EmployeeOverview() {
                     setLevel={setLevel}
                     setStep={setStep}
                     setBenchmark={setBenchmark}
+                    showBonusPercentage={showBonusPercentage}
                   />
                 )}
                 {table.getRowModel().rows?.length ? (
@@ -968,6 +989,7 @@ function InlineSalaryFormRow({
   setLevel,
   setStep,
   setBenchmark,
+  showBonusPercentage,
 }: {
   employeeId: string
   showOverrideMode: boolean
@@ -980,6 +1002,7 @@ function InlineSalaryFormRow({
   setLevel: (level: number) => void
   setStep: (step: number) => void
   setBenchmark: (benchmark: string) => void
+  showBonusPercentage: boolean
 }) {
   const getDefaultValues = () => ({
     country: latestSalary?.country ?? 'United States',
@@ -989,6 +1012,8 @@ function InlineSalaryFormRow({
     step: latestSalary?.step ?? 1,
     benchmark: latestSalary?.benchmark ?? 'Product Engineer',
     benchmarkFactor: latestSalary?.benchmarkFactor ?? 0,
+    bonusPercentage: latestSalary?.bonusPercentage ?? 0,
+    bonusAmount: 0,
     totalSalary: latestSalary?.totalSalary ?? 0,
     changePercentage: 0, // Always 0 for new entries
     changeAmount: 0, // Always 0 for new entries
@@ -1032,6 +1057,17 @@ function InlineSalaryFormRow({
       totalSalary = formApi.getFieldValue('totalSalary') ?? totalSalary
     }
 
+    let bonusPercentageValue = showBonusPercentage
+      ? bonusPercentage[benchmarkValue as keyof typeof bonusPercentage]
+      : 0
+    if (!showOverrideMode) {
+      formApi.setFieldValue('bonusPercentage', bonusPercentageValue)
+    } else {
+      bonusPercentageValue = formApi.getFieldValue('bonusPercentage') ?? 0
+    }
+    const bonusAmount = Number((totalSalary * bonusPercentageValue).toFixed(2))
+    formApi.setFieldValue('bonusAmount', bonusAmount)
+
     // Calculate change from the latest salary
     const latestTotalSalary = latestSalary?.totalSalary ?? 0
     const changePercentage =
@@ -1060,7 +1096,10 @@ function InlineSalaryFormRow({
     const amountTakenInOptions =
       formApi.getFieldValue('amountTakenInOptions') ?? 0
     const actualSalary =
-      totalSalary - amountTakenInOptions - totalAmountInStockOptions
+      totalSalary -
+      amountTakenInOptions -
+      totalAmountInStockOptions -
+      bonusAmount
     formApi.setFieldValue('actualSalary', Number(actualSalary.toFixed(2)))
 
     const actualSalaryLocal = actualSalary * exchangeRate
@@ -1096,7 +1135,7 @@ function InlineSalaryFormRow({
         ) {
           updateFormFields(formApi)
         } else if (
-          ['totalSalary'].includes(fieldApi.name) &&
+          ['totalSalary', 'bonusPercentage'].includes(fieldApi.name) &&
           showOverrideMode
         ) {
           updateFormFields(formApi)
@@ -1264,6 +1303,47 @@ function InlineSalaryFormRow({
           )}
         />
       </TableCell>
+      {showBonusPercentage ? (
+        <TableCell>
+          <form.Field
+            name="bonusPercentage"
+            validators={{
+              onChange: ({ value }) => {
+                if (value < 0 || value > 1) {
+                  return 'Bonus percentage must be between 0 and 1'
+                }
+              },
+            }}
+            children={(field) => {
+              if (showOverrideMode) {
+                return (
+                  <Input
+                    className={
+                      'w-full h-6 text-xs min-w-[70px]' +
+                      (field.state.meta.errors.length > 0
+                        ? ' border-red-500 ring-red-500'
+                        : '')
+                    }
+                    value={field.state.value}
+                    type="number"
+                    step={0.01}
+                    min={0}
+                    max={1}
+                    onChange={(e) => field.handleChange(Number(e.target.value))}
+                  />
+                )
+              }
+
+              return (
+                <div className="text-xs py-1 px-1 text-right">
+                  {(field.state.value * 100).toFixed(2)}%
+                </div>
+              )
+            }}
+          />
+        </TableCell>
+      ) : null}
+
       <TableCell>
         <form.Field
           name="totalSalary"
