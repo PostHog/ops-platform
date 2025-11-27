@@ -94,6 +94,7 @@ const checkSalaryDeviation = createAuthenticatedFn({
   const employees = await prisma.employee.findMany({
     where: {
       salaries: { some: {} },
+      deelEmployee: { isNot: null },
     },
     include: {
       salaries: {
@@ -165,17 +166,9 @@ const checkSalaryDeviation = createAuthenticatedFn({
 
   return {
     allResults: results,
-    filteredResultsNote:
-      'Deviation percentage > 0.1%, deviation percentage !== 0.5, currency code !== GBP, team does not include Sales or Customer Success',
+    filteredResultsNote: 'Deviation percentage > 0.1%',
     filteredResults: results
-      .filter(
-        (x) =>
-          x.deviationPercentage > 0.001 &&
-          x.deviationPercentage !== 0.5 &&
-          x.compensation_details.currency_code !== 'GBP' &&
-          !x.team.includes('Sales') &&
-          !x.team.includes('Customer Success'),
-      )
+      .filter((x) => x.deviationPercentage > 0.001)
       .map((x) => ({
         deelSalary: x.deelSalary,
         deviation: x.deviation,

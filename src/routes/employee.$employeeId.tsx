@@ -1057,7 +1057,9 @@ function InlineSalaryFormRow({
       totalSalary = formApi.getFieldValue('totalSalary') ?? totalSalary
     }
 
-    let bonusPercentageValue = showBonusPercentage
+    let bonusPercentageValue = Object.keys(bonusPercentage).includes(
+      benchmarkValue as keyof typeof bonusPercentage,
+    )
       ? bonusPercentage[benchmarkValue as keyof typeof bonusPercentage]
       : 0
     if (!showOverrideMode) {
