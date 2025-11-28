@@ -122,18 +122,20 @@ const OrgChartPanel = ({
           </Command>
         </PopoverContent>
       </Popover>
-      <Select value={viewMode} onValueChange={onViewModeChange}>
-        <SelectTrigger className="w-[180px] bg-white">
-          <SelectValue placeholder="Select a view mode" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>View modes</SelectLabel>
-            <SelectItem value="manager">Manager</SelectItem>
-            <SelectItem value="team">Team</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+      {viewMode ? (
+        <Select value={viewMode} onValueChange={onViewModeChange}>
+          <SelectTrigger className="w-[180px] bg-white">
+            <SelectValue placeholder="Select a view mode" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>View modes</SelectLabel>
+              <SelectItem value="manager">Manager</SelectItem>
+              <SelectItem value="team">Team</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      ) : null}
     </div>
   )
 }

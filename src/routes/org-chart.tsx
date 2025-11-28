@@ -72,6 +72,7 @@ export type OrgChartNode = Node<
     title?: string
     team?: string
     manager?: string
+    managerTeam?: string
     startDate?: Date
     expanded: boolean
     childrenCount?: {
@@ -166,21 +167,30 @@ const getInitialNodes = (
     },
   }))
 
-  const teamNodes = Array.from(
-    new Set(employees.map((employee) => employee.team)),
-  )
-    .filter((team) => !['', 'Blitzscale'].includes(team))
-    .map((team) => ({
-      id: `team-${team}`,
-      position: { x: 0, y: 0 },
-      type: 'teamNode',
-      data: {
-        name: team,
-      },
-    }))
+  const seenTeams = new Set<string>()
+  const teamNodes = employees
+    .filter(({ team }) => !['', 'Blitzscale'].includes(team))
+    .map((employee) => {
+      if (seenTeams.has(employee.team)) return null
+      seenTeams.add(employee.team)
+      const teamLead = findTeamLead(employees, employee)
+      return {
+        id: `team-${employee.team}`,
+        position: { x: 0, y: 0 },
+        type: 'teamNode',
+        data: {
+          name: employee.team,
+          ...(teamLead ? { manager: teamLead.managerId } : {}),
+        },
+      }
+    })
+    .filter(Boolean) as OrgChartNode[]
 
   const proposedHireNodes = proposedHires
-    .filter(({ manager }) => manager.deelEmployee)
+    .filter(
+      ({ manager, priority }) =>
+        manager.deelEmployee && ['low', 'medium', 'high'].includes(priority),
+    )
     .map(({ id, title, manager, priority, hiringProfile }) => ({
       id: `employee-${id}`,
       position: { x: 0, y: 0 },
@@ -212,36 +222,39 @@ const getInitialNodes = (
   }))
 }
 
+const findTeamLead = (
+  employees: Array<DeelEmployee>,
+  employee: DeelEmployee,
+): DeelEmployee | null => {
+  if (!employee.team || !employee.managerId) {
+    return null
+  }
+
+  let currentEmployee: DeelEmployee = employee
+  const originalTeam = employee.team
+
+  while (currentEmployee.managerId) {
+    const manager = employees.find((e) => e.id === currentEmployee.managerId)
+
+    if (!manager) {
+      return null
+    }
+
+    if (manager.team === originalTeam) {
+      currentEmployee = manager
+    } else {
+      return currentEmployee
+    }
+  }
+
+  return null
+}
+
 const getInitialEdges = (
   employees: Array<DeelEmployee>,
   proposedHires: Array<ProposedHire>,
   viewMode: OrgChartMode,
 ): Array<Edge> => {
-  const findTeamLead = (employee: DeelEmployee): DeelEmployee | null => {
-    if (!employee.team || !employee.managerId) {
-      return null
-    }
-
-    let currentEmployee: DeelEmployee = employee
-    const originalTeam = employee.team
-
-    while (currentEmployee.managerId) {
-      const manager = employees.find((e) => e.id === currentEmployee.managerId)
-
-      if (!manager) {
-        return null
-      }
-
-      if (manager.team === originalTeam) {
-        currentEmployee = manager
-      } else {
-        return currentEmployee
-      }
-    }
-
-    return null
-  }
-
   const blitzscaleEdges = employees
     .filter((employee) =>
       viewMode === 'manager'
@@ -279,7 +292,7 @@ const getInitialEdges = (
                 (employee) => employee.team && employee.team !== 'Blitzscale',
               )
               .map((employee) => {
-                const teamLead = findTeamLead(employee)
+                const teamLead = findTeamLead(employees, employee)
 
                 if (!teamLead || !teamLead.managerId) {
                   return null
@@ -313,10 +326,6 @@ const getInitialEdges = (
             target: `employee-${id}`,
           },
     )
-
-  console.log({
-    proposedHireEdges,
-  })
 
   return [...blitzscaleEdges, ...edges, ...proposedHireEdges].map((edge) => ({
     ...edge,
@@ -361,11 +370,8 @@ export default function OrgChart() {
         },
       })),
     )
+    fitView()
   }, [viewMode])
-
-  console.log({
-    edges,
-  })
 
   const { nodes: visibleNodes, edges: visibleEdges } = useExpandCollapse(
     nodes,
@@ -438,27 +444,53 @@ export default function OrgChart() {
         }),
       )
 
-      fitView({
-        nodes: [
-          {
-            id:
-              node.data.title === 'Cofounder' && !expanded
-                ? node.id
-                : expanded
-                  ? `leaf-container-${node.id}`
-                  : `leaf-container-employee-${node.data.manager}`,
-          },
-        ],
-        duration: 300,
-      })
+      if (node.id === 'root-node') {
+        fitView({ duration: 300 })
+      } else if (viewMode === 'manager') {
+        fitView({
+          nodes: [
+            {
+              id:
+                node.data.title === 'Cofounder' && !expanded
+                  ? node.id
+                  : expanded
+                    ? `leaf-container-${node.id}`
+                    : `leaf-container-employee-${node.data.manager}`,
+            },
+          ],
+          duration: 300,
+        })
+      } else {
+        fitView({
+          nodes: [
+            {
+              id:
+                node.data.team === 'Blitzscale' && !expanded
+                  ? node.id
+                  : expanded
+                    ? `leaf-container-${node.id}`
+                    : node.type === 'employeeNode'
+                      ? `leaf-container-team-${node.data.team}`
+                      : `leaf-container-employee-${node.data.manager}`,
+            },
+          ],
+          duration: 300,
+        })
+      }
     },
-    [fitView],
+    [fitView, viewMode],
   )
 
   // Update proposed hire nodes when proposedHires changes
   useEffect(() => {
     const proposedHireMap = new Map(
-      proposedHires.map((ph) => [`employee-${ph.id}`, ph]),
+      proposedHires
+        .filter(
+          ({ manager, priority }) =>
+            manager.deelEmployee &&
+            ['low', 'medium', 'high'].includes(priority),
+        )
+        .map((ph) => [`employee-${ph.id}`, ph]),
     )
     const proposedHireIds = new Set(proposedHireMap.keys())
 
@@ -491,8 +523,13 @@ export default function OrgChart() {
 
       // Add new proposed hire nodes
       const existingIds = new Set(updatedNodes.map((n) => n.id))
-      proposedHires.forEach(
-        ({ id, title, manager, priority, hiringProfile }) => {
+      proposedHires
+        .filter(
+          ({ manager, priority }) =>
+            manager.deelEmployee &&
+            ['low', 'medium', 'high'].includes(priority),
+        )
+        .forEach(({ id, title, manager, priority, hiringProfile }) => {
           const nodeId = `employee-${id}`
           if (!existingIds.has(nodeId)) {
             const newNode: OrgChartNode = {
@@ -505,6 +542,7 @@ export default function OrgChart() {
                 title,
                 team: '',
                 manager: manager.deelEmployee!.id,
+                managerTeam: manager.deelEmployee!.team,
                 hiringPriority: priority as 'low' | 'medium' | 'high',
                 hiringProfile,
                 expanded: false,
@@ -516,8 +554,7 @@ export default function OrgChart() {
             }
             updatedNodes.push(newNode)
           }
-        },
-      )
+        })
 
       return updatedNodes
     })
@@ -527,7 +564,11 @@ export default function OrgChart() {
         (edge) => !edge.id.startsWith('proposedHire-'),
       )
       const newProposedHireEdges = proposedHires
-        .filter(({ priority }) => ['low', 'medium', 'high'].includes(priority))
+        .filter(
+          ({ manager, priority }) =>
+            manager.deelEmployee &&
+            ['low', 'medium', 'high'].includes(priority),
+        )
         .map(({ id, manager }) =>
           viewMode === 'manager'
             ? {
@@ -541,9 +582,6 @@ export default function OrgChart() {
                 target: `employee-${id}`,
               },
         )
-      console.log({
-        newProposedHireEdges,
-      })
       return [...employeeEdges, ...newProposedHireEdges]
     })
   }, [proposedHires])
@@ -577,7 +615,7 @@ export default function OrgChart() {
       }),
     )
 
-    setEdges(getInitialEdges(employees, [], viewMode))
+    setEdges(getInitialEdges(employees, proposedHires, viewMode))
   }, [employees])
 
   return (
