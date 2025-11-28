@@ -142,6 +142,7 @@ export const Route = createFileRoute('/org-chart')({
 const getInitialNodes = (
   employees: Array<DeelEmployee>,
   proposedHires: Array<ProposedHire>,
+  viewMode: OrgChartMode,
 ): Array<OrgChartNode> => {
   const blitzscaleNode = {
     id: 'root-node',
@@ -196,7 +197,7 @@ const getInitialNodes = (
 
   return [
     blitzscaleNode,
-    ...teamNodes,
+    ...(viewMode === 'team' ? teamNodes : []),
     ...employeeNodes,
     ...proposedHireNodes,
   ].map((node) => ({
@@ -214,30 +215,108 @@ const getInitialNodes = (
 const getInitialEdges = (
   employees: Array<DeelEmployee>,
   proposedHires: Array<ProposedHire>,
+  viewMode: OrgChartMode,
 ): Array<Edge> => {
+  const findTeamLead = (employee: DeelEmployee): DeelEmployee | null => {
+    if (!employee.team || !employee.managerId) {
+      return null
+    }
+
+    let currentEmployee: DeelEmployee = employee
+    const originalTeam = employee.team
+
+    while (currentEmployee.managerId) {
+      const manager = employees.find((e) => e.id === currentEmployee.managerId)
+
+      if (!manager) {
+        return null
+      }
+
+      if (manager.team === originalTeam) {
+        currentEmployee = manager
+      } else {
+        return currentEmployee
+      }
+    }
+
+    return null
+  }
+
   const blitzscaleEdges = employees
-    .filter((employee) => employee.title === 'Cofounder')
+    .filter((employee) =>
+      viewMode === 'manager'
+        ? employee.title === 'Cofounder'
+        : employee.team === 'Blitzscale',
+    )
     .map((employee) => ({
       id: `root-edges-${employee.id}`,
       source: 'root-node',
       target: `employee-${employee.id}`,
     }))
 
-  const edges = employees
-    .filter((employee) => employee.managerId)
-    .map((employee) => ({
-      id: `employee-${employee.managerId}-${employee.id}`,
-      source: `employee-${employee.managerId}`,
-      target: `employee-${employee.id}`,
-    }))
+  const edges =
+    viewMode === 'manager'
+      ? employees
+          .filter((employee) => employee.managerId)
+          .map((employee) => ({
+            id: `employee-${employee.managerId}-${employee.id}`,
+            source: `employee-${employee.managerId}`,
+            target: `employee-${employee.id}`,
+          }))
+      : ([
+          ...employees
+            .filter(
+              (employee) => employee.team && employee.team !== 'Blitzscale',
+            )
+            .map((employee) => ({
+              id: `employee-team-${employee.team}-${employee.id}`,
+              source: `team-${employee.team}`,
+              target: `employee-${employee.id}`,
+            })),
+          ...new Set(
+            employees
+              .filter(
+                (employee) => employee.team && employee.team !== 'Blitzscale',
+              )
+              .map((employee) => {
+                const teamLead = findTeamLead(employee)
+
+                if (!teamLead || !teamLead.managerId) {
+                  return null
+                }
+
+                return {
+                  id: `manager-team-edge-${teamLead.managerId}-${teamLead.team}`,
+                  source: `employee-${teamLead.managerId}`,
+                  target: `team-${teamLead.team}`,
+                }
+              })
+              .filter(Boolean),
+          ),
+        ] as Edge[])
 
   const proposedHireEdges = proposedHires
-    .filter(({ manager }) => manager.deelEmployee)
-    .map(({ id, manager }) => ({
-      id: `proposedHire-${manager.deelEmployee!.id}-${id}`,
-      source: `employee-${manager.deelEmployee!.id}`,
-      target: `employee-${id}`,
-    }))
+    .filter(
+      ({ manager, priority }) =>
+        manager.deelEmployee && ['low', 'medium', 'high'].includes(priority),
+    )
+    .map(({ id, manager }) =>
+      viewMode === 'manager'
+        ? {
+            id: `proposedHire-${manager.deelEmployee!.id}-${id}`,
+            source: `employee-${manager.deelEmployee!.id}`,
+            target: `employee-${id}`,
+          }
+        : {
+            id: `proposedHire-${manager.deelEmployee!.team}-${id}`,
+            source: `team-${manager.deelEmployee!.team}`,
+            target: `employee-${id}`,
+          },
+    )
+
+  console.log({
+    proposedHireEdges,
+  })
 
   return [...blitzscaleEdges, ...edges, ...proposedHireEdges].map((edge) => ({
     ...edge,
@@ -254,7 +333,7 @@ export default function OrgChart() {
   )
 
   const [nodes, setNodes] = useState<Array<OrgChartNode>>(
-    getInitialNodes(employees, proposedHires).map((node) => ({
+    getInitialNodes(employees, proposedHires, viewMode).map((node) => ({
       ...node,
       data: {
         ...node.data,
@@ -265,9 +344,28 @@ export default function OrgChart() {
     })),
   )
   const [edges, setEdges] = useState<Array<Edge>>(
-    getInitialEdges(employees, proposedHires),
+    getInitialEdges(employees, proposedHires, viewMode),
   )
   const { fitView } = useReactFlow()
+
+  useEffect(() => {
+    setEdges(getInitialEdges(employees, proposedHires, viewMode))
+    setNodes(
+      getInitialNodes(employees, proposedHires, viewMode).map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          toggleExpanded: () => toggleExpanded(node),
+          handleClick: (id: string) =>
+            setSelectedNode(id.replace('employee-', '')),
+        },
+      })),
+    )
+  }, [viewMode])
+
+  console.log({
+    edges,
+  })
 
   const { nodes: visibleNodes, edges: visibleEdges } = useExpandCollapse(
     nodes,
@@ -359,13 +457,8 @@ export default function OrgChart() {
 
   // Update proposed hire nodes when proposedHires changes
   useEffect(() => {
-    const validProposedHires = proposedHires.filter(
-      (ph) =>
-        ph.manager.deelEmployee &&
-        ['low', 'medium', 'high'].includes(ph.priority),
-    )
     const proposedHireMap = new Map(
-      validProposedHires.map((ph) => [`employee-${ph.id}`, ph]),
+      proposedHires.map((ph) => [`employee-${ph.id}`, ph]),
     )
     const proposedHireIds = new Set(proposedHireMap.keys())
 
@@ -398,7 +491,7 @@ export default function OrgChart() {
 
       // Add new proposed hire nodes
       const existingIds = new Set(updatedNodes.map((n) => n.id))
-      validProposedHires.forEach(
+      proposedHires.forEach(
         ({ id, title, manager, priority, hiringProfile }) => {
           const nodeId = `employee-${id}`
           if (!existingIds.has(nodeId)) {
@@ -433,14 +526,24 @@ export default function OrgChart() {
       const employeeEdges = currentEdges.filter(
         (edge) => !edge.id.startsWith('proposedHire-'),
       )
-      const newProposedHireEdges = validProposedHires.map(
-        ({ id, manager }) => ({
-          id: `proposedHire-${manager.deelEmployee!.id}-${id}`,
-          source: `employee-${manager.deelEmployee!.id}`,
-          target: `employee-${id}`,
-          type: 'smoothstep' as const,
-        }),
-      )
+      const newProposedHireEdges = proposedHires
+        .filter(({ priority }) => ['low', 'medium', 'high'].includes(priority))
+        .map(({ id, manager }) =>
+          viewMode === 'manager'
+            ? {
+                id: `proposedHire-${manager.deelEmployee!.id}-${id}`,
+                source: `employee-${manager.deelEmployee!.id}`,
+                target: `employee-${id}`,
+              }
+            : {
+                id: `proposedHire-${manager.deelEmployee!.team}-${id}`,
+                source: `team-${manager.deelEmployee!.team}`,
+                target: `employee-${id}`,
+              },
+        )
+      console.log({
+        newProposedHireEdges,
+      })
       return [...employeeEdges, ...newProposedHireEdges]
     })
   }, [proposedHires])
@@ -474,15 +577,7 @@ export default function OrgChart() {
       }),
     )
 
-    setEdges((currentEdges) => {
-      const proposedHireEdges = currentEdges.filter((edge) =>
-        edge.id.startsWith('proposedHire-'),
-      )
-      const employeeEdges = getInitialEdges(employees, []).filter(
-        (edge) => !edge.id.startsWith('proposedHire-'),
-      )
-      return [...employeeEdges, ...proposedHireEdges]
-    })
+    setEdges(getInitialEdges(employees, [], viewMode))
   }, [employees])
 
   return (
