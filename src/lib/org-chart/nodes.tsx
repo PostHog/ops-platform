@@ -182,18 +182,24 @@ const LeafContainer = memo(function LeafContainer({
   data,
 }: {
   data: {
-    employees: Array<OrgChartNode['data']>
+    children: Array<
+      OrgChartNode['data'] & { nodeType: 'employeeNode' | 'teamNode' }
+    >
   }
 }) {
-  const employees = data.employees || []
+  const children = data.children || []
 
   return (
     <div className="p-4 rounded-lg border-t-2 border-gray-300">
       <div
-        className={`grid gap-4 ${employees.length >= 2 ? 'grid-cols-2' : ''}`}
+        className={`grid gap-4 ${children.length >= 2 ? 'grid-cols-2' : ''}`}
       >
-        {employees.map((employee) => {
-          return <EmployeeNode key={employee.id} data={employee} />
+        {children.map((child) => {
+          if (child.nodeType === 'employeeNode') {
+            return <EmployeeNode key={child.id} data={child} />
+          } else if (child.nodeType === 'teamNode') {
+            return <TeamNode key={child.id} data={child} />
+          }
         })}
       </div>
       <NodeHandles />
