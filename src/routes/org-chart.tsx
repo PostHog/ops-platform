@@ -20,6 +20,9 @@ import useExpandCollapse from '@/lib/org-chart/useExpandCollapse'
 import OrgChartPanel from '@/components/OrgChartPanel'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
 import { createOrgChartFn } from '@/lib/auth-middleware'
+import { useLocalStorage } from 'usehooks-ts'
+
+export type OrgChartMode = 'manager' | 'team'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -229,6 +232,11 @@ const getInitialEdges = (
 export default function OrgChart() {
   const { employees, proposedHires } = Route.useLoaderData()
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useLocalStorage<OrgChartMode>(
+    'org-chart.viewMode',
+    'manager',
+  )
+
   const [nodes, setNodes] = useState<Array<OrgChartNode>>(
     getInitialNodes(employees, proposedHires).map((node) => ({
       ...node,
