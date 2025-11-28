@@ -167,7 +167,7 @@ const LeafContainer = memo(function LeafContainer({
         className={`grid gap-4 ${employees.length >= 2 ? 'grid-cols-2' : ''}`}
       >
         {employees.map((employee) => {
-          return <EmployeeNode key={employee.name} data={employee} />
+          return <EmployeeNode key={employee.id} data={employee} />
         })}
       </div>
       <NodeHandles />
