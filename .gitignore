@@ -16,3 +16,6 @@ todos.json
 .netlify
 .vercel
 historicalImporter.ts
+
+# npm lock file (project uses pnpm)
+package-lock.json
