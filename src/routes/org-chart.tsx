@@ -468,6 +468,8 @@ export default function OrgChart() {
         edges={visibleEdges}
         nodeTypes={nodeTypes}
         nodesDraggable={false}
+        edgesFocusable={false}
+        edgesReconnectable={false}
         onPaneClick={() => setSelectedNode(null)}
         fitView
       >
