@@ -194,18 +194,21 @@ const getInitialNodes = (
       },
     }))
 
-  return [blitzscaleNode, ...employeeNodes, ...proposedHireNodes].map(
-    (node) => ({
-      ...node,
-      data: {
-        id: node.id,
-        ...node.data,
-        expanded: ['root-node'].includes(node.id),
-        toggleExpanded: () => {},
-        selectedNode: null,
-      },
-    }),
-  )
+  return [
+    blitzscaleNode,
+    ...teamNodes,
+    ...employeeNodes,
+    ...proposedHireNodes,
+  ].map((node) => ({
+    ...node,
+    data: {
+      id: node.id,
+      ...node.data,
+      expanded: ['root-node'].includes(node.id),
+      toggleExpanded: () => {},
+      selectedNode: null,
+    },
+  }))
 }
 
 const getInitialEdges = (
