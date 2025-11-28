@@ -8,6 +8,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  getIncomers,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useCallback, useEffect, useState } from 'react'
@@ -381,22 +382,34 @@ export default function OrgChart() {
 
   // expand all parent nodes of a selected node (for search)
   const focusNode = (id: string) => {
-    const parentIds = new Set<string>()
-    let currentNode = nodes.find((n) => n.id === `employee-${id}`)
-    const directParentId = currentNode?.data.manager
-    const initialNodeExpanded =
-      currentNode?.data.expanded || currentNode?.data.title === 'Cofounder'
+    const nodeId = `employee-${id}`
+    const currentNode = nodes.find((n) => n.id === nodeId)
+    if (!currentNode) return
 
-    while (currentNode) {
-      if (currentNode.data.title === 'Cofounder') {
+    const initialNodeExpanded =
+      currentNode.data.expanded ||
+      currentNode.data.title === 'Cofounder' ||
+      !currentNode.data.manager
+
+    // Collect all parent node IDs using React Flow's getIncomers
+    const parentIds = new Set<string>()
+    const collectParents = (node: OrgChartNode) => {
+      // Special case: Cofounder nodes connect to root-node
+      if (node.data.title === 'Cofounder') {
         parentIds.add('root-node')
-        break
+        return
       }
-      if (!currentNode.data.manager) break
-      const parentId = `employee-${currentNode.data.manager}`
-      parentIds.add(parentId)
-      currentNode = nodes.find((n) => n.id === parentId)
+
+      const incomers = getIncomers(node, nodes, edges)
+      for (const parent of incomers) {
+        if (!parentIds.has(parent.id)) {
+          parentIds.add(parent.id)
+          collectParents(parent as OrgChartNode)
+        }
+      }
     }
+
+    collectParents(currentNode)
 
     if (parentIds.size > 0) {
       setNodes((nds) =>
@@ -408,18 +421,37 @@ export default function OrgChart() {
       )
     }
 
-    fitView({
-      nodes: [
-        initialNodeExpanded
-          ? {
-              id: `employee-${id}`,
-            }
-          : {
-              id: `leaf-container-employee-${directParentId}`,
-            },
-      ],
-      duration: 300,
-    })
+    if (viewMode === 'manager') {
+      fitView({
+        nodes: [
+          initialNodeExpanded
+            ? {
+                id: nodeId,
+              }
+            : {
+                id: `leaf-container-employee-${currentNode.data.manager}`,
+              },
+        ],
+        duration: 300,
+      })
+    } else {
+      if (currentNode.data.team === 'Blitzscale') {
+        fitView({ nodes: [{ id: currentNode.id }], duration: 300 })
+        return
+      }
+      fitView({
+        nodes: [
+          initialNodeExpanded
+            ? {
+                id: nodeId,
+              }
+            : {
+                id: `leaf-container-team-${currentNode.data.team}`,
+              },
+        ],
+        duration: 300,
+      })
+    }
   }
 
   useEffect(() => {
