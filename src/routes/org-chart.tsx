@@ -76,6 +76,7 @@ export type OrgChartNode = Node<
     managerTeam?: string
     startDate?: Date
     expanded: boolean
+    isTeamLead?: boolean
     childrenCount?: {
       active: number
       pending: number
@@ -155,6 +156,8 @@ const getInitialNodes = (
     },
   }
 
+  const teamLeads = getTeamLeads(employees)
+
   const employeeNodes = employees.map((employee) => ({
     id: `employee-${employee.id}`,
     position: { x: 0, y: 0 },
@@ -165,6 +168,7 @@ const getInitialNodes = (
       team: employee.team,
       manager: employee.managerId,
       startDate: employee.startDate,
+      isTeamLead: teamLeads.has(employee.id),
     },
   }))
 
@@ -249,6 +253,24 @@ const findTeamLead = (
   }
 
   return null
+}
+
+const getTeamLeads = (employees: Array<DeelEmployee>): Set<string> => {
+  const teamLeads = new Set<string>()
+  const seenTeams = new Set<string>()
+
+  employees
+    .filter(({ team }) => team && team !== 'Blitzscale' && team !== '')
+    .forEach((employee) => {
+      if (seenTeams.has(employee.team)) return
+      seenTeams.add(employee.team)
+      const teamLead = findTeamLead(employees, employee)
+      if (teamLead) {
+        teamLeads.add(teamLead.id)
+      }
+    })
+
+  return teamLeads
 }
 
 const getInitialEdges = (
@@ -623,6 +645,7 @@ export default function OrgChart() {
     const employeeMap = new Map(
       employees.map((employee) => [`employee-${employee.id}`, employee]),
     )
+    const teamLeads = getTeamLeads(employees)
 
     setNodes((currentNodes) =>
       currentNodes.map((node) => {
@@ -631,8 +654,10 @@ export default function OrgChart() {
 
         const hasTeamChange = node.data.team !== employee.team
         const hasManagerChange = node.data.manager !== employee.managerId
+        const isTeamLead = teamLeads.has(employee.id)
+        const hasTeamLeadChange = node.data.isTeamLead !== isTeamLead
 
-        if (!hasTeamChange && !hasManagerChange) {
+        if (!hasTeamChange && !hasManagerChange && !hasTeamLeadChange) {
           return node
         }
 
@@ -642,6 +667,7 @@ export default function OrgChart() {
             ...node.data,
             team: employee.team,
             manager: employee.managerId ?? undefined,
+            isTeamLead,
           },
         }
       }),

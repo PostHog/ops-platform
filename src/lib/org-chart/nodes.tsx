@@ -2,7 +2,7 @@ import { Handle, Position } from '@xyflow/react'
 import { memo } from 'react'
 import { cn } from '../utils'
 import { OrgChartNode } from '@/routes/org-chart'
-import { CalendarClockIcon, ClockIcon } from 'lucide-react'
+import { CalendarClockIcon, ClockIcon, CrownIcon } from 'lucide-react'
 
 const NodeHandles = () => {
   return (
@@ -98,6 +98,7 @@ const EmployeeNode = memo(function EmployeeNode({
     handleClick,
     selectedNode,
     hiringPriority,
+    isTeamLead,
   },
 }: {
   data: OrgChartNode['data']
@@ -124,7 +125,12 @@ const EmployeeNode = memo(function EmployeeNode({
       >
         <div className="flex items-center max-w-[80%]">
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold truncate">{name}</div>
+            <div className="flex items-center gap-1">
+              <div className="text-sm font-bold truncate">{name}</div>
+              {isTeamLead && (
+                <CrownIcon className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+              )}
+            </div>
             <div className="text-gray-500 text-xs truncate">{title}</div>
             <div className="text-yellow-600 font-bold text-xs truncate">
               {team}
