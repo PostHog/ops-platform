@@ -43,14 +43,28 @@ const TeamNode = memo(function TeamNode({
             childrenCount.planned > 0) ? (
             <div className="flex items-center gap-2">
               <div className="text-blue-600 text-xs font-medium">
-                {childrenCount.active > 0 && (
+                {childrenCount.active > 0 ? (
                   <div className="flex flex-row items-center gap-1">
                     <span>{childrenCount.active}</span>
                     <span>
                       {childrenCount.active === 1 ? 'member' : 'members'}
                     </span>
                   </div>
-                )}
+                ) : null}
+                <div className="flex flex-row gap-2">
+                  {childrenCount.pending > 0 ? (
+                    <div className="flex flex-row items-center gap-1">
+                      <span>{childrenCount.pending}</span>
+                      <ClockIcon className="w-3 h-3" />
+                    </div>
+                  ) : null}
+                  {childrenCount.planned > 0 ? (
+                    <div className="flex flex-row items-center gap-1">
+                      <span>{childrenCount.planned}</span>
+                      <CalendarClockIcon className="w-3 h-3" />
+                    </div>
+                  ) : null}
+                </div>
               </div>
               <button
                 onClick={(e) => {
