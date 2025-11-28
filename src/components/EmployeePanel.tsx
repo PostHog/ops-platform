@@ -87,22 +87,29 @@ const EmployeePanel = ({
                 </Button>
               </Link>
             ) : null}
-            <div className="flex flex-row justify-between items-center gap-2 px-2">
-              <span>Manager</span>
-              <div className="flex flex-row items-center gap-2">
-                <span>{employee?.manager?.name ?? 'None'}</span>
-                {employee ? (
-                  <ManagerEditPanel employees={employees} employee={employee} />
-                ) : null}
-              </div>
-            </div>
-            <div className="flex flex-row justify-between items-center gap-2 px-2">
-              <span>Team</span>
-              <div className="flex flex-row items-center gap-2">
-                <span>{employee?.team || 'None'}</span>
-                {employee ? <TeamEditPanel employee={employee} /> : null}
-              </div>
-            </div>
+            {employee ? (
+              <>
+                <div className="flex flex-row justify-between items-center gap-2 px-2">
+                  <span>Manager</span>
+                  <div className="flex flex-row items-center gap-2">
+                    <span>{employee?.manager?.name ?? 'None'}</span>
+                    {employee ? (
+                      <ManagerEditPanel
+                        employees={employees}
+                        employee={employee}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex flex-row justify-between items-center gap-2 px-2">
+                  <span>Team</span>
+                  <div className="flex flex-row items-center gap-2">
+                    <span>{employee?.team || 'None'}</span>
+                    {employee ? <TeamEditPanel employee={employee} /> : null}
+                  </div>
+                </div>
+              </>
+            ) : null}
           </div>
           {proposedHire ? (
             <div className="w-full my-4">
