@@ -50,8 +50,8 @@ const OrgChartPanel = ({
   selectedNode: string | null
   setSelectedNode: (node: string | null) => void
   idValue?: 'id' | 'employeeId'
-  viewMode: OrgChartMode
-  onViewModeChange: (mode: OrgChartMode) => void
+  viewMode?: OrgChartMode
+  onViewModeChange?: (mode: OrgChartMode) => void
 }) => {
   const [open, setOpen] = useState(false)
 
