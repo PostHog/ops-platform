@@ -165,6 +165,19 @@ const getInitialNodes = (
     },
   }))
 
+  const teamNodes = Array.from(
+    new Set(employees.map((employee) => employee.team)),
+  )
+    .filter((team) => !['', 'Blitzscale'].includes(team))
+    .map((team) => ({
+      id: `team-${team}`,
+      position: { x: 0, y: 0 },
+      type: 'teamNode',
+      data: {
+        name: team,
+      },
+    }))
+
   const proposedHireNodes = proposedHires
     .filter(({ manager }) => manager.deelEmployee)
     .map(({ id, title, manager, priority, hiringProfile }) => ({
