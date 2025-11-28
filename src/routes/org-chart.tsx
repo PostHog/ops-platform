@@ -171,7 +171,7 @@ const getInitialNodes = (
       data: {
         name: '',
         title: title,
-        team: '',
+        team: manager.deelEmployee!.team,
         manager: manager.deelEmployee!.id,
         hiringPriority: priority,
         hiringProfile,
