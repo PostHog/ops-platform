@@ -24,19 +24,45 @@ const NodeHandles = () => {
 }
 
 const TeamNode = memo(function TeamNode({
-  data: { name },
+  data: { name, childrenCount, expanded, toggleExpanded },
 }: {
   data: OrgChartNode['data']
 }) {
   return (
     <div className="transition-all hover:translate-y-[-2px]">
-      <div className="w-full h-full flex justify-center items-center px-6 py-4 shadow-lg rounded-lg bg-blue-50 border-2 border-blue-300 min-w-[200px]">
-        <div className="flex items-center justify-center">
-          <div className="ml-4 flex-1 min-w-0">
+      <div className="w-[200px] min-w-[200px] h-[100px] max-h-[100px] min-h-[100px] flex justify-center items-center px-6 py-4 shadow-lg rounded-lg bg-blue-50 border-2 border-blue-300 min-w-[200px]">
+        <div className="flex items-center justify-center flex-col gap-2">
+          <div className="flex-1 min-w-0">
             <div className="text-lg font-bold text-blue-800 truncate">
               {name}
             </div>
           </div>
+          {childrenCount !== undefined &&
+          (childrenCount.active > 0 ||
+            childrenCount.pending > 0 ||
+            childrenCount.planned > 0) ? (
+            <div className="flex items-center gap-2">
+              <div className="text-blue-600 text-xs font-medium">
+                {childrenCount.active > 0 && (
+                  <div className="flex flex-row items-center gap-1">
+                    <span>{childrenCount.active}</span>
+                    <span>
+                      {childrenCount.active === 1 ? 'member' : 'members'}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleExpanded()
+                }}
+                className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 rounded transition-colors"
+              >
+                {expanded ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <NodeHandles />
