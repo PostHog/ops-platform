@@ -506,6 +506,8 @@ export default function OrgChart() {
             employees={employees}
             selectedNode={selectedNode}
             setSelectedNode={setSelectedNode}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
         </Panel>
 
