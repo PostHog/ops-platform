@@ -283,7 +283,7 @@ export const deleteSalary = createAuthenticatedFn({
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
-  const [showInlineForm, setShowInlineForm] = useState(
+  const [showNewSalaryForm, setShowNewSalaryForm] = useState(
     user?.role === ROLES.ADMIN,
   )
   const [showOverrideMode, setShowOverrideMode] = useState(false)
@@ -300,7 +300,7 @@ function EmployeeOverview() {
   // Hide inline form when switching to timeline view
   useEffect(() => {
     if (viewMode === 'card') {
-      setShowInlineForm(false)
+      setShowNewSalaryForm(false)
     }
   }, [viewMode])
 
@@ -656,7 +656,7 @@ function EmployeeOverview() {
         to: '/employee/$employeeId',
         params: { employeeId: nextEmployee },
       })
-      setShowInlineForm(true)
+      setShowNewSalaryForm(true)
       setShowOverrideMode(false)
     } else {
       createToast(
@@ -842,7 +842,7 @@ function EmployeeOverview() {
             <span className="text-md font-bold">Salary history</span>
           )}
           <div className="flex gap-2">
-            {showInlineForm ? (
+            {showNewSalaryForm ? (
               <Button
                 type="button"
                 variant="outline"
@@ -855,7 +855,7 @@ function EmployeeOverview() {
                   : 'Show reference employees'}
               </Button>
             ) : null}
-            {showInlineForm ? (
+            {showNewSalaryForm ? (
               <Button
                 type="button"
                 variant="outline"
@@ -870,9 +870,9 @@ function EmployeeOverview() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setShowInlineForm(!showInlineForm)}
+                onClick={() => setShowNewSalaryForm(!showNewSalaryForm)}
               >
-                {showInlineForm ? 'Cancel' : 'Add New Salary'}
+                {showNewSalaryForm ? 'Cancel' : 'Add New Salary'}
               </Button>
             ) : null}
           </div>
@@ -944,7 +944,7 @@ function EmployeeOverview() {
                   ))}
                 </TableHeader>
                 <TableBody>
-                  {showInlineForm && (
+                  {showNewSalaryForm && (
                     <NewSalaryForm
                       employeeId={employee.id}
                       showOverride={showOverrideMode}
@@ -956,10 +956,10 @@ function EmployeeOverview() {
                         0,
                       )}
                       onSuccess={() => {
-                        setShowInlineForm(false)
+                        setShowNewSalaryForm(false)
                         router.invalidate()
                       }}
-                      onCancel={() => setShowInlineForm(false)}
+                      onCancel={() => setShowNewSalaryForm(false)}
                       benchmarkUpdated={benchmarkUpdated}
                       setLevel={setLevel}
                       setStep={setStep}
@@ -999,7 +999,7 @@ function EmployeeOverview() {
             </div>
           ) : (
             <div className="mb-8">
-              {showInlineForm && (
+              {showNewSalaryForm && (
                 <NewSalaryForm
                   employeeId={employee.id}
                   showOverride={showOverrideMode}
@@ -1011,10 +1011,10 @@ function EmployeeOverview() {
                     0,
                   )}
                   onSuccess={() => {
-                    setShowInlineForm(false)
+                    setShowNewSalaryForm(false)
                     router.invalidate()
                   }}
-                  onCancel={() => setShowInlineForm(false)}
+                  onCancel={() => setShowNewSalaryForm(false)}
                   benchmarkUpdated={benchmarkUpdated}
                   setLevel={setLevel}
                   setStep={setStep}
@@ -1091,7 +1091,7 @@ function EmployeeOverview() {
           )}
         </div>
 
-        {showInlineForm && showReferenceEmployees && (
+        {showNewSalaryForm && showReferenceEmployees && (
           <>
             <div className="flex flex-row gap-2 justify-between items-center mt-2">
               <span className="text-md font-bold">Reference employees</span>
