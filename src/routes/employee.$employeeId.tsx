@@ -921,6 +921,19 @@ function EmployeeOverview() {
             )
           })()}
 
+        {showNewSalaryForm && showReferenceEmployees && viewMode === 'card' ? (
+          <ReferenceEmployeesTable
+            referenceEmployees={combinedReferenceEmployees}
+            currentEmployee={employee}
+            filterByLevel={filterByLevel}
+            setFilterByLevel={setFilterByLevel}
+            filterByExec={filterByExec}
+            setFilterByExec={setFilterByExec}
+            filterByTitle={filterByTitle}
+            setFilterByTitle={setFilterByTitle}
+          />
+        ) : null}
+
         <div className="w-full flex-grow">
           {viewMode === 'table' ? (
             <div className="overflow-hidden rounded-md border">
@@ -1091,52 +1104,18 @@ function EmployeeOverview() {
           )}
         </div>
 
-        {showNewSalaryForm && showReferenceEmployees && (
-          <>
-            <div className="flex flex-row gap-2 justify-between items-center mt-2">
-              <span className="text-md font-bold">Reference employees</span>
-              <div className="flex gap-4 items-center">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="filter-by-level"
-                    checked={filterByLevel}
-                    onCheckedChange={setFilterByLevel}
-                  />
-                  <Label htmlFor="filter-by-level" className="text-sm">
-                    Filter by level
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="filter-by-exec"
-                    checked={filterByExec}
-                    onCheckedChange={setFilterByExec}
-                  />
-                  <Label htmlFor="filter-by-exec" className="text-sm">
-                    Filter by exec
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="filter-by-title"
-                    checked={filterByTitle}
-                    onCheckedChange={setFilterByTitle}
-                  />
-                  <Label htmlFor="filter-by-title" className="text-sm">
-                    Filter by title
-                  </Label>
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full flex-grow">
-              <ReferenceEmployeesTable
-                referenceEmployees={combinedReferenceEmployees}
-                currentEmployee={employee}
-              />
-            </div>
-          </>
-        )}
+        {showNewSalaryForm && showReferenceEmployees && viewMode === 'table' ? (
+          <ReferenceEmployeesTable
+            referenceEmployees={combinedReferenceEmployees}
+            currentEmployee={employee}
+            filterByLevel={filterByLevel}
+            setFilterByLevel={setFilterByLevel}
+            filterByExec={filterByExec}
+            setFilterByExec={setFilterByExec}
+            filterByTitle={filterByTitle}
+            setFilterByTitle={setFilterByTitle}
+          />
+        ) : null}
       </div>
     </div>
   )
@@ -1155,9 +1134,21 @@ type ReferenceEmployee = {
 function ReferenceEmployeesTable({
   referenceEmployees,
   currentEmployee,
+  filterByLevel,
+  setFilterByLevel,
+  filterByExec,
+  setFilterByExec,
+  filterByTitle,
+  setFilterByTitle,
 }: {
   referenceEmployees: Array<ReferenceEmployee>
   currentEmployee: Employee
+  filterByLevel: boolean
+  setFilterByLevel: (filterByLevel: boolean) => void
+  filterByExec: boolean
+  setFilterByExec: (filterByExec: boolean) => void
+  filterByTitle: boolean
+  setFilterByTitle: (filterByTitle: boolean) => void
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const currentEmployeeRowRef = useRef<HTMLTableRowElement>(null)
@@ -1222,61 +1213,107 @@ function ReferenceEmployeesTable({
   }, [referenceEmployees, currentEmployee.id])
 
   return (
-    <div
-      ref={scrollContainerRef}
-      className="overflow-hidden max-h-[300px] overflow-y-auto rounded-md border"
-    >
-      <Table className="text-xs">
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
+    <>
+      <div className="flex flex-row gap-2 justify-between items-center mt-2">
+        <span className="text-md font-bold">Reference employees</span>
+        <div className="flex gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="filter-by-level"
+              checked={filterByLevel}
+              onCheckedChange={setFilterByLevel}
+            />
+            <Label htmlFor="filter-by-level" className="text-sm">
+              Filter by level
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="filter-by-exec"
+              checked={filterByExec}
+              onCheckedChange={setFilterByExec}
+            />
+            <Label htmlFor="filter-by-exec" className="text-sm">
+              Filter by exec
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="filter-by-title"
+              checked={filterByTitle}
+              onCheckedChange={setFilterByTitle}
+            />
+            <Label htmlFor="filter-by-title" className="text-sm">
+              Filter by title
+            </Label>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full flex-grow">
+        <div
+          ref={scrollContainerRef}
+          className="overflow-hidden max-h-[300px] overflow-y-auto rounded-md border"
+        >
+          <Table className="text-xs">
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    )
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    ref={(el) => {
+                      if (currentEmployee.id === row.original.id) {
+                        currentEmployeeRowRef.current = el
+                      }
+                    }}
+                    onClick={() =>
+                      window.open(`/employee/${row.original.id}`, '_blank')
+                    }
+                    className={`cursor-pointer ${currentEmployee.id === row.original.id ? 'bg-blue-200 font-semibold' : ''}`}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
                         )}
-                  </TableHead>
-                )
-              })}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                ref={(el) => {
-                  if (currentEmployee.id === row.original.id) {
-                    currentEmployeeRowRef.current = el
-                  }
-                }}
-                onClick={() =>
-                  window.open(`/employee/${row.original.id}`, '_blank')
-                }
-                className={`cursor-pointer ${currentEmployee.id === row.original.id ? 'bg-blue-200 font-semibold' : ''}`}
-                data-state={row.getIsSelected() && 'selected'}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results.
                   </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No results.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </>
   )
 }
