@@ -124,7 +124,12 @@ export const stepModifier: Record<string, Array<number>> = {
   Expert: [1.11, 1.2],
 }
 
-export type SeniorityLevel = 'Junior' | 'Intermediate' | 'Senior' | 'Staff' | 'Director'
+export type SeniorityLevel =
+  | 'Junior'
+  | 'Intermediate'
+  | 'Senior'
+  | 'Staff'
+  | 'Director'
 
 export const SALARY_LEVELS = {
   Junior: 0.59,
