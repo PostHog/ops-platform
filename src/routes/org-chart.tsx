@@ -22,6 +22,8 @@ import OrgChartPanel from '@/components/OrgChartPanel'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
 import { createOrgChartFn } from '@/lib/auth-middleware'
 import { useLocalStorage } from 'usehooks-ts'
+import { orgChartAutozoomingEnabledAtom } from '@/atoms'
+import { useAtom } from 'jotai'
 
 export type OrgChartMode = 'manager' | 'team'
 
@@ -359,6 +361,7 @@ const getInitialEdges = (
 export default function OrgChart() {
   const { employees, proposedHires } = Route.useLoaderData()
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
+  const [autoZoomingEnabled] = useAtom(orgChartAutozoomingEnabledAtom)
   const [viewMode, setViewMode] = useLocalStorage<OrgChartMode>(
     'org-chart.viewMode',
     'manager',
@@ -393,8 +396,10 @@ export default function OrgChart() {
         },
       })),
     )
-    fitView()
-  }, [viewMode])
+    if (autoZoomingEnabled) {
+      fitView()
+    }
+  }, [viewMode, autoZoomingEnabled])
 
   const { nodes: visibleNodes, edges: visibleEdges } = useExpandCollapse(
     nodes,
@@ -443,36 +448,38 @@ export default function OrgChart() {
       )
     }
 
-    if (viewMode === 'manager') {
-      fitView({
-        nodes: [
-          initialNodeExpanded
-            ? {
-                id: nodeId,
-              }
-            : {
-                id: `leaf-container-employee-${currentNode.data.manager}`,
-              },
-        ],
-        duration: 300,
-      })
-    } else {
-      if (currentNode.data.team === 'Blitzscale') {
-        fitView({ nodes: [{ id: currentNode.id }], duration: 300 })
-        return
+    if (autoZoomingEnabled) {
+      if (viewMode === 'manager') {
+        fitView({
+          nodes: [
+            initialNodeExpanded
+              ? {
+                  id: nodeId,
+                }
+              : {
+                  id: `leaf-container-employee-${currentNode.data.manager}`,
+                },
+          ],
+          duration: 300,
+        })
+      } else {
+        if (currentNode.data.team === 'Blitzscale') {
+          fitView({ nodes: [{ id: currentNode.id }], duration: 300 })
+          return
+        }
+        fitView({
+          nodes: [
+            initialNodeExpanded
+              ? {
+                  id: nodeId,
+                }
+              : {
+                  id: `leaf-container-team-${currentNode.data.team}`,
+                },
+          ],
+          duration: 300,
+        })
       }
-      fitView({
-        nodes: [
-          initialNodeExpanded
-            ? {
-                id: nodeId,
-              }
-            : {
-                id: `leaf-container-team-${currentNode.data.team}`,
-              },
-        ],
-        duration: 300,
-      })
     }
   }
 
@@ -498,41 +505,43 @@ export default function OrgChart() {
         }),
       )
 
-      if (node.id === 'root-node') {
-        fitView({ duration: 300 })
-      } else if (viewMode === 'manager') {
-        fitView({
-          nodes: [
-            {
-              id:
-                node.data.title === 'Cofounder' && !expanded
-                  ? node.id
-                  : expanded
-                    ? `leaf-container-${node.id}`
-                    : `leaf-container-employee-${node.data.manager}`,
-            },
-          ],
-          duration: 300,
-        })
-      } else {
-        fitView({
-          nodes: [
-            {
-              id:
-                node.data.team === 'Blitzscale' && !expanded
-                  ? node.id
-                  : expanded
-                    ? `leaf-container-${node.id}`
-                    : node.type === 'employeeNode'
-                      ? `leaf-container-team-${node.data.team}`
+      if (autoZoomingEnabled) {
+        if (node.id === 'root-node') {
+          fitView({ duration: 300 })
+        } else if (viewMode === 'manager') {
+          fitView({
+            nodes: [
+              {
+                id:
+                  node.data.title === 'Cofounder' && !expanded
+                    ? node.id
+                    : expanded
+                      ? `leaf-container-${node.id}`
                       : `leaf-container-employee-${node.data.manager}`,
-            },
-          ],
-          duration: 300,
-        })
+              },
+            ],
+            duration: 300,
+          })
+        } else {
+          fitView({
+            nodes: [
+              {
+                id:
+                  node.data.team === 'Blitzscale' && !expanded
+                    ? node.id
+                    : expanded
+                      ? `leaf-container-${node.id}`
+                      : node.type === 'employeeNode'
+                        ? `leaf-container-team-${node.data.team}`
+                        : `leaf-container-employee-${node.data.manager}`,
+              },
+            ],
+            duration: 300,
+          })
+        }
       }
     },
-    [fitView, viewMode],
+    [fitView, viewMode, autoZoomingEnabled],
   )
 
   // Update proposed hire nodes when proposedHires changes
