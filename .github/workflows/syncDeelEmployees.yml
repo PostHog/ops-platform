@@ -1,4 +1,5 @@
 name: Sync Deel Employees
+permissions: {}
 on:
   schedule:
     - cron: '0 12 * * *'

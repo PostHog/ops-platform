@@ -5,7 +5,7 @@ import Dagre from '@dagrejs/dagre'
 
 function createLeafContainer(
   managerId: string,
-  employees: Array<OrgChartNode>,
+  children: Array<OrgChartNode>,
   selectedNode: string | null,
 ) {
   return {
@@ -13,8 +13,9 @@ function createLeafContainer(
     position: { x: 0, y: 0 },
     type: 'leafContainerNode',
     data: {
-      employees: employees.map((e) => ({
+      children: children.map((e) => ({
         ...e.data,
+        nodeType: e.type,
         selectedNode: selectedNode ? `employee-${selectedNode}` : null,
       })),
     },

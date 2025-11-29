@@ -8,7 +8,7 @@ export const Route = createFileRoute('/scheduleCheckIns')({
       POST: async ({ request }) => {
         const token = request.headers.get('Authorization')?.split(' ')[1]
         if (token !== process.env.SYNC_ENDPOINT_KEY) {
-          return new Response('Unauthorized' + token, { status: 401 })
+          return new Response('Unauthorized', { status: 401 })
         }
 
         const checkIn30DaysEmployees = await prisma.employee.findMany({

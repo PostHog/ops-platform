@@ -60,6 +60,11 @@ export const currencyData: Record<string, number> = {
   COP: 4925,
 }
 
+export const bonusPercentage: Record<string, number> = {
+  'Account Executive (OTE)': 0.5,
+  'Customer Success Manager (OTE)': 0.2,
+}
+
 export const sfBenchmark: Record<string, number> = {
   'Product Engineer': 262000,
   'Account Executive (OTE)': 300000,
@@ -67,7 +72,7 @@ export const sfBenchmark: Record<string, number> = {
   'Billing Support Specialist': 154619,
   'Content Marketer': 190910,
   'Community Manager': 185000,
-  'Customer Success Manager (OTE)': 211000,
+  'Customer Success Manager (OTE)': 237375,
   'Data Engineer': 243000,
   'Design Lead': 236000,
   'Events Manager': 165000,
