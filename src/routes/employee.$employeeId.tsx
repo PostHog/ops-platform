@@ -1,30 +1,27 @@
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import ReactMarkdown from 'react-markdown'
-import { useForm, useStore } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import 'vercel-toast/dist/vercel-toast.css'
-import { createToast } from 'vercel-toast'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useAtom } from 'jotai'
+import { AlertCircle, ArrowLeft, Trash2 } from 'lucide-react'
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { AlertCircle, Trash2 } from 'lucide-react'
-import { useAtom } from 'jotai'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createToast } from 'vercel-toast'
+import { useQuery } from '@tanstack/react-query'
+import { useLocalStorage } from 'usehooks-ts'
 import { months } from '.'
+import 'vercel-toast/dist/vercel-toast.css'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { Prisma, Salary } from '@prisma/client'
-import type { AnyFormApi } from '@tanstack/react-form'
 import { reviewQueueAtom } from '@/atoms'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
+import { FeedbackCard } from '@/components/FeedbackCard'
 import {
   bonusPercentage,
-  currencyData,
   formatCurrency,
-  getAreasByCountry,
-  getCountries,
   locationFactor,
   sfBenchmark,
 } from '@/lib/utils'
@@ -40,17 +37,10 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import prisma from '@/db'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { useQuery } from '@tanstack/react-query'
 import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
+import { NewSalaryForm } from '@/components/NewSalaryForm'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -293,7 +283,7 @@ export const deleteSalary = createAuthenticatedFn({
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
-  const [showInlineForm, setShowInlineForm] = useState(
+  const [showNewSalaryForm, setShowNewSalaryForm] = useState(
     user?.role === ROLES.ADMIN,
   )
   const [showOverrideMode, setShowOverrideMode] = useState(false)
@@ -302,6 +292,17 @@ function EmployeeOverview() {
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByLevel, setFilterByLevel] = useState(true)
   const [filterByTitle, setFilterByTitle] = useState(true)
+  const [viewMode, setViewMode] = useLocalStorage<'table' | 'card'>(
+    'preferredEmployeeView',
+    'table',
+  )
+
+  // Hide inline form when switching to timeline view
+  useEffect(() => {
+    if (viewMode === 'card') {
+      setShowNewSalaryForm(false)
+    }
+  }, [viewMode])
 
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
@@ -317,6 +318,23 @@ function EmployeeOverview() {
     Object.keys(bonusPercentage).includes(benchmark)
 
   if (!employee) return null
+
+  const handleDeleteSalary = async (salaryId: string) => {
+    try {
+      await deleteSalary({ data: { id: salaryId } })
+      createToast('Salary deleted successfully.', {
+        timeout: 3000,
+      })
+      router.invalidate()
+    } catch (error) {
+      createToast(
+        error instanceof Error ? error.message : 'Failed to delete salary.',
+        {
+          timeout: 3000,
+        },
+      )
+    }
+  }
 
   const { data: referenceEmployees } = useQuery({
     queryKey: [
@@ -368,6 +386,53 @@ function EmployeeOverview() {
     // Sort by step
     return combined.sort((a, b) => a.step * a.level - b.step * b.level)
   }, [referenceEmployees, employee, level, step])
+
+  // Combine and sort salary history with feedback, grouped by month
+  const timelineByMonth = useMemo(() => {
+    const salaryItems = employee.salaries.map((salary) => ({
+      type: 'salary' as const,
+      timestamp: salary.timestamp,
+      data: salary,
+    }))
+
+    const feedbackItems = (employee.keeperTestFeedback || []).map(
+      (feedback) => ({
+        type: 'feedback' as const,
+        timestamp: feedback.timestamp,
+        data: feedback,
+      }),
+    )
+
+    const allItems = [...salaryItems, ...feedbackItems].sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+    )
+
+    // Group items by month/year
+    const grouped = new Map<
+      string,
+      {
+        month: number
+        year: number
+        items: typeof allItems
+      }
+    >()
+
+    allItems.forEach((item) => {
+      const date = new Date(item.timestamp)
+      const key = `${date.getFullYear()}-${date.getMonth()}`
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          month: date.getMonth(),
+          year: date.getFullYear(),
+          items: [],
+        })
+      }
+      grouped.get(key)!.items.push(item)
+    })
+
+    return Array.from(grouped.values())
+  }, [employee.salaries, employee.keeperTestFeedback])
 
   const columns: Array<ColumnDef<Salary>> = useMemo(() => {
     const baseColumns: Array<ColumnDef<Salary>> = [
@@ -487,7 +552,7 @@ function EmployeeOverview() {
                 </div>
               ),
             },
-          ] as ColumnDef<Salary>[])
+          ] as Array<ColumnDef<Salary>>)
         : []),
       {
         id: 'actions',
@@ -512,24 +577,7 @@ function EmployeeOverview() {
                   type="button"
                   size="sm"
                   variant="ghost"
-                  onClick={async () => {
-                    try {
-                      await deleteSalary({ data: { id: salary.id } })
-                      createToast('Salary deleted successfully.', {
-                        timeout: 3000,
-                      })
-                      router.invalidate()
-                    } catch (error) {
-                      createToast(
-                        error instanceof Error
-                          ? error.message
-                          : 'Failed to delete salary.',
-                        {
-                          timeout: 3000,
-                        },
-                      )
-                    }
-                  }}
+                  onClick={() => handleDeleteSalary(salary.id)}
                   className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
                   <Trash2 className="h-3 w-3" />
@@ -608,7 +656,7 @@ function EmployeeOverview() {
         to: '/employee/$employeeId',
         params: { employeeId: nextEmployee },
       })
-      setShowInlineForm(true)
+      setShowNewSalaryForm(true)
       setShowOverrideMode(false)
     } else {
       createToast(
@@ -633,12 +681,23 @@ function EmployeeOverview() {
 
   const benchmarkUpdated =
     employee.salaries[0] &&
-    sfBenchmark[employee.salaries[0]?.benchmark as keyof typeof sfBenchmark] !==
+    sfBenchmark[employee.salaries[0]?.benchmark] !==
       employee.salaries[0].benchmarkFactor
 
   return (
     <div className="pt-8 flex justify-center flex flex-col items-center gap-5">
-      <div className="2xl:w-[80%] max-w-full px-4 flex flex-col gap-5">
+      <div className="2xl:max-w-7xl w-full px-4 flex flex-col gap-5">
+        {user?.role === ROLES.ADMIN ? (
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => router.navigate({ to: '/' })}
+            className="self-start -ml-2"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to overview
+          </Button>
+        ) : null}
         <div className="flex flex-row justify-between items-center">
           <div className="flex flex-col">
             <span className="text-xl font-bold">
@@ -660,15 +719,24 @@ function EmployeeOverview() {
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            {user?.role === ROLES.ADMIN ? (
+            <div className="flex gap-1 border rounded-md">
               <Button
-                variant="outline"
                 type="button"
-                onClick={() => router.navigate({ to: '/' })}
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
               >
-                Back to overview
+                Table view
               </Button>
-            ) : null}
+              <Button
+                type="button"
+                variant={viewMode === 'card' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('card')}
+              >
+                Timeline view
+              </Button>
+            </div>
             {reviewQueue.length > 0 ? (
               <Button
                 variant="outline"
@@ -681,7 +749,7 @@ function EmployeeOverview() {
           </div>
         </div>
 
-        {user?.role === ROLES.ADMIN ? (
+        {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
           <>
             <div className="flex flex-row gap-2 justify-between items-center mt-2">
               <span className="text-md font-bold">Feedback</span>
@@ -770,9 +838,11 @@ function EmployeeOverview() {
         ) : null}
 
         <div className="flex flex-row gap-2 justify-between items-center mt-2">
-          <span className="text-md font-bold">Salary history</span>
+          {viewMode === 'table' && (
+            <span className="text-md font-bold">Salary history</span>
+          )}
           <div className="flex gap-2">
-            {showInlineForm ? (
+            {showNewSalaryForm ? (
               <Button
                 type="button"
                 variant="outline"
@@ -785,7 +855,7 @@ function EmployeeOverview() {
                   : 'Show reference employees'}
               </Button>
             ) : null}
-            {showInlineForm ? (
+            {showNewSalaryForm ? (
               <Button
                 type="button"
                 variant="outline"
@@ -800,9 +870,9 @@ function EmployeeOverview() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setShowInlineForm(!showInlineForm)}
+                onClick={() => setShowNewSalaryForm(!showNewSalaryForm)}
               >
-                {showInlineForm ? 'Cancel' : 'Add New Salary'}
+                {showNewSalaryForm ? 'Cancel' : 'Add New Salary'}
               </Button>
             ) : null}
           </div>
@@ -851,677 +921,203 @@ function EmployeeOverview() {
             )
           })()}
 
+        {showNewSalaryForm && showReferenceEmployees && viewMode === 'card' ? (
+          <ReferenceEmployeesTable
+            referenceEmployees={combinedReferenceEmployees}
+            currentEmployee={employee}
+            filterByLevel={filterByLevel}
+            setFilterByLevel={setFilterByLevel}
+            filterByExec={filterByExec}
+            setFilterByExec={setFilterByExec}
+            filterByTitle={filterByTitle}
+            setFilterByTitle={setFilterByTitle}
+          />
+        ) : null}
+
         <div className="w-full flex-grow">
-          <div className="overflow-hidden rounded-md border">
-            <Table className="text-xs">
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                        </TableHead>
-                      )
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {showInlineForm && (
-                  <InlineSalaryFormRow
-                    employeeId={employee.id}
-                    showOverrideMode={showOverrideMode}
-                    latestSalary={employee.salaries[0]}
-                    showDetailedColumns={showDetailedColumns}
-                    totalAmountInStockOptions={employee.salaries.reduce(
-                      (acc, salary) => acc + salary.amountTakenInOptions,
-                      0,
-                    )}
-                    onSuccess={() => {
-                      setShowInlineForm(false)
-                      router.invalidate()
-                    }}
-                    onCancel={() => setShowInlineForm(false)}
-                    benchmarkUpdated={benchmarkUpdated}
-                    setLevel={setLevel}
-                    setStep={setStep}
-                    setBenchmark={setBenchmark}
-                    showBonusPercentage={showBonusPercentage}
-                  />
-                )}
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && 'selected'}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
-                      ))}
+          {viewMode === 'table' ? (
+            <div className="overflow-hidden rounded-md border">
+              <Table className="text-xs">
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => {
+                        return (
+                          <TableHead key={header.id}>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
+                          </TableHead>
+                        )
+                      })}
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {showNewSalaryForm && (
+                    <NewSalaryForm
+                      employeeId={employee.id}
+                      showOverride={showOverrideMode}
+                      setShowOverride={setShowOverrideMode}
+                      latestSalary={employee.salaries[0]}
+                      showDetailedColumns={showDetailedColumns}
+                      totalAmountInStockOptions={employee.salaries.reduce(
+                        (acc, salary) => acc + salary.amountTakenInOptions,
+                        0,
+                      )}
+                      onSuccess={() => {
+                        setShowNewSalaryForm(false)
+                        router.invalidate()
+                      }}
+                      onCancel={() => setShowNewSalaryForm(false)}
+                      benchmarkUpdated={benchmarkUpdated}
+                      setLevel={setLevel}
+                      setStep={setStep}
+                      setBenchmark={setBenchmark}
+                      showBonusPercentage={showBonusPercentage}
+                      displayMode="inline"
+                    />
+                  )}
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && 'selected'}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                      >
+                        No results.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="mb-8">
+              {showNewSalaryForm && (
+                <NewSalaryForm
+                  employeeId={employee.id}
+                  showOverride={showOverrideMode}
+                  setShowOverride={setShowOverrideMode}
+                  latestSalary={employee.salaries[0]}
+                  showDetailedColumns={showDetailedColumns}
+                  totalAmountInStockOptions={employee.salaries.reduce(
+                    (acc, salary) => acc + salary.amountTakenInOptions,
+                    0,
+                  )}
+                  onSuccess={() => {
+                    setShowNewSalaryForm(false)
+                    router.invalidate()
+                  }}
+                  onCancel={() => setShowNewSalaryForm(false)}
+                  benchmarkUpdated={benchmarkUpdated}
+                  setLevel={setLevel}
+                  setStep={setStep}
+                  setBenchmark={setBenchmark}
+                  showBonusPercentage={showBonusPercentage}
+                  displayMode="card"
+                />
+              )}
+              {timelineByMonth.length > 0 ? (
+                timelineByMonth.map((monthGroup, monthGroupIndex) => (
+                  <div key={`${monthGroup.year}-${monthGroup.month}`}>
+                    <div
+                      className={`flex items-center border border-gray-200 px-4 py-2 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
                     >
-                      No results.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                      <h3 className="text-lg font-bold">
+                        {months[monthGroup.month]} {monthGroup.year}
+                      </h3>
+                      <span className="mx-2">·</span>
+                      <p className="text-sm text-gray-500">
+                        {(() => {
+                          const now = new Date()
+                          const diffMonths =
+                            (now.getFullYear() - monthGroup.year) * 12 +
+                            (now.getMonth() - monthGroup.month)
+
+                          if (diffMonths === 0) return 'this month'
+                          if (diffMonths === 1) return '1 month ago'
+                          if (diffMonths < 12) return `${diffMonths} months ago`
+
+                          const years = Math.floor(diffMonths / 12)
+                          const remainingMonths = diffMonths % 12
+                          if (remainingMonths === 0) {
+                            return years === 1
+                              ? '1 year ago'
+                              : `${years} years ago`
+                          }
+                          return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} ago`
+                        })()}
+                      </p>
+                    </div>
+                    <div className="w-full">
+                      {monthGroup.items.map((item, itemIndex) => {
+                        const isLastMonth =
+                          monthGroupIndex === timelineByMonth.length - 1
+                        const isLastItemInMonth =
+                          itemIndex === monthGroup.items.length - 1
+                        const lastTableItem = isLastMonth && isLastItemInMonth
+
+                        return item.type === 'salary' ? (
+                          <SalaryHistoryCard
+                            key={`salary-${item.data.id}`}
+                            salary={item.data}
+                            isAdmin={user?.role === ROLES.ADMIN}
+                            onDelete={handleDeleteSalary}
+                            lastTableItem={lastTableItem}
+                          />
+                        ) : (
+                          <FeedbackCard
+                            key={`feedback-${item.data.id}`}
+                            feedback={item.data}
+                            lastTableItem={lastTableItem}
+                          />
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  No history available.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {showInlineForm && showReferenceEmployees && (
-          <>
-            <div className="flex flex-row gap-2 justify-between items-center mt-2">
-              <span className="text-md font-bold">Reference employees</span>
-              <div className="flex gap-4 items-center">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="filter-by-level"
-                    checked={filterByLevel}
-                    onCheckedChange={setFilterByLevel}
-                  />
-                  <Label htmlFor="filter-by-level" className="text-sm">
-                    Filter by level
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="filter-by-exec"
-                    checked={filterByExec}
-                    onCheckedChange={setFilterByExec}
-                  />
-                  <Label htmlFor="filter-by-exec" className="text-sm">
-                    Filter by exec
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="filter-by-title"
-                    checked={filterByTitle}
-                    onCheckedChange={setFilterByTitle}
-                  />
-                  <Label htmlFor="filter-by-title" className="text-sm">
-                    Filter by title
-                  </Label>
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full flex-grow">
-              <ReferenceEmployeesTable
-                referenceEmployees={combinedReferenceEmployees}
-                currentEmployee={employee}
-              />
-            </div>
-          </>
-        )}
+        {showNewSalaryForm && showReferenceEmployees && viewMode === 'table' ? (
+          <ReferenceEmployeesTable
+            referenceEmployees={combinedReferenceEmployees}
+            currentEmployee={employee}
+            filterByLevel={filterByLevel}
+            setFilterByLevel={setFilterByLevel}
+            filterByExec={filterByExec}
+            setFilterByExec={setFilterByExec}
+            filterByTitle={filterByTitle}
+            setFilterByTitle={setFilterByTitle}
+          />
+        ) : null}
       </div>
     </div>
-  )
-}
-
-function InlineSalaryFormRow({
-  employeeId,
-  showOverrideMode,
-  onSuccess,
-  onCancel,
-  latestSalary,
-  showDetailedColumns,
-  totalAmountInStockOptions,
-  benchmarkUpdated,
-  setLevel,
-  setStep,
-  setBenchmark,
-  showBonusPercentage,
-}: {
-  employeeId: string
-  showOverrideMode: boolean
-  onSuccess: () => void
-  onCancel: () => void
-  latestSalary: Salary | undefined
-  showDetailedColumns: boolean
-  totalAmountInStockOptions: number
-  benchmarkUpdated: boolean
-  setLevel: (level: number) => void
-  setStep: (step: number) => void
-  setBenchmark: (benchmark: string) => void
-  showBonusPercentage: boolean
-}) {
-  const getDefaultValues = () => ({
-    country: latestSalary?.country ?? 'United States',
-    area: latestSalary?.area ?? 'San Francisco, California',
-    locationFactor: latestSalary?.locationFactor ?? 0,
-    level: latestSalary?.level ?? 1,
-    step: latestSalary?.step ?? 1,
-    benchmark: latestSalary?.benchmark ?? 'Product Engineer',
-    benchmarkFactor: latestSalary?.benchmarkFactor ?? 0,
-    bonusPercentage: latestSalary?.bonusPercentage ?? 0,
-    bonusAmount: 0,
-    totalSalary: latestSalary?.totalSalary ?? 0,
-    changePercentage: 0, // Always 0 for new entries
-    changeAmount: 0, // Always 0 for new entries
-    localCurrency: latestSalary?.localCurrency ?? 'USD',
-    exchangeRate: latestSalary?.exchangeRate ?? 1,
-    totalSalaryLocal: latestSalary?.totalSalaryLocal ?? 0,
-    amountTakenInOptions: 0,
-    actualSalary: latestSalary?.actualSalary ?? 0,
-    actualSalaryLocal: latestSalary?.actualSalaryLocal ?? 0,
-    notes: '',
-    employeeId: employeeId,
-  })
-
-  const updateFormFields = (formApi: AnyFormApi) => {
-    const location = locationFactor.find(
-      (l) =>
-        l.country === formApi.getFieldValue('country') &&
-        l.area === formApi.getFieldValue('area'),
-    )
-    const locationFactorValue = location?.locationFactor ?? 0
-    formApi.setFieldValue(
-      'locationFactor',
-      Number(locationFactorValue.toFixed(2)),
-    )
-
-    const benchmarkValue = formApi.getFieldValue('benchmark')
-    const benchmarkFactor = benchmarkValue?.includes('(old)')
-      ? (latestSalary?.benchmarkFactor ?? 0)
-      : (sfBenchmark[
-          benchmarkValue?.replace(' (old)', '') as keyof typeof sfBenchmark
-        ] ?? 0)
-    formApi.setFieldValue('benchmarkFactor', Number(benchmarkFactor.toFixed(2)))
-
-    const currentLocationFactor = formApi.getFieldValue('locationFactor') ?? 0
-    const level = formApi.getFieldValue('level') ?? 1
-    const step = formApi.getFieldValue('step') ?? 1
-    let totalSalary = currentLocationFactor * level * step * benchmarkFactor
-    if (!showOverrideMode) {
-      formApi.setFieldValue('totalSalary', Number(totalSalary.toFixed(2)))
-    } else {
-      totalSalary = formApi.getFieldValue('totalSalary') ?? totalSalary
-    }
-
-    let bonusPercentageValue = Object.keys(bonusPercentage).includes(
-      benchmarkValue as keyof typeof bonusPercentage,
-    )
-      ? bonusPercentage[benchmarkValue as keyof typeof bonusPercentage]
-      : 0
-    if (!showOverrideMode) {
-      formApi.setFieldValue('bonusPercentage', bonusPercentageValue)
-    } else {
-      bonusPercentageValue = formApi.getFieldValue('bonusPercentage') ?? 0
-    }
-    const bonusAmount = Number((totalSalary * bonusPercentageValue).toFixed(2))
-    formApi.setFieldValue('bonusAmount', bonusAmount)
-
-    // Calculate change from the latest salary
-    const latestTotalSalary = latestSalary?.totalSalary ?? 0
-    const changePercentage =
-      latestTotalSalary > 0 ? totalSalary / latestTotalSalary - 1 : 0
-    formApi.setFieldValue(
-      'changePercentage',
-      Number(changePercentage.toFixed(4)),
-    )
-
-    const changeAmount = totalSalary - latestTotalSalary
-    formApi.setFieldValue('changeAmount', Number(changeAmount.toFixed(2)))
-
-    const exchangeRate = currencyData[location?.currency ?? ''] ?? 1
-    formApi.setFieldValue('exchangeRate', exchangeRate)
-    formApi.setFieldValue(
-      'localCurrency',
-      currencyData[location?.currency ?? ''] ? location?.currency : 'USD',
-    )
-
-    const totalSalaryLocal = totalSalary * exchangeRate
-    formApi.setFieldValue(
-      'totalSalaryLocal',
-      Number(totalSalaryLocal.toFixed(2)),
-    )
-
-    const amountTakenInOptions =
-      formApi.getFieldValue('amountTakenInOptions') ?? 0
-    const actualSalary =
-      totalSalary -
-      amountTakenInOptions -
-      totalAmountInStockOptions -
-      bonusAmount
-    formApi.setFieldValue('actualSalary', Number(actualSalary.toFixed(2)))
-
-    const actualSalaryLocal = actualSalary * exchangeRate
-    formApi.setFieldValue(
-      'actualSalaryLocal',
-      Number(actualSalaryLocal.toFixed(2)),
-    )
-  }
-
-  const form = useForm({
-    defaultValues: getDefaultValues(),
-    onSubmit: async ({ value }) => {
-      await updateSalary({ data: value })
-      onSuccess()
-      createToast('Salary added successfully.', {
-        timeout: 3000,
-      })
-    },
-    listeners: {
-      onMount({ formApi }) {
-        updateFormFields(formApi)
-      },
-      onChange: ({ formApi, fieldApi }) => {
-        if (
-          [
-            'country',
-            'area',
-            'level',
-            'step',
-            'benchmark',
-            'amountTakenInOptions',
-          ].includes(fieldApi.name)
-        ) {
-          updateFormFields(formApi)
-        } else if (
-          ['totalSalary', 'bonusPercentage'].includes(fieldApi.name) &&
-          showOverrideMode
-        ) {
-          updateFormFields(formApi)
-        }
-      },
-    },
-  })
-
-  const level = useStore(form.store, (state) => state.values.level)
-  const step = useStore(form.store, (state) => state.values.step)
-  const benchmark = useStore(form.store, (state) => state.values.benchmark)
-  const canSubmit = useStore(form.store, (state) => state.canSubmit)
-
-  useEffect(() => {
-    setLevel(level)
-    setStep(step)
-    setBenchmark(benchmark)
-  }, [level, step, benchmark, setLevel, setStep, setBenchmark])
-
-  useEffect(() => {
-    form.reset(getDefaultValues())
-    form.mount()
-  }, [employeeId])
-
-  const country = useStore(form.store, (state) => state.values.country)
-
-  return (
-    <TableRow className="bg-blue-50">
-      <TableCell>
-        <div className="text-xs text-gray-500">New Entry</div>
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="country"
-          children={(field) => (
-            <Select
-              value={field.state.value}
-              onValueChange={(value) => field.handleChange(value)}
-            >
-              <SelectTrigger className="w-full h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {getCountries().map((country) => (
-                  <SelectItem key={country} value={country}>
-                    {country}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="area"
-          children={(field) => (
-            <Select
-              value={field.state.value}
-              onValueChange={(value) => field.handleChange(value)}
-              disabled={!country}
-            >
-              <SelectTrigger className="w-full h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {getAreasByCountry(country).map((area) => (
-                  <SelectItem key={area} value={area}>
-                    {area}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="benchmark"
-          children={(field) => (
-            <Select
-              value={field.state.value}
-              onValueChange={(value) => field.handleChange(value)}
-            >
-              <SelectTrigger className="w-full h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {benchmarkUpdated ? (
-                  <SelectItem
-                    value={`${latestSalary?.benchmark?.replace(' (old)', '')} (old)`}
-                    key="old-benchmark"
-                  >
-                    {latestSalary?.benchmark?.replace(' (old)', '')} (old) (
-                    {latestSalary?.benchmarkFactor})
-                  </SelectItem>
-                ) : null}
-                {Object.keys(sfBenchmark).map((benchmark) => (
-                  <SelectItem key={benchmark} value={benchmark}>
-                    {benchmark} ({sfBenchmark[benchmark]})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="locationFactor"
-          children={(field) => (
-            <div className="text-xs py-1 px-1 text-right">
-              {field.state.value}
-            </div>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="level"
-          children={(field) => (
-            <Select
-              value={field.state.value.toString()}
-              onValueChange={(value) => field.handleChange(Number(value))}
-            >
-              <SelectTrigger className="w-full h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0.59">Junior (0.59)</SelectItem>
-                <SelectItem value="0.78">Intermediate (0.78)</SelectItem>
-                <SelectItem value="1">Senior (1)</SelectItem>
-                <SelectItem value="1.2">Staff (1.2)</SelectItem>
-                <SelectItem value="1.4">Director (1.4)</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="step"
-          validators={{
-            onChange: ({ value }) => {
-              if (value < 0.85 || value > 1.2) {
-                return 'Step must be between 0.85 and 1.2'
-              }
-            },
-          }}
-          children={(field) => (
-            <Input
-              className={
-                'w-full h-6 text-xs min-w-[70px]' +
-                (field.state.meta.errors.length > 0
-                  ? ' border-red-500 ring-red-500'
-                  : '')
-              }
-              value={field.state.value}
-              type="number"
-              step={0.01}
-              min={0.85}
-              max={1.2}
-              onChange={(e) => field.handleChange(Number(e.target.value))}
-            />
-          )}
-        />
-      </TableCell>
-      {showBonusPercentage ? (
-        <TableCell>
-          <form.Field
-            name="bonusPercentage"
-            validators={{
-              onChange: ({ value }) => {
-                if (value < 0 || value > 1) {
-                  return 'Bonus percentage must be between 0 and 1'
-                }
-              },
-            }}
-            children={(field) => {
-              if (showOverrideMode) {
-                return (
-                  <Input
-                    className={
-                      'w-full h-6 text-xs min-w-[70px]' +
-                      (field.state.meta.errors.length > 0
-                        ? ' border-red-500 ring-red-500'
-                        : '')
-                    }
-                    value={field.state.value}
-                    type="number"
-                    step={0.01}
-                    min={0}
-                    max={1}
-                    onChange={(e) => field.handleChange(Number(e.target.value))}
-                  />
-                )
-              }
-
-              return (
-                <div className="text-xs py-1 px-1 text-right">
-                  {(field.state.value * 100).toFixed(2)}%
-                </div>
-              )
-            }}
-          />
-        </TableCell>
-      ) : null}
-
-      <TableCell>
-        <form.Field
-          name="totalSalary"
-          children={(field) => {
-            const locationFactor = form.getFieldValue('locationFactor') ?? 0
-            const level = form.getFieldValue('level') ?? 1
-            const step = form.getFieldValue('step') ?? 1
-            const benchmarkFactor = form.getFieldValue('benchmarkFactor') ?? 0
-            const expectedTotal =
-              locationFactor * level * step * benchmarkFactor
-            const isMismatch =
-              Math.abs(field.state.value - expectedTotal) > 0.01
-
-            if (showOverrideMode) {
-              return (
-                <Input
-                  className="w-full h-6 text-xs min-w-[70px]"
-                  value={field.state.value}
-                  type="number"
-                  step={1}
-                  onChange={(e) => field.handleChange(Number(e.target.value))}
-                />
-              )
-            }
-
-            return (
-              <div
-                className={`text-xs py-1 px-1 text-right ${isMismatch ? 'text-red-600 font-medium' : ''}`}
-                title={
-                  isMismatch
-                    ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(field.state.value)}`
-                    : ''
-                }
-              >
-                {formatCurrency(field.state.value)}
-              </div>
-            )
-          }}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="changeAmount"
-          children={(field) => (
-            <div className="text-xs py-1 px-1 text-right">
-              {formatCurrency(field.state.value)}
-            </div>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="changePercentage"
-          children={(field) => (
-            <div className="text-xs py-1 px-1 text-right">
-              {(field.state.value * 100).toFixed(2)}%
-            </div>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="notes"
-          children={(field) => (
-            <Textarea
-              className="w-full min-h-[24px] text-xs !text-xs resize-none"
-              value={field.state.value}
-              onChange={(e) => field.handleChange(e.target.value)}
-              placeholder="Notes..."
-              autoFocus
-            />
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center justify-center text-gray-400">
-          <span className="text-xs">{showDetailedColumns ? '▶' : '◀'}</span>
-        </div>
-      </TableCell>
-      {showDetailedColumns && (
-        <>
-          <TableCell>
-            <form.Field
-              name="exchangeRate"
-              children={(field) => (
-                <div className="text-xs py-1 px-1 text-right">
-                  {field.state.value}
-                </div>
-              )}
-            />
-          </TableCell>
-          <TableCell>
-            <form.Field
-              name="totalSalaryLocal"
-              children={(field) => {
-                const localCurrency =
-                  form.getFieldValue('localCurrency') ?? 'USD'
-                return (
-                  <div className="text-xs py-1 px-1 text-right">
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: localCurrency,
-                    }).format(field.state.value)}
-                  </div>
-                )
-              }}
-            />
-          </TableCell>
-          <TableCell>
-            <form.Field
-              name="amountTakenInOptions"
-              children={(field) => (
-                <Input
-                  className="w-full h-6 text-xs"
-                  value={field.state.value}
-                  type="number"
-                  onChange={(e) => field.handleChange(Number(e.target.value))}
-                />
-              )}
-            />
-          </TableCell>
-          <TableCell>
-            <form.Field
-              name="actualSalary"
-              children={(field) => (
-                <div className="text-xs py-1 px-1 text-right">
-                  {formatCurrency(field.state.value)}
-                </div>
-              )}
-            />
-          </TableCell>
-          <TableCell>
-            <form.Field
-              name="actualSalaryLocal"
-              children={(field) => {
-                const localCurrency =
-                  form.getFieldValue('localCurrency') ?? 'USD'
-                return (
-                  <div className="text-xs py-1 px-1 text-right">
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: localCurrency,
-                    }).format(field.state.value)}
-                  </div>
-                )
-              }}
-            />
-          </TableCell>
-        </>
-      )}
-      <TableCell>
-        <div className="flex gap-1">
-          <Button
-            type="button"
-            size="sm"
-            disabled={!canSubmit}
-            onClick={(e) => {
-              e.preventDefault()
-              form.handleSubmit()
-            }}
-            className="h-6 px-2 text-xs"
-          >
-            Save
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={onCancel}
-            className="h-6 px-2 text-xs"
-          >
-            Cancel
-          </Button>
-        </div>
-      </TableCell>
-    </TableRow>
   )
 }
 
@@ -1538,9 +1134,21 @@ type ReferenceEmployee = {
 function ReferenceEmployeesTable({
   referenceEmployees,
   currentEmployee,
+  filterByLevel,
+  setFilterByLevel,
+  filterByExec,
+  setFilterByExec,
+  filterByTitle,
+  setFilterByTitle,
 }: {
-  referenceEmployees: ReferenceEmployee[]
+  referenceEmployees: Array<ReferenceEmployee>
   currentEmployee: Employee
+  filterByLevel: boolean
+  setFilterByLevel: (filterByLevel: boolean) => void
+  filterByExec: boolean
+  setFilterByExec: (filterByExec: boolean) => void
+  filterByTitle: boolean
+  setFilterByTitle: (filterByTitle: boolean) => void
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const currentEmployeeRowRef = useRef<HTMLTableRowElement>(null)
@@ -1605,61 +1213,107 @@ function ReferenceEmployeesTable({
   }, [referenceEmployees, currentEmployee.id])
 
   return (
-    <div
-      ref={scrollContainerRef}
-      className="overflow-hidden max-h-[300px] overflow-y-auto rounded-md border"
-    >
-      <Table className="text-xs">
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
+    <>
+      <div className="flex flex-row gap-2 justify-between items-center mt-2">
+        <span className="text-md font-bold">Reference employees</span>
+        <div className="flex gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="filter-by-level"
+              checked={filterByLevel}
+              onCheckedChange={setFilterByLevel}
+            />
+            <Label htmlFor="filter-by-level" className="text-sm">
+              Filter by level
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="filter-by-exec"
+              checked={filterByExec}
+              onCheckedChange={setFilterByExec}
+            />
+            <Label htmlFor="filter-by-exec" className="text-sm">
+              Filter by exec
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="filter-by-title"
+              checked={filterByTitle}
+              onCheckedChange={setFilterByTitle}
+            />
+            <Label htmlFor="filter-by-title" className="text-sm">
+              Filter by title
+            </Label>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full flex-grow">
+        <div
+          ref={scrollContainerRef}
+          className="overflow-hidden max-h-[300px] overflow-y-auto rounded-md border"
+        >
+          <Table className="text-xs">
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    )
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    ref={(el) => {
+                      if (currentEmployee.id === row.original.id) {
+                        currentEmployeeRowRef.current = el
+                      }
+                    }}
+                    onClick={() =>
+                      window.open(`/employee/${row.original.id}`, '_blank')
+                    }
+                    className={`cursor-pointer ${currentEmployee.id === row.original.id ? 'bg-blue-200 font-semibold' : ''}`}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
                         )}
-                  </TableHead>
-                )
-              })}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                ref={(el) => {
-                  if (currentEmployee.id === row.original.id) {
-                    currentEmployeeRowRef.current = el
-                  }
-                }}
-                onClick={() =>
-                  window.open(`/employee/${row.original.id}`, '_blank')
-                }
-                className={`cursor-pointer ${currentEmployee.id === row.original.id ? 'bg-blue-200 font-semibold' : ''}`}
-                data-state={row.getIsSelected() && 'selected'}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results.
                   </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No results.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </>
   )
 }
