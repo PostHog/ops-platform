@@ -1,5 +1,4 @@
 import ReactMarkdown from 'react-markdown'
-import { useForm, useStore } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useAtom } from 'jotai'
 import { AlertCircle, ArrowLeft, Trash2 } from 'lucide-react'
@@ -13,23 +12,16 @@ import { createToast } from 'vercel-toast'
 import { useQuery } from '@tanstack/react-query'
 import { useLocalStorage } from 'usehooks-ts'
 import { months } from '.'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import 'vercel-toast/dist/vercel-toast.css'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { Prisma, Salary } from '@prisma/client'
-import type { AnyFormApi } from '@tanstack/react-form'
 import { reviewQueueAtom } from '@/atoms'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
 import { FeedbackCard } from '@/components/FeedbackCard'
-import { SalaryEntryForm } from '@/components/SalaryEntryForm'
 import {
   bonusPercentage,
-  currencyData,
   formatCurrency,
-  getAreasByCountry,
-  getCountries,
   locationFactor,
   sfBenchmark,
 } from '@/lib/utils'
@@ -45,16 +37,10 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import prisma from '@/db'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
+import { NewSalaryForm } from '@/components/NewSalaryForm'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -959,9 +945,10 @@ function EmployeeOverview() {
                 </TableHeader>
                 <TableBody>
                   {showInlineForm && (
-                    <InlineSalaryFormRow
+                    <NewSalaryForm
                       employeeId={employee.id}
-                      showOverrideMode={showOverrideMode}
+                      showOverride={showOverrideMode}
+                      setShowOverride={setShowOverrideMode}
                       latestSalary={employee.salaries[0]}
                       showDetailedColumns={showDetailedColumns}
                       totalAmountInStockOptions={employee.salaries.reduce(
@@ -977,6 +964,8 @@ function EmployeeOverview() {
                       setLevel={setLevel}
                       setStep={setStep}
                       setBenchmark={setBenchmark}
+                      showBonusPercentage={showBonusPercentage}
+                      displayMode="inline"
                     />
                   )}
                   {table.getRowModel().rows?.length ? (
@@ -1011,71 +1000,28 @@ function EmployeeOverview() {
           ) : (
             <div className="mb-8">
               {showInlineForm && (
-                <>
-                  <SalaryEntryForm
-                    employeeId={employee.id}
-                    latestSalary={employee.salaries[0]}
-                    benchmarkUpdated={benchmarkUpdated}
-                    onSubmit={async (data) => {
-                      await updateSalary({ data })
-                      createToast('Salary added successfully.', {
-                        timeout: 3000,
-                      })
-                      setShowInlineForm(false)
-                      router.invalidate()
-                    }}
-                    onCancel={() => setShowInlineForm(false)}
-                    benchmarkUpdated={benchmarkUpdated}
-                    setLevel={setLevel}
-                    setStep={setStep}
-                    setBenchmark={setBenchmark}
-                    showBonusPercentage={showBonusPercentage}
-                  />
-                  {showReferenceEmployees && (
-                    <>
-                      <div className="flex flex-row gap-2 justify-between items-center mt-2">
-                        <span className="text-md font-bold">
-                          Reference employees
-                        </span>
-                        <div className="flex gap-4 items-center">
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              id="filter-by-exec-timeline"
-                              checked={filterByExec}
-                              onCheckedChange={setFilterByExec}
-                            />
-                            <Label
-                              htmlFor="filter-by-exec-timeline"
-                              className="text-sm"
-                            >
-                              Filter by exec
-                            </Label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              id="filter-by-title-timeline"
-                              checked={filterByTitle}
-                              onCheckedChange={setFilterByTitle}
-                            />
-                            <Label
-                              htmlFor="filter-by-title-timeline"
-                              className="text-sm"
-                            >
-                              Filter by title
-                            </Label>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="w-full flex-grow mb-8">
-                        <ReferenceEmployeesTable
-                          referenceEmployees={combinedReferenceEmployees}
-                          currentEmployee={employee}
-                        />
-                      </div>
-                    </>
+                <NewSalaryForm
+                  employeeId={employee.id}
+                  showOverride={showOverrideMode}
+                  setShowOverride={setShowOverrideMode}
+                  latestSalary={employee.salaries[0]}
+                  showDetailedColumns={showDetailedColumns}
+                  totalAmountInStockOptions={employee.salaries.reduce(
+                    (acc, salary) => acc + salary.amountTakenInOptions,
+                    0,
                   )}
-                </>
+                  onSuccess={() => {
+                    setShowInlineForm(false)
+                    router.invalidate()
+                  }}
+                  onCancel={() => setShowInlineForm(false)}
+                  benchmarkUpdated={benchmarkUpdated}
+                  setLevel={setLevel}
+                  setStep={setStep}
+                  setBenchmark={setBenchmark}
+                  showBonusPercentage={showBonusPercentage}
+                  displayMode="card"
+                />
               )}
               {timelineByMonth.length > 0 ? (
                 timelineByMonth.map((monthGroup, monthGroupIndex) => (
@@ -1193,554 +1139,6 @@ function EmployeeOverview() {
         )}
       </div>
     </div>
-  )
-}
-
-function InlineSalaryFormRow({
-  employeeId,
-  showOverrideMode,
-  onSuccess,
-  onCancel,
-  latestSalary,
-  showDetailedColumns,
-  totalAmountInStockOptions,
-  benchmarkUpdated,
-  setLevel,
-  setStep,
-  setBenchmark,
-  showBonusPercentage,
-}: {
-  employeeId: string
-  showOverrideMode: boolean
-  onSuccess: () => void
-  onCancel: () => void
-  latestSalary: Salary | undefined
-  showDetailedColumns: boolean
-  totalAmountInStockOptions: number
-  benchmarkUpdated: boolean
-  setLevel: (level: number) => void
-  setStep: (step: number) => void
-  setBenchmark: (benchmark: string) => void
-  showBonusPercentage: boolean
-}) {
-  const getDefaultValues = () => ({
-    country: latestSalary?.country ?? 'United States',
-    area: latestSalary?.area ?? 'San Francisco, California',
-    locationFactor: latestSalary?.locationFactor ?? 0,
-    level: latestSalary?.level ?? 1,
-    step: latestSalary?.step ?? 1,
-    benchmark: latestSalary?.benchmark ?? 'Product Engineer',
-    benchmarkFactor: latestSalary?.benchmarkFactor ?? 0,
-    bonusPercentage: latestSalary?.bonusPercentage ?? 0,
-    bonusAmount: 0,
-    totalSalary: latestSalary?.totalSalary ?? 0,
-    changePercentage: 0, // Always 0 for new entries
-    changeAmount: 0, // Always 0 for new entries
-    localCurrency: latestSalary?.localCurrency ?? 'USD',
-    exchangeRate: latestSalary?.exchangeRate ?? 1,
-    totalSalaryLocal: latestSalary?.totalSalaryLocal ?? 0,
-    amountTakenInOptions: 0,
-    actualSalary: latestSalary?.actualSalary ?? 0,
-    actualSalaryLocal: latestSalary?.actualSalaryLocal ?? 0,
-    notes: '',
-    employeeId: employeeId,
-  })
-
-  const updateFormFields = (formApi: AnyFormApi) => {
-    const location = locationFactor.find(
-      (l) =>
-        l.country === formApi.getFieldValue('country') &&
-        l.area === formApi.getFieldValue('area'),
-    )
-    const locationFactorValue = location?.locationFactor ?? 0
-    formApi.setFieldValue(
-      'locationFactor',
-      Number(locationFactorValue.toFixed(2)),
-    )
-
-    const benchmarkValue = formApi.getFieldValue('benchmark')
-    const benchmarkFactor = benchmarkValue?.includes('(old)')
-      ? (latestSalary?.benchmarkFactor ?? 0)
-      : (sfBenchmark[
-          benchmarkValue?.replace(' (old)', '') as keyof typeof sfBenchmark
-        ] ?? 0)
-    formApi.setFieldValue('benchmarkFactor', Number(benchmarkFactor.toFixed(2)))
-
-    const currentLocationFactor = formApi.getFieldValue('locationFactor') ?? 0
-    const level = formApi.getFieldValue('level') ?? 1
-    const step = formApi.getFieldValue('step') ?? 1
-    let totalSalary = currentLocationFactor * level * step * benchmarkFactor
-    if (!showOverrideMode) {
-      formApi.setFieldValue('totalSalary', Number(totalSalary.toFixed(2)))
-    } else {
-      totalSalary = formApi.getFieldValue('totalSalary') ?? totalSalary
-    }
-
-    let bonusPercentageValue = Object.keys(bonusPercentage).includes(
-      benchmarkValue as keyof typeof bonusPercentage,
-    )
-      ? bonusPercentage[benchmarkValue as keyof typeof bonusPercentage]
-      : 0
-    if (!showOverrideMode) {
-      formApi.setFieldValue('bonusPercentage', bonusPercentageValue)
-    } else {
-      bonusPercentageValue = formApi.getFieldValue('bonusPercentage') ?? 0
-    }
-    const bonusAmount = Number((totalSalary * bonusPercentageValue).toFixed(2))
-    formApi.setFieldValue('bonusAmount', bonusAmount)
-
-    // Calculate change from the latest salary
-    const latestTotalSalary = latestSalary?.totalSalary ?? 0
-    const changePercentage =
-      latestTotalSalary > 0 ? totalSalary / latestTotalSalary - 1 : 0
-    formApi.setFieldValue(
-      'changePercentage',
-      Number(changePercentage.toFixed(4)),
-    )
-
-    const changeAmount = totalSalary - latestTotalSalary
-    formApi.setFieldValue('changeAmount', Number(changeAmount.toFixed(2)))
-
-    const exchangeRate = currencyData[location?.currency ?? ''] ?? 1
-    formApi.setFieldValue('exchangeRate', exchangeRate)
-    formApi.setFieldValue(
-      'localCurrency',
-      currencyData[location?.currency ?? ''] ? location?.currency : 'USD',
-    )
-
-    const totalSalaryLocal = totalSalary * exchangeRate
-    formApi.setFieldValue(
-      'totalSalaryLocal',
-      Number(totalSalaryLocal.toFixed(2)),
-    )
-
-    const amountTakenInOptions =
-      formApi.getFieldValue('amountTakenInOptions') ?? 0
-    const actualSalary =
-      totalSalary -
-      amountTakenInOptions -
-      totalAmountInStockOptions -
-      bonusAmount
-    formApi.setFieldValue('actualSalary', Number(actualSalary.toFixed(2)))
-
-    const actualSalaryLocal = actualSalary * exchangeRate
-    formApi.setFieldValue(
-      'actualSalaryLocal',
-      Number(actualSalaryLocal.toFixed(2)),
-    )
-  }
-
-  const form = useForm({
-    defaultValues: getDefaultValues(),
-    onSubmit: async ({ value }) => {
-      await updateSalary({ data: value })
-      onSuccess()
-      createToast('Salary added successfully.', {
-        timeout: 3000,
-      })
-    },
-    listeners: {
-      onMount({ formApi }) {
-        updateFormFields(formApi)
-      },
-      onChange: ({ formApi, fieldApi }) => {
-        if (
-          [
-            'country',
-            'area',
-            'level',
-            'step',
-            'benchmark',
-            'amountTakenInOptions',
-          ].includes(fieldApi.name)
-        ) {
-          updateFormFields(formApi)
-        } else if (
-          ['totalSalary', 'bonusPercentage'].includes(fieldApi.name) &&
-          showOverrideMode
-        ) {
-          updateFormFields(formApi)
-        }
-      },
-    },
-  })
-
-  const level = useStore(form.store, (state) => state.values.level)
-  const step = useStore(form.store, (state) => state.values.step)
-  const benchmark = useStore(form.store, (state) => state.values.benchmark)
-  const canSubmit = useStore(form.store, (state) => state.canSubmit)
-
-  useEffect(() => {
-    setLevel(level)
-    setStep(step)
-    setBenchmark(benchmark)
-  }, [level, step, benchmark, setLevel, setStep, setBenchmark])
-
-  useEffect(() => {
-    form.reset(getDefaultValues())
-    form.mount()
-  }, [employeeId])
-
-  const country = useStore(form.store, (state) => state.values.country)
-
-  return (
-    <TableRow className="bg-blue-50">
-      <TableCell>
-        <div className="text-xs text-gray-500">New Entry</div>
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="country"
-          children={(field) => (
-            <Select
-              value={field.state.value}
-              onValueChange={(value) => field.handleChange(value)}
-            >
-              <SelectTrigger className="w-full h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {getCountries().map((country) => (
-                  <SelectItem key={country} value={country}>
-                    {country}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="area"
-          children={(field) => (
-            <Select
-              value={field.state.value}
-              onValueChange={(value) => field.handleChange(value)}
-              disabled={!country}
-            >
-              <SelectTrigger className="w-full h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {getAreasByCountry(country).map((area) => (
-                  <SelectItem key={area} value={area}>
-                    {area}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="benchmark"
-          children={(field) => (
-            <Select
-              value={field.state.value}
-              onValueChange={(value) => field.handleChange(value)}
-            >
-              <SelectTrigger className="w-full h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {benchmarkUpdated ? (
-                  <SelectItem
-                    value={`${latestSalary?.benchmark?.replace(' (old)', '')} (old)`}
-                    key="old-benchmark"
-                  >
-                    {latestSalary?.benchmark?.replace(' (old)', '')} (old) (
-                    {latestSalary?.benchmarkFactor})
-                  </SelectItem>
-                ) : null}
-                {Object.keys(sfBenchmark).map((benchmark) => (
-                  <SelectItem key={benchmark} value={benchmark}>
-                    {benchmark} ({sfBenchmark[benchmark]})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="locationFactor"
-          children={(field) => (
-            <div className="text-xs py-1 px-1 text-right">
-              {field.state.value}
-            </div>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="level"
-          children={(field) => (
-            <Select
-              value={field.state.value.toString()}
-              onValueChange={(value) => field.handleChange(Number(value))}
-            >
-              <SelectTrigger className="w-full h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0.59">Junior (0.59)</SelectItem>
-                <SelectItem value="0.78">Intermediate (0.78)</SelectItem>
-                <SelectItem value="1">Senior (1)</SelectItem>
-                <SelectItem value="1.2">Staff (1.2)</SelectItem>
-                <SelectItem value="1.4">Director (1.4)</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="step"
-          validators={{
-            onChange: ({ value }) => {
-              if (value < 0.85 || value > 1.2) {
-                return 'Step must be between 0.85 and 1.2'
-              }
-            },
-          }}
-          children={(field) => (
-            <Input
-              className={
-                'w-full h-6 text-xs min-w-[70px]' +
-                (field.state.meta.errors.length > 0
-                  ? ' border-red-500 ring-red-500'
-                  : '')
-              }
-              value={field.state.value}
-              type="number"
-              step={0.01}
-              min={0.85}
-              max={1.2}
-              onChange={(e) => field.handleChange(Number(e.target.value))}
-            />
-          )}
-        />
-      </TableCell>
-      {showBonusPercentage ? (
-        <TableCell>
-          <form.Field
-            name="bonusPercentage"
-            validators={{
-              onChange: ({ value }) => {
-                if (value < 0 || value > 1) {
-                  return 'Bonus percentage must be between 0 and 1'
-                }
-              },
-            }}
-            children={(field) => {
-              if (showOverrideMode) {
-                return (
-                  <Input
-                    className={
-                      'w-full h-6 text-xs min-w-[70px]' +
-                      (field.state.meta.errors.length > 0
-                        ? ' border-red-500 ring-red-500'
-                        : '')
-                    }
-                    value={field.state.value}
-                    type="number"
-                    step={0.01}
-                    min={0}
-                    max={1}
-                    onChange={(e) => field.handleChange(Number(e.target.value))}
-                  />
-                )
-              }
-
-              return (
-                <div className="text-xs py-1 px-1 text-right">
-                  {(field.state.value * 100).toFixed(2)}%
-                </div>
-              )
-            }}
-          />
-        </TableCell>
-      ) : null}
-
-      <TableCell>
-        <form.Field
-          name="totalSalary"
-          children={(field) => {
-            const locationFactor = form.getFieldValue('locationFactor') ?? 0
-            const level = form.getFieldValue('level') ?? 1
-            const step = form.getFieldValue('step') ?? 1
-            const benchmarkFactor = form.getFieldValue('benchmarkFactor') ?? 0
-            const expectedTotal =
-              locationFactor * level * step * benchmarkFactor
-            const isMismatch =
-              Math.abs(field.state.value - expectedTotal) > 0.01
-
-            if (showOverrideMode) {
-              return (
-                <Input
-                  className="w-full h-6 text-xs min-w-[70px]"
-                  value={field.state.value}
-                  type="number"
-                  step={1}
-                  onChange={(e) => field.handleChange(Number(e.target.value))}
-                />
-              )
-            }
-
-            return (
-              <div
-                className={`text-xs py-1 px-1 text-right ${isMismatch ? 'text-red-600 font-medium' : ''}`}
-                title={
-                  isMismatch
-                    ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(field.state.value)}`
-                    : ''
-                }
-              >
-                {formatCurrency(field.state.value)}
-              </div>
-            )
-          }}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="changeAmount"
-          children={(field) => (
-            <div className="text-xs py-1 px-1 text-right">
-              {formatCurrency(field.state.value)}
-            </div>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="changePercentage"
-          children={(field) => (
-            <div className="text-xs py-1 px-1 text-right">
-              {(field.state.value * 100).toFixed(2)}%
-            </div>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="notes"
-          children={(field) => (
-            <Textarea
-              className="w-full min-h-[24px] text-xs !text-xs resize-none"
-              value={field.state.value}
-              onChange={(e) => field.handleChange(e.target.value)}
-              placeholder="Notes..."
-              autoFocus
-            />
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center justify-center text-gray-400">
-          <span className="text-xs">{showDetailedColumns ? '▶' : '◀'}</span>
-        </div>
-      </TableCell>
-      {showDetailedColumns && (
-        <>
-          <TableCell>
-            <form.Field
-              name="exchangeRate"
-              children={(field) => (
-                <div className="text-xs py-1 px-1 text-right">
-                  {field.state.value}
-                </div>
-              )}
-            />
-          </TableCell>
-          <TableCell>
-            <form.Field
-              name="totalSalaryLocal"
-              children={(field) => {
-                const localCurrency =
-                  form.getFieldValue('localCurrency') ?? 'USD'
-                return (
-                  <div className="text-xs py-1 px-1 text-right">
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: localCurrency,
-                    }).format(field.state.value)}
-                  </div>
-                )
-              }}
-            />
-          </TableCell>
-          <TableCell>
-            <form.Field
-              name="amountTakenInOptions"
-              children={(field) => (
-                <Input
-                  className="w-full h-6 text-xs"
-                  value={field.state.value}
-                  type="number"
-                  onChange={(e) => field.handleChange(Number(e.target.value))}
-                />
-              )}
-            />
-          </TableCell>
-          <TableCell>
-            <form.Field
-              name="actualSalary"
-              children={(field) => (
-                <div className="text-xs py-1 px-1 text-right">
-                  {formatCurrency(field.state.value)}
-                </div>
-              )}
-            />
-          </TableCell>
-          <TableCell>
-            <form.Field
-              name="actualSalaryLocal"
-              children={(field) => {
-                const localCurrency =
-                  form.getFieldValue('localCurrency') ?? 'USD'
-                return (
-                  <div className="text-xs py-1 px-1 text-right">
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: localCurrency,
-                    }).format(field.state.value)}
-                  </div>
-                )
-              }}
-            />
-          </TableCell>
-        </>
-      )}
-      <TableCell>
-        <div className="flex gap-1">
-          <Button
-            type="button"
-            size="sm"
-            disabled={!canSubmit}
-            onClick={(e) => {
-              e.preventDefault()
-              form.handleSubmit()
-            }}
-            className="h-6 px-2 text-xs"
-          >
-            Save
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={onCancel}
-            className="h-6 px-2 text-xs"
-          >
-            Cancel
-          </Button>
-        </div>
-      </TableCell>
-    </TableRow>
   )
 }
 
