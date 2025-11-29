@@ -815,25 +815,27 @@ export function NewSalaryForm({
                     </div>
                   )}
                 </form.Field>
-                <form.Field name="bonusPercentage">
-                  {(field) => (
-                    <div>
-                      <label className="text-xs font-medium text-gray-700">
-                        Bonus Percentage (%) Override
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={field.state.value}
-                        onChange={(e) =>
-                          field.handleChange(Number(e.target.value))
-                        }
-                        className="text-sm"
-                        placeholder="Override bonus percentage"
-                      />
-                    </div>
-                  )}
-                </form.Field>
+                {showBonusPercentage ? (
+                  <form.Field name="bonusPercentage">
+                    {(field) => (
+                      <div>
+                        <label className="text-xs font-medium text-gray-700">
+                          Bonus Percentage (%) Override
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={field.state.value}
+                          onChange={(e) =>
+                            field.handleChange(Number(e.target.value))
+                          }
+                          className="text-sm"
+                          placeholder="Override bonus percentage"
+                        />
+                      </div>
+                    )}
+                  </form.Field>
+                ) : null}
               </>
             ) : null}
           </div>
