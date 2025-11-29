@@ -119,13 +119,14 @@ export const stepModifier: Record<string, Array<number>> = {
   Expert: [1.11, 1.2],
 }
 
-export type SeniorityLevel = 'Junior' | 'Intermediate' | 'Senior' | 'Staff'
+export type SeniorityLevel = 'Junior' | 'Intermediate' | 'Senior' | 'Staff' | 'Director'
 
 export const SALARY_LEVELS = {
   Junior: 0.59,
   Intermediate: 0.78,
   Senior: 1,
   Staff: 1.2,
+  Director: 1.4,
 } as const
 
 export const SALARY_LEVEL_OPTIONS: Array<{
@@ -136,6 +137,7 @@ export const SALARY_LEVEL_OPTIONS: Array<{
   { name: 'Intermediate', value: SALARY_LEVELS.Intermediate },
   { name: 'Senior', value: SALARY_LEVELS.Senior },
   { name: 'Staff', value: SALARY_LEVELS.Staff },
+  { name: 'Director', value: SALARY_LEVELS.Director },
 ]
 
 export function getLevelName(level: number): SeniorityLevel {
@@ -143,6 +145,7 @@ export function getLevelName(level: number): SeniorityLevel {
   if (level === SALARY_LEVELS.Intermediate) return 'Intermediate'
   if (level === SALARY_LEVELS.Senior) return 'Senior'
   if (level === SALARY_LEVELS.Staff) return 'Staff'
+  if (level === SALARY_LEVELS.Director) return 'Director'
   return 'Invalid' as SeniorityLevel
 }
 
