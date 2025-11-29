@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createToast } from 'vercel-toast'
 import { useQuery } from '@tanstack/react-query'
+import { useLocalStorage } from 'usehooks-ts'
 import { months } from '.'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -302,16 +303,10 @@ function EmployeeOverview() {
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByLevel, setFilterByLevel] = useState(true)
   const [filterByTitle, setFilterByTitle] = useState(true)
-  const [viewMode, setViewMode] = useState<'table' | 'card'>(() => {
-    // Load preferred view from localStorage on initial render
-    const savedView = localStorage.getItem('preferredEmployeeView')
-    return savedView === 'table' || savedView === 'card' ? savedView : 'table'
-  })
-
-  // Save view preference to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('preferredEmployeeView', viewMode)
-  }, [viewMode])
+  const [viewMode, setViewMode] = useLocalStorage<'table' | 'card'>(
+    'preferredEmployeeView',
+    'table',
+  )
 
   // Hide inline form when switching to timeline view
   useEffect(() => {
