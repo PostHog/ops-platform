@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronsUpDown, SettingsIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,6 +26,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog'
+import { orgChartAutozoomingEnabledAtom } from '@/atoms'
+import { useAtom } from 'jotai'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -54,6 +67,10 @@ const OrgChartPanel = ({
   onViewModeChange?: (mode: OrgChartMode) => void
 }) => {
   const [open, setOpen] = useState(false)
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
+  const [autoZoomingEnabled, setAutoZoomingEnabled] = useAtom(
+    orgChartAutozoomingEnabledAtom,
+  )
 
   return (
     <div className="flex flex-row gap-4 w-[300px]">
@@ -123,18 +140,52 @@ const OrgChartPanel = ({
         </PopoverContent>
       </Popover>
       {viewMode ? (
-        <Select value={viewMode} onValueChange={onViewModeChange}>
-          <SelectTrigger className="w-[180px] bg-white">
-            <SelectValue placeholder="Select a view mode" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>View modes</SelectLabel>
-              <SelectItem value="manager">Manager</SelectItem>
-              <SelectItem value="team">Team</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        <>
+          <Select value={viewMode} onValueChange={onViewModeChange}>
+            <SelectTrigger className="w-[180px] bg-white">
+              <SelectValue placeholder="Select a view mode" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>View modes</SelectLabel>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="team">Team</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <Dialog
+            open={settingsDialogOpen}
+            onOpenChange={setSettingsDialogOpen}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <SettingsIcon />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Settings</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4">
+                <div className="flex items-center justify-between gap-4">
+                  <Label htmlFor="autozoom-toggle" className="cursor-pointer">
+                    Enable autozoom
+                  </Label>
+                  <Switch
+                    id="autozoom-toggle"
+                    checked={autoZoomingEnabled}
+                    onCheckedChange={setAutoZoomingEnabled}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Close</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
       ) : null}
     </div>
   )
