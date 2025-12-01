@@ -515,7 +515,7 @@ function EmployeeOverview() {
 
           return (
             <div
-              className={`text-right ${isMismatch ? 'text-red-600 font-medium' : ''}`}
+              className={`text-right ${isMismatch ? 'font-medium text-red-600' : ''}`}
               title={
                 isMismatch
                   ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(salary.totalSalary)}`
@@ -563,7 +563,7 @@ function EmployeeOverview() {
         header: () => (
           <button
             onClick={() => setShowDetailedColumns(!showDetailedColumns)}
-            className="flex items-center justify-center text-gray-400 hover:text-gray-600 w-full"
+            className="flex w-full items-center justify-center text-gray-400 hover:text-gray-600"
           >
             <span className="text-xs">{showDetailedColumns ? '▶' : '◀'}</span>
           </button>
@@ -582,7 +582,7 @@ function EmployeeOverview() {
                   size="sm"
                   variant="ghost"
                   onClick={() => handleDeleteSalary(salary.id)}
-                  className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="h-6 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
@@ -689,25 +689,25 @@ function EmployeeOverview() {
       employee.salaries[0].benchmarkFactor
 
   return (
-    <div className="pt-8 flex justify-center flex flex-col items-center gap-5">
-      <div className="2xl:max-w-7xl w-full px-4 flex flex-col gap-5">
+    <div className="flex flex-col items-center justify-center gap-5 pt-8">
+      <div className="flex w-full flex-col gap-5 px-4 2xl:max-w-7xl">
         {user?.role === ROLES.ADMIN ? (
           <Button
             variant="ghost"
             type="button"
             onClick={() => router.navigate({ to: '/' })}
-            className="self-start -ml-2"
+            className="-ml-2 self-start"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to overview
           </Button>
         ) : null}
-        <div className="flex flex-row justify-between items-center">
+        <div className="flex flex-row items-center justify-between">
           <div className="flex flex-col">
             <span className="text-xl font-bold">
               {employee.deelEmployee?.name || employee.email || 'Edit employee'}
             </span>
-            <div className="text-sm text-gray-600 mt-1 flex gap-4">
+            <div className="mt-1 flex gap-4 text-sm text-gray-600">
               <span>Email: {employee.email}</span>
               {employee.priority ? (
                 <span>Priority: {employee.priority}</span>
@@ -722,8 +722,8 @@ function EmployeeOverview() {
               ) : null}
             </div>
           </div>
-          <div className="flex gap-2 justify-end">
-            <div className="flex gap-1 border rounded-md">
+          <div className="flex justify-end gap-2">
+            <div className="flex gap-1 rounded-md border">
               <Button
                 type="button"
                 variant={viewMode === 'table' ? 'default' : 'ghost'}
@@ -755,12 +755,12 @@ function EmployeeOverview() {
 
         {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
           <>
-            <div className="flex flex-row gap-2 justify-between items-center mt-2">
+            <div className="mt-2 flex flex-row items-center justify-between gap-2">
               <span className="text-md font-bold">Feedback</span>
             </div>
 
             <div className="w-full flex-grow">
-              <div className="mb-4 p-4 border rounded-lg bg-gray-50 max-h-[300px] overflow-y-auto">
+              <div className="mb-4 max-h-[300px] overflow-y-auto rounded-lg border bg-gray-50 p-4">
                 {employee.keeperTestFeedback.map(
                   ({
                     id,
@@ -778,9 +778,9 @@ function EmployeeOverview() {
                   }) => (
                     <div
                       key={id}
-                      className="mb-4 p-4 border rounded-lg bg-gray-50"
+                      className="mb-4 rounded-lg border bg-gray-50 p-4"
                     >
-                      <span className="text-sm text-gray-500 w-full text-right list-disc">
+                      <span className="w-full list-disc text-right text-sm text-gray-500">
                         {new Date(timestamp).toLocaleDateString()}
                       </span>
                       <ReactMarkdown
@@ -804,12 +804,12 @@ function EmployeeOverview() {
                             <h6 className="text-xs font-bold">{children}</h6>
                           ),
                           ul: ({ children }) => (
-                            <ul className="list-disc list-inside">
+                            <ul className="list-inside list-disc">
                               {children}
                             </ul>
                           ),
                           ol: ({ children }) => (
-                            <ul className="list-decimal list-inside">
+                            <ul className="list-inside list-decimal">
                               {children}
                             </ul>
                           ),
@@ -841,7 +841,7 @@ function EmployeeOverview() {
           </>
         ) : null}
 
-        <div className="flex flex-row gap-2 justify-between items-center mt-2">
+        <div className="mt-2 flex flex-row items-center justify-between gap-2">
           {viewMode === 'table' && (
             <span className="text-md font-bold">Salary history</span>
           )}
@@ -1100,7 +1100,7 @@ function EmployeeOverview() {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12 text-gray-500">
+                <div className="py-12 text-center text-gray-500">
                   No history available.
                 </div>
               )}
@@ -1218,9 +1218,9 @@ function ReferenceEmployeesTable({
 
   return (
     <>
-      <div className="flex flex-row gap-2 justify-between items-center mt-2">
+      <div className="mt-2 flex flex-row items-center justify-between gap-2">
         <span className="text-md font-bold">Reference employees</span>
-        <div className="flex gap-4 items-center">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <Switch
               id="filter-by-level"
@@ -1257,7 +1257,7 @@ function ReferenceEmployeesTable({
       <div className="w-full flex-grow">
         <div
           ref={scrollContainerRef}
-          className="overflow-hidden max-h-[300px] overflow-y-auto rounded-md border"
+          className="max-h-[300px] overflow-hidden overflow-y-auto rounded-md border"
         >
           <Table className="text-xs">
             <TableHeader>

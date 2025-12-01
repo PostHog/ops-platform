@@ -252,7 +252,7 @@ function RouteComponent() {
             value={row.original.role ?? 'error'}
             onValueChange={handleRoleChange}
           >
-            <SelectTrigger className="w-[240px] h-6 text-xs px-1 py-0">
+            <SelectTrigger className="h-6 w-[240px] px-1 py-0 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -278,8 +278,8 @@ function RouteComponent() {
   })
 
   return (
-    <div className="w-screen flex px-4 justify-center">
-      <div className="max-w-full 2xl:max-w-[80%] flex-grow">
+    <div className="flex w-screen justify-center px-4">
+      <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="flex justify-between py-4">
           <div className="text-lg font-bold">User management</div>
         </div>
@@ -308,7 +308,7 @@ function RouteComponent() {
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} className="hover:bg-gray-50">
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-1 px-1">
+                      <TableCell key={cell.id} className="px-1 py-1">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
@@ -333,7 +333,7 @@ function RouteComponent() {
         <div className="flex justify-between py-4">
           <div className="text-lg font-bold">Review cycle</div>
         </div>
-        <div className="overflow-hidden flex flex-col gap-2">
+        <div className="flex flex-col gap-2 overflow-hidden">
           <Button
             onClick={async () => {
               await startReviewCycle()
