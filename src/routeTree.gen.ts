@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SyncSalaryUpdatesRouteImport } from './routes/syncSalaryUpdates'
 import { Route as SyncDeelEmployeesRouteImport } from './routes/syncDeelEmployees'
 import { Route as ScheduleCheckInsRouteImport } from './routes/scheduleCheckIns'
 import { Route as SalaryDeviationCheckerRouteImport } from './routes/salaryDeviationChecker'
@@ -26,6 +27,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmployeeEmployeeIdRouteImport } from './routes/employee.$employeeId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const SyncSalaryUpdatesRoute = SyncSalaryUpdatesRouteImport.update({
+  id: '/syncSalaryUpdates',
+  path: '/syncSalaryUpdates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SyncDeelEmployeesRoute = SyncDeelEmployeesRouteImport.update({
   id: '/syncDeelEmployees',
   path: '/syncDeelEmployees',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
+  '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
+  '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
+  '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
     | '/syncDeelEmployees'
+    | '/syncSalaryUpdates'
     | '/employee/$employeeId'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
     | '/syncDeelEmployees'
+    | '/syncSalaryUpdates'
     | '/employee/$employeeId'
     | '/api/auth/$'
   id:
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
     | '/syncDeelEmployees'
+    | '/syncSalaryUpdates'
     | '/employee/$employeeId'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -235,12 +247,20 @@ export interface RootRouteChildren {
   SalaryDeviationCheckerRoute: typeof SalaryDeviationCheckerRoute
   ScheduleCheckInsRoute: typeof ScheduleCheckInsRoute
   SyncDeelEmployeesRoute: typeof SyncDeelEmployeesRoute
+  SyncSalaryUpdatesRoute: typeof SyncSalaryUpdatesRoute
   EmployeeEmployeeIdRoute: typeof EmployeeEmployeeIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/syncSalaryUpdates': {
+      id: '/syncSalaryUpdates'
+      path: '/syncSalaryUpdates'
+      fullPath: '/syncSalaryUpdates'
+      preLoaderRoute: typeof SyncSalaryUpdatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/syncDeelEmployees': {
       id: '/syncDeelEmployees'
       path: '/syncDeelEmployees'
@@ -371,6 +391,7 @@ const rootRouteChildren: RootRouteChildren = {
   SalaryDeviationCheckerRoute: SalaryDeviationCheckerRoute,
   ScheduleCheckInsRoute: ScheduleCheckInsRoute,
   SyncDeelEmployeesRoute: SyncDeelEmployeesRoute,
+  SyncSalaryUpdatesRoute: SyncSalaryUpdatesRoute,
   EmployeeEmployeeIdRoute: EmployeeEmployeeIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
