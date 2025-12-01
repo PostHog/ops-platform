@@ -156,7 +156,7 @@ export function ManagerEditPanel({
                           <Check
                             className={cn(
                               'ml-auto',
-                              value === employee.id.split(' - ')[0]
+                              value === employee.id.split('-')[0]
                                 ? 'opacity-100'
                                 : 'opacity-0',
                             )}

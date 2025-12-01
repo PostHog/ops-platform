@@ -256,7 +256,7 @@ export function NewSalaryForm({
                 value={field.state.value}
                 onValueChange={(value) => field.handleChange(value)}
               >
-                <SelectTrigger className="w-full h-6 text-xs">
+                <SelectTrigger className="h-6 w-full text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -279,7 +279,7 @@ export function NewSalaryForm({
                 onValueChange={(value) => field.handleChange(value)}
                 disabled={!country}
               >
-                <SelectTrigger className="w-full h-6 text-xs">
+                <SelectTrigger className="h-6 w-full text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -301,7 +301,7 @@ export function NewSalaryForm({
                 value={field.state.value}
                 onValueChange={(value) => field.handleChange(value)}
               >
-                <SelectTrigger className="w-full h-6 text-xs">
+                <SelectTrigger className="h-6 w-full text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -328,7 +328,7 @@ export function NewSalaryForm({
           <form.Field
             name="locationFactor"
             children={(field) => (
-              <div className="text-xs py-1 px-1 text-right">
+              <div className="px-1 py-1 text-right text-xs">
                 {field.state.value}
               </div>
             )}
@@ -342,7 +342,7 @@ export function NewSalaryForm({
                 value={field.state.value.toString()}
                 onValueChange={(value) => field.handleChange(Number(value))}
               >
-                <SelectTrigger className="w-full h-6 text-xs">
+                <SelectTrigger className="h-6 w-full text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -369,7 +369,7 @@ export function NewSalaryForm({
             children={(field) => (
               <Input
                 className={
-                  'w-full h-6 text-xs min-w-[70px]' +
+                  'h-6 w-full min-w-[70px] text-xs' +
                   (field.state.meta.errors.length > 0
                     ? ' border-red-500 ring-red-500'
                     : '')
@@ -400,7 +400,7 @@ export function NewSalaryForm({
                   return (
                     <Input
                       className={
-                        'w-full h-6 text-xs min-w-[70px]' +
+                        'h-6 w-full min-w-[70px] text-xs' +
                         (field.state.meta.errors.length > 0
                           ? ' border-red-500 ring-red-500'
                           : '')
@@ -418,7 +418,7 @@ export function NewSalaryForm({
                 }
 
                 return (
-                  <div className="text-xs py-1 px-1 text-right">
+                  <div className="px-1 py-1 text-right text-xs">
                     {(field.state.value * 100).toFixed(2)}%
                   </div>
                 )
@@ -443,7 +443,7 @@ export function NewSalaryForm({
               if (showOverride) {
                 return (
                   <Input
-                    className="w-full h-6 text-xs min-w-[70px]"
+                    className="h-6 w-full min-w-[70px] text-xs"
                     value={field.state.value}
                     type="number"
                     step={1}
@@ -454,7 +454,7 @@ export function NewSalaryForm({
 
               return (
                 <div
-                  className={`text-xs py-1 px-1 text-right ${isMismatch ? 'text-red-600 font-medium' : ''}`}
+                  className={`px-1 py-1 text-right text-xs ${isMismatch ? 'font-medium text-red-600' : ''}`}
                   title={
                     isMismatch
                       ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(field.state.value)}`
@@ -471,7 +471,7 @@ export function NewSalaryForm({
           <form.Field
             name="changeAmount"
             children={(field) => (
-              <div className="text-xs py-1 px-1 text-right">
+              <div className="px-1 py-1 text-right text-xs">
                 {formatCurrency(field.state.value)}
               </div>
             )}
@@ -481,7 +481,7 @@ export function NewSalaryForm({
           <form.Field
             name="changePercentage"
             children={(field) => (
-              <div className="text-xs py-1 px-1 text-right">
+              <div className="px-1 py-1 text-right text-xs">
                 {(field.state.value * 100).toFixed(2)}%
               </div>
             )}
@@ -492,7 +492,7 @@ export function NewSalaryForm({
             name="notes"
             children={(field) => (
               <Textarea
-                className="w-full min-h-[24px] text-xs !text-xs resize-none"
+                className="min-h-[24px] w-full resize-none !text-xs text-xs"
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
                 placeholder="Notes..."
@@ -512,7 +512,7 @@ export function NewSalaryForm({
               <form.Field
                 name="exchangeRate"
                 children={(field) => (
-                  <div className="text-xs py-1 px-1 text-right">
+                  <div className="px-1 py-1 text-right text-xs">
                     {field.state.value}
                   </div>
                 )}
@@ -525,7 +525,7 @@ export function NewSalaryForm({
                   const localCurrency =
                     form.getFieldValue('localCurrency') ?? 'USD'
                   return (
-                    <div className="text-xs py-1 px-1 text-right">
+                    <div className="px-1 py-1 text-right text-xs">
                       {new Intl.NumberFormat('en-US', {
                         style: 'currency',
                         currency: localCurrency,
@@ -540,7 +540,7 @@ export function NewSalaryForm({
                 name="amountTakenInOptions"
                 children={(field) => (
                   <Input
-                    className="w-full h-6 text-xs"
+                    className="h-6 w-full text-xs"
                     value={field.state.value}
                     type="number"
                     onChange={(e) => field.handleChange(Number(e.target.value))}
@@ -552,7 +552,7 @@ export function NewSalaryForm({
               <form.Field
                 name="actualSalary"
                 children={(field) => (
-                  <div className="text-xs py-1 px-1 text-right">
+                  <div className="px-1 py-1 text-right text-xs">
                     {formatCurrency(field.state.value)}
                   </div>
                 )}
@@ -565,7 +565,7 @@ export function NewSalaryForm({
                   const localCurrency =
                     form.getFieldValue('localCurrency') ?? 'USD'
                   return (
-                    <div className="text-xs py-1 px-1 text-right">
+                    <div className="px-1 py-1 text-right text-xs">
                       {new Intl.NumberFormat('en-US', {
                         style: 'currency',
                         currency: localCurrency,
@@ -606,8 +606,8 @@ export function NewSalaryForm({
     )
 
   return (
-    <div className="bg-white max-w-5xl mb-4">
-      <div className="border rounded-lg p-4 border-green-600">
+    <div className="mb-4 max-w-5xl bg-white">
+      <div className="rounded-lg border border-green-600 p-4">
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -615,7 +615,7 @@ export function NewSalaryForm({
             form.handleSubmit()
           }}
         >
-          <div className="flex justify-between items-start mb-2">
+          <div className="mb-2 flex items-start justify-between">
             <TimelineItemBadge type="new salary" />
             <div className="flex gap-2">
               <DropdownMenu>
@@ -651,7 +651,7 @@ export function NewSalaryForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-5 gap-4 mb-4">
+          <div className="mb-4 grid grid-cols-5 gap-4">
             {/* Country */}
             <form.Field name="country">
               {(field) => (
@@ -663,7 +663,7 @@ export function NewSalaryForm({
                     value={field.state.value}
                     onValueChange={field.handleChange}
                   >
-                    <SelectTrigger className="text-sm w-full">
+                    <SelectTrigger className="w-full text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -689,7 +689,7 @@ export function NewSalaryForm({
                     value={field.state.value}
                     onValueChange={field.handleChange}
                   >
-                    <SelectTrigger className="text-sm w-full">
+                    <SelectTrigger className="w-full text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -715,7 +715,7 @@ export function NewSalaryForm({
                     value={field.state.value}
                     onValueChange={field.handleChange}
                   >
-                    <SelectTrigger className="text-sm w-full">
+                    <SelectTrigger className="w-full text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -747,7 +747,7 @@ export function NewSalaryForm({
                     value={field.state.value.toString()}
                     onValueChange={(value) => field.handleChange(Number(value))}
                   >
-                    <SelectTrigger className="w-full h-6 text-xs">
+                    <SelectTrigger className="h-6 w-full text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -841,10 +841,10 @@ export function NewSalaryForm({
           </div>
 
           {/* Calculated values display */}
-          <div className="bg-green-50 rounded-lg p-4 mb-4">
-            <div className="flex justify-between items-start">
+          <div className="mb-4 rounded-lg bg-green-50 p-4">
+            <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-2 text-xl mb-2">
+                <div className="mb-2 flex items-center gap-2 text-xl">
                   <span
                     className={`font-bold ${changePercentage > 0 ? 'text-green-600' : changePercentage < 0 ? 'text-red-600' : ''}`}
                   >
@@ -861,11 +861,11 @@ export function NewSalaryForm({
                     {formatCurrency(totalSalary)}
                   </span>
                 </div>
-                <div className="mb-2 leading-none text-xs">
+                <div className="mb-2 text-xs leading-none">
                   <span className="font-semibold">
                     {benchmark} ({benchmarkFactor})
                   </span>
-                  <span className="text-gray-600 ml-1">
+                  <span className="ml-1 text-gray-600">
                     <span className="italic">in</span> {area},{' '}
                     {getCountryFlag(country)} {country} ({locationFactorValue})
                   </span>
@@ -876,12 +876,12 @@ export function NewSalaryForm({
                   <div className="text-xl font-bold">
                     {level === 1 ? '1.0' : level}
                   </div>
-                  <div className="text-xs text-gray-500 text-center">level</div>
+                  <div className="text-center text-xs text-gray-500">level</div>
                 </div>
                 <div className="text-2xl text-gray-300">/</div>
                 <div>
                   <div className="text-xl font-bold">{step}</div>
-                  <div className="text-xs text-gray-500 text-center">step</div>
+                  <div className="text-center text-xs text-gray-500">step</div>
                 </div>
               </div>
             </div>

@@ -97,9 +97,9 @@ function RouteComponent() {
   })
 
   return (
-    <div className="w-screen flex px-4 justify-center">
-      <div className="max-w-full 2xl:max-w-[80%] flex-grow">
-        <div className="flex flex-row justify-between items-center mt-6">
+    <div className="flex w-screen justify-center px-4">
+      <div className="max-w-full flex-grow 2xl:max-w-[80%]">
+        <div className="mt-6 flex flex-row items-center justify-between">
           <div>
             <OrgChartPanel
               employees={deelEmployees}
@@ -107,7 +107,7 @@ function RouteComponent() {
               setSelectedNode={setSelectedEmployeeId}
             />
           </div>
-          <div className="flex gap-4 items-center">
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Switch
                 id="filter-by-level"
@@ -188,7 +188,7 @@ const LevelStepChart = ({
   } satisfies ChartConfig
 
   return (
-    <div className="flex flex-col justify-between items-center gap-6">
+    <div className="flex flex-col items-center justify-between gap-6">
       <span>Step vs Level</span>
       <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
         <ScatterChart accessibilityLayer data={chartData}>
@@ -267,7 +267,7 @@ export const LevelStepSalaryChart = ({
   } satisfies ChartConfig
 
   return (
-    <div className="flex flex-col justify-between items-center gap-6">
+    <div className="flex flex-col items-center justify-between gap-6">
       <span>Step * Level vs Salary</span>
       <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
         <ScatterChart accessibilityLayer data={chartData}>

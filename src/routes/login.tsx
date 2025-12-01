@@ -48,14 +48,14 @@ function RouteComponent() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full">
+    <div className="flex h-full flex-col items-center justify-center">
       <div className="w-full max-w-md px-6">
-        <h1 className="text-3xl font-semibold text-center mb-8">
+        <h1 className="mb-8 text-center text-3xl font-semibold">
           Sign in to your account
         </h1>
 
         <Button
-          className="w-full h-11 rounded-lg font-medium shadow-lg transition-all"
+          className="h-11 w-full rounded-lg font-medium shadow-lg transition-all"
           onClick={handleLogin}
         >
           Sign in

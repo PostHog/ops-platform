@@ -7,13 +7,13 @@ export const Route = createFileRoute('/error')({
 function RouteComponent() {
   const search: { message: string } = useSearch({ from: '/error' })
   return (
-    <div className="flex flex-col items-center justify-center h-full">
-      <div className="w-full max-w-md px-6 flex flex-col items-center justify-center">
-        <h1 className="text-3xl font-semibold text-center mb-8">
+    <div className="flex h-full flex-col items-center justify-center">
+      <div className="flex w-full max-w-md flex-col items-center justify-center px-6">
+        <h1 className="mb-8 text-center text-3xl font-semibold">
           An error occurred
         </h1>
 
-        <span className="text-sm text-gray-500 text-center">
+        <span className="text-center text-sm text-gray-500">
           {search.message}
         </span>
       </div>

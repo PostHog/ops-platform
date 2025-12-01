@@ -30,10 +30,10 @@ const TeamNode = memo(function TeamNode({
 }) {
   return (
     <div className="transition-all hover:translate-y-[-2px]">
-      <div className="w-[200px] min-w-[200px] h-[100px] max-h-[100px] min-h-[100px] flex justify-center items-center px-6 py-4 shadow-lg rounded-lg bg-blue-50 border-2 border-blue-300 min-w-[200px]">
-        <div className="flex items-center justify-center flex-col gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="text-lg font-bold text-blue-800 truncate">
+      <div className="flex h-[100px] max-h-[100px] min-h-[100px] w-[200px] min-w-[200px] items-center justify-center rounded-lg border-2 border-blue-300 bg-blue-50 px-6 py-4 shadow-lg">
+        <div className="flex flex-col items-center justify-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-lg font-bold text-blue-800">
               {name}
             </div>
           </div>
@@ -42,7 +42,7 @@ const TeamNode = memo(function TeamNode({
             childrenCount.pending > 0 ||
             childrenCount.planned > 0) ? (
             <div className="flex items-center gap-2">
-              <div className="text-blue-600 text-xs font-medium">
+              <div className="text-xs font-medium text-blue-600">
                 {childrenCount.active > 0 ? (
                   <div className="flex flex-row items-center gap-1">
                     <span>{childrenCount.active}</span>
@@ -55,13 +55,13 @@ const TeamNode = memo(function TeamNode({
                   {childrenCount.pending > 0 ? (
                     <div className="flex flex-row items-center gap-1">
                       <span>{childrenCount.pending}</span>
-                      <ClockIcon className="w-3 h-3" />
+                      <ClockIcon className="h-3 w-3" />
                     </div>
                   ) : null}
                   {childrenCount.planned > 0 ? (
                     <div className="flex flex-row items-center gap-1">
                       <span>{childrenCount.planned}</span>
-                      <CalendarClockIcon className="w-3 h-3" />
+                      <CalendarClockIcon className="h-3 w-3" />
                     </div>
                   ) : null}
                 </div>
@@ -71,7 +71,7 @@ const TeamNode = memo(function TeamNode({
                   e.stopPropagation()
                   toggleExpanded()
                 }}
-                className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 rounded transition-colors"
+                className="rounded bg-blue-100 px-2 py-1 text-xs transition-colors hover:bg-blue-200"
               >
                 {expanded ? 'Hide' : 'Show'}
               </button>
@@ -112,35 +112,35 @@ const EmployeeNode = memo(function EmployeeNode({
 
   return (
     <div
-      className="w-[200px] max-w-[200px] min-w-[200px] h-[100px] max-h-[100px] min-h-[100px] transition-all hover:translate-y-[-2px]"
+      className="h-[100px] max-h-[100px] min-h-[100px] w-[200px] max-w-[200px] min-w-[200px] transition-all hover:translate-y-[-2px]"
       onClick={handleNodeClick}
     >
       <div
         className={cn(
-          'w-full h-full flex justify-center items-center px-4 py-3 shadow-md rounded-md bg-white border-stone-400 min-w-[200px]',
+          'flex h-full w-full min-w-[200px] items-center justify-center rounded-md border-stone-400 bg-white px-4 py-3 shadow-md',
           isFutureHire ? 'bg-violet-50' : '',
           hiringPriority ? 'bg-yellow-50' : '',
           selectedNode === id ? 'border-2' : 'border-1',
         )}
       >
-        <div className="flex items-center max-w-[80%]">
-          <div className="flex-1 min-w-0">
+        <div className="flex max-w-[80%] items-center">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
-              <div className="text-sm font-bold truncate">{name}</div>
+              <div className="truncate text-sm font-bold">{name}</div>
               {isTeamLead && (
-                <CrownIcon className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                <CrownIcon className="h-4 w-4 flex-shrink-0 text-yellow-500" />
               )}
             </div>
-            <div className="text-gray-500 text-xs truncate">{title}</div>
-            <div className="text-yellow-600 font-bold text-xs truncate">
+            <div className="truncate text-xs text-gray-500">{title}</div>
+            <div className="truncate text-xs font-bold text-yellow-600">
               {team}
             </div>
             {childrenCount !== undefined &&
             (childrenCount.active > 0 ||
               childrenCount.pending > 0 ||
               childrenCount.planned > 0) ? (
-              <div className="flex items-center gap-2 mt-1">
-                <div className="text-blue-600 text-xs font-medium flex flex-col">
+              <div className="mt-1 flex items-center gap-2">
+                <div className="flex flex-col text-xs font-medium text-blue-600">
                   {childrenCount.active > 0 ? (
                     <div className="flex flex-row items-center gap-1">
                       <span>{childrenCount.active}</span>
@@ -153,13 +153,13 @@ const EmployeeNode = memo(function EmployeeNode({
                     {childrenCount.pending > 0 ? (
                       <div className="flex flex-row items-center gap-1">
                         <span>{childrenCount.pending}</span>
-                        <ClockIcon className="w-3 h-3" />
+                        <ClockIcon className="h-3 w-3" />
                       </div>
                     ) : null}
                     {childrenCount.planned > 0 ? (
                       <div className="flex flex-row items-center gap-1">
                         <span>{childrenCount.planned}</span>
-                        <CalendarClockIcon className="w-3 h-3" />
+                        <CalendarClockIcon className="h-3 w-3" />
                       </div>
                     ) : null}
                   </div>
@@ -169,22 +169,22 @@ const EmployeeNode = memo(function EmployeeNode({
                     e.stopPropagation()
                     toggleExpanded()
                   }}
-                  className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                  className="rounded bg-gray-100 px-2 py-1 text-xs transition-colors hover:bg-gray-200"
                 >
                   {expanded ? 'Hide' : 'Show'}
                 </button>
               </div>
             ) : null}
             {isFutureHire && (
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-violet-600 text-xs font-medium">
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-xs font-medium text-violet-600">
                   Future starter
                 </span>
               </div>
             )}
             {hiringPriority && (
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-violet-600 text-xs font-medium">
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-xs font-medium text-violet-600">
                   Proposed hire ({hiringPriority})
                 </span>
               </div>
@@ -210,7 +210,7 @@ const LeafContainer = memo(function LeafContainer({
   const children = data.children || []
 
   return (
-    <div className="p-4 rounded-lg border-t-2 border-gray-300">
+    <div className="rounded-lg border-t-2 border-gray-300 p-4">
       <div
         className={`grid gap-4 ${children.length >= 2 ? 'grid-cols-2' : ''}`}
       >

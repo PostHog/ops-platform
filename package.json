@@ -51,6 +51,7 @@
     "jotai": "^2.15.0",
     "lucide-react": "^0.476.0",
     "node-gyp": "^12.1.0",
+    "prettier-plugin-tailwindcss": "^0.7.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",

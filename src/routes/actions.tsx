@@ -239,7 +239,7 @@ function App() {
         accessorKey: 'notes',
         header: 'Notes',
         cell: ({ row }) => (
-          <div className="whitespace-pre-line min-w-[200px]">
+          <div className="min-w-[200px] whitespace-pre-line">
             {row.original.notes}
           </div>
         ),
@@ -412,8 +412,8 @@ function App() {
   })
 
   return (
-    <div className="w-full h-full flex justify-center px-4">
-      <div className="max-w-full 2xl:max-w-[80%] flex-grow">
+    <div className="flex h-full w-full justify-center px-4">
+      <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="flex justify-between py-4">
           <div></div>
           <div className="flex items-center space-x-2">
@@ -528,7 +528,7 @@ function App() {
             </div>
             <div className="space-y-2">
               <Label>Available Placeholders</Label>
-              <div className="text-sm text-muted-foreground space-y-1">
+              <div className="text-muted-foreground space-y-1 text-sm">
                 <div className="flex flex-wrap gap-1">
                   {[
                     { key: 'firstName', label: 'Employee first name' },
@@ -552,7 +552,7 @@ function App() {
                     { key: 'benchmark', label: 'Benchmark' },
                     { key: 'locationFactor', label: 'Location factor' },
                   ].map((placeholder) => (
-                    <code className="bg-muted px-1 py-0.5 rounded">
+                    <code className="bg-muted rounded px-1 py-0.5">
                       {`{${placeholder.key}}`}
                     </code>
                   ))}
