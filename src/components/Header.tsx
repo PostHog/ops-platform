@@ -70,6 +70,11 @@ export default function Header() {
         ) : null}
         {user?.role === ROLES.ADMIN ? (
           <div className="px-2 font-bold">
+            <Link to="/salary-sync-status">Salary sync status</Link>
+          </div>
+        ) : null}
+        {user?.role === ROLES.ADMIN ? (
+          <div className="px-2 font-bold">
             <Link to="/analytics">Analytics</Link>
           </div>
         ) : null}
