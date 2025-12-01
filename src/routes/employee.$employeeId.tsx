@@ -288,7 +288,11 @@ function EmployeeOverview() {
   )
   const [showOverrideMode, setShowOverrideMode] = useState(false)
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
-  const [showDetailedColumns, setShowDetailedColumns] = useState(false)
+  const [showDetailedColumns, setShowDetailedColumns] =
+    useLocalStorage<boolean>(
+      'employee.overview.table.showDetailedColumns',
+      false,
+    )
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByLevel, setFilterByLevel] = useState(true)
   const [filterByTitle, setFilterByTitle] = useState(true)
