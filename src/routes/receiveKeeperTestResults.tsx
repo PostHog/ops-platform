@@ -38,6 +38,11 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
             const { type, selected_option } = value[fieldId]
             if (type === 'radio_buttons' && selected_option === null) {
               invalidFields.push(fieldId)
+            } else if (
+              type === 'plain_text_input' &&
+              value[fieldId].value === null
+            ) {
+              invalidFields.push(fieldId)
             }
           }
 
