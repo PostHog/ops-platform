@@ -69,10 +69,21 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
               (x: any) => x.hiring_status === 'active',
             )[0]
 
+            const getAnnualSalary = (compensation_details: {
+              rate: number
+              scale: 'annual' | 'monthly'
+              currency: string
+            }) => {
+              if (compensation_details.scale === 'annual') {
+                return compensation_details.rate
+              }
+              return compensation_details.rate * 12
+            }
+
             // only update salary if the previous salary matches
             if (
               Math.abs(
-                compensation_details.rate /
+                getAnnualSalary(compensation_details) /
                   salary.employee.salaries[1].actualSalaryLocal -
                   1,
               ) > 0.001
@@ -125,7 +136,7 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
                 },
               )
 
-              if (response.status !== 200) {
+              if (response.status !== 201) {
                 throw new Error(
                   `Failed to update EOR contract: ${response.statusText}`,
                 )
@@ -152,7 +163,7 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
                 },
               )
 
-              if (response.status !== 200) {
+              if (response.status !== 201) {
                 throw new Error(
                   `Failed to update contractor contract: ${response.statusText}`,
                 )
