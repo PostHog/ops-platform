@@ -110,9 +110,7 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
         const checkedAt = new Date()
         await prisma.$transaction(
           results.map((result) => {
-            const salaryDeviation =
-              result.deviationPercentage > 0.001 &&
-              result.compensation_details.currency_code !== 'GBP'
+            const salaryDeviation = result.deviationPercentage > 0.001
 
             return prisma.employee.update({
               where: { id: result.id },
@@ -128,8 +126,7 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
         //   filteredResults: results
         //     .filter(
         //       (x) =>
-        //         x.deviationPercentage > 0.001 &&
-        //         x.compensation_details.currency_code !== 'GBP',
+        //         x.deviationPercentage > 0.001
         //     )
         //     .map((x) => ({
         //       deelSalary: x.deelSalary,
