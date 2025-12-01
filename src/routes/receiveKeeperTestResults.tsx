@@ -31,6 +31,8 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
             jobId,
             title,
           ] = body.actions[0].value.split('|')
+          console.log(body.actions[0].value, 'asdf1')
+          console.log(body.state.values, 'asdf2')
           for (const [, value] of Object.entries(
             body.state.values as Record<string, any>,
           )) {
@@ -113,6 +115,43 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
               { status: 400 },
             )
           }
+
+          console.log({
+            employeeId: employeeId,
+            managerId: deelManager?.employee?.id,
+            title: title,
+            wouldYouTryToKeepThem:
+              fieldData['keeper-test-question-1']?.selected_option.value ===
+              'yes',
+            whatMakesThemValuable:
+              fieldData['keeper-test-question-1-text']?.value,
+            driverOrPassenger:
+              fieldData['keeper-test-question-2']?.selected_option.value ===
+              'driver'
+                ? 'DRIVER'
+                : 'PASSENGER',
+            proactiveToday:
+              fieldData['keeper-test-question-3']?.selected_option.value ===
+              'yes',
+            optimisticByDefault:
+              fieldData['keeper-test-question-4']?.selected_option.value ===
+              'yes',
+            areasToWatch: fieldData['keeper-test-question-4-text']?.value,
+            recommendation:
+              fieldData['keeper-test-question-5']?.selected_option.value ===
+              'Strong Hire, on track to pass probation'
+                ? 'STRONG_HIRE_ON_TRACK_TO_PASS_PROBATION'
+                : fieldData['keeper-test-question-5']?.selected_option.value ===
+                    'Average Hire, need to see improvements'
+                  ? 'AVERAGE_HIRE_NEED_TO_SEE_IMPROVEMENTS'
+                  : fieldData['keeper-test-question-5']?.selected_option
+                        .value === 'Not a fit, needs escalating'
+                    ? 'NOT_A_FIT_NEEDS_ESCALATING'
+                    : null,
+            sharedWithTeamMember:
+              fieldData['keeper-test-question-6']?.selected_option.value ===
+              'yes',
+          })
 
           const createdFeedback = await prisma.keeperTestFeedback.create({
             data: {
