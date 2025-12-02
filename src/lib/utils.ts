@@ -20,7 +20,7 @@ export function formatCurrency(
   }).format(amount)
 }
 
-// compensation data updated on 2025-10-03
+// compensation data updated on 2025-12-02
 
 export const currencyData: Record<string, number> = {
   CAD: 1.264,
@@ -68,19 +68,20 @@ export const bonusPercentage: Record<string, number> = {
 export const sfBenchmark: Record<string, number> = {
   'Product Engineer': 262000,
   'Account Executive (OTE)': 300000,
-  'Backend Engineer': 243000,
+  'Backend Engineer': 262000,
   'Billing Support Specialist': 154619,
+  'Business Development Representative (OTE)': 182000,
   'Content Marketer': 190910,
   'Community Manager': 185000,
   'Customer Success Manager (OTE)': 237375,
-  'Data Engineer': 243000,
+  'Data Engineer': 262000,
   'Design Lead': 236000,
   'Events Manager': 165000,
   'Finance Manager': 181680,
   'Front End Developer': 212000,
-  'Full Stack Engineer': 243000,
+  'Full Stack Engineer': 262000,
   'Graphic Designer': 147530,
-  'Mobile Engineer': 243000,
+  'Mobile Engineer': 262000,
   'Onboarding Specialist': 211000,
   'Operations & Finance Lead': 225000,
   'Operations Manager': 181680,
