@@ -262,7 +262,13 @@ const getTeamLeads = (employees: Array<DeelEmployee>): Set<string> => {
   const seenTeams = new Set<string>()
 
   employees
-    .filter(({ team }) => team && team !== 'Blitzscale' && team !== '')
+    .filter(
+      ({ team, title }) =>
+        team &&
+        team !== 'Blitzscale' &&
+        title !== 'Product Manager' &&
+        team !== '',
+    )
     .forEach((employee) => {
       if (seenTeams.has(employee.team)) return
       seenTeams.add(employee.team)

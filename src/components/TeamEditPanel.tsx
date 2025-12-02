@@ -24,7 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createToast } from 'vercel-toast'
@@ -156,6 +156,10 @@ export function TeamEditPanel({ employee }: { employee: DeelEmployee }) {
       timeout: 3000,
     })
   }
+
+  useEffect(() => {
+    setValue(employee.team)
+  }, [employee.team])
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
