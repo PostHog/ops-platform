@@ -175,6 +175,8 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
 
               const data = await response.json()
               console.log(data)
+            } else {
+              throw new Error(`Unknown hiring type: ${hiring_type}`)
             }
           } catch (error) {
             const errorMessage =
