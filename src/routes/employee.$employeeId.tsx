@@ -236,7 +236,9 @@ export const getReferenceEmployees = createAuthenticatedFn({
 export const updateSalary = createAuthenticatedFn({
   method: 'POST',
 })
-  .inputValidator((d: Omit<Salary, 'id' | 'timestamp' | 'communicated'>) => d)
+  .inputValidator(
+    (d: Omit<Salary, 'id' | 'timestamp' | 'communicated' | 'synced'>) => d,
+  )
   .handler(async ({ data }) => {
     // Create the salary entry
     const salary = await prisma.salary.create({
