@@ -51,7 +51,7 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
         })
 
         const errors: string[] = []
-        const results: { salaryId: string; result: any }[] = []
+        const results: { salaryId: string; result: any; email: string }[] = []
 
         for (const salary of salaries) {
           try {
@@ -117,7 +117,11 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
               }
 
               const data = await response.json()
-              results.push({ salaryId: salary.id, result: data })
+              results.push({
+                salaryId: salary.id,
+                result: data,
+                email: salary.employee.email,
+              })
             } else if (hiring_type === 'eor') {
               const response = await fetch(
                 `https://api.letsdeel.com/rest/v2/eor/contracts/${contractId}/amendments`,
@@ -185,9 +189,10 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
           console.log(errors)
         }
 
-        for (const result of results) {
+        for (const { result, salaryId, email } of results) {
+          console.log(result, email)
           await prisma.salary.update({
-            where: { id: result.salaryId },
+            where: { id: salaryId },
             data: { synced: true },
           })
         }
