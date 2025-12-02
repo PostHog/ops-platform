@@ -48,6 +48,7 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
               },
             },
           },
+          take: 5,
         })
 
         const errors: string[] = []
@@ -57,6 +58,9 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
           try {
             if (!salary.employee.deelEmployee) {
               throw new Error(`No deel employee found`)
+            }
+            if (!salary.changePercentage || salary.changePercentage > 0.5) {
+              throw new Error(`Change percentage is too high`)
             }
             const deelEmployee = await fetchDeelEmployee(
               salary.employee.deelEmployee.id,
@@ -147,7 +151,33 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
               }
 
               const data = await response.json()
-              console.log(data)
+
+              const response2 = await fetch(
+                `https://api.letsdeel.com/rest/v2/eor/contracts/${contractId}/amendments/${data.data.id}/confirm`,
+                {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${process.env.DEEL_API_KEY}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    data: {},
+                  }),
+                },
+              )
+
+              if (response2.status !== 200) {
+                throw new Error(
+                  `Failed to confirm EOR contract amendment: ${response2.statusText}`,
+                )
+              }
+
+              const data2 = await response2.json()
+              results.push({
+                salaryId: salary.id,
+                result: data2,
+                email: salary.employee.email,
+              })
             } else if (hiring_type === 'contractor') {
               const response = await fetch(
                 `https://api.letsdeel.com/rest/v2/contracts/${contractId}/amendments`,
@@ -174,7 +204,35 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
               }
 
               const data = await response.json()
-              console.log(data)
+
+              const response2 = await fetch(
+                `https://api.letsdeel.com/rest/v2/contracts/${contractId}/signatures`,
+                {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${process.env.DEEL_API_KEY}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    data: {
+                      client_signature: process.env.DEEL_SIGNATURE_TEXT,
+                    },
+                  }),
+                },
+              )
+
+              if (response2.status !== 201) {
+                throw new Error(
+                  `Failed to sign contractor contract: ${response2.statusText}`,
+                )
+              }
+
+              const data2 = await response2.json()
+              results.push({
+                salaryId: salary.id,
+                result: { data, data2 },
+                email: salary.employee.email,
+              })
             } else {
               throw new Error(`Unknown hiring type: ${hiring_type}`)
             }
