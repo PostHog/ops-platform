@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import prisma from '@/db'
-import { fetchDeelEmployees } from './syncDeelEmployees'
+import { getBambooCompTable, getBambooEmployees } from './syncSalaryUpdates'
 
-const fetchDeelContract = async (id: string) => {
+const fetchDeelEmployee = async (id: string) => {
   const response = await fetch(
-    `https://api.letsdeel.com/rest/v2/contracts/${id}`,
+    `https://api.letsdeel.com/rest/v2/people/${id}`,
     {
       method: 'GET',
       headers: {
@@ -14,7 +14,7 @@ const fetchDeelContract = async (id: string) => {
   )
 
   if (response.status !== 200) {
-    throw new Error(`Failed to fetch contract: ${response.statusText}`)
+    throw new Error(`Failed to fetch employee: ${response.statusText}`)
   }
 
   const data = await response.json()
@@ -31,7 +31,6 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
           return new Response('Unauthorized', { status: 401 })
         }
 
-        const deelEmployees = await fetchDeelEmployees()
         const employees = await prisma.employee.findMany({
           where: {
             salaries: { some: {} },
@@ -43,11 +42,12 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
                 timestamp: 'desc',
               },
             },
+            deelEmployee: true,
           },
           orderBy: {
             salaryDeviationCheckedAt: 'asc',
           },
-          take: 20,
+          take: 10,
         })
 
         const results: Array<{
@@ -64,39 +64,63 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
 
         for (const employee of employees) {
           try {
-            const localDeelEmployee = deelEmployees.find(
-              (x) => x.workEmail === employee.email,
-            )
-            const { compensation_details } = await fetchDeelContract(
-              localDeelEmployee?.contractId ?? '',
-            )
-
-            const calcDeelSalary = (compensation_details: any) => {
-              if (compensation_details.gross_annual_salary != 0) {
-                return Number(compensation_details.gross_annual_salary)
-              }
-
-              if (compensation_details.scale === 'monthly') {
-                return Number(compensation_details.amount) * 12
-              }
-              return Number(compensation_details.amount)
+            if (!employee.deelEmployee) {
+              throw new Error(`No deel employee found`)
             }
+            const deelEmployee = await fetchDeelEmployee(
+              employee.deelEmployee.id,
+            )
+
+            const { payment: compensation_details } =
+              deelEmployee.employments.filter(
+                (x: any) => x.hiring_status === 'active',
+              )[0]
+
+            const getDeelAnnualSalary = (compensation_details: {
+              rate: number
+              scale: 'annual' | 'monthly'
+              currency: string
+            }) => {
+              if (compensation_details.scale === 'annual') {
+                return compensation_details.rate
+              }
+              return compensation_details.rate * 12
+            }
+
+            const getSalary = async () => {
+              // update the if condition once we moved US payroll over to bamboo
+              if (false) {
+                const bambooEmployee = await getBambooEmployees(employee.email)
+                const compTable = await getBambooCompTable(
+                  bambooEmployee.employeeId,
+                )
+
+                if (compTable.length === 0) {
+                  throw new Error('No compensation table found')
+                }
+
+                console.log(
+                  'fetched bamboo rate',
+                  compTable[compTable.length - 1].rate.value,
+                )
+                return Number(compTable[compTable.length - 1].rate.value)
+              }
+              return getDeelAnnualSalary(compensation_details)
+            }
+
+            const salary = await getSalary()
 
             results.push({
               id: employee.id,
               email: employee.email,
               salary: employee.salaries[0].actualSalaryLocal,
-              deelSalary: calcDeelSalary(compensation_details),
-              deviation:
-                employee.salaries[0].actualSalaryLocal -
-                calcDeelSalary(compensation_details),
+              deelSalary: salary,
+              deviation: employee.salaries[0].actualSalaryLocal - salary,
               deviationPercentage:
-                Math.abs(
-                  employee.salaries[0].actualSalaryLocal -
-                    calcDeelSalary(compensation_details),
-                ) / employee.salaries[0].actualSalaryLocal,
+                Math.abs(employee.salaries[0].actualSalaryLocal - salary) /
+                employee.salaries[0].actualSalaryLocal,
               compensation_details: compensation_details,
-              team: localDeelEmployee?.team ?? '',
+              team: employee.deelEmployee.team,
             })
           } catch (error) {
             const errorMessage =
@@ -122,23 +146,20 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
           }),
         )
 
-        // console.log({
-        //   filteredResults: results
-        //     .filter(
-        //       (x) =>
-        //         x.deviationPercentage > 0.001
-        //     )
-        //     .map((x) => ({
-        //       deelSalary: x.deelSalary,
-        //       deviation: x.deviation,
-        //       deviationPercentage: x.deviationPercentage,
-        //       email: x.email,
-        //       salary: x.salary,
-        //       currency: x.compensation_details.currency_code,
-        //       team: x.team,
-        //     })),
-        //   errors,
-        // })
+        console.log({
+          filteredResults: results
+            .filter((x) => x.deviationPercentage > 0.001)
+            .map((x) => ({
+              deelSalary: x.deelSalary,
+              deviation: x.deviation,
+              deviationPercentage: x.deviationPercentage,
+              email: x.email,
+              salary: x.salary,
+              currency: x.compensation_details.currency_code,
+              team: x.team,
+            })),
+          errors,
+        })
 
         if (errors.length > 0) {
           console.log(errors)

@@ -1,6 +1,74 @@
 import { createFileRoute } from '@tanstack/react-router'
 import prisma from '@/db'
 
+type BambooEmployee = {
+  employeeId: number
+  firstName: string
+  lastName: string
+  email: string
+}
+
+export const getBambooEmployees = async (email: string) => {
+  const bambooEmployeeResponse = await fetch(
+    'https://posthog.bamboohr.com/api/v1/meta/users',
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${process.env.BAMBOO_API_KEY}:x`).toString('base64')}`,
+        Accept: 'application/json',
+      },
+    },
+  )
+
+  if (bambooEmployeeResponse.status !== 200) {
+    throw new Error(
+      `Failed to fetch bamboo employees: ${bambooEmployeeResponse.statusText}`,
+    )
+  }
+
+  const bambooEmployees = await bambooEmployeeResponse.json()
+
+  const employee = Object.values(bambooEmployees).find(
+    (emp: any) => emp.email === email,
+  )
+
+  if (!employee) {
+    throw new Error(`Employee not found with email: ${email}`)
+  }
+
+  return employee as BambooEmployee
+}
+
+type BambooCompTable = {
+  rate: {
+    currency: string
+    value: string
+  }
+}
+
+export const getBambooCompTable = async (employeeId: number) => {
+  const compTableResponse = await fetch(
+    `https://posthog.bamboohr.com/api/v1/employees/${employeeId}/tables/compensation`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${process.env.BAMBOO_API_KEY}:x`).toString('base64')}`,
+        Accept: 'application/json',
+      },
+    },
+  )
+
+  if (compTableResponse.status !== 200) {
+    throw new Error(
+      `Failed to fetch bamboo compensation table: ${compTableResponse.statusText}`,
+    )
+  }
+
+  const compTable = await compTableResponse.json()
+
+  return compTable as BambooCompTable[]
+}
+
 const fetchDeelEmployee = async (id: string) => {
   const response = await fetch(
     `https://api.letsdeel.com/rest/v2/people/${id}`,
@@ -237,59 +305,17 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
               throw new Error(`HRIS direct employee not supported yet`)
             } else if (hiring_type === 'direct_employee') {
               // update the if condition once we moved US payroll over to bamboo
-              const bambooEmployeeResponse = await fetch(
-                'https://posthog.bamboohr.com/api/v1/employees?filter%5Bstatus%5D=active&page%5Blimit%5D=100',
-                {
-                  method: 'GET',
-                  headers: {
-                    Authorization: `Basic ${Buffer.from(`${process.env.BAMBOO_API_KEY}:x`).toString('base64')}`,
-                  },
-                },
-              )
+              const employee = await getBambooEmployees(salary.employee.email)
+              const compTable = await getBambooCompTable(employee.employeeId)
 
-              if (bambooEmployeeResponse.status !== 200) {
-                throw new Error(
-                  `Failed to fetch bamboo employees: ${bambooEmployeeResponse.statusText}`,
-                )
+              if (compTable.length === 0) {
+                throw new Error('No compensation table found')
               }
-
-              const bambooEmployees = await bambooEmployeeResponse.json()
-
-              const employee = bambooEmployees.data.find(
-                (x: any) =>
-                  x.firstName ===
-                  salary.employee.deelEmployee?.name.split(' ')[0],
-              )
-
-              if (!employee) {
-                throw new Error(
-                  `Employee not found with name: ${salary.employee.deelEmployee?.name}`,
-                )
-              }
-
-              const compTableResponse = await fetch(
-                `https://posthog.bamboohr.com/api/v1/employees/${employee.employeeId}/tables/compensation`,
-                {
-                  method: 'GET',
-                  headers: {
-                    Authorization: `Basic ${Buffer.from(`${process.env.BAMBOO_API_KEY}:x`).toString('base64')}`,
-                    Accept: 'application/json',
-                  },
-                },
-              )
-
-              if (compTableResponse.status !== 200) {
-                throw new Error(
-                  `Failed to fetch bamboo compensation table: ${compTableResponse.statusText}`,
-                )
-              }
-
-              const compTable = await compTableResponse.json()
 
               // only update salary if the previous salary matches
               if (
                 Math.abs(
-                  compTable[compTable.length - 1].rate.value /
+                  Number(compTable[compTable.length - 1].rate.value) /
                     salary.employee.salaries[1].actualSalaryLocal -
                     1,
                 ) > 0.001
