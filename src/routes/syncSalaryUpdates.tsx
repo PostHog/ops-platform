@@ -59,7 +59,7 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
             if (!salary.employee.deelEmployee) {
               throw new Error(`No deel employee found`)
             }
-            if (!salary.changePercentage || salary.changePercentage > 0.5) {
+            if (salary.changePercentage > 0.5) {
               throw new Error(`Change percentage is too high`)
             }
             const deelEmployee = await fetchDeelEmployee(
@@ -231,6 +231,112 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
               results.push({
                 salaryId: salary.id,
                 result: { data, data2 },
+                email: salary.employee.email,
+              })
+            } else if (hiring_type === 'hris_direct_employee') {
+              throw new Error(`HRIS direct employee not supported yet`)
+            } else if (hiring_type === 'direct_employee') {
+              // update the if condition once we moved US payroll over to bamboo
+              const bambooEmployeeResponse = await fetch(
+                'https://posthog.bamboohr.com/api/v1/employees?filter%5Bstatus%5D=active&page%5Blimit%5D=100',
+                {
+                  method: 'GET',
+                  headers: {
+                    Authorization: `Basic ${Buffer.from(`${process.env.BAMBOO_API_KEY}:x`).toString('base64')}`,
+                  },
+                },
+              )
+
+              if (bambooEmployeeResponse.status !== 200) {
+                throw new Error(
+                  `Failed to fetch bamboo employees: ${bambooEmployeeResponse.statusText}`,
+                )
+              }
+
+              const bambooEmployees = await bambooEmployeeResponse.json()
+
+              const employee = bambooEmployees.data.find(
+                (x: any) =>
+                  x.firstName ===
+                  salary.employee.deelEmployee?.name.split(' ')[0],
+              )
+
+              if (!employee) {
+                throw new Error(
+                  `Employee not found with name: ${salary.employee.deelEmployee?.name}`,
+                )
+              }
+
+              const compTableResponse = await fetch(
+                `https://posthog.bamboohr.com/api/v1/employees/${employee.employeeId}/tables/compensation`,
+                {
+                  method: 'GET',
+                  headers: {
+                    Authorization: `Basic ${Buffer.from(`${process.env.BAMBOO_API_KEY}:x`).toString('base64')}`,
+                    Accept: 'application/json',
+                  },
+                },
+              )
+
+              if (compTableResponse.status !== 200) {
+                throw new Error(
+                  `Failed to fetch bamboo compensation table: ${compTableResponse.statusText}`,
+                )
+              }
+
+              const compTable = await compTableResponse.json()
+
+              // only update salary if the previous salary matches
+              if (
+                Math.abs(
+                  compTable[compTable.length - 1].rate.value /
+                    salary.employee.salaries[1].actualSalaryLocal -
+                    1,
+                ) > 0.001
+              ) {
+                throw new Error('Previous bamboo salary does not match')
+              }
+
+              const salaryUpdateResponse = await fetch(
+                `https://posthog.bamboohr.com/api/v1_1/employees/${employee.employeeId}/tables/compensation`,
+                {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Basic ${Buffer.from(`${process.env.BAMBOO_API_KEY}:x`).toString('base64')}`,
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    startDate: new Date().toISOString().split('T')[0],
+                    endDate: null,
+                    rate: {
+                      currency: 'USD',
+                      value:
+                        salary.employee.salaries[0].actualSalaryLocal.toString(),
+                    },
+                    type: 'Salary',
+                    exempt: 'Exempt',
+                    reason: 'Comp Review',
+                    comment: '',
+                    paidPer: 'Year',
+                    paySchedule: 'Semi Monthly',
+                    overtimeRate: {
+                      currency: 'USD',
+                      value: '',
+                    },
+                  }),
+                },
+              )
+
+              if (salaryUpdateResponse.status !== 200) {
+                throw new Error(
+                  `Failed to update bamboo salary: ${salaryUpdateResponse.statusText}`,
+                )
+              }
+
+              results.push({
+                salaryId: salary.id,
+                result: compTable,
                 email: salary.employee.email,
               })
             } else {
