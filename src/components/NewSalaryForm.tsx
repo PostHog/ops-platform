@@ -757,7 +757,7 @@ export function NewSalaryForm({
                     <SelectContent>
                       {SALARY_LEVEL_OPTIONS.map(({ name, value }) => (
                         <SelectItem key={value} value={value.toString()}>
-                          {name} ({value})se
+                          {name} ({value})
                         </SelectItem>
                       ))}
                     </SelectContent>

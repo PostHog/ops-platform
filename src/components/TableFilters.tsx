@@ -72,15 +72,6 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
       number | '',
     ]
 
-  // Debug: log if column exists
-  if (!changePercentageColumn) {
-    console.error('changePercentage column not found in table')
-    console.log(
-      'Available columns:',
-      table.getAllColumns().map((c) => c.id),
-    )
-  }
-
   const toggleLevel = (levelValue: number) => {
     const current = levelFilterValue
     const newValue = current.includes(levelValue)
