@@ -472,7 +472,8 @@ function App() {
                               header.getContext(),
                             )}
                         {header.column.getCanFilter() ? (
-                          <div>
+                          <div className="hidden">
+                            {/* for some reason removing the filters cause infinite re-renders */}
                             <Filter column={header.column} />
                           </div>
                         ) : null}
