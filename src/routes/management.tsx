@@ -36,26 +36,6 @@ export const Route = createFileRoute('/management')({
   component: RouteComponent,
 })
 
-const fetchDeelContract = async (id: string) => {
-  const response = await fetch(
-    `https://api.letsdeel.com/rest/v2/contracts/${id}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${process.env.DEEL_API_KEY}`,
-      },
-    },
-  )
-
-  if (response.status !== 200) {
-    throw new Error(`Failed to fetch contract: ${response.statusText}`)
-  }
-
-  const data = await response.json()
-
-  return data.data
-}
-
 const getUsers = createAuthenticatedFn({
   method: 'GET',
 }).handler(async () => {
@@ -85,108 +65,6 @@ const startReviewCycle = createAuthenticatedFn({
       reviewed: false,
     },
   })
-})
-
-const checkSalaryDeviation = createAuthenticatedFn({
-  method: 'POST',
-}).handler(async () => {
-  const deelEmployees = await fetchDeelEmployees()
-  const employees = await prisma.employee.findMany({
-    where: {
-      salaries: { some: {} },
-    },
-    include: {
-      salaries: {
-        orderBy: {
-          timestamp: 'desc',
-        },
-      },
-    },
-  })
-
-  const results: Array<{
-    email: string
-    salary: number
-    deelSalary: number
-    deviation: number
-    deviationPercentage: number
-    compensation_details: any
-    team: string
-  }> = []
-  const errors: Array<string> = []
-
-  for (const employee of employees) {
-    try {
-      const localDeelEmployee = deelEmployees.find(
-        (x) => x.workEmail === employee.email,
-      )
-      const { compensation_details } = await fetchDeelContract(
-        localDeelEmployee?.contractId ?? '',
-      )
-
-      const calcDeelSalary = (compensation_details: any) => {
-        if (compensation_details.gross_annual_salary != 0) {
-          return Number(compensation_details.gross_annual_salary)
-        }
-
-        if (compensation_details.scale === 'monthly') {
-          return Number(compensation_details.amount) * 12
-        }
-        return Number(compensation_details.amount)
-      }
-
-      results.push({
-        email: employee.email,
-        salary: employee.salaries[0].actualSalaryLocal,
-        deelSalary: calcDeelSalary(compensation_details),
-        deviation:
-          employee.salaries[0].actualSalaryLocal -
-          calcDeelSalary(compensation_details),
-        deviationPercentage:
-          Math.abs(
-            employee.salaries[0].actualSalaryLocal -
-              calcDeelSalary(compensation_details),
-          ) / employee.salaries[0].actualSalaryLocal,
-        compensation_details: compensation_details,
-        team: localDeelEmployee?.team ?? '',
-      })
-      console.log('processed employee: ' + employee.email)
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error'
-      errors.push(
-        `Error processing employee ${employee.email}: ${errorMessage}`,
-      )
-      console.error(
-        'Error processing employee: ' + employee.email + ' - ' + errorMessage,
-      )
-    }
-  }
-
-  return {
-    allResults: results,
-    filteredResultsNote:
-      'Deviation percentage > 0.1%, deviation percentage !== 0.5, currency code !== GBP, team does not include Sales or Customer Success',
-    filteredResults: results
-      .filter(
-        (x) =>
-          x.deviationPercentage > 0.001 &&
-          x.deviationPercentage !== 0.5 &&
-          x.compensation_details.currency_code !== 'GBP' &&
-          !x.team.includes('Sales') &&
-          !x.team.includes('Customer Success'),
-      )
-      .map((x) => ({
-        deelSalary: x.deelSalary,
-        deviation: x.deviation,
-        deviationPercentage: x.deviationPercentage,
-        email: x.email,
-        salary: x.salary,
-        currency: x.compensation_details.currency_code,
-        team: x.team,
-      })),
-    errors,
-  }
 })
 
 const populateInitialEmployeeSalaries = createAuthenticatedFn({
@@ -255,7 +133,7 @@ const populateInitialEmployeeSalaries = createAuthenticatedFn({
         throw new Error('Start date is missing: ' + employee.workEmail)
       }
 
-      if (!['1.2', '1', '0.78', '.78', '0.59', '.59'].includes(level)) {
+      if (!['1.2', '1', '1.0', '0.78', '.78', '0.59', '.59'].includes(level)) {
         throw new Error('Invalid level: ' + level)
       }
 
@@ -374,7 +252,7 @@ function RouteComponent() {
             value={row.original.role ?? 'error'}
             onValueChange={handleRoleChange}
           >
-            <SelectTrigger className="w-[240px] h-6 text-xs px-1 py-0">
+            <SelectTrigger className="h-6 w-[240px] px-1 py-0 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -400,8 +278,8 @@ function RouteComponent() {
   })
 
   return (
-    <div className="w-screen flex justify-center">
-      <div className="max-w-[80%] flex-grow">
+    <div className="flex w-screen justify-center px-4">
+      <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="flex justify-between py-4">
           <div className="text-lg font-bold">User management</div>
         </div>
@@ -430,7 +308,7 @@ function RouteComponent() {
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} className="hover:bg-gray-50">
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-1 px-1">
+                      <TableCell key={cell.id} className="px-1 py-1">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
@@ -455,7 +333,7 @@ function RouteComponent() {
         <div className="flex justify-between py-4">
           <div className="text-lg font-bold">Review cycle</div>
         </div>
-        <div className="overflow-hidden flex flex-col gap-2">
+        <div className="flex flex-col gap-2 overflow-hidden">
           <Button
             onClick={async () => {
               await startReviewCycle()
@@ -509,31 +387,6 @@ function RouteComponent() {
             }}
           >
             Populate initial employee salaries
-          </Button>
-          <Button
-            onClick={async () => {
-              createToast(
-                'Checking salary deviation... (this may take a while). Results will be logged in the console.',
-                {
-                  timeout: 10000,
-                },
-              )
-              const results = await checkSalaryDeviation()
-              console.log(results)
-              router.invalidate()
-
-              createToast('Salary deviation checked successfully.', {
-                timeout: 10000,
-                action: {
-                  text: 'Close',
-                  callback(toast) {
-                    toast.destroy()
-                  },
-                },
-              })
-            }}
-          >
-            Check salary deviation compared to Deel
           </Button>
           <KeeperTestManagement />
         </div>

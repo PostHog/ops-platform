@@ -1,5 +1,4 @@
 import ReactMarkdown from 'react-markdown'
-import { useForm, useStore } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useAtom } from 'jotai'
 import { AlertCircle, ArrowLeft, Trash2 } from 'lucide-react'
@@ -11,24 +10,19 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createToast } from 'vercel-toast'
 import { useQuery } from '@tanstack/react-query'
+import { useLocalStorage } from 'usehooks-ts'
 import { months } from '.'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import 'vercel-toast/dist/vercel-toast.css'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { Prisma, Salary } from '@prisma/client'
-import type { AnyFormApi } from '@tanstack/react-form'
 import { reviewQueueAtom } from '@/atoms'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
 import { FeedbackCard } from '@/components/FeedbackCard'
-import { SalaryEntryForm } from '@/components/SalaryEntryForm'
 import { SalaryWithMismatchIndicator } from '@/components/SalaryWithMismatchIndicator'
 import {
-  currencyData,
+  bonusPercentage,
   formatCurrency,
-  getAreasByCountry,
-  getCountries,
   locationFactor,
   sfBenchmark,
 } from '@/lib/utils'
@@ -44,16 +38,10 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import prisma from '@/db'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
+import { NewSalaryForm } from '@/components/NewSalaryForm'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -111,6 +99,8 @@ const getEmployeeById = createUserFn({
                   locationFactor: true,
                   level: true,
                   step: true,
+                  bonusPercentage: true,
+                  bonusAmount: true,
                   benchmark: true,
                   benchmarkFactor: true,
                   totalSalary: true,
@@ -122,6 +112,20 @@ const getEmployeeById = createUserFn({
                   amountTakenInOptions: true,
                   actualSalary: true,
                   actualSalaryLocal: true,
+                },
+                where: {
+                  OR: [
+                    {
+                      communicated: true,
+                    },
+                    {
+                      timestamp: {
+                        lte: new Date(
+                          new Date().setDate(new Date().getDate() - 30),
+                        ),
+                      },
+                    },
+                  ],
                 },
               }),
         },
@@ -158,7 +162,7 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
-const getReferenceEmployees = createAuthenticatedFn({
+export const getReferenceEmployees = createAuthenticatedFn({
   method: 'GET',
 })
   .inputValidator(
@@ -166,6 +170,7 @@ const getReferenceEmployees = createAuthenticatedFn({
       level: number
       step: number
       benchmark: string
+      filterByLevel?: boolean
       filterByExec?: boolean
       filterByTitle?: boolean
       topLevelManagerId?: string | null
@@ -175,7 +180,7 @@ const getReferenceEmployees = createAuthenticatedFn({
     const whereClause: Prisma.EmployeeWhereInput = {
       salaries: {
         some: {
-          level: data.level,
+          ...(data.filterByLevel !== false ? { level: data.level } : {}),
           ...(data.filterByTitle !== false
             ? { benchmark: data.benchmark }
             : {}),
@@ -209,7 +214,9 @@ const getReferenceEmployees = createAuthenticatedFn({
     return employees
       .filter(
         (employee) =>
-          employee.salaries[0]?.level === data.level &&
+          (data.filterByLevel !== false
+            ? employee.salaries[0]?.level === data.level
+            : true) &&
           (data.filterByTitle !== false
             ? employee.salaries[0]?.benchmark === data.benchmark
             : true),
@@ -219,14 +226,20 @@ const getReferenceEmployees = createAuthenticatedFn({
         name: employee.deelEmployee?.name ?? employee.email,
         level: employee.salaries[0]?.level,
         step: employee.salaries[0]?.step,
+        locationFactor: employee.salaries[0]?.locationFactor ?? 1,
+        location:
+          employee.salaries[0]?.country + ', ' + employee.salaries[0]?.area,
+        salary: employee.salaries[0]?.totalSalary ?? 0,
       }))
-      .sort((a, b) => a.step - b.step)
+      .sort((a, b) => a.step * a.level - b.step * b.level)
   })
 
 export const updateSalary = createAuthenticatedFn({
   method: 'POST',
 })
-  .inputValidator((d: Omit<Salary, 'id' | 'timestamp' | 'communicated'>) => d)
+  .inputValidator(
+    (d: Omit<Salary, 'id' | 'timestamp' | 'communicated' | 'synced'>) => d,
+  )
   .handler(async ({ data }) => {
     // Create the salary entry
     const salary = await prisma.salary.create({
@@ -273,29 +286,28 @@ export const deleteSalary = createAuthenticatedFn({
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
-  const [showInlineForm, setShowInlineForm] = useState(
+  const [showNewSalaryForm, setShowNewSalaryForm] = useState(
     user?.role === ROLES.ADMIN,
   )
   const [showOverrideMode, setShowOverrideMode] = useState(false)
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
-  const [showDetailedColumns, setShowDetailedColumns] = useState(false)
+  const [showDetailedColumns, setShowDetailedColumns] =
+    useLocalStorage<boolean>(
+      'employee.overview.table.showDetailedColumns',
+      false,
+    )
   const [filterByExec, setFilterByExec] = useState(false)
+  const [filterByLevel, setFilterByLevel] = useState(true)
   const [filterByTitle, setFilterByTitle] = useState(true)
-  const [viewMode, setViewMode] = useState<'table' | 'card'>(() => {
-    // Load preferred view from localStorage on initial render
-    const savedView = localStorage.getItem('preferredEmployeeView')
-    return savedView === 'table' || savedView === 'card' ? savedView : 'table'
-  })
-
-  // Save view preference to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('preferredEmployeeView', viewMode)
-  }, [viewMode])
+  const [viewMode, setViewMode] = useLocalStorage<'table' | 'card'>(
+    'preferredEmployeeView',
+    'table',
+  )
 
   // Hide inline form when switching to timeline view
   useEffect(() => {
     if (viewMode === 'card') {
-      setShowInlineForm(false)
+      setShowNewSalaryForm(false)
     }
   }, [viewMode])
 
@@ -307,6 +319,10 @@ function EmployeeOverview() {
   const [benchmark, setBenchmark] = useState(
     employee.salaries[0]?.benchmark ?? 'Product Engineer',
   )
+
+  const showBonusPercentage =
+    employee.salaries.some((salary) => salary.bonusPercentage > 0) ||
+    Object.keys(bonusPercentage).includes(benchmark)
 
   if (!employee) return null
 
@@ -335,6 +351,7 @@ function EmployeeOverview() {
       step,
       benchmark,
       filterByExec,
+      filterByLevel,
       filterByTitle,
     ],
     queryFn: () =>
@@ -344,6 +361,7 @@ function EmployeeOverview() {
           step,
           benchmark,
           filterByExec,
+          filterByLevel,
           filterByTitle,
           topLevelManagerId: employee.deelEmployee?.topLevelManagerId ?? null,
         },
@@ -362,6 +380,10 @@ function EmployeeOverview() {
       name: employee.deelEmployee?.name ?? employee.email,
       level: level,
       step: step,
+      locationFactor: employee.salaries[0]?.locationFactor ?? 1,
+      location:
+        employee.salaries[0]?.country + ', ' + employee.salaries[0]?.area,
+      salary: employee.salaries[0]?.totalSalary ?? 0,
     }
 
     // Filter out current employee from refs if it exists, then add it back with updated values
@@ -369,7 +391,7 @@ function EmployeeOverview() {
     const combined = [...filteredRefs, currentEmployeeRef]
 
     // Sort by step
-    return combined.sort((a, b) => a.step - b.step)
+    return combined.sort((a, b) => a.step * a.level - b.step * b.level)
   }, [referenceEmployees, employee, level, step])
 
   // Combine and sort salary history with feedback, grouped by month
@@ -469,6 +491,19 @@ function EmployeeOverview() {
           <div className="text-right">{row.original.step}</div>
         ),
       },
+      ...(showBonusPercentage
+        ? ([
+            {
+              accessorKey: 'bonusPercentage',
+              header: () => <div className="text-right">Bonus (%)</div>,
+              cell: ({ row }) => (
+                <div className="text-right">
+                  {(row.original.bonusPercentage * 100).toFixed(2)}%
+                </div>
+              ),
+            },
+          ] as ColumnDef<Salary>[])
+        : []),
       {
         accessorKey: 'totalSalary',
         header: () => <div className="text-right">Total Salary ($)</div>,
@@ -522,7 +557,7 @@ function EmployeeOverview() {
         header: () => (
           <button
             onClick={() => setShowDetailedColumns(!showDetailedColumns)}
-            className="flex items-center justify-center text-gray-400 hover:text-gray-600 w-full"
+            className="flex w-full items-center justify-center text-gray-400 hover:text-gray-600"
           >
             <span className="text-xs">{showDetailedColumns ? '▶' : '◀'}</span>
           </button>
@@ -541,7 +576,7 @@ function EmployeeOverview() {
                   size="sm"
                   variant="ghost"
                   onClick={() => handleDeleteSalary(salary.id)}
-                  className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="h-6 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
@@ -609,7 +644,7 @@ function EmployeeOverview() {
     return showDetailedColumns
       ? [...baseColumns, ...detailedColumns]
       : [...baseColumns]
-  }, [showDetailedColumns, user?.role, employee.salaries])
+  }, [showDetailedColumns, user?.role, employee.salaries, showBonusPercentage])
 
   const handleMoveToNextEmployee = () => {
     const currentIndex = reviewQueue.indexOf(employee.id)
@@ -619,7 +654,7 @@ function EmployeeOverview() {
         to: '/employee/$employeeId',
         params: { employeeId: nextEmployee },
       })
-      setShowInlineForm(true)
+      setShowNewSalaryForm(true)
       setShowOverrideMode(false)
     } else {
       createToast(
@@ -648,25 +683,25 @@ function EmployeeOverview() {
       employee.salaries[0].benchmarkFactor
 
   return (
-    <div className="pt-8 flex justify-center flex flex-col items-center gap-5">
-      <div className="2xl:max-w-7xl w-full px-4 flex flex-col gap-5">
+    <div className="flex flex-col items-center justify-center gap-5 pt-8">
+      <div className="flex w-full flex-col gap-5 px-4 2xl:max-w-7xl">
         {user?.role === ROLES.ADMIN ? (
           <Button
             variant="ghost"
             type="button"
             onClick={() => router.navigate({ to: '/' })}
-            className="self-start -ml-2"
+            className="-ml-2 self-start"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to overview
           </Button>
         ) : null}
-        <div className="flex flex-row justify-between items-center">
+        <div className="flex flex-row items-center justify-between">
           <div className="flex flex-col">
             <span className="text-xl font-bold">
               {employee.deelEmployee?.name || employee.email || 'Edit employee'}
             </span>
-            <div className="text-sm text-gray-600 mt-1 flex gap-4">
+            <div className="mt-1 flex gap-4 text-sm text-gray-600">
               <span>Email: {employee.email}</span>
               {employee.priority ? (
                 <span>Priority: {employee.priority}</span>
@@ -681,8 +716,8 @@ function EmployeeOverview() {
               ) : null}
             </div>
           </div>
-          <div className="flex gap-2 justify-end">
-            <div className="flex gap-1 border rounded-md">
+          <div className="flex justify-end gap-2">
+            <div className="flex gap-1 rounded-md border">
               <Button
                 type="button"
                 variant={viewMode === 'table' ? 'default' : 'ghost'}
@@ -714,12 +749,12 @@ function EmployeeOverview() {
 
         {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
           <>
-            <div className="flex flex-row gap-2 justify-between items-center mt-2">
+            <div className="mt-2 flex flex-row items-center justify-between gap-2">
               <span className="text-md font-bold">Feedback</span>
             </div>
 
             <div className="w-full flex-grow">
-              <div className="mb-4 p-4 border rounded-lg bg-gray-50 max-h-[300px] overflow-y-auto">
+              <div className="mb-4 max-h-[300px] overflow-y-auto rounded-lg border bg-gray-50 p-4">
                 {employee.keeperTestFeedback.map(
                   ({
                     id,
@@ -737,9 +772,9 @@ function EmployeeOverview() {
                   }) => (
                     <div
                       key={id}
-                      className="mb-4 p-4 border rounded-lg bg-gray-50"
+                      className="mb-4 rounded-lg border bg-gray-50 p-4"
                     >
-                      <span className="text-sm text-gray-500 w-full text-right list-disc">
+                      <span className="w-full list-disc text-right text-sm text-gray-500">
                         {new Date(timestamp).toLocaleDateString()}
                       </span>
                       <ReactMarkdown
@@ -763,12 +798,12 @@ function EmployeeOverview() {
                             <h6 className="text-xs font-bold">{children}</h6>
                           ),
                           ul: ({ children }) => (
-                            <ul className="list-disc list-inside">
+                            <ul className="list-inside list-disc">
                               {children}
                             </ul>
                           ),
                           ol: ({ children }) => (
-                            <ul className="list-decimal list-inside">
+                            <ul className="list-inside list-decimal">
                               {children}
                             </ul>
                           ),
@@ -800,12 +835,12 @@ function EmployeeOverview() {
           </>
         ) : null}
 
-        <div className="flex flex-row gap-2 justify-between items-center mt-2">
+        <div className="mt-2 flex flex-row items-center justify-between gap-2">
           {viewMode === 'table' && (
             <span className="text-md font-bold">Salary history</span>
           )}
           <div className="flex gap-2">
-            {showInlineForm ? (
+            {showNewSalaryForm ? (
               <Button
                 type="button"
                 variant="outline"
@@ -818,7 +853,7 @@ function EmployeeOverview() {
                   : 'Show reference employees'}
               </Button>
             ) : null}
-            {showInlineForm ? (
+            {showNewSalaryForm ? (
               <Button
                 type="button"
                 variant="outline"
@@ -833,9 +868,9 @@ function EmployeeOverview() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setShowInlineForm(!showInlineForm)}
+                onClick={() => setShowNewSalaryForm(!showNewSalaryForm)}
               >
-                {showInlineForm ? 'Cancel' : 'Add New Salary'}
+                {showNewSalaryForm ? 'Cancel' : 'Add New Salary'}
               </Button>
             ) : null}
           </div>
@@ -884,6 +919,19 @@ function EmployeeOverview() {
             )
           })()}
 
+        {showNewSalaryForm && showReferenceEmployees && viewMode === 'card' ? (
+          <ReferenceEmployeesTable
+            referenceEmployees={combinedReferenceEmployees}
+            currentEmployee={employee}
+            filterByLevel={filterByLevel}
+            setFilterByLevel={setFilterByLevel}
+            filterByExec={filterByExec}
+            setFilterByExec={setFilterByExec}
+            filterByTitle={filterByTitle}
+            setFilterByTitle={setFilterByTitle}
+          />
+        ) : null}
+
         <div className="w-full flex-grow">
           {viewMode === 'table' ? (
             <div className="overflow-hidden rounded-md border">
@@ -907,10 +955,11 @@ function EmployeeOverview() {
                   ))}
                 </TableHeader>
                 <TableBody>
-                  {showInlineForm && (
-                    <InlineSalaryFormRow
+                  {showNewSalaryForm && (
+                    <NewSalaryForm
                       employeeId={employee.id}
-                      showOverrideMode={showOverrideMode}
+                      showOverride={showOverrideMode}
+                      setShowOverride={setShowOverrideMode}
                       latestSalary={employee.salaries[0]}
                       showDetailedColumns={showDetailedColumns}
                       totalAmountInStockOptions={employee.salaries.reduce(
@@ -918,14 +967,16 @@ function EmployeeOverview() {
                         0,
                       )}
                       onSuccess={() => {
-                        setShowInlineForm(false)
+                        setShowNewSalaryForm(false)
                         router.invalidate()
                       }}
-                      onCancel={() => setShowInlineForm(false)}
+                      onCancel={() => setShowNewSalaryForm(false)}
                       benchmarkUpdated={benchmarkUpdated}
                       setLevel={setLevel}
                       setStep={setStep}
                       setBenchmark={setBenchmark}
+                      showBonusPercentage={showBonusPercentage}
+                      displayMode="inline"
                     />
                   )}
                   {table.getRowModel().rows?.length ? (
@@ -959,67 +1010,29 @@ function EmployeeOverview() {
             </div>
           ) : (
             <div className="mb-8">
-              {showInlineForm && (
-                <>
-                  <SalaryEntryForm
-                    employeeId={employee.id}
-                    latestSalary={employee.salaries[0]}
-                    benchmarkUpdated={benchmarkUpdated}
-                    onSubmit={async (data) => {
-                      await updateSalary({ data })
-                      createToast('Salary added successfully.', {
-                        timeout: 3000,
-                      })
-                      setShowInlineForm(false)
-                      router.invalidate()
-                    }}
-                    onCancel={() => setShowInlineForm(false)}
-                  />
-                  {showReferenceEmployees && (
-                    <>
-                      <div className="flex flex-row gap-2 justify-between items-center mt-2">
-                        <span className="text-md font-bold">
-                          Reference employees
-                        </span>
-                        <div className="flex gap-4 items-center">
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              id="filter-by-exec-timeline"
-                              checked={filterByExec}
-                              onCheckedChange={setFilterByExec}
-                            />
-                            <Label
-                              htmlFor="filter-by-exec-timeline"
-                              className="text-sm"
-                            >
-                              Filter by exec
-                            </Label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              id="filter-by-title-timeline"
-                              checked={filterByTitle}
-                              onCheckedChange={setFilterByTitle}
-                            />
-                            <Label
-                              htmlFor="filter-by-title-timeline"
-                              className="text-sm"
-                            >
-                              Filter by title
-                            </Label>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="w-full flex-grow mb-8">
-                        <ReferenceEmployeesTable
-                          referenceEmployees={combinedReferenceEmployees}
-                          currentEmployee={employee}
-                        />
-                      </div>
-                    </>
+              {showNewSalaryForm && (
+                <NewSalaryForm
+                  employeeId={employee.id}
+                  showOverride={showOverrideMode}
+                  setShowOverride={setShowOverrideMode}
+                  latestSalary={employee.salaries[0]}
+                  showDetailedColumns={showDetailedColumns}
+                  totalAmountInStockOptions={employee.salaries.reduce(
+                    (acc, salary) => acc + salary.amountTakenInOptions,
+                    0,
                   )}
-                </>
+                  onSuccess={() => {
+                    setShowNewSalaryForm(false)
+                    router.invalidate()
+                  }}
+                  onCancel={() => setShowNewSalaryForm(false)}
+                  benchmarkUpdated={benchmarkUpdated}
+                  setLevel={setLevel}
+                  setStep={setStep}
+                  setBenchmark={setBenchmark}
+                  showBonusPercentage={showBonusPercentage}
+                  displayMode="card"
+                />
               )}
               {timelineByMonth.length > 0 ? (
                 timelineByMonth.map((monthGroup, monthGroupIndex) => (
@@ -1081,7 +1094,7 @@ function EmployeeOverview() {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12 text-gray-500">
+                <div className="py-12 text-center text-gray-500">
                   No history available.
                 </div>
               )}
@@ -1089,525 +1102,20 @@ function EmployeeOverview() {
           )}
         </div>
 
-        {showInlineForm && showReferenceEmployees && (
-          <>
-            <div className="flex flex-row gap-2 justify-between items-center mt-2">
-              <span className="text-md font-bold">Reference employees</span>
-              <div className="flex gap-4 items-center">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="filter-by-exec"
-                    checked={filterByExec}
-                    onCheckedChange={setFilterByExec}
-                  />
-                  <Label htmlFor="filter-by-exec" className="text-sm">
-                    Filter by exec
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="filter-by-title"
-                    checked={filterByTitle}
-                    onCheckedChange={setFilterByTitle}
-                  />
-                  <Label htmlFor="filter-by-title" className="text-sm">
-                    Filter by title
-                  </Label>
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full flex-grow">
-              <ReferenceEmployeesTable
-                referenceEmployees={combinedReferenceEmployees}
-                currentEmployee={employee}
-              />
-            </div>
-          </>
-        )}
+        {showNewSalaryForm && showReferenceEmployees && viewMode === 'table' ? (
+          <ReferenceEmployeesTable
+            referenceEmployees={combinedReferenceEmployees}
+            currentEmployee={employee}
+            filterByLevel={filterByLevel}
+            setFilterByLevel={setFilterByLevel}
+            filterByExec={filterByExec}
+            setFilterByExec={setFilterByExec}
+            filterByTitle={filterByTitle}
+            setFilterByTitle={setFilterByTitle}
+          />
+        ) : null}
       </div>
     </div>
-  )
-}
-
-function InlineSalaryFormRow({
-  employeeId,
-  showOverrideMode,
-  onSuccess,
-  onCancel,
-  latestSalary,
-  showDetailedColumns,
-  totalAmountInStockOptions,
-  benchmarkUpdated,
-  setLevel,
-  setStep,
-  setBenchmark,
-}: {
-  employeeId: string
-  showOverrideMode: boolean
-  onSuccess: () => void
-  onCancel: () => void
-  latestSalary: Salary | undefined
-  showDetailedColumns: boolean
-  totalAmountInStockOptions: number
-  benchmarkUpdated: boolean
-  setLevel: (level: number) => void
-  setStep: (step: number) => void
-  setBenchmark: (benchmark: string) => void
-}) {
-  const getDefaultValues = () => ({
-    country: latestSalary?.country ?? 'United States',
-    area: latestSalary?.area ?? 'San Francisco, California',
-    locationFactor: latestSalary?.locationFactor ?? 0,
-    level: latestSalary?.level ?? 1,
-    step: latestSalary?.step ?? 1,
-    benchmark: latestSalary?.benchmark ?? 'Product Engineer',
-    benchmarkFactor: latestSalary?.benchmarkFactor ?? 0,
-    totalSalary: latestSalary?.totalSalary ?? 0,
-    changePercentage: 0, // Always 0 for new entries
-    changeAmount: 0, // Always 0 for new entries
-    localCurrency: latestSalary?.localCurrency ?? 'USD',
-    exchangeRate: latestSalary?.exchangeRate ?? 1,
-    totalSalaryLocal: latestSalary?.totalSalaryLocal ?? 0,
-    amountTakenInOptions: 0,
-    actualSalary: latestSalary?.actualSalary ?? 0,
-    actualSalaryLocal: latestSalary?.actualSalaryLocal ?? 0,
-    notes: '',
-    employeeId: employeeId,
-  })
-
-  const updateFormFields = (formApi: AnyFormApi) => {
-    const location = locationFactor.find(
-      (l) =>
-        l.country === formApi.getFieldValue('country') &&
-        l.area === formApi.getFieldValue('area'),
-    )
-    const locationFactorValue = location?.locationFactor ?? 0
-    formApi.setFieldValue(
-      'locationFactor',
-      Number(locationFactorValue.toFixed(2)),
-    )
-
-    const benchmarkValue = formApi.getFieldValue('benchmark')
-    const benchmarkFactor = benchmarkValue?.includes('(old)')
-      ? (latestSalary?.benchmarkFactor ?? 0)
-      : (sfBenchmark[
-          benchmarkValue?.replace(' (old)', '') as keyof typeof sfBenchmark
-        ] ?? 0)
-    formApi.setFieldValue('benchmarkFactor', Number(benchmarkFactor.toFixed(2)))
-
-    const currentLocationFactor = formApi.getFieldValue('locationFactor') ?? 0
-    const level = formApi.getFieldValue('level') ?? 1
-    const step = formApi.getFieldValue('step') ?? 1
-    let totalSalary = currentLocationFactor * level * step * benchmarkFactor
-    if (!showOverrideMode) {
-      formApi.setFieldValue('totalSalary', Number(totalSalary.toFixed(2)))
-    } else {
-      totalSalary = formApi.getFieldValue('totalSalary') ?? totalSalary
-    }
-
-    // Calculate change from the latest salary
-    const latestTotalSalary = latestSalary?.totalSalary ?? 0
-    const changePercentage =
-      latestTotalSalary > 0 ? totalSalary / latestTotalSalary - 1 : 0
-    formApi.setFieldValue(
-      'changePercentage',
-      Number(changePercentage.toFixed(4)),
-    )
-
-    const changeAmount = totalSalary - latestTotalSalary
-    formApi.setFieldValue('changeAmount', Number(changeAmount.toFixed(2)))
-
-    const exchangeRate = currencyData[location?.currency ?? ''] ?? 1
-    formApi.setFieldValue('exchangeRate', exchangeRate)
-    formApi.setFieldValue(
-      'localCurrency',
-      currencyData[location?.currency ?? ''] ? location?.currency : 'USD',
-    )
-
-    const totalSalaryLocal = totalSalary * exchangeRate
-    formApi.setFieldValue(
-      'totalSalaryLocal',
-      Number(totalSalaryLocal.toFixed(2)),
-    )
-
-    const amountTakenInOptions =
-      formApi.getFieldValue('amountTakenInOptions') ?? 0
-    const actualSalary =
-      totalSalary - amountTakenInOptions - totalAmountInStockOptions
-    formApi.setFieldValue('actualSalary', Number(actualSalary.toFixed(2)))
-
-    const actualSalaryLocal = actualSalary * exchangeRate
-    formApi.setFieldValue(
-      'actualSalaryLocal',
-      Number(actualSalaryLocal.toFixed(2)),
-    )
-  }
-
-  const form = useForm({
-    defaultValues: getDefaultValues(),
-    onSubmit: async ({ value }) => {
-      await updateSalary({ data: value })
-      onSuccess()
-      createToast('Salary added successfully.', {
-        timeout: 3000,
-      })
-    },
-    listeners: {
-      onMount({ formApi }) {
-        updateFormFields(formApi)
-      },
-      onChange: ({ formApi, fieldApi }) => {
-        if (
-          [
-            'country',
-            'area',
-            'level',
-            'step',
-            'benchmark',
-            'amountTakenInOptions',
-          ].includes(fieldApi.name)
-        ) {
-          updateFormFields(formApi)
-        } else if (
-          ['totalSalary'].includes(fieldApi.name) &&
-          showOverrideMode
-        ) {
-          updateFormFields(formApi)
-        }
-      },
-    },
-  })
-
-  const level = useStore(form.store, (state) => state.values.level)
-  const step = useStore(form.store, (state) => state.values.step)
-  const benchmark = useStore(form.store, (state) => state.values.benchmark)
-  const canSubmit = useStore(form.store, (state) => state.canSubmit)
-
-  useEffect(() => {
-    setLevel(level)
-    setStep(step)
-    setBenchmark(benchmark)
-  }, [level, step, benchmark, setLevel, setStep, setBenchmark])
-
-  useEffect(() => {
-    form.reset(getDefaultValues())
-    form.mount()
-  }, [employeeId])
-
-  const country = useStore(form.store, (state) => state.values.country)
-
-  return (
-    <TableRow className="bg-blue-50">
-      <TableCell>
-        <div className="text-xs text-gray-500">New Entry</div>
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="country"
-          children={(field) => (
-            <Select
-              value={field.state.value}
-              onValueChange={(value) => field.handleChange(value)}
-            >
-              <SelectTrigger className="w-full h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {getCountries().map((country) => (
-                  <SelectItem key={country} value={country}>
-                    {country}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="area"
-          children={(field) => (
-            <Select
-              value={field.state.value}
-              onValueChange={(value) => field.handleChange(value)}
-              disabled={!country}
-            >
-              <SelectTrigger className="w-full h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {getAreasByCountry(country).map((area) => (
-                  <SelectItem key={area} value={area}>
-                    {area}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="benchmark"
-          children={(field) => (
-            <Select
-              value={field.state.value}
-              onValueChange={(value) => field.handleChange(value)}
-            >
-              <SelectTrigger className="w-full h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {benchmarkUpdated ? (
-                  <SelectItem
-                    value={`${latestSalary?.benchmark?.replace(' (old)', '')} (old)`}
-                    key="old-benchmark"
-                  >
-                    {latestSalary?.benchmark?.replace(' (old)', '')} (old) (
-                    {latestSalary?.benchmarkFactor})
-                  </SelectItem>
-                ) : null}
-                {Object.keys(sfBenchmark).map((benchmark) => (
-                  <SelectItem key={benchmark} value={benchmark}>
-                    {benchmark} ({sfBenchmark[benchmark]})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="locationFactor"
-          children={(field) => (
-            <div className="text-xs py-1 px-1 text-right">
-              {field.state.value}
-            </div>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="level"
-          children={(field) => (
-            <Select
-              value={field.state.value.toString()}
-              onValueChange={(value) => field.handleChange(Number(value))}
-            >
-              <SelectTrigger className="w-full h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0.59">Junior (0.59)</SelectItem>
-                <SelectItem value="0.78">Intermediate (0.78)</SelectItem>
-                <SelectItem value="1">Senior (1)</SelectItem>
-                <SelectItem value="1.2">Staff (1.2)</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="step"
-          validators={{
-            onChange: ({ value }) => {
-              if (value < 0.85 || value > 1.2) {
-                return 'Step must be between 0.85 and 1.2'
-              }
-            },
-          }}
-          children={(field) => (
-            <Input
-              className={
-                'w-full h-6 text-xs min-w-[70px]' +
-                (field.state.meta.errors.length > 0
-                  ? ' border-red-500 ring-red-500'
-                  : '')
-              }
-              value={field.state.value}
-              type="number"
-              step={0.01}
-              min={0.85}
-              max={1.2}
-              onChange={(e) => field.handleChange(Number(e.target.value))}
-            />
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="totalSalary"
-          children={(field) => {
-            const locationFactor = form.getFieldValue('locationFactor') ?? 0
-            const level = form.getFieldValue('level') ?? 1
-            const step = form.getFieldValue('step') ?? 1
-            const benchmarkFactor = form.getFieldValue('benchmarkFactor') ?? 0
-
-            if (showOverrideMode) {
-              return (
-                <Input
-                  className="w-full h-6 text-xs min-w-[70px]"
-                  value={field.state.value}
-                  type="number"
-                  step={1}
-                  onChange={(e) => field.handleChange(Number(e.target.value))}
-                />
-              )
-            }
-
-            return (
-              <SalaryWithMismatchIndicator
-                totalSalary={field.state.value}
-                benchmarkFactor={benchmarkFactor}
-                locationFactor={locationFactor}
-                level={level}
-                step={step}
-                className="text-xs py-1 px-1"
-                align="right"
-              />
-            )
-          }}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="changeAmount"
-          children={(field) => (
-            <div className="text-xs py-1 px-1 text-right">
-              {formatCurrency(field.state.value)}
-            </div>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="changePercentage"
-          children={(field) => (
-            <div className="text-xs py-1 px-1 text-right">
-              {(field.state.value * 100).toFixed(2)}%
-            </div>
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <form.Field
-          name="notes"
-          children={(field) => (
-            <Textarea
-              className="w-full min-h-[24px] text-xs !text-xs resize-none"
-              value={field.state.value}
-              onChange={(e) => field.handleChange(e.target.value)}
-              placeholder="Notes..."
-              autoFocus
-            />
-          )}
-        />
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center justify-center text-gray-400">
-          <span className="text-xs">{showDetailedColumns ? '▶' : '◀'}</span>
-        </div>
-      </TableCell>
-      {showDetailedColumns && (
-        <>
-          <TableCell>
-            <form.Field
-              name="exchangeRate"
-              children={(field) => (
-                <div className="text-xs py-1 px-1 text-right">
-                  {field.state.value}
-                </div>
-              )}
-            />
-          </TableCell>
-          <TableCell>
-            <form.Field
-              name="totalSalaryLocal"
-              children={(field) => {
-                const localCurrency =
-                  form.getFieldValue('localCurrency') ?? 'USD'
-                return (
-                  <div className="text-xs py-1 px-1 text-right">
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: localCurrency,
-                    }).format(field.state.value)}
-                  </div>
-                )
-              }}
-            />
-          </TableCell>
-          <TableCell>
-            <form.Field
-              name="amountTakenInOptions"
-              children={(field) => (
-                <Input
-                  className="w-full h-6 text-xs"
-                  value={field.state.value}
-                  type="number"
-                  onChange={(e) => field.handleChange(Number(e.target.value))}
-                />
-              )}
-            />
-          </TableCell>
-          <TableCell>
-            <form.Field
-              name="actualSalary"
-              children={(field) => (
-                <div className="text-xs py-1 px-1 text-right">
-                  {formatCurrency(field.state.value)}
-                </div>
-              )}
-            />
-          </TableCell>
-          <TableCell>
-            <form.Field
-              name="actualSalaryLocal"
-              children={(field) => {
-                const localCurrency =
-                  form.getFieldValue('localCurrency') ?? 'USD'
-                return (
-                  <div className="text-xs py-1 px-1 text-right">
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: localCurrency,
-                    }).format(field.state.value)}
-                  </div>
-                )
-              }}
-            />
-          </TableCell>
-        </>
-      )}
-      <TableCell>
-        <div className="flex gap-1">
-          <Button
-            type="button"
-            size="sm"
-            disabled={!canSubmit}
-            onClick={(e) => {
-              e.preventDefault()
-              form.handleSubmit()
-            }}
-            className="h-6 px-2 text-xs"
-          >
-            Save
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={onCancel}
-            className="h-6 px-2 text-xs"
-          >
-            Cancel
-          </Button>
-        </div>
-      </TableCell>
-    </TableRow>
   )
 }
 
@@ -1616,14 +1124,29 @@ type ReferenceEmployee = {
   name: string
   level: number
   step: number
+  locationFactor: number
+  location: string
+  salary: number
 }
 
 function ReferenceEmployeesTable({
   referenceEmployees,
   currentEmployee,
+  filterByLevel,
+  setFilterByLevel,
+  filterByExec,
+  setFilterByExec,
+  filterByTitle,
+  setFilterByTitle,
 }: {
   referenceEmployees: Array<ReferenceEmployee>
   currentEmployee: Employee
+  filterByLevel: boolean
+  setFilterByLevel: (filterByLevel: boolean) => void
+  filterByExec: boolean
+  setFilterByExec: (filterByExec: boolean) => void
+  filterByTitle: boolean
+  setFilterByTitle: (filterByTitle: boolean) => void
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const currentEmployeeRowRef = useRef<HTMLTableRowElement>(null)
@@ -1688,61 +1211,107 @@ function ReferenceEmployeesTable({
   }, [referenceEmployees, currentEmployee.id])
 
   return (
-    <div
-      ref={scrollContainerRef}
-      className="overflow-hidden max-h-[300px] overflow-y-auto rounded-md border"
-    >
-      <Table className="text-xs">
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
+    <>
+      <div className="mt-2 flex flex-row items-center justify-between gap-2">
+        <span className="text-md font-bold">Reference employees</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="filter-by-level"
+              checked={filterByLevel}
+              onCheckedChange={setFilterByLevel}
+            />
+            <Label htmlFor="filter-by-level" className="text-sm">
+              Filter by level
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="filter-by-exec"
+              checked={filterByExec}
+              onCheckedChange={setFilterByExec}
+            />
+            <Label htmlFor="filter-by-exec" className="text-sm">
+              Filter by exec
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="filter-by-title"
+              checked={filterByTitle}
+              onCheckedChange={setFilterByTitle}
+            />
+            <Label htmlFor="filter-by-title" className="text-sm">
+              Filter by title
+            </Label>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full flex-grow">
+        <div
+          ref={scrollContainerRef}
+          className="max-h-[300px] overflow-hidden overflow-y-auto rounded-md border"
+        >
+          <Table className="text-xs">
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    )
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    ref={(el) => {
+                      if (currentEmployee.id === row.original.id) {
+                        currentEmployeeRowRef.current = el
+                      }
+                    }}
+                    onClick={() =>
+                      window.open(`/employee/${row.original.id}`, '_blank')
+                    }
+                    className={`cursor-pointer ${currentEmployee.id === row.original.id ? 'bg-blue-200 font-semibold' : ''}`}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
                         )}
-                  </TableHead>
-                )
-              })}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                ref={(el) => {
-                  if (currentEmployee.id === row.original.id) {
-                    currentEmployeeRowRef.current = el
-                  }
-                }}
-                onClick={() =>
-                  window.open(`/employee/${row.original.id}`, '_blank')
-                }
-                className={`cursor-pointer ${currentEmployee.id === row.original.id ? 'bg-blue-200 font-semibold' : ''}`}
-                data-state={row.getIsSelected() && 'selected'}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results.
                   </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No results.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </>
   )
 }

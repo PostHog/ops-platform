@@ -10,7 +10,6 @@ type FetchedDeelEmployee = DeelEmployee & {
     area: string
     role: string
   }
-  contractId: string
 }
 
 export const fetchDeelEmployees = async () => {
@@ -38,7 +37,11 @@ export const fetchDeelEmployees = async () => {
         (employee: any) =>
           employee.active &&
           employee['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']
-            .customFields.full_time_headcount === 'Full-Time',
+            .customFields.full_time_headcount === 'Full-Time' &&
+          !['inactive', 'no_active_contracts'].includes(
+            employee['urn:ietf:params:scim:schemas:extension:2.0:User']
+              .hiringStatus,
+          ),
       ).map((employee: any) => ({
         id: employee.id,
         name:
@@ -67,9 +70,6 @@ export const fetchDeelEmployees = async () => {
         customFields:
           employee['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']
             .customFields,
-        contractId:
-          employee['urn:ietf:params:scim:schemas:extension:2.0:User']
-            .employments[0].contractId,
       })),
     ]
     hasMore = data.totalResults > 100
@@ -98,7 +98,7 @@ export const Route = createFileRoute('/syncDeelEmployees')({
       POST: async ({ request }) => {
         const token = request.headers.get('Authorization')?.split(' ')[1]
         if (token !== process.env.SYNC_ENDPOINT_KEY) {
-          return new Response('Unauthorized' + token, { status: 401 })
+          return new Response('Unauthorized', { status: 401 })
         }
 
         const deelEmployees = await fetchDeelEmployees()

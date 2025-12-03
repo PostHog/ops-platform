@@ -151,7 +151,7 @@ function RouteComponent() {
       header: 'Hiring Profile',
       cell: ({ row }) => {
         return (
-          <div className="whitespace-pre-line min-w-[200px]">
+          <div className="min-w-[200px] whitespace-pre-line">
             {row.original.hiringProfile}
           </div>
         )
@@ -188,8 +188,8 @@ function RouteComponent() {
   })
 
   return (
-    <div className="flex justify-center">
-      <div className="max-w-[80%] flex-grow">
+    <div className="flex justify-center px-4">
+      <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="flex justify-between py-4">
           <div></div>
           <div className="flex items-center space-x-2">
@@ -248,7 +248,7 @@ function RouteComponent() {
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} className="hover:bg-gray-50">
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-1 px-1">
+                      <TableCell key={cell.id} className="px-1 py-1">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),

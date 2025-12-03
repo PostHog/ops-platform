@@ -5,12 +5,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { TooltipProvider } from '@/components/ui/tooltip'
-import { getCountryFlag } from '@/lib/utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { formatCurrency, getCountryFlag } from '@/lib/utils'
 import { MoreVertical, PencilLine, Trash2 } from 'lucide-react'
 import type { Salary } from '@prisma/client'
-import { SalaryChangeDisplay } from './SalaryChangeDisplay'
-import { LevelStepDisplay } from './LevelStepDisplay'
 
 interface SalaryHistoryCardProps {
   salary: Salary
@@ -25,6 +28,10 @@ export function SalaryHistoryCard({
   onDelete,
   lastTableItem = false,
 }: SalaryHistoryCardProps) {
+  const expectedTotal =
+    salary.locationFactor * salary.level * salary.step * salary.benchmarkFactor
+  const isMismatch = Math.abs(salary.totalSalary - expectedTotal) > 0.01
+
   const hoursSinceCreation =
     (Date.now() - salary.timestamp.getTime()) / (1000 * 60 * 60)
   const isDeletable = hoursSinceCreation <= 24
@@ -32,27 +39,53 @@ export function SalaryHistoryCard({
   return (
     <TooltipProvider>
       <div
-        className={`bg-white w-full border border-t-0${lastTableItem ? ' rounded-b-md' : ''}`}
+        className={`w-full border bg-white border-t-0${lastTableItem ? 'rounded-b-md' : ''}`}
       >
-        <div className="ml-8 border-l-[3px] border-gray-200 px-4 py-2 flex flex-col gap-y-2">
+        <div className="ml-8 flex flex-col gap-y-2 border-l-[3px] border-gray-200 px-4 py-2">
           <div className="flex justify-between gap-x-4">
             <div className="flex items-center gap-x-4">
               {/* salary change */}
-              <SalaryChangeDisplay
-                changePercentage={salary.changePercentage}
-                changeAmount={salary.changeAmount}
-                totalSalary={salary.totalSalary}
-                size="lg"
-                benchmarkFactor={salary.benchmarkFactor}
-                locationFactor={salary.locationFactor}
-                level={salary.level}
-                step={salary.step}
-              />
-              <div className="leading-none text-sm">
+              <div className="flex items-center gap-2 text-xl">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className={`cursor-help font-bold ${salary.changePercentage > 0 ? 'text-green-600' : salary.changePercentage < 0 ? 'text-red-600' : ''}`}
+                    >
+                      {salary.changePercentage >= 0 ? '+' : ''}
+                      {(salary.changePercentage * 100).toFixed(2)}%
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Change: {formatCurrency(salary.changeAmount)}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-gray-400">·</span>
+                {isMismatch ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-red-600">
+                        {formatCurrency(salary.totalSalary)}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Mismatch detected! Expected:{' '}
+                        {formatCurrency(expectedTotal)}, Actual:{' '}
+                        {formatCurrency(salary.totalSalary)}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <span className="text-gray-700">
+                    {formatCurrency(salary.totalSalary)}
+                  </span>
+                )}
+              </div>
+              <div className="text-sm leading-none">
                 <span className="font-semibold">
                   {salary.benchmark} ({salary.benchmarkFactor})
                 </span>
-                <span className="text-gray-600 ml-1">
+                <span className="ml-1 text-gray-600">
                   <span className="italic">in</span> {salary.area},{' '}
                   {salary.country} ({salary.locationFactor}){' '}
                   {getCountryFlag(salary.country)}
@@ -60,8 +93,20 @@ export function SalaryHistoryCard({
               </div>
             </div>
             {/* level / step */}
-            <div className="flex justify-between items-start">
-              <LevelStepDisplay level={salary.level} step={salary.step} />
+            <div className="flex items-start justify-between">
+              <div className="flex justify-end gap-2">
+                <div>
+                  <div className="text-xl font-bold">
+                    {salary.level === 1 ? '1.0' : salary.level}
+                  </div>
+                  <div className="text-center text-xs text-gray-500">level</div>
+                </div>
+                <div className="text-2xl text-gray-300">/</div>
+                <div>
+                  <div className="text-xl font-bold">{salary.step}</div>
+                  <div className="text-center text-xs text-gray-500">step</div>
+                </div>
+              </div>
               {isAdmin && isDeletable && onDelete && (
                 <div className="-mr-2">
                   <DropdownMenu>
@@ -69,7 +114,7 @@ export function SalaryHistoryCard({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 ml-2"
+                        className="ml-2 h-8 w-8 p-0"
                       >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
@@ -90,7 +135,7 @@ export function SalaryHistoryCard({
           </div>
 
           {salary.notes && isAdmin && (
-            <div className="text-xs italic text-gray-700 whitespace-pre-line flex mb-1">
+            <div className="mb-1 flex text-xs whitespace-pre-line text-gray-700 italic">
               <PencilLine className="mr-2 h-4 w-4 text-gray-500" />
               {salary.notes}
             </div>

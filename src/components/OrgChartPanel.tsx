@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronsUpDown, SettingsIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,6 +16,29 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import type { Prisma } from '@prisma/client'
+import type { OrgChartMode } from '@/routes/org-chart'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog'
+import { orgChartAutozoomingEnabledAtom } from '@/atoms'
+import { useAtom } from 'jotai'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -33,80 +56,138 @@ const OrgChartPanel = ({
   selectedNode,
   setSelectedNode,
   idValue = 'id',
+  viewMode,
+  onViewModeChange,
 }: {
   employees: Array<DeelEmployee>
   selectedNode: string | null
   setSelectedNode: (node: string | null) => void
   idValue?: 'id' | 'employeeId'
+  viewMode?: OrgChartMode
+  onViewModeChange?: (mode: OrgChartMode) => void
 }) => {
   const [open, setOpen] = useState(false)
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
+  const [autoZoomingEnabled, setAutoZoomingEnabled] = useAtom(
+    orgChartAutozoomingEnabledAtom,
+  )
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="min-w-[300px] justify-between w-full"
-        >
-          {selectedNode
-            ? employees.find((employee) =>
-                idValue === 'id'
-                  ? employee.id === selectedNode
-                  : employee.employee?.id === selectedNode,
-              )?.name
-            : 'Search employee...'}
-          <ChevronsUpDown className="opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0">
-        <Command>
-          <CommandInput placeholder="Search employee..." className="h-9" />
-          <CommandList>
-            <CommandEmpty>No employee found.</CommandEmpty>
-            <CommandGroup>
-              {employees
-                .filter((employee) => employee.employee?.id)
-                .map((employee) => (
-                  <CommandItem
-                    key={employee.id}
-                    value={`${employee.id} - ${employee.name} - ${employee.employee?.id} - ${employee.workEmail}`}
-                    onSelect={(currentValue) => {
-                      setSelectedNode(
-                        (
-                          idValue === 'id'
-                            ? currentValue.split(' - ')[0] === selectedNode
-                            : currentValue.split(' - ')[2] === selectedNode
+    <div className="flex w-[300px] flex-row gap-4">
+      <Popover modal={true} open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full min-w-[300px] justify-between"
+          >
+            {selectedNode
+              ? employees.find((employee) =>
+                  idValue === 'id'
+                    ? employee.id === selectedNode
+                    : employee.employee?.id === selectedNode,
+                )?.name
+              : 'Search employee...'}
+            <ChevronsUpDown className="opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[300px] p-0">
+          <Command>
+            <CommandInput placeholder="Search employee..." className="h-9" />
+            <CommandList>
+              <CommandEmpty>No employee found.</CommandEmpty>
+              <CommandGroup>
+                {employees
+                  .filter((employee) => employee.employee?.id)
+                  .map((employee) => (
+                    <CommandItem
+                      key={employee.id}
+                      value={`${employee.id} - ${employee.name} - ${employee.employee?.id} - ${employee.workEmail}`}
+                      onSelect={(currentValue) => {
+                        setSelectedNode(
+                          (
+                            idValue === 'id'
+                              ? currentValue.split(' - ')[0] === selectedNode
+                              : currentValue.split(' - ')[2] === selectedNode
+                          )
+                            ? null
+                            : idValue === 'id'
+                              ? currentValue.split(' - ')[0]
+                              : currentValue.split(' - ')[2],
                         )
-                          ? null
-                          : idValue === 'id'
-                            ? currentValue.split(' - ')[0]
-                            : currentValue.split(' - ')[2],
-                      )
-                      setOpen(false)
-                    }}
-                  >
-                    {employee.name}
-                    <Check
-                      className={cn(
-                        'ml-auto',
-                        (
-                          idValue === 'id'
-                            ? selectedNode === employee.id
-                            : selectedNode === employee.employee?.id
-                        )
-                          ? 'opacity-100'
-                          : 'opacity-0',
-                      )}
-                    />
-                  </CommandItem>
-                ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+                        setOpen(false)
+                      }}
+                    >
+                      {employee.name}
+                      <Check
+                        className={cn(
+                          'ml-auto',
+                          (
+                            idValue === 'id'
+                              ? selectedNode === employee.id
+                              : selectedNode === employee.employee?.id
+                          )
+                            ? 'opacity-100'
+                            : 'opacity-0',
+                        )}
+                      />
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {viewMode ? (
+        <>
+          <Select value={viewMode} onValueChange={onViewModeChange}>
+            <SelectTrigger className="w-[180px] bg-white">
+              <SelectValue placeholder="Select a view mode" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>View modes</SelectLabel>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="team">Team</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <Dialog
+            open={settingsDialogOpen}
+            onOpenChange={setSettingsDialogOpen}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <SettingsIcon />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Settings</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4">
+                <div className="flex items-center justify-between gap-4">
+                  <Label htmlFor="autozoom-toggle" className="cursor-pointer">
+                    Enable autozoom
+                  </Label>
+                  <Switch
+                    id="autozoom-toggle"
+                    checked={autoZoomingEnabled}
+                    onCheckedChange={setAutoZoomingEnabled}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Close</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      ) : null}
+    </div>
   )
 }
 

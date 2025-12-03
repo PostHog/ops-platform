@@ -14,19 +14,26 @@ datasource db {
 }
 
 model Employee {
-  id                           String               @id @default(cuid())
+  id                           String                 @id @default(cuid())
   priority                     Priority
   reviewed                     Boolean
-  email                        String               @unique
+  email                        String                 @unique
   salaries                     Salary[]
   deelEmployee                 DeelEmployee?
-  keeperTestFeedback           KeeperTestFeedback[] @relation("employee")
+  keeperTestFeedback           KeeperTestFeedback[]   @relation("employee")
   checkIn30DaysScheduled       Boolean
   checkIn60DaysScheduled       Boolean
   checkIn80DaysScheduled       Boolean
-  proposedHires                ProposedHire[]       @relation("manager")
+  proposedHires                ProposedHire[]         @relation("manager")
   proposedHiresAsTalentPartner ProposedHire[]
-  keeperTestFeedbackSubmitted  KeeperTestFeedback[] @relation("manager")
+  keeperTestFeedbackSubmitted  KeeperTestFeedback[]   @relation("manager")
+  salaryDeviationStatus        SalaryDeviationStatus?
+  salaryDeviationCheckedAt     DateTime               @default(now())
+}
+
+enum SalaryDeviationStatus {
+  IN_SYNC
+  DEVIATED
 }
 
 model DeelEmployee {
@@ -65,6 +72,8 @@ model Salary {
   benchmark            String
   benchmarkFactor      Float
   totalSalary          Float
+  bonusPercentage      Float    @default(0)
+  bonusAmount          Float    @default(0)
   changePercentage     Float
   changeAmount         Float
   exchangeRate         Float
@@ -75,6 +84,7 @@ model Salary {
   actualSalaryLocal    Float
   notes                String
   employeeId           String
+  synced               Boolean  @default(true)
   communicated         Boolean  @default(false)
   employee             Employee @relation(fields: [employeeId], references: [id])
 }

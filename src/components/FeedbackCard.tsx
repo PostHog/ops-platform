@@ -49,19 +49,19 @@ export function FeedbackCard({
 }: FeedbackCardProps) {
   return (
     <div
-      className={`border border-t-0 border-gray-200${lastTableItem ? ' rounded-b-md' : ''}`}
+      className={`border border-t-0 border-gray-200${lastTableItem ? 'rounded-b-md' : ''}`}
     >
-      <div className="border-l-[3px] border-gray-200 px-4 py-2 ml-8 flex flex-col gap-3">
+      <div className="ml-8 flex flex-col gap-3 border-l-[3px] border-gray-200 px-4 py-2">
         <div>
           <h4
-            className={`text-sm font-semibold flex items-center gap-1.5 ${
+            className={`flex items-center gap-1.5 text-sm font-semibold ${
               feedback.wouldYouTryToKeepThem ? 'text-green-700' : 'text-red-700'
             }`}
           >
             {feedback.wouldYouTryToKeepThem ? (
-              <CheckCircle className="w-4 h-4" />
+              <CheckCircle className="h-4 w-4" />
             ) : (
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             )}
             {feedback.wouldYouTryToKeepThem
               ? 'I would fight to keep'
@@ -78,9 +78,9 @@ export function FeedbackCard({
           <TraitBadge
             icon={
               feedback.driverOrPassenger === 'DRIVER' ? (
-                <TrendingUp className="w-3 h-3" />
+                <TrendingUp className="h-3 w-3" />
               ) : (
-                <TrendingDown className="w-3 h-3" />
+                <TrendingDown className="h-3 w-3" />
               )
             }
             label={
@@ -91,9 +91,9 @@ export function FeedbackCard({
           <TraitBadge
             icon={
               feedback.proactiveToday ? (
-                <Zap className="w-3 h-3" />
+                <Zap className="h-3 w-3" />
               ) : (
-                <Clock className="w-3 h-3" />
+                <Clock className="h-3 w-3" />
               )
             }
             label={feedback.proactiveToday ? 'Proactive' : 'Reactive'}
@@ -102,9 +102,9 @@ export function FeedbackCard({
           <TraitBadge
             icon={
               feedback.optimisticByDefault ? (
-                <Sun className="w-3 h-3" />
+                <Sun className="h-3 w-3" />
               ) : (
-                <CloudRain className="w-3 h-3" />
+                <CloudRain className="h-3 w-3" />
               )
             }
             label={
@@ -115,28 +115,28 @@ export function FeedbackCard({
         </div>
         {feedback.whatMakesThemValuable && (
           <div className="max-w-4xl">
-            <p className="text-sm font-bold mb-1 text-gray-700">
+            <p className="mb-1 text-sm font-bold text-gray-700">
               What makes them so valuable to your team and PostHog?
             </p>
-            <p className="italic text-sm text-gray-500">
+            <p className="text-sm text-gray-500 italic">
               {feedback.whatMakesThemValuable}
             </p>
           </div>
         )}
         <div className="max-w-4xl">
-          <p className="text-sm font-bold mb-1 text-gray-700">
+          <p className="mb-1 text-sm font-bold text-gray-700">
             Areas to watch:
           </p>
-          <p className="italic text-sm text-gray-500">
+          <p className="text-sm text-gray-500 italic">
             {feedback.areasToWatch}
           </p>
         </div>
         {feedback.recommendation && (
           <div>
-            <p className="text-sm font-bold mb-1 text-gray-700">
+            <p className="mb-1 text-sm font-bold text-gray-700">
               Recommendation:
             </p>
-            <p className="italic text-sm text-gray-500">
+            <p className="text-sm text-gray-500 italic">
               {feedback.recommendation}
             </p>
           </div>

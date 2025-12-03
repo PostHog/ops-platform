@@ -9,8 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SyncSalaryUpdatesRouteImport } from './routes/syncSalaryUpdates'
 import { Route as SyncDeelEmployeesRouteImport } from './routes/syncDeelEmployees'
 import { Route as ScheduleCheckInsRouteImport } from './routes/scheduleCheckIns'
+import { Route as SalaryDeviationCheckerRouteImport } from './routes/salaryDeviationChecker'
+import { Route as SalarySyncStatusRouteImport } from './routes/salary-sync-status'
 import { Route as RunScheduledJobsRouteImport } from './routes/runScheduledJobs'
 import { Route as ReceiveKeeperTestResultsRouteImport } from './routes/receiveKeeperTestResults'
 import { Route as ProposedHiresRouteImport } from './routes/proposed-hires'
@@ -18,11 +21,17 @@ import { Route as OrgChartRouteImport } from './routes/org-chart'
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ErrorRouteImport } from './routes/error'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmployeeEmployeeIdRouteImport } from './routes/employee.$employeeId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const SyncSalaryUpdatesRoute = SyncSalaryUpdatesRouteImport.update({
+  id: '/syncSalaryUpdates',
+  path: '/syncSalaryUpdates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SyncDeelEmployeesRoute = SyncDeelEmployeesRouteImport.update({
   id: '/syncDeelEmployees',
   path: '/syncDeelEmployees',
@@ -31,6 +40,16 @@ const SyncDeelEmployeesRoute = SyncDeelEmployeesRouteImport.update({
 const ScheduleCheckInsRoute = ScheduleCheckInsRouteImport.update({
   id: '/scheduleCheckIns',
   path: '/scheduleCheckIns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalaryDeviationCheckerRoute = SalaryDeviationCheckerRouteImport.update({
+  id: '/salaryDeviationChecker',
+  path: '/salaryDeviationChecker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalarySyncStatusRoute = SalarySyncStatusRouteImport.update({
+  id: '/salary-sync-status',
+  path: '/salary-sync-status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RunScheduledJobsRoute = RunScheduledJobsRouteImport.update({
@@ -69,6 +88,11 @@ const ErrorRoute = ErrorRouteImport.update({
   path: '/error',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ActionsRoute = ActionsRouteImport.update({
   id: '/actions',
   path: '/actions',
@@ -93,6 +117,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
+  '/analytics': typeof AnalyticsRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
@@ -100,14 +125,18 @@ export interface FileRoutesByFullPath {
   '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
+  '/salary-sync-status': typeof SalarySyncStatusRoute
+  '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
+  '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
+  '/analytics': typeof AnalyticsRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
@@ -115,8 +144,11 @@ export interface FileRoutesByTo {
   '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
+  '/salary-sync-status': typeof SalarySyncStatusRoute
+  '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
+  '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -124,6 +156,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
+  '/analytics': typeof AnalyticsRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
@@ -131,8 +164,11 @@ export interface FileRoutesById {
   '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
+  '/salary-sync-status': typeof SalarySyncStatusRoute
+  '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
+  '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -141,6 +177,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/actions'
+    | '/analytics'
     | '/error'
     | '/login'
     | '/management'
@@ -148,14 +185,18 @@ export interface FileRouteTypes {
     | '/proposed-hires'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
+    | '/salary-sync-status'
+    | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
     | '/syncDeelEmployees'
+    | '/syncSalaryUpdates'
     | '/employee/$employeeId'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/actions'
+    | '/analytics'
     | '/error'
     | '/login'
     | '/management'
@@ -163,14 +204,18 @@ export interface FileRouteTypes {
     | '/proposed-hires'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
+    | '/salary-sync-status'
+    | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
     | '/syncDeelEmployees'
+    | '/syncSalaryUpdates'
     | '/employee/$employeeId'
     | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/actions'
+    | '/analytics'
     | '/error'
     | '/login'
     | '/management'
@@ -178,8 +223,11 @@ export interface FileRouteTypes {
     | '/proposed-hires'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
+    | '/salary-sync-status'
+    | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
     | '/syncDeelEmployees'
+    | '/syncSalaryUpdates'
     | '/employee/$employeeId'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -187,6 +235,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActionsRoute: typeof ActionsRoute
+  AnalyticsRoute: typeof AnalyticsRoute
   ErrorRoute: typeof ErrorRoute
   LoginRoute: typeof LoginRoute
   ManagementRoute: typeof ManagementRoute
@@ -194,14 +243,24 @@ export interface RootRouteChildren {
   ProposedHiresRoute: typeof ProposedHiresRoute
   ReceiveKeeperTestResultsRoute: typeof ReceiveKeeperTestResultsRoute
   RunScheduledJobsRoute: typeof RunScheduledJobsRoute
+  SalarySyncStatusRoute: typeof SalarySyncStatusRoute
+  SalaryDeviationCheckerRoute: typeof SalaryDeviationCheckerRoute
   ScheduleCheckInsRoute: typeof ScheduleCheckInsRoute
   SyncDeelEmployeesRoute: typeof SyncDeelEmployeesRoute
+  SyncSalaryUpdatesRoute: typeof SyncSalaryUpdatesRoute
   EmployeeEmployeeIdRoute: typeof EmployeeEmployeeIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/syncSalaryUpdates': {
+      id: '/syncSalaryUpdates'
+      path: '/syncSalaryUpdates'
+      fullPath: '/syncSalaryUpdates'
+      preLoaderRoute: typeof SyncSalaryUpdatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/syncDeelEmployees': {
       id: '/syncDeelEmployees'
       path: '/syncDeelEmployees'
@@ -214,6 +273,20 @@ declare module '@tanstack/react-router' {
       path: '/scheduleCheckIns'
       fullPath: '/scheduleCheckIns'
       preLoaderRoute: typeof ScheduleCheckInsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/salaryDeviationChecker': {
+      id: '/salaryDeviationChecker'
+      path: '/salaryDeviationChecker'
+      fullPath: '/salaryDeviationChecker'
+      preLoaderRoute: typeof SalaryDeviationCheckerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/salary-sync-status': {
+      id: '/salary-sync-status'
+      path: '/salary-sync-status'
+      fullPath: '/salary-sync-status'
+      preLoaderRoute: typeof SalarySyncStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/runScheduledJobs': {
@@ -265,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ErrorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/actions': {
       id: '/actions'
       path: '/actions'
@@ -299,6 +379,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActionsRoute: ActionsRoute,
+  AnalyticsRoute: AnalyticsRoute,
   ErrorRoute: ErrorRoute,
   LoginRoute: LoginRoute,
   ManagementRoute: ManagementRoute,
@@ -306,8 +387,11 @@ const rootRouteChildren: RootRouteChildren = {
   ProposedHiresRoute: ProposedHiresRoute,
   ReceiveKeeperTestResultsRoute: ReceiveKeeperTestResultsRoute,
   RunScheduledJobsRoute: RunScheduledJobsRoute,
+  SalarySyncStatusRoute: SalarySyncStatusRoute,
+  SalaryDeviationCheckerRoute: SalaryDeviationCheckerRoute,
   ScheduleCheckInsRoute: ScheduleCheckInsRoute,
   SyncDeelEmployeesRoute: SyncDeelEmployeesRoute,
+  SyncSalaryUpdatesRoute: SyncSalaryUpdatesRoute,
   EmployeeEmployeeIdRoute: EmployeeEmployeeIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

@@ -41,7 +41,7 @@ export default function Header() {
   if (!user) return null
 
   return (
-    <header className="p-2 flex h-10 gap-2 bg-white text-black justify-between border-b border-gray-200">
+    <header className="flex h-10 justify-between gap-2 border-b border-gray-200 bg-white p-2 text-black">
       <nav className="flex flex-row">
         {user?.role === ROLES.ADMIN ? (
           <div className="px-2 font-bold">
@@ -68,6 +68,16 @@ export default function Header() {
             <Link to="/management">Management</Link>
           </div>
         ) : null}
+        {user?.role === ROLES.ADMIN ? (
+          <div className="px-2 font-bold">
+            <Link to="/salary-sync-status">Salary sync status</Link>
+          </div>
+        ) : null}
+        {user?.role === ROLES.ADMIN ? (
+          <div className="px-2 font-bold">
+            <Link to="/analytics">Analytics</Link>
+          </div>
+        ) : null}
         {myEmployeeId ? (
           <div className="px-2 font-bold">
             <Link
@@ -79,7 +89,7 @@ export default function Header() {
           </div>
         ) : null}
       </nav>
-      <div className="flex flex-row gap-2 items-center">
+      <div className="flex flex-row items-center gap-2">
         {session ? (
           <>
             <span className="text-sm text-gray-500">

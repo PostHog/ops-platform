@@ -301,7 +301,7 @@ function AddProposedHirePanel({
             <form.Field
               name="title"
               children={(field) => (
-                <div className="grid gap-3 col-span-2">
+                <div className="col-span-2 grid gap-3">
                   <Label htmlFor={field.name}>Title</Label>
                   <Input
                     name={field.name}
@@ -316,7 +316,7 @@ function AddProposedHirePanel({
             <form.Field
               name="managerId"
               children={(field) => (
-                <div className="grid gap-3 col-span-2">
+                <div className="col-span-2 grid gap-3">
                   <Label htmlFor={field.name}>Manager</Label>
                   <OrgChartPanel
                     employees={employees}
@@ -331,9 +331,9 @@ function AddProposedHirePanel({
             <form.Field
               name="talentPartnerIds"
               children={(field) => (
-                <div className="grid gap-3 col-span-2">
+                <div className="col-span-2 grid gap-3">
                   <Label htmlFor={field.name}>Talent Partners</Label>
-                  <div className="border rounded-md p-3 max-h-[200px] overflow-y-auto">
+                  <div className="max-h-[200px] overflow-y-auto rounded-md border p-3">
                     {talentTeamEmployees.length === 0 ? (
                       <div className="text-sm text-gray-500">
                         No talent team employees found.
@@ -371,7 +371,7 @@ function AddProposedHirePanel({
                               />
                               <Label
                                 htmlFor={`talent-partner-${employeeId}`}
-                                className="text-sm font-normal cursor-pointer"
+                                className="cursor-pointer text-sm font-normal"
                               >
                                 {employee.name}
                               </Label>
@@ -388,7 +388,7 @@ function AddProposedHirePanel({
             <form.Field
               name="priority"
               children={(field) => (
-                <div className="grid gap-3 col-span-2">
+                <div className="col-span-2 grid gap-3">
                   <Label htmlFor={field.name}>Priority</Label>
                   <Select
                     value={field.state.value.toString()}
@@ -396,7 +396,7 @@ function AddProposedHirePanel({
                       field.handleChange(value as Priority)
                     }
                   >
-                    <SelectTrigger className="w-full h-6 text-xs">
+                    <SelectTrigger className="h-6 w-full text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -416,7 +416,7 @@ function AddProposedHirePanel({
             <form.Field
               name="hiringProfile"
               children={(field) => (
-                <div className="grid gap-3 col-span-2">
+                <div className="col-span-2 grid gap-3">
                   <Label htmlFor={field.name}>Hiring Profile</Label>
                   <Input
                     name={field.name}
@@ -432,7 +432,7 @@ function AddProposedHirePanel({
               <form.Field
                 name="quantity"
                 children={(field) => (
-                  <div className="grid gap-3 col-span-2">
+                  <div className="col-span-2 grid gap-3">
                     <Label htmlFor={field.name}>Quantity</Label>
                     <Input
                       name={field.name}

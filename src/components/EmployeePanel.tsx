@@ -4,6 +4,8 @@ import type { Prisma } from '@prisma/client'
 import AddProposedHirePanel from './AddProposedHirePanel'
 import { ROLES } from '@/lib/consts'
 import { useSession } from '@/lib/auth-client'
+import { TeamEditPanel } from './TeamEditPanel'
+import { ManagerEditPanel } from './ManagerEditPanel'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -11,6 +13,12 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
       select: {
         id: true
         email: true
+      }
+    }
+    manager: {
+      select: {
+        id: true
+        name: true
       }
     }
   }
@@ -53,33 +61,58 @@ const EmployeePanel = ({
 
   if (!employee && !proposedHire) return null
   return (
-    <div className="absolute h-full flex flex-col m-0 p-2 overflow-hidden transition-[width] max-h-full right-0 justify-center w-[36rem]">
+    <div className="absolute right-0 m-0 flex h-full max-h-full w-[36rem] flex-col justify-center overflow-hidden p-2 transition-[width]">
       <div
-        className="relative flex flex-col rounded-md overflow-hidden bg-white min-h-48 max-h-full z-10"
+        className="relative z-10 flex max-h-full min-h-48 flex-col overflow-hidden rounded-md bg-white"
         style={{
           border: '1px solid var(--border)',
           boxShadow: '0 3px 0 var(--border)',
         }}
       >
         <div className="p-2">
-          <h1 className="text-lg font-bold mb-4">
+          <h1 className="mb-4 text-lg font-bold">
             {employee?.name || proposedHire?.title}
           </h1>
-          <pre className="bg-gray-50 p-4 rounded-lg overflow-auto max-h-[80vh]">
+          <pre className="max-h-[80vh] overflow-auto rounded-lg bg-gray-50 p-4">
             {JSON.stringify(employee || proposedHire, null, 2)}
           </pre>
-          {employee && user?.role === ROLES.ADMIN ? (
-            <Link
-              to="/employee/$employeeId"
-              params={{ employeeId: employee.employee?.id ?? '' }}
-            >
-              <Button variant="outline" className="w-full my-4">
-                View employee
-              </Button>
-            </Link>
-          ) : null}
+          <div className="mt-2 flex flex-col gap-2">
+            {employee && user?.role === ROLES.ADMIN ? (
+              <Link
+                to="/employee/$employeeId"
+                params={{ employeeId: employee.employee?.id ?? '' }}
+              >
+                <Button variant="outline" className="w-full">
+                  View employee
+                </Button>
+              </Link>
+            ) : null}
+            {employee ? (
+              <>
+                <div className="flex flex-row items-center justify-between gap-2 px-2">
+                  <span>Manager</span>
+                  <div className="flex flex-row items-center gap-2">
+                    <span>{employee?.manager?.name ?? 'None'}</span>
+                    {employee ? (
+                      <ManagerEditPanel
+                        employees={employees}
+                        employee={employee}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex flex-row items-center justify-between gap-2 px-2">
+                  <span>Team</span>
+                  <div className="flex flex-row items-center gap-2">
+                    <span>{employee?.team || 'None'}</span>
+                    {employee ? <TeamEditPanel employee={employee} /> : null}
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
           {proposedHire ? (
-            <div className="w-full my-4">
+            <div className="my-4 w-full">
               <AddProposedHirePanel
                 employees={employees}
                 proposedHire={proposedHire}

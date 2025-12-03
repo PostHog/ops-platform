@@ -20,7 +20,7 @@ export function formatCurrency(
   }).format(amount)
 }
 
-// compensation data updated on 2025-10-03
+// compensation data updated on 2025-12-02
 
 export const currencyData: Record<string, number> = {
   CAD: 1.264,
@@ -60,22 +60,28 @@ export const currencyData: Record<string, number> = {
   COP: 4925,
 }
 
+export const bonusPercentage: Record<string, number> = {
+  'Account Executive (OTE)': 0.5,
+  'Customer Success Manager (OTE)': 0.2,
+}
+
 export const sfBenchmark: Record<string, number> = {
   'Product Engineer': 262000,
   'Account Executive (OTE)': 300000,
-  'Backend Engineer': 243000,
+  'Backend Engineer': 262000,
   'Billing Support Specialist': 154619,
+  'Business Development Representative (OTE)': 182000,
   'Content Marketer': 190910,
   'Community Manager': 185000,
-  'Customer Success Manager (OTE)': 211000,
-  'Data Engineer': 243000,
+  'Customer Success Manager (OTE)': 237375,
+  'Data Engineer': 262000,
   'Design Lead': 236000,
   'Events Manager': 165000,
   'Finance Manager': 181680,
   'Front End Developer': 212000,
-  'Full Stack Engineer': 243000,
+  'Full Stack Engineer': 262000,
   'Graphic Designer': 147530,
-  'Mobile Engineer': 243000,
+  'Mobile Engineer': 262000,
   'Onboarding Specialist': 211000,
   'Operations & Finance Lead': 225000,
   'Operations Manager': 181680,
@@ -119,119 +125,88 @@ export const stepModifier: Record<string, Array<number>> = {
   Expert: [1.11, 1.2],
 }
 
-export type SeniorityLevel = 'Junior' | 'Intermediate' | 'Senior' | 'Staff'
-
-export const SALARY_LEVELS = {
-  Junior: 0.59,
-  Intermediate: 0.78,
-  Senior: 1,
-  Staff: 1.2,
-} as const
-
-export const SALARY_LEVEL_OPTIONS: Array<{
-  name: SeniorityLevel
-  value: number
-}> = [
-  { name: 'Junior', value: SALARY_LEVELS.Junior },
-  { name: 'Intermediate', value: SALARY_LEVELS.Intermediate },
-  { name: 'Senior', value: SALARY_LEVELS.Senior },
-  { name: 'Staff', value: SALARY_LEVELS.Staff },
-]
-
-export function getLevelName(level: number): SeniorityLevel {
-  if (level === SALARY_LEVELS.Junior) return 'Junior'
-  if (level === SALARY_LEVELS.Intermediate) return 'Intermediate'
-  if (level === SALARY_LEVELS.Senior) return 'Senior'
-  if (level === SALARY_LEVELS.Staff) return 'Staff'
-  return 'Invalid' as SeniorityLevel
-}
-
-export function getLevelValue(levelName: string): number {
-  return SALARY_LEVELS[levelName as SeniorityLevel] ?? SALARY_LEVELS.Senior
-}
-
 export function getCountryFlag(countryName: string): string {
   const countryToCode: Record<string, string> = {
     'United States': 'US',
-    'Canada': 'CA',
-    'Bermuda': 'BM',
-    'Bahamas': 'BS',
+    Canada: 'CA',
+    Bermuda: 'BM',
+    Bahamas: 'BS',
     'Dominican Republic': 'DO',
-    'Jamaica': 'JM',
+    Jamaica: 'JM',
     'Puerto Rico': 'PR',
-    'Cuba': 'CU',
+    Cuba: 'CU',
     'Trinidad and Tobago': 'TT',
     'El Salvador': 'SV',
-    'Guatemala': 'GT',
-    'Mexico': 'MX',
+    Guatemala: 'GT',
+    Mexico: 'MX',
     'Costa Rica': 'CR',
-    'Nicaragua': 'NI',
-    'Panama': 'PA',
-    'Suriname': 'SR',
-    'Venezuela': 'VE',
-    'Paraguay': 'PY',
-    'Colombia': 'CO',
-    'Ecuador': 'EC',
-    'Argentina': 'AR',
-    'Chile': 'CL',
-    'Peru': 'PE',
-    'Uruguay': 'UY',
-    'Brazil': 'BR',
-    'Algeria': 'DZ',
-    'Egypt': 'EG',
-    'Libya': 'LY',
-    'Morocco': 'MA',
-    'Tunisia': 'TN',
-    'Uganda': 'UG',
-    'Rwanda': 'RW',
-    'Zimbabwe': 'ZW',
-    'Zambia': 'ZM',
-    'Kenya': 'KE',
-    'Ethiopia': 'ET',
-    'Tanzania': 'TZ',
-    'Namibia': 'NA',
-    'Ghana': 'GH',
+    Nicaragua: 'NI',
+    Panama: 'PA',
+    Suriname: 'SR',
+    Venezuela: 'VE',
+    Paraguay: 'PY',
+    Colombia: 'CO',
+    Ecuador: 'EC',
+    Argentina: 'AR',
+    Chile: 'CL',
+    Peru: 'PE',
+    Uruguay: 'UY',
+    Brazil: 'BR',
+    Algeria: 'DZ',
+    Egypt: 'EG',
+    Libya: 'LY',
+    Morocco: 'MA',
+    Tunisia: 'TN',
+    Uganda: 'UG',
+    Rwanda: 'RW',
+    Zimbabwe: 'ZW',
+    Zambia: 'ZM',
+    Kenya: 'KE',
+    Ethiopia: 'ET',
+    Tanzania: 'TZ',
+    Namibia: 'NA',
+    Ghana: 'GH',
     'South Africa': 'ZA',
-    'Nigeria': 'NG',
-    'Benin': 'BJ',
-    'Singapore': 'SG',
-    'Cyprus': 'CY',
-    'Turkey': 'TR',
-    'Israel': 'IL',
-    'Bulgaria': 'BG',
-    'Moldova': 'MD',
-    'Romania': 'RO',
-    'Ukraine': 'UA',
-    'Slovakia': 'SK',
-    'Hungary': 'HU',
-    'Poland': 'PL',
+    Nigeria: 'NG',
+    Benin: 'BJ',
+    Singapore: 'SG',
+    Cyprus: 'CY',
+    Turkey: 'TR',
+    Israel: 'IL',
+    Bulgaria: 'BG',
+    Moldova: 'MD',
+    Romania: 'RO',
+    Ukraine: 'UA',
+    Slovakia: 'SK',
+    Hungary: 'HU',
+    Poland: 'PL',
     'Czech Republic': 'CZ',
-    'Denmark': 'DK',
-    'Finland': 'FI',
-    'Ireland': 'IE',
-    'Norway': 'NO',
-    'Latvia': 'LV',
-    'Lithuania': 'LT',
-    'Estonia': 'EE',
+    Denmark: 'DK',
+    Finland: 'FI',
+    Ireland: 'IE',
+    Norway: 'NO',
+    Latvia: 'LV',
+    Lithuania: 'LT',
+    Estonia: 'EE',
     'United Kingdom': 'GB',
-    'Albania': 'AL',
+    Albania: 'AL',
     'Bosnia and Herzegovina': 'BA',
-    'Croatia': 'HR',
-    'Greece': 'GR',
-    'Malta': 'MT',
-    'Montenegro': 'ME',
-    'Belgium': 'BE',
-    'Portugal': 'PT',
-    'Serbia': 'RS',
-    'Slovenia': 'SI',
-    'Spain': 'ES',
-    'Macedonia': 'MK',
-    'Kosovo': 'XK',
-    'Austria': 'AT',
-    'France': 'FR',
-    'Germany': 'DE',
-    'Netherlands': 'NL',
-    'Andorra': 'AD',
+    Croatia: 'HR',
+    Greece: 'GR',
+    Malta: 'MT',
+    Montenegro: 'ME',
+    Belgium: 'BE',
+    Portugal: 'PT',
+    Serbia: 'RS',
+    Slovenia: 'SI',
+    Spain: 'ES',
+    Macedonia: 'MK',
+    Kosovo: 'XK',
+    Austria: 'AT',
+    France: 'FR',
+    Germany: 'DE',
+    Netherlands: 'NL',
+    Andorra: 'AD',
   }
 
   const countryCode = countryToCode[countryName]
@@ -1309,7 +1284,7 @@ export const locationFactor: Array<CompensationCalculatorLocation> = [
     country: 'Bulgaria',
     area: 'All',
     locationFactor: 0.6,
-    currency: 'BGN',
+    currency: 'EUR',
   },
   {
     country: 'Moldova',

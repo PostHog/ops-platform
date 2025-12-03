@@ -25,10 +25,15 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'PostHog Ops',
       },
     ],
     links: [
+      {
+        rel: 'icon',
+        type: 'image/svg+xml',
+        href: '/favicon.svg',
+      },
       {
         rel: 'stylesheet',
         href: appCss,
@@ -45,7 +50,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="h-screen w-screen flex flex-col">
+      <body className="flex h-screen w-screen flex-col">
         <Header />
         <main className="flex-1">{children}</main>
         <Scripts />

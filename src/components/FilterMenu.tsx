@@ -42,6 +42,7 @@ const FilterMenu: React.FC<{
         { label: 'Intermediate (0.78)', value: '0.78' },
         { label: 'Senior (1)', value: '1' },
         { label: 'Staff (1.2)', value: '1.2' },
+        { label: 'Director (1.4)', value: '1.4' },
       ],
     },
     {
@@ -127,34 +128,34 @@ const FilterMenu: React.FC<{
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-3xl p-0">
-        <div className="bg-white rounded-lg shadow-lg border p-6 w-full">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Filters</h3>
+        <div className="w-full rounded-lg border bg-white p-6 shadow-lg">
+          <h3 className="mb-4 text-lg font-semibold text-gray-900">Filters</h3>
 
           <div className="space-y-3">
             {filters.map((filter, index) => (
               <div key={filter.id}>
                 <div className="flex items-center justify-between gap-2">
                   {index === 0 ? (
-                    <span className="text-sm font-medium text-gray-700 min-w-[48px]">
+                    <span className="min-w-[48px] text-sm font-medium text-gray-700">
                       Where
                     </span>
                   ) : (
-                    <div className="w-12 cursor-pointer flex justify-center items-center">
+                    <div className="flex w-12 cursor-pointer items-center justify-center">
                       <div
                         onClick={() => toggleLogicalOperator(filter.id)}
-                        className="select-none overflow-hidden rounded border-[#d6d9de] text-xs border flex flex-row h-6 w-full flex justify-center items-center"
+                        className="flex h-6 w-full flex-row items-center justify-center overflow-hidden rounded border border-[#d6d9de] text-xs select-none"
                       >
                         <div
-                          className={`flex flex-col h-12 transition-all duration-500 relative ${
+                          className={`relative flex h-12 flex-col transition-all duration-500 ${
                             filter.logicalOperator === 'AND'
                               ? 'top-[-12px]'
                               : 'top-[12px]'
                           }`}
                         >
-                          <div className="flex justify-center items-center pl-1 h-6 font-medium">
+                          <div className="flex h-6 items-center justify-center pl-1 font-medium">
                             <span>OR</span>
                           </div>
-                          <div className="flex justify-center items-center pl-1 h-6 font-medium">
+                          <div className="flex h-6 items-center justify-center pl-1 font-medium">
                             <span>AND</span>
                           </div>
                         </div>
@@ -163,14 +164,14 @@ const FilterMenu: React.FC<{
                     </div>
                   )}
 
-                  <div className="flex items-center justify-start gap-2 w-full">
+                  <div className="flex w-full items-center justify-start gap-2">
                     <Select
                       value={filter.field}
                       onValueChange={(value) =>
                         updateFilter(filter.id, 'field', value)
                       }
                     >
-                      <SelectTrigger className="w-[220px] h-8 text-xs">
+                      <SelectTrigger className="h-8 w-[220px] text-xs">
                         <SelectValue placeholder="Select filter" />
                       </SelectTrigger>
                       <SelectContent>
@@ -194,7 +195,7 @@ const FilterMenu: React.FC<{
                             updateFilter(filter.id, 'operator', value)
                           }
                         >
-                          <SelectTrigger className="w-20 h-8 text-xs flex-1">
+                          <SelectTrigger className="h-8 w-20 flex-1 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -219,7 +220,7 @@ const FilterMenu: React.FC<{
                               updateFilter(filter.id, 'value', value)
                             }
                           >
-                            <SelectTrigger className="w-full h-8 text-xs flex-1">
+                            <SelectTrigger className="h-8 w-full flex-1 text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -247,7 +248,7 @@ const FilterMenu: React.FC<{
                     variant="ghost"
                     size="sm"
                     onClick={() => removeFilter(filter.id)}
-                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-700"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -258,7 +259,7 @@ const FilterMenu: React.FC<{
 
           <button
             onClick={addFilter}
-            className="text-sm mt-4 flex items-center gap-1"
+            className="mt-4 flex items-center gap-1 text-sm"
           >
             <Plus className="h-4 w-4" />
             Add filter

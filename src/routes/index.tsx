@@ -449,8 +449,8 @@ function App() {
   }
 
   return (
-    <div className="flex justify-center">
-      <div className="max-w-7xl width-full flex-grow">
+    <div className="flex justify-center px-4">
+      <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="flex justify-between py-4">
           <div></div>
           <div className="flex items-center space-x-2">
@@ -549,21 +549,14 @@ function App() {
                       }
                     }}
                   >
-                    {row
-                      .getVisibleCells()
-                      .filter(
-                        (cell) =>
-                          cell.column.id !== 'level' &&
-                          cell.column.id !== 'changePercentage',
-                      )
-                      .map((cell) => (
-                        <TableCell key={cell.id} className="py-1 px-1">
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
-                      ))}
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="px-1 py-1">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 ))
               ) : (
@@ -579,7 +572,7 @@ function App() {
                         <span>No results. </span>
                         {columnFilters.some((filter) => filter) && (
                           <span
-                            className="text-blue-500 cursor-pointer"
+                            className="cursor-pointer text-blue-500"
                             onClick={() => setColumnFilters([])}
                           >
                             Clear filters
@@ -623,7 +616,7 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
             }
           }}
           placeholder={`Min`}
-          className="w-16 border shadow rounded"
+          className="w-16 rounded border shadow"
         />
         <DebouncedInput
           type="number"
@@ -642,7 +635,7 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
             }
           }}
           placeholder={`Max`}
-          className="w-16 border shadow rounded"
+          className="w-16 rounded border shadow"
         />
       </div>
       <div className="h-1" />
@@ -667,7 +660,7 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
             }
           }}
           placeholder={`Min`}
-          className="w-24 border shadow rounded"
+          className="w-24 rounded border shadow"
         />
         <DebouncedInput
           type="date"
@@ -686,7 +679,7 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
             }
           }}
           placeholder={`Max`}
-          className="w-24 border shadow rounded"
+          className="w-24 rounded border shadow"
         />
       </div>
       <div className="h-1" />
@@ -706,7 +699,7 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
     </select>
   ) : (
     <DebouncedInput
-      className="w-36 border shadow rounded"
+      className="w-36 rounded border shadow"
       onChange={(value) => column.setFilterValue(value)}
       placeholder={`Search...`}
       type="text"
