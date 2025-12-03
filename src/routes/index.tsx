@@ -207,7 +207,7 @@ function App() {
   const columns: Array<ColumnDef<Employee>> = [
     {
       accessorKey: 'name',
-      header: () => <span className="font-bold pl-2">Employee</span>,
+      header: () => <span className="pl-2 font-bold">Employee</span>,
       meta: {
         filterVariant: 'text',
       },
@@ -360,7 +360,7 @@ function App() {
             value={row.original.priority}
             onValueChange={handlePriorityChange}
           >
-            <SelectTrigger className="h-auto border-0 shadow-none p-0 hover:bg-transparent focus:ring-0 w-24">
+            <SelectTrigger className="h-auto w-24 border-0 p-0 shadow-none hover:bg-transparent focus:ring-0">
               <SelectValue>
                 <PriorityBadge priority={row.original.priority} />
               </SelectValue>

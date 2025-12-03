@@ -10,7 +10,7 @@ export function StatusCell({ reviewed, employeeId }: StatusCellProps) {
   if (reviewed) {
     return (
       <div className="flex items-center gap-2 text-gray-700">
-        <Check className="w-4 h-4 text-green-600" />
+        <Check className="h-4 w-4 text-green-600" />
         <span>reviewed</span>
       </div>
     )

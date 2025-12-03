@@ -19,9 +19,5 @@ export function PriorityBadge({ priority }: PriorityBadgeProps) {
     }
   }
 
-  return (
-    <Badge className={getColorClasses(priority)}>
-      {priority}
-    </Badge>
-  )
+  return <Badge className={getColorClasses(priority)}>{priority}</Badge>
 }

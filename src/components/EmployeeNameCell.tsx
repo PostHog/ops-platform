@@ -26,13 +26,13 @@ export function EmployeeNameCell({ name, notes }: EmployeeNameCellProps) {
 
   return (
     <div className="max-w-[300px] pl-4">
-      <div className="font-bold text-sm">{name}</div>
+      <div className="text-sm font-bold">{name}</div>
       {notes && (
-        <div className="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2 py-1 mt-1 mb-2 ml-2">
+        <div className="mt-1 mb-2 ml-2 border-l-2 border-gray-200 py-1 pl-2 text-xs text-gray-500 italic">
           <div className="relative">
             <p
               ref={textRef}
-              className={`whitespace-normal break-words ${isExpanded ? '' : 'line-clamp-2'}`}
+              className={`break-words whitespace-normal ${isExpanded ? '' : 'line-clamp-2'}`}
             >
               {notes}
             </p>
@@ -42,7 +42,7 @@ export function EmployeeNameCell({ name, notes }: EmployeeNameCellProps) {
                   e.stopPropagation()
                   setIsExpanded(true)
                 }}
-                className="absolute bottom-0 right-0 text-gray-500 font-semibold not-italic hover:text-blue-700 bg-gradient-to-l from-white from-50% via-white via-70% to-transparent pl-10"
+                className="absolute right-0 bottom-0 bg-gradient-to-l from-white from-50% via-white via-70% to-transparent pl-10 font-semibold text-gray-500 not-italic hover:text-blue-700"
               >
                 read more
               </button>
@@ -54,7 +54,7 @@ export function EmployeeNameCell({ name, notes }: EmployeeNameCellProps) {
                 e.stopPropagation()
                 setIsExpanded(false)
               }}
-              className="text-gray-500 hover:text-blue-700 mt-1 not-italic font-semibold"
+              className="mt-1 font-semibold text-gray-500 not-italic hover:text-blue-700"
             >
               read less
             </button>

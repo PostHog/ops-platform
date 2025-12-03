@@ -61,7 +61,7 @@ export function SalaryChangeDisplay({
           <Tooltip>
             <TooltipTrigger asChild>
               <span
-                className={`font-bold cursor-help ${
+                className={`cursor-help font-bold ${
                   changePercentage > 0
                     ? 'text-green-600'
                     : changePercentage < 0
@@ -88,9 +88,9 @@ export function SalaryChangeDisplay({
           />
         </div>
         {showDate && timestamp && (
-          <div className="text-xs text-gray-500 flex items-center gap-1">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
             <svg
-              className="w-3 h-3"
+              className="h-3 w-3"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

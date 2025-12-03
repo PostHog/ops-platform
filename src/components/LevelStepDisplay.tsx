@@ -19,12 +19,12 @@ export function LevelStepDisplay({
         <div className={`${numberSize} font-bold`}>
           {level === 1 ? '1.0' : level}
         </div>
-        <div className={`${labelSize} text-gray-500 text-center`}>level</div>
+        <div className={`${labelSize} text-center text-gray-500`}>level</div>
       </div>
       <div className={`${separatorSize} text-gray-300`}>/</div>
       <div>
         <div className={`${numberSize} font-bold`}>{step}</div>
-        <div className={`${labelSize} text-gray-500 text-center`}>step</div>
+        <div className={`${labelSize} text-center text-gray-500`}>step</div>
       </div>
     </div>
   )

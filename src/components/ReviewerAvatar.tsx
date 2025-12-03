@@ -50,7 +50,7 @@ export function ReviewerAvatar({ name }: ReviewerAvatarProps) {
   return (
     <div className="flex items-center gap-2">
       <div
-        className={`flex items-center justify-center w-7 h-7 rounded-full ${colors.bg} ${colors.text} text-xs font-semibold`}
+        className={`flex h-7 w-7 items-center justify-center rounded-full ${colors.bg} ${colors.text} text-xs font-semibold`}
       >
         {initials}
       </div>

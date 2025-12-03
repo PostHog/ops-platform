@@ -122,7 +122,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
           >
             Name
             {nameFilterValue && (
-              <span className="ml-1 rounded-full bg-background px-1.5 text-xs text-foreground">
+              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
                 1
               </span>
             )}
@@ -130,7 +130,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
         </PopoverTrigger>
         <PopoverContent className="w-80" align="start">
           <div className="space-y-2">
-            <div className="font-medium text-sm">Filter by name</div>
+            <div className="text-sm font-medium">Filter by name</div>
             <Input
               placeholder="Search names, emails, or notes..."
               value={nameFilterValue}
@@ -165,7 +165,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
           >
             Level
             {levelFilterValue.length > 0 && (
-              <span className="ml-1 rounded-full bg-background px-1.5 text-xs text-foreground">
+              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
                 {levelFilterValue.length}
               </span>
             )}
@@ -173,7 +173,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
         </PopoverTrigger>
         <PopoverContent className="w-64" align="start">
           <div className="space-y-3">
-            <div className="font-medium text-sm">Filter by level</div>
+            <div className="text-sm font-medium">Filter by level</div>
             <div className="space-y-2">
               {SALARY_LEVEL_OPTIONS.map((option) => (
                 <div key={option.value} className="flex items-center space-x-2">
@@ -184,7 +184,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
                   />
                   <label
                     htmlFor={`level-${option.value}`}
-                    className="text-sm cursor-pointer flex-1"
+                    className="flex-1 cursor-pointer text-sm"
                   >
                     {option.name} ({option.value})
                   </label>
@@ -192,7 +192,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
               ))}
             </div>
             {levelFilterValue.length > 0 && (
-              <div className="flex justify-end pt-2 border-t">
+              <div className="flex justify-end border-t pt-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -219,7 +219,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
           >
             Step
             {hasStepFilter && (
-              <span className="ml-1 rounded-full bg-background px-1.5 text-xs text-foreground">
+              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
                 1
               </span>
             )}
@@ -227,10 +227,10 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
         </PopoverTrigger>
         <PopoverContent className="w-64" align="start">
           <div className="space-y-3">
-            <div className="font-medium text-sm">Filter by step</div>
+            <div className="text-sm font-medium">Filter by step</div>
             <div className="flex items-center gap-2">
               <div className="flex-1">
-                <label className="text-xs text-muted-foreground">Min</label>
+                <label className="text-muted-foreground text-xs">Min</label>
                 <Input
                   type="number"
                   placeholder="Min"
@@ -252,7 +252,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
                 />
               </div>
               <div className="flex-1">
-                <label className="text-xs text-muted-foreground">Max</label>
+                <label className="text-muted-foreground text-xs">Max</label>
                 <Input
                   type="number"
                   placeholder="Max"
@@ -275,7 +275,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
               </div>
             </div>
             {hasStepFilter && (
-              <div className="flex justify-end pt-2 border-t">
+              <div className="flex justify-end border-t pt-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -302,7 +302,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
           >
             Priority
             {priorityFilterValue.length > 0 && (
-              <span className="ml-1 rounded-full bg-background px-1.5 text-xs text-foreground">
+              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
                 {priorityFilterValue.length}
               </span>
             )}
@@ -310,7 +310,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
         </PopoverTrigger>
         <PopoverContent className="w-64" align="start">
           <div className="space-y-3">
-            <div className="font-medium text-sm">Filter by priority</div>
+            <div className="text-sm font-medium">Filter by priority</div>
             <div className="space-y-2">
               {PRIORITY_OPTIONS.map((option) => (
                 <div key={option.value} className="flex items-center space-x-2">
@@ -321,7 +321,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
                   />
                   <label
                     htmlFor={`priority-${option.value}`}
-                    className="cursor-pointer flex-1"
+                    className="flex-1 cursor-pointer"
                   >
                     <PriorityBadge priority={option.value} />
                   </label>
@@ -329,7 +329,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
               ))}
             </div>
             {priorityFilterValue.length > 0 && (
-              <div className="flex justify-end pt-2 border-t">
+              <div className="flex justify-end border-t pt-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -356,7 +356,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
           >
             Reviewer
             {reviewerFilterValue && (
-              <span className="ml-1 rounded-full bg-background px-1.5 text-xs text-foreground">
+              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
                 1
               </span>
             )}
@@ -364,7 +364,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
         </PopoverTrigger>
         <PopoverContent className="w-80" align="start">
           <div className="space-y-2">
-            <div className="font-medium text-sm">Filter by reviewer</div>
+            <div className="text-sm font-medium">Filter by reviewer</div>
             <Input
               placeholder="Search reviewer name..."
               value={reviewerFilterValue}
@@ -399,7 +399,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
           >
             Status
             {statusFilterValue.length > 0 && (
-              <span className="ml-1 rounded-full bg-background px-1.5 text-xs text-foreground">
+              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
                 {statusFilterValue.length}
               </span>
             )}
@@ -407,7 +407,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
         </PopoverTrigger>
         <PopoverContent className="w-64" align="start">
           <div className="space-y-3">
-            <div className="font-medium text-sm">Filter by status</div>
+            <div className="text-sm font-medium">Filter by status</div>
             <div className="space-y-2">
               {STATUS_OPTIONS.map((option) => (
                 <div
@@ -421,7 +421,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
                   />
                   <label
                     htmlFor={`status-${option.value}`}
-                    className="text-sm cursor-pointer flex-1"
+                    className="flex-1 cursor-pointer text-sm"
                   >
                     {option.label}
                   </label>
@@ -429,7 +429,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
               ))}
             </div>
             {statusFilterValue.length > 0 && (
-              <div className="flex justify-end pt-2 border-t">
+              <div className="flex justify-end border-t pt-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -456,7 +456,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
           >
             Date
             {hasDateFilter && (
-              <span className="ml-1 rounded-full bg-background px-1.5 text-xs text-foreground">
+              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
                 1
               </span>
             )}
@@ -464,12 +464,12 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
         </PopoverTrigger>
         <PopoverContent className="w-80" align="start">
           <div className="space-y-3">
-            <div className="font-medium text-sm">
+            <div className="text-sm font-medium">
               Filter by last change date
             </div>
             <div className="flex items-center gap-2">
               <div className="flex-1">
-                <label className="text-xs text-muted-foreground">From</label>
+                <label className="text-muted-foreground text-xs">From</label>
                 <Input
                   type="date"
                   value={lastChangeFilterValue[0]}
@@ -488,7 +488,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
                 />
               </div>
               <div className="flex-1">
-                <label className="text-xs text-muted-foreground">To</label>
+                <label className="text-muted-foreground text-xs">To</label>
                 <Input
                   type="date"
                   value={lastChangeFilterValue[1]}
@@ -508,7 +508,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
               </div>
             </div>
             {hasDateFilter && (
-              <div className="flex justify-end pt-2 border-t">
+              <div className="flex justify-end border-t pt-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -538,7 +538,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
           >
             Change %
             {hasPercentageFilter && (
-              <span className="ml-1 rounded-full bg-background px-1.5 text-xs text-foreground">
+              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
                 1
               </span>
             )}
@@ -546,12 +546,12 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
         </PopoverTrigger>
         <PopoverContent className="w-64" align="start">
           <div className="space-y-3">
-            <div className="font-medium text-sm">
+            <div className="text-sm font-medium">
               Filter by change percentage
             </div>
             <div className="flex items-center gap-2">
               <div className="flex-1">
-                <label className="text-xs text-muted-foreground">Min %</label>
+                <label className="text-muted-foreground text-xs">Min %</label>
                 <Input
                   type="number"
                   placeholder="Min"
@@ -573,7 +573,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
                 />
               </div>
               <div className="flex-1">
-                <label className="text-xs text-muted-foreground">Max %</label>
+                <label className="text-muted-foreground text-xs">Max %</label>
                 <Input
                   type="number"
                   placeholder="Max"
@@ -596,7 +596,7 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
               </div>
             </div>
             {hasPercentageFilter && (
-              <div className="flex justify-end pt-2 border-t">
+              <div className="flex justify-end border-t pt-2">
                 <Button
                   variant="ghost"
                   size="sm"

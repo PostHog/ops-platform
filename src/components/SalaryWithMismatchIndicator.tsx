@@ -42,7 +42,7 @@ export function SalaryWithMismatchIndicator({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <AlertCircle className="w-4 h-4 text-red-600 cursor-help" />
+              <AlertCircle className="h-4 w-4 cursor-help text-red-600" />
             </TooltipTrigger>
             <TooltipContent>
               <p>
