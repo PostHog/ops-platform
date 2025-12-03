@@ -66,13 +66,19 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
   ]) as [string, string]
 
   const changePercentageColumn = table.getColumn('changePercentage')
-  const changePercentageFilterValue = (changePercentageColumn?.getFilterValue() ??
-    ['', '']) as [number | '', number | '']
+  const changePercentageFilterValue =
+    (changePercentageColumn?.getFilterValue() ?? ['', '']) as [
+      number | '',
+      number | '',
+    ]
 
   // Debug: log if column exists
   if (!changePercentageColumn) {
     console.error('changePercentage column not found in table')
-    console.log('Available columns:', table.getAllColumns().map(c => c.id))
+    console.log(
+      'Available columns:',
+      table.getAllColumns().map((c) => c.id),
+    )
   }
 
   const toggleLevel = (levelValue: number) => {
@@ -109,7 +115,8 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
     lastChangeFilterValue[0] !== '' || lastChangeFilterValue[1] !== ''
 
   const hasPercentageFilter =
-    changePercentageFilterValue[0] !== '' || changePercentageFilterValue[1] !== ''
+    changePercentageFilterValue[0] !== '' ||
+    changePercentageFilterValue[1] !== ''
 
   return (
     <div className="flex items-center gap-2 py-4">
@@ -238,7 +245,8 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
                   placeholder="Min"
                   value={stepLevelFilterValue[0]}
                   onChange={(e) => {
-                    const value = e.target.value === '' ? '' : Number(e.target.value)
+                    const value =
+                      e.target.value === '' ? '' : Number(e.target.value)
                     const newValue: [number | '', number | ''] = [
                       value,
                       stepLevelFilterValue[1],
@@ -259,7 +267,8 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
                   placeholder="Max"
                   value={stepLevelFilterValue[1]}
                   onChange={(e) => {
-                    const value = e.target.value === '' ? '' : Number(e.target.value)
+                    const value =
+                      e.target.value === '' ? '' : Number(e.target.value)
                     const newValue: [number | '', number | ''] = [
                       stepLevelFilterValue[0],
                       value,
@@ -410,7 +419,10 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
             <div className="font-medium text-sm">Filter by status</div>
             <div className="space-y-2">
               {STATUS_OPTIONS.map((option) => (
-                <div key={String(option.value)} className="flex items-center space-x-2">
+                <div
+                  key={String(option.value)}
+                  className="flex items-center space-x-2"
+                >
                   <Checkbox
                     id={`status-${option.value}`}
                     checked={statusFilterValue.includes(option.value)}
@@ -461,7 +473,9 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
         </PopoverTrigger>
         <PopoverContent className="w-80" align="start">
           <div className="space-y-3">
-            <div className="font-medium text-sm">Filter by last change date</div>
+            <div className="font-medium text-sm">
+              Filter by last change date
+            </div>
             <div className="flex items-center gap-2">
               <div className="flex-1">
                 <label className="text-xs text-muted-foreground">From</label>
@@ -521,7 +535,10 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
         </PopoverContent>
       </Popover>
 
-      <Popover open={percentageFilterOpen} onOpenChange={setPercentageFilterOpen}>
+      <Popover
+        open={percentageFilterOpen}
+        onOpenChange={setPercentageFilterOpen}
+      >
         <PopoverTrigger asChild>
           <Button
             variant={hasPercentageFilter ? 'default' : 'outline'}
@@ -538,7 +555,9 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
         </PopoverTrigger>
         <PopoverContent className="w-64" align="start">
           <div className="space-y-3">
-            <div className="font-medium text-sm">Filter by change percentage</div>
+            <div className="font-medium text-sm">
+              Filter by change percentage
+            </div>
             <div className="flex items-center gap-2">
               <div className="flex-1">
                 <label className="text-xs text-muted-foreground">Min %</label>

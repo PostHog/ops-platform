@@ -7,6 +7,7 @@ import {
   getAreasByCountry,
   formatCurrency,
   getCountryFlag,
+  SALARY_LEVEL_OPTIONS,
 } from '@/lib/utils'
 import { updateSalary } from '@/routes/employee.$employeeId'
 import { Salary } from '@prisma/client'
@@ -346,11 +347,14 @@ export function NewSalaryForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0.59">Junior (0.59)</SelectItem>
-                  <SelectItem value="0.78">Intermediate (0.78)</SelectItem>
-                  <SelectItem value="1">Senior (1)</SelectItem>
-                  <SelectItem value="1.2">Staff (1.2)</SelectItem>
-                  <SelectItem value="1.4">Director (1.4)</SelectItem>
+                  {SALARY_LEVEL_OPTIONS.map((option) => (
+                    <SelectItem
+                      key={option.value}
+                      value={option.value.toString()}
+                    >
+                      {option.name} ({option.value})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             )}
@@ -751,11 +755,11 @@ export function NewSalaryForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0.59">Junior (0.59)</SelectItem>
-                      <SelectItem value="0.78">Intermediate (0.78)</SelectItem>
-                      <SelectItem value="1">Senior (1)</SelectItem>
-                      <SelectItem value="1.2">Staff (1.2)</SelectItem>
-                      <SelectItem value="1.4">Director (1.4)</SelectItem>
+                      {SALARY_LEVEL_OPTIONS.map(({ name, value }) => (
+                        <SelectItem key={value} value={value.toString()}>
+                          {name} ({value})se
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

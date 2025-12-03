@@ -125,6 +125,17 @@ export const stepModifier: Record<string, Array<number>> = {
   Expert: [1.11, 1.2],
 }
 
+export const SALARY_LEVEL_OPTIONS: Array<{
+  name: string
+  value: number
+}> = [
+  { name: 'Junior', value: 0.59 },
+  { name: 'Intermediate', value: 0.78 },
+  { name: 'Senior', value: 1 },
+  { name: 'Staff', value: 1.2 },
+  { name: 'Director', value: 1.4 },
+]
+
 export function getCountryFlag(countryName: string): string {
   const countryToCode: Record<string, string> = {
     'United States': 'US',
