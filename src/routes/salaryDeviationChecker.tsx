@@ -1,10 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import prisma from '@/db'
-import { fetchDeelEmployees } from './syncDeelEmployees'
 
-const fetchDeelContract = async (id: string) => {
+const fetchDeelEmployee = async (id: string) => {
   const response = await fetch(
-    `https://api.letsdeel.com/rest/v2/contracts/${id}`,
+    `https://api.letsdeel.com/rest/v2/people/${id}`,
     {
       method: 'GET',
       headers: {
@@ -14,7 +13,7 @@ const fetchDeelContract = async (id: string) => {
   )
 
   if (response.status !== 200) {
-    throw new Error(`Failed to fetch contract: ${response.statusText}`)
+    throw new Error(`Failed to fetch employee: ${response.statusText}`)
   }
 
   const data = await response.json()
@@ -31,7 +30,6 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
           return new Response('Unauthorized', { status: 401 })
         }
 
-        const deelEmployees = await fetchDeelEmployees()
         const employees = await prisma.employee.findMany({
           where: {
             salaries: { some: {} },
@@ -43,6 +41,7 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
                 timestamp: 'desc',
               },
             },
+            deelEmployee: true,
           },
           orderBy: {
             salaryDeviationCheckedAt: 'asc',
@@ -64,39 +63,44 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
 
         for (const employee of employees) {
           try {
-            const localDeelEmployee = deelEmployees.find(
-              (x) => x.workEmail === employee.email,
-            )
-            const { compensation_details } = await fetchDeelContract(
-              localDeelEmployee?.contractId ?? '',
+            if (!employee.deelEmployee) {
+              throw new Error(`No deel employee found`)
+            }
+            const deelEmployee = await fetchDeelEmployee(
+              employee.deelEmployee.id,
             )
 
-            const calcDeelSalary = (compensation_details: any) => {
-              if (compensation_details.gross_annual_salary != 0) {
-                return Number(compensation_details.gross_annual_salary)
-              }
+            const { payment: compensation_details } =
+              deelEmployee.employments.filter(
+                (x: any) => x.hiring_status === 'active',
+              )[0]
 
-              if (compensation_details.scale === 'monthly') {
-                return Number(compensation_details.amount) * 12
+            const getAnnualSalary = (compensation_details: {
+              rate: number
+              scale: 'annual' | 'monthly'
+              currency: string
+            }) => {
+              if (compensation_details.scale === 'annual') {
+                return compensation_details.rate
               }
-              return Number(compensation_details.amount)
+              return compensation_details.rate * 12
             }
 
             results.push({
               id: employee.id,
               email: employee.email,
               salary: employee.salaries[0].actualSalaryLocal,
-              deelSalary: calcDeelSalary(compensation_details),
+              deelSalary: getAnnualSalary(compensation_details),
               deviation:
                 employee.salaries[0].actualSalaryLocal -
-                calcDeelSalary(compensation_details),
+                getAnnualSalary(compensation_details),
               deviationPercentage:
                 Math.abs(
                   employee.salaries[0].actualSalaryLocal -
-                    calcDeelSalary(compensation_details),
+                    getAnnualSalary(compensation_details),
                 ) / employee.salaries[0].actualSalaryLocal,
               compensation_details: compensation_details,
-              team: localDeelEmployee?.team ?? '',
+              team: employee.deelEmployee.team,
             })
           } catch (error) {
             const errorMessage =
@@ -110,6 +114,7 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
         const checkedAt = new Date()
         await prisma.$transaction(
           results.map((result) => {
+            console.log(result)
             const salaryDeviation = result.deviationPercentage > 0.001
 
             return prisma.employee.update({
