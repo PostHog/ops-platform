@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import prisma from '@/db'
+import { getBambooCompTable, getBambooEmployees } from './syncSalaryUpdates'
 
 const fetchDeelEmployee = async (id: string) => {
   const response = await fetch(
@@ -46,7 +47,7 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
           orderBy: {
             salaryDeviationCheckedAt: 'asc',
           },
-          take: 20,
+          take: 10,
         })
 
         const results: Array<{
@@ -75,7 +76,7 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
                 (x: any) => x.hiring_status === 'active',
               )[0]
 
-            const getAnnualSalary = (compensation_details: {
+            const getDeelAnnualSalary = (compensation_details: {
               rate: number
               scale: 'annual' | 'monthly'
               currency: string
@@ -86,19 +87,38 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
               return compensation_details.rate * 12
             }
 
+            const getSalary = async () => {
+              // update the if condition once we moved US payroll over to bamboo
+              if (false) {
+                const bambooEmployee = await getBambooEmployees(employee.email)
+                const compTable = await getBambooCompTable(
+                  bambooEmployee.employeeId,
+                )
+
+                if (compTable.length === 0) {
+                  throw new Error('No compensation table found')
+                }
+
+                console.log(
+                  'fetched bamboo rate',
+                  compTable[compTable.length - 1].rate.value,
+                )
+                return Number(compTable[compTable.length - 1].rate.value)
+              }
+              return getDeelAnnualSalary(compensation_details)
+            }
+
+            const salary = await getSalary()
+
             results.push({
               id: employee.id,
               email: employee.email,
               salary: employee.salaries[0].actualSalaryLocal,
-              deelSalary: getAnnualSalary(compensation_details),
-              deviation:
-                employee.salaries[0].actualSalaryLocal -
-                getAnnualSalary(compensation_details),
+              deelSalary: salary,
+              deviation: employee.salaries[0].actualSalaryLocal - salary,
               deviationPercentage:
-                Math.abs(
-                  employee.salaries[0].actualSalaryLocal -
-                    getAnnualSalary(compensation_details),
-                ) / employee.salaries[0].actualSalaryLocal,
+                Math.abs(employee.salaries[0].actualSalaryLocal - salary) /
+                employee.salaries[0].actualSalaryLocal,
               compensation_details: compensation_details,
               team: employee.deelEmployee.team,
             })

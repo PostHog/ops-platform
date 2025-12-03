@@ -8,7 +8,7 @@ type BambooEmployee = {
   email: string
 }
 
-const getBambooEmployees = async (email: string) => {
+export const getBambooEmployees = async (email: string) => {
   const bambooEmployeeResponse = await fetch(
     'https://posthog.bamboohr.com/api/v1/meta/users',
     {
@@ -46,7 +46,7 @@ type BambooCompTable = {
   }
 }
 
-const getBambooCompTable = async (employeeId: number) => {
+export const getBambooCompTable = async (employeeId: number) => {
   const compTableResponse = await fetch(
     `https://posthog.bamboohr.com/api/v1/employees/${employeeId}/tables/compensation`,
     {
