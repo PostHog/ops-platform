@@ -7,7 +7,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { ChevronDown, MoreHorizontal } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { useServerFn } from '@tanstack/react-start'
 import { useQuery } from '@tanstack/react-query'
 import { createToast } from 'vercel-toast'
@@ -28,7 +28,6 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -40,7 +39,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import prisma from '@/db'
-import { formatCurrency } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -51,6 +49,13 @@ import {
 import 'vercel-toast/dist/vercel-toast.css'
 import { reviewQueueAtom } from '@/atoms'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { EmployeeNameCell } from '@/components/EmployeeNameCell'
+import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
+import { LevelStepDisplay } from '@/components/LevelStepDisplay'
+import { PriorityBadge } from '@/components/PriorityBadge'
+import { StatusCell } from '@/components/StatusCell'
+import { ReviewerAvatar } from '@/components/ReviewerAvatar'
+import { TableFilters } from '@/components/TableFilters'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -202,7 +207,7 @@ function App() {
   const columns: Array<ColumnDef<Employee>> = [
     {
       accessorKey: 'name',
-      header: 'Name',
+      header: () => <span className="pl-2 font-bold">Employee</span>,
       meta: {
         filterVariant: 'text',
       },
@@ -213,51 +218,49 @@ function App() {
             _,
             filterValue,
           )) ||
-        customFilterFns.containsText(row.original.email, _, filterValue),
+        customFilterFns.containsText(row.original.email, _, filterValue) ||
+        customFilterFns.containsText(
+          row.original.salaries?.[0]?.notes ?? '',
+          _,
+          filterValue,
+        ),
       cell: ({ row }) => (
-        <div>{row.original.deelEmployee?.name || row.original.email}</div>
+        <EmployeeNameCell
+          name={row.original.deelEmployee?.name || row.original.email}
+          notes={row.original.salaries?.[0]?.notes}
+        />
       ),
     },
     {
-      accessorKey: 'timestamp',
-      header: 'Last Change (date)',
+      accessorKey: 'lastChange',
+      header: () => <span className="font-bold">Last Change</span>,
       meta: {
         filterVariant: 'dateRange',
       },
       filterFn: customFilterFns.inDateRange,
       enableColumnFilter: true,
       cell: ({ row }) => {
-        const date = new Date(row.original.salaries?.[0]?.timestamp)
+        const salary = row.original.salaries?.[0]
+        if (!salary) return null
         return (
-          <div>
-            {months[date.getMonth()]} {date.getFullYear()}
-          </div>
+          <SalaryChangeDisplay
+            changePercentage={salary.changePercentage}
+            changeAmount={salary.changeAmount}
+            totalSalary={salary.totalSalary}
+            timestamp={new Date(salary.timestamp)}
+            showDate={true}
+            size="sm"
+            benchmarkFactor={salary.benchmarkFactor}
+            locationFactor={salary.locationFactor}
+            level={salary.level}
+            step={salary.step}
+          />
         )
       },
     },
     {
-      accessorKey: 'level',
-      header: 'Level',
-      meta: {
-        filterVariant: 'range',
-      },
-      filterFn: (
-        row: Row<Employee>,
-        _: string,
-        filterValue: [number | undefined, number | undefined],
-      ) =>
-        customFilterFns.inNumberRange(
-          row.original.salaries?.[0]?.level,
-          _,
-          filterValue,
-        ),
-      cell: ({ row }) => (
-        <div className="text-right">{row.original.salaries[0].level}</div>
-      ),
-    },
-    {
-      accessorKey: 'step',
-      header: 'Step',
+      accessorKey: 'stepLevel',
+      header: () => <span className="font-bold">Level / Step</span>,
       meta: {
         filterVariant: 'range',
       },
@@ -271,79 +274,65 @@ function App() {
           _,
           filterValue,
         ),
-      cell: ({ row }) => (
-        <div className="text-right">{row.original.salaries[0].step}</div>
-      ),
+      cell: ({ row }) => {
+        const salary = row.original.salaries?.[0]
+        if (!salary) return null
+        return (
+          <LevelStepDisplay level={salary.level} step={salary.step} size="sm" />
+        )
+      },
     },
     {
-      accessorKey: 'totalSalary',
-      header: 'Total Salary',
-      meta: {
-        filterVariant: 'range',
+      id: 'level',
+      accessorFn: (row) => row.salaries?.[0]?.level,
+      enableColumnFilter: true,
+      enableHiding: false,
+      filterFn: (row: Row<Employee>, _: string, filterValue: number[]) => {
+        const level = row.original.salaries?.[0]?.level
+        if (!level) return false
+        return filterValue.includes(level)
       },
+    },
+    {
+      id: 'changePercentage',
+      accessorFn: (row) => row.salaries?.[0]?.changePercentage,
+      enableColumnFilter: true,
+      enableHiding: false,
       filterFn: (
         row: Row<Employee>,
         _: string,
-        filterValue: [number | undefined, number | undefined],
-      ) =>
-        customFilterFns.inNumberRange(
-          row.original.salaries?.[0]?.totalSalary,
-          _,
-          filterValue,
-        ),
-      cell: ({ row }) => (
-        <div className="text-right">
-          {formatCurrency(row.original.salaries[0].totalSalary)}
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'changePercentage',
-      header: 'Last Change (%)',
-      meta: {
-        filterVariant: 'range',
+        filterValue: [number | '', number | ''],
+      ) => {
+        const rawPercentage = row.original.salaries?.[0]?.changePercentage
+
+        // Don't filter out rows without percentage data
+        if (rawPercentage == null || rawPercentage === undefined) {
+          return true
+        }
+
+        // Ensure we're working with a number
+        const percentage =
+          typeof rawPercentage === 'number'
+            ? rawPercentage
+            : parseFloat(String(rawPercentage))
+
+        // If conversion failed, don't filter
+        if (isNaN(percentage)) {
+          return true
+        }
+
+        // Convert empty string to undefined for the filter function
+        const normalizedFilter: [number | undefined, number | undefined] = [
+          filterValue[0] === '' ? undefined : filterValue[0],
+          filterValue[1] === '' ? undefined : filterValue[1],
+        ]
+
+        return customFilterFns.inNumberRange(percentage, _, normalizedFilter)
       },
-      filterFn: (
-        row: Row<Employee>,
-        _: string,
-        filterValue: [number | undefined, number | undefined],
-      ) =>
-        customFilterFns.inNumberRange(
-          row.original.salaries?.[0]?.changePercentage * 100,
-          _,
-          filterValue,
-        ),
-      cell: ({ row }) => (
-        <div className="text-right">
-          {(row.original.salaries[0].changePercentage * 100).toFixed(2)}%
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'changeAmount',
-      header: 'Last Change ($)',
-      meta: {
-        filterVariant: 'range',
-      },
-      filterFn: (
-        row: Row<Employee>,
-        _: string,
-        filterValue: [number | undefined, number | undefined],
-      ) =>
-        customFilterFns.inNumberRange(
-          row.original.salaries?.[0]?.changeAmount,
-          _,
-          filterValue,
-        ),
-      cell: ({ row }) => (
-        <div className="text-right">
-          {formatCurrency(row.original.salaries[0].changeAmount)}
-        </div>
-      ),
     },
     {
       accessorKey: 'priority',
-      header: 'Priority',
+      header: () => <span className="font-bold">Priority</span>,
       meta: {
         filterVariant: 'select',
         filterOptions: [
@@ -351,6 +340,9 @@ function App() {
           { label: 'Medium', value: 'medium' },
           { label: 'High', value: 'high' },
         ],
+      },
+      filterFn: (row: Row<Employee>, _: string, filterValue: string[]) => {
+        return filterValue.includes(row.original.priority)
       },
       cell: ({ row }) => {
         const handlePriorityChange = async (value: string) => {
@@ -368,13 +360,21 @@ function App() {
             value={row.original.priority}
             onValueChange={handlePriorityChange}
           >
-            <SelectTrigger className="h-6 w-24 px-1 py-0 text-xs">
-              <SelectValue />
+            <SelectTrigger className="h-auto w-24 border-0 p-0 shadow-none hover:bg-transparent focus:ring-0">
+              <SelectValue>
+                <PriorityBadge priority={row.original.priority} />
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="low">
+                <PriorityBadge priority="low" />
+              </SelectItem>
+              <SelectItem value="medium">
+                <PriorityBadge priority="medium" />
+              </SelectItem>
+              <SelectItem value="high">
+                <PriorityBadge priority="high" />
+              </SelectItem>
             </SelectContent>
           </Select>
         )
@@ -382,7 +382,7 @@ function App() {
     },
     {
       accessorKey: 'reviewer',
-      header: 'Reviewer',
+      header: () => <span className="font-bold">Reviewer</span>,
       meta: {
         filterVariant: 'text',
       },
@@ -392,75 +392,31 @@ function App() {
           _,
           filterValue,
         ),
-      cell: ({ row }) => (
-        <div>{row.original.deelEmployee?.topLevelManager?.name}</div>
-      ),
-    },
-    {
-      accessorKey: 'notes',
-      header: 'Notes',
-      meta: {
-        filterVariant: 'text',
+      cell: ({ row }) => {
+        const reviewerName = row.original.deelEmployee?.topLevelManager?.name
+        if (!reviewerName) return null
+        return <ReviewerAvatar name={reviewerName} />
       },
-      filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
-        customFilterFns.containsText(
-          row.original.salaries?.[0]?.notes,
-          _,
-          filterValue,
-        ),
-      cell: ({ row }) => (
-        <div className="min-w-[200px] whitespace-pre-line">
-          {row.original.salaries[0].notes}
-        </div>
-      ),
     },
     {
       accessorKey: 'reviewed',
-      header: 'reviewed',
+      header: () => <span className="font-bold">Status</span>,
       meta: {
         filterVariant: 'select',
         filterOptions: [
-          { label: 'Yes', value: 'true' },
-          { label: 'No', value: 'false' },
+          { label: 'Reviewed', value: 'true' },
+          { label: 'Needs Review', value: 'false' },
         ],
       },
-      filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
-        customFilterFns.equals(
-          row.original.reviewed.toString(),
-          _,
-          filterValue,
-        ),
-      cell: ({ row }) => <div>{row.original.reviewed ? 'Yes' : 'No'}</div>,
-    },
-    {
-      id: 'actions',
-      enableHiding: false,
-      cell: ({ row }) => {
-        const employee = row.original
-
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() =>
-                  router.navigate({
-                    to: '/employee/$employeeId',
-                    params: { employeeId: employee.id },
-                  })
-                }
-              >
-                Edit person
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )
+      filterFn: (row: Row<Employee>, _: string, filterValue: boolean[]) => {
+        return filterValue.includes(row.original.reviewed)
       },
+      cell: ({ row }) => (
+        <StatusCell
+          reviewed={row.original.reviewed}
+          employeeId={row.original.id}
+        />
+      ),
     },
   ]
 
@@ -533,28 +489,42 @@ function App() {
             </DropdownMenu>
           </div>
         </div>
+        <TableFilters table={table} />
         <div className="rounded-md border">
           <Table className="text-xs">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                        {header.column.getCanFilter() ? (
-                          <div>
-                            <Filter column={header.column} />
-                          </div>
-                        ) : null}
-                      </TableHead>
+                  {headerGroup.headers
+                    .filter(
+                      (header) =>
+                        header.column.id !== 'level' &&
+                        header.column.id !== 'changePercentage',
                     )
-                  })}
+                    .map((header) => {
+                      return (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
+                          {header.column.getCanFilter() &&
+                          header.column.id !== 'name' &&
+                          header.column.id !== 'level' &&
+                          header.column.id !== 'stepLevel' &&
+                          header.column.id !== 'priority' &&
+                          header.column.id !== 'reviewer' &&
+                          header.column.id !== 'reviewed' &&
+                          header.column.id !== 'lastChange' ? (
+                            <div>
+                              <Filter column={header.column} />
+                            </div>
+                          ) : null}
+                        </TableHead>
+                      )
+                    })}
                 </TableRow>
               ))}
             </TableHeader>

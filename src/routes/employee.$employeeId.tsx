@@ -19,6 +19,7 @@ import { reviewQueueAtom } from '@/atoms'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
 import { FeedbackCard } from '@/components/FeedbackCard'
+import { SalaryWithMismatchIndicator } from '@/components/SalaryWithMismatchIndicator'
 import {
   bonusPercentage,
   formatCurrency,
@@ -508,24 +509,15 @@ function EmployeeOverview() {
         header: () => <div className="text-right">Total Salary ($)</div>,
         cell: ({ row }) => {
           const salary = row.original
-          const expectedTotal =
-            salary.locationFactor *
-            salary.level *
-            salary.step *
-            salary.benchmarkFactor
-          const isMismatch = Math.abs(salary.totalSalary - expectedTotal) > 0.01 // Allow for small floating point differences
-
           return (
-            <div
-              className={`text-right ${isMismatch ? 'font-medium text-red-600' : ''}`}
-              title={
-                isMismatch
-                  ? `Mismatch detected! Expected: ${formatCurrency(expectedTotal)}, Actual: ${formatCurrency(salary.totalSalary)}`
-                  : ''
-              }
-            >
-              {formatCurrency(salary.totalSalary)}
-            </div>
+            <SalaryWithMismatchIndicator
+              totalSalary={salary.totalSalary}
+              benchmarkFactor={salary.benchmarkFactor}
+              locationFactor={salary.locationFactor}
+              level={salary.level}
+              step={salary.step}
+              align="right"
+            />
           )
         },
       },
