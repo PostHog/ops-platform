@@ -7,7 +7,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { ChevronDown } from 'lucide-react'
 import { useServerFn } from '@tanstack/react-start'
 import { useQuery } from '@tanstack/react-query'
 import { createToast } from 'vercel-toast'
@@ -19,17 +18,10 @@ import type {
   Row,
   RowData,
   SortingState,
-  VisibilityState,
 } from '@tanstack/react-table'
 import type { Priority, Prisma } from '@prisma/client'
 import { useLocalStorage } from 'usehooks-ts'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   Table,
   TableBody,
@@ -190,7 +182,6 @@ function App() {
     'employees.table',
     [],
   )
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [_, setReviewQueue] = useAtom(reviewQueueAtom)
 
   const getEmployeesFn = useServerFn(getEmployees)
@@ -428,11 +419,13 @@ function App() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
     state: {
       sorting,
       columnFilters,
-      columnVisibility,
+      columnVisibility: {
+        changePercentage: false,
+        level: false,
+      },
     },
     filterFns: {},
   })
@@ -461,32 +454,6 @@ function App() {
             >
               Review visible employees
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="ml-auto">
-                  Columns <ChevronDown />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {table
-                  .getAllColumns()
-                  .filter((column) => column.getCanHide())
-                  .map((column) => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
-                      >
-                        {column.id}
-                      </DropdownMenuCheckboxItem>
-                    )
-                  })}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
         <TableFilters table={table} />
@@ -495,36 +462,24 @@ function App() {
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers
-                    .filter(
-                      (header) =>
-                        header.column.id !== 'level' &&
-                        header.column.id !== 'changePercentage',
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                        {header.column.getCanFilter() ? (
+                          <div className="hidden">
+                            {/* for some reason removing the filters cause infinite re-renders */}
+                            <Filter column={header.column} />
+                          </div>
+                        ) : null}
+                      </TableHead>
                     )
-                    .map((header) => {
-                      return (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                          {header.column.getCanFilter() &&
-                          header.column.id !== 'name' &&
-                          header.column.id !== 'level' &&
-                          header.column.id !== 'stepLevel' &&
-                          header.column.id !== 'priority' &&
-                          header.column.id !== 'reviewer' &&
-                          header.column.id !== 'reviewed' &&
-                          header.column.id !== 'lastChange' ? (
-                            <div>
-                              <Filter column={header.column} />
-                            </div>
-                          ) : null}
-                        </TableHead>
-                      )
-                    })}
+                  })}
                 </TableRow>
               ))}
             </TableHeader>
