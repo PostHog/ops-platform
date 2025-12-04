@@ -70,6 +70,23 @@ function handleSortToggle(column: Column<any, unknown>) {
   }
 }
 
+function getPriorityBgColor(priority: string) {
+  switch (priority) {
+    case 'high':
+      return 'bg-red-50 hover:bg-red-100'
+    case 'medium':
+      return 'bg-yellow-50 hover:bg-yellow-100'
+    case 'low':
+      return 'bg-blue-50 hover:bg-blue-100'
+    case 'filled':
+      return 'bg-green-50 hover:bg-green-100'
+    case 'pushed_to_next_quarter':
+      return 'bg-gray-50 hover:bg-gray-100'
+    default:
+      return 'hover:bg-gray-50'
+  }
+}
+
 function RouteComponent() {
   const [columnFilters, setColumnFilters] = useLocalStorage<ColumnFiltersState>(
     'proposed-hires.table.columnFilters',
@@ -246,7 +263,10 @@ function RouteComponent() {
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-gray-50">
+                  <TableRow
+                    key={row.id}
+                    className={getPriorityBgColor(row.original.priority)}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="px-1 py-1">
                         {flexRender(
