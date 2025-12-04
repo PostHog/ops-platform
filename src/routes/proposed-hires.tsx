@@ -27,6 +27,7 @@ import { customFilterFns, Filter } from '.'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
 import { useLocalStorage } from 'usehooks-ts'
+import { PriorityBadge } from '@/components/PriorityBadge'
 
 type ProposedHire = Prisma.ProposedHireGetPayload<{
   include: {
@@ -132,6 +133,9 @@ function RouteComponent() {
     {
       accessorKey: 'priority',
       header: 'Priority',
+      cell: ({ row }) => {
+        return <PriorityBadge priority={row.original.priority} />
+      },
       sortingFn: (rowA, rowB) => {
         const priorityOrder = [
           'high',
@@ -246,7 +250,7 @@ function RouteComponent() {
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-gray-50">
+                  <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="px-1 py-1">
                         {flexRender(
