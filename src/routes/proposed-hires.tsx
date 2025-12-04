@@ -27,6 +27,7 @@ import { customFilterFns, Filter } from '.'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
 import { useLocalStorage } from 'usehooks-ts'
+import { PriorityBadge } from '@/components/PriorityBadge'
 
 type ProposedHire = Prisma.ProposedHireGetPayload<{
   include: {
@@ -67,23 +68,6 @@ function handleSortToggle(column: Column<any, unknown>) {
     column.toggleSorting(true) // desc
   } else {
     column.clearSorting() // no sort
-  }
-}
-
-function getPriorityBgColor(priority: string) {
-  switch (priority) {
-    case 'high':
-      return 'bg-red-50 hover:bg-red-100'
-    case 'medium':
-      return 'bg-yellow-50 hover:bg-yellow-100'
-    case 'low':
-      return 'bg-blue-50 hover:bg-blue-100'
-    case 'filled':
-      return 'bg-green-50 hover:bg-green-100'
-    case 'pushed_to_next_quarter':
-      return 'bg-gray-50 hover:bg-gray-100'
-    default:
-      return 'hover:bg-gray-50'
   }
 }
 
@@ -149,6 +133,9 @@ function RouteComponent() {
     {
       accessorKey: 'priority',
       header: 'Priority',
+      cell: ({ row }) => {
+        return <PriorityBadge priority={row.original.priority} />
+      },
       sortingFn: (rowA, rowB) => {
         const priorityOrder = [
           'high',
@@ -263,10 +250,7 @@ function RouteComponent() {
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className={getPriorityBgColor(row.original.priority)}
-                  >
+                  <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="px-1 py-1">
                         {flexRender(
