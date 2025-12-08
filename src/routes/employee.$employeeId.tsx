@@ -239,7 +239,12 @@ export const updateSalary = createAuthenticatedFn({
   method: 'POST',
 })
   .inputValidator(
-    (d: Omit<Salary, 'id' | 'timestamp' | 'communicated' | 'synced'>) => d,
+    (
+      d: Omit<
+        Salary,
+        'id' | 'timestamp' | 'communicated' | 'synced' | 'equityRefreshGranted'
+      >,
+    ) => d,
   )
   .handler(async ({ data }) => {
     // Create the salary entry
@@ -641,20 +646,20 @@ function EmployeeOverview() {
         ),
       },
       {
-        accessorKey: 'optionsRefreshPercentage',
+        accessorKey: 'equityRefreshPercentage',
         header: () => <div className="text-right">Options refresh (%)</div>,
         cell: ({ row }) => (
           <div className="text-right">
-            {(row.original.optionsRefreshPercentage * 100).toFixed(2)}%
+            {(row.original.equityRefreshPercentage * 100).toFixed(2)}%
           </div>
         ),
       },
       {
-        accessorKey: 'optionsRefreshAmount',
-        header: () => <div className="text-right">Options refresh ($)</div>,
+        accessorKey: 'equityRefreshAmount',
+        header: () => <div className="text-right">Equity refresh ($)</div>,
         cell: ({ row }) => (
           <div className="text-right">
-            {formatCurrency(row.original.optionsRefreshAmount)}
+            {formatCurrency(row.original.equityRefreshAmount)}
           </div>
         ),
       },
@@ -945,10 +950,10 @@ function EmployeeOverview() {
                   <Alert variant="default">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>
-                      This employee is eligible for an options refresh.
+                      This employee is eligible for an equity refresh.
                     </AlertTitle>
                     <AlertDescription>
-                      Enter an options refresh percentage in the next salary
+                      Enter an equity refresh percentage in the next salary
                       update. In the majority of cases, this will be between 18%
                       and 25%.
                     </AlertDescription>

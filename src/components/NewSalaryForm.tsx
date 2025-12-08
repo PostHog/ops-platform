@@ -86,8 +86,8 @@ export function NewSalaryForm({
     amountTakenInOptions: 0,
     actualSalary: latestSalary?.actualSalary ?? 0,
     actualSalaryLocal: latestSalary?.actualSalaryLocal ?? 0,
-    optionsRefreshPercentage: 0,
-    optionsRefreshAmount: 0,
+    equityRefreshPercentage: 0,
+    equityRefreshAmount: 0,
     notes: '',
     employeeId: employeeId,
   })
@@ -175,15 +175,15 @@ export function NewSalaryForm({
       Number(actualSalaryLocal.toFixed(2)),
     )
 
-    const optionsRefreshPercentage =
-      formApi.getFieldValue('optionsRefreshPercentage') ?? 0
-    const optionsRefreshAmount =
+    const equityRefreshPercentage =
+      formApi.getFieldValue('equityRefreshPercentage') ?? 0
+    const equityRefreshAmount =
       totalSalary *
-      optionsRefreshPercentage *
+      equityRefreshPercentage *
       roleTypeOptions[roleType[benchmarkValue as keyof typeof roleType]]
     formApi.setFieldValue(
-      'optionsRefreshAmount',
-      Number(optionsRefreshAmount.toFixed(2)),
+      'equityRefreshAmount',
+      Number(equityRefreshAmount.toFixed(2)),
     )
   }
 
@@ -209,7 +209,7 @@ export function NewSalaryForm({
             'step',
             'benchmark',
             'amountTakenInOptions',
-            'optionsRefreshPercentage',
+            'equityRefreshPercentage',
           ].includes(fieldApi.name)
         ) {
           updateFormFields(formApi)
@@ -597,11 +597,11 @@ export function NewSalaryForm({
             </TableCell>
             <TableCell>
               <form.Field
-                name="optionsRefreshPercentage"
+                name="equityRefreshPercentage"
                 validators={{
                   onChange: ({ value }) => {
                     if (value < 0 || value > 1) {
-                      return 'Options refresh percentage must be between 0 and 1'
+                      return 'Equity refresh percentage must be between 0 and 1'
                     }
                   },
                 }}
@@ -625,7 +625,7 @@ export function NewSalaryForm({
             </TableCell>
             <TableCell>
               <form.Field
-                name="optionsRefreshAmount"
+                name="equityRefreshAmount"
                 children={(field) => {
                   return (
                     <div className="px-1 py-1 text-right text-xs">
