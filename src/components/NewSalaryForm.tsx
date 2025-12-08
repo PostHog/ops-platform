@@ -600,8 +600,8 @@ export function NewSalaryForm({
                 name="optionsRefreshPercentage"
                 validators={{
                   onChange: ({ value }) => {
-                    if (value < 0.18 || value > 0.25) {
-                      return 'Options refresh percentage must be between 0.18 and 0.25'
+                    if (value < 0 || value > 1) {
+                      return 'Options refresh percentage must be between 0 and 1'
                     }
                   },
                 }}
@@ -616,8 +616,8 @@ export function NewSalaryForm({
                     value={field.state.value}
                     type="number"
                     step={0.01}
-                    min={0.18}
-                    max={0.25}
+                    min={0}
+                    max={1}
                     onChange={(e) => field.handleChange(Number(e.target.value))}
                   />
                 )}

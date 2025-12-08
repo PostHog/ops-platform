@@ -42,6 +42,7 @@ import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
+import dayjs from 'dayjs'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -700,6 +701,12 @@ function EmployeeOverview() {
     sfBenchmark[employee.salaries[0]?.benchmark] !==
       employee.salaries[0].benchmarkFactor
 
+  // vesting start of last grant is between 12 and 16 months ago (including the initial grant when joining)
+  // TODO: include carta last option grant date in this logic
+  const monthsSinceStart =
+    dayjs().diff(employee.deelEmployee?.startDate, 'month') % 12
+  const eligibleForOptionsRefresh = [11, 0, 1, 2, 3].includes(monthsSinceStart)
+
   return (
     <div className="flex flex-col items-center justify-center gap-5 pt-8">
       <div className="flex w-full flex-col gap-5 px-4 2xl:max-w-7xl">
@@ -930,6 +937,20 @@ function EmployeeOverview() {
                     <AlertDescription>
                       The location factor will be updated on the next salary
                       update.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {eligibleForOptionsRefresh && user?.role === ROLES.ADMIN && (
+                  <Alert variant="default">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>
+                      This employee is eligible for an options refresh.
+                    </AlertTitle>
+                    <AlertDescription>
+                      Enter an options refresh percentage in the next salary
+                      update. In the majority of cases, this will be between 18%
+                      and 25%.
                     </AlertDescription>
                   </Alert>
                 )}
