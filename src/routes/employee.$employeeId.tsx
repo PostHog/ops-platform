@@ -710,7 +710,7 @@ function EmployeeOverview() {
   // TODO: include carta last option grant date in this logic
   const monthsSinceStart =
     dayjs().diff(employee.deelEmployee?.startDate, 'month') % 12
-  const eligibleForOptionsRefresh = [11, 0, 1, 2, 3].includes(monthsSinceStart)
+  const eligibleForEquityRefresh = [11, 0, 1, 2, 3].includes(monthsSinceStart)
 
   return (
     <div className="flex flex-col items-center justify-center gap-5 pt-8">
@@ -946,7 +946,7 @@ function EmployeeOverview() {
                   </Alert>
                 )}
 
-                {eligibleForOptionsRefresh && user?.role === ROLES.ADMIN && (
+                {eligibleForEquityRefresh && user?.role === ROLES.ADMIN && (
                   <Alert variant="default">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>
