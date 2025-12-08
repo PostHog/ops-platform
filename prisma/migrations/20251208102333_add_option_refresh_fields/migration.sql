@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "Salary" ADD COLUMN     "optionsRefreshAmount" DOUBLE PRECISION NOT NULL DEFAULT 0,
-ADD COLUMN     "optionsRefreshPercentage" DOUBLE PRECISION NOT NULL DEFAULT 0;
