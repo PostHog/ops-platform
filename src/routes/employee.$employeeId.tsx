@@ -647,7 +647,7 @@ function EmployeeOverview() {
       },
       {
         accessorKey: 'equityRefreshPercentage',
-        header: () => <div className="text-right">Options refresh (%)</div>,
+        header: () => <div className="text-right">Equity refresh (%)</div>,
         cell: ({ row }) => (
           <div className="text-right">
             {(row.original.equityRefreshPercentage * 100).toFixed(2)}%
