@@ -42,6 +42,7 @@ import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
+import dayjs from 'dayjs'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -238,7 +239,12 @@ export const updateSalary = createAuthenticatedFn({
   method: 'POST',
 })
   .inputValidator(
-    (d: Omit<Salary, 'id' | 'timestamp' | 'communicated' | 'synced'>) => d,
+    (
+      d: Omit<
+        Salary,
+        'id' | 'timestamp' | 'communicated' | 'synced' | 'equityRefreshGranted'
+      >,
+    ) => d,
   )
   .handler(async ({ data }) => {
     // Create the salary entry
@@ -639,6 +645,24 @@ function EmployeeOverview() {
           </div>
         ),
       },
+      {
+        accessorKey: 'equityRefreshPercentage',
+        header: () => <div className="text-right">Equity refresh (%)</div>,
+        cell: ({ row }) => (
+          <div className="text-right">
+            {(row.original.equityRefreshPercentage * 100).toFixed(2)}%
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'equityRefreshAmount',
+        header: () => <div className="text-right">Equity refresh ($)</div>,
+        cell: ({ row }) => (
+          <div className="text-right">
+            {formatCurrency(row.original.equityRefreshAmount)}
+          </div>
+        ),
+      },
     ]
 
     return showDetailedColumns
@@ -681,6 +705,12 @@ function EmployeeOverview() {
     employee.salaries[0] &&
     sfBenchmark[employee.salaries[0]?.benchmark] !==
       employee.salaries[0].benchmarkFactor
+
+  // vesting start of last grant is between 12 and 16 months ago (including the initial grant when joining)
+  // TODO: include carta last option grant date in this logic
+  const monthsSinceStart =
+    dayjs().diff(employee.deelEmployee?.startDate, 'month') % 12
+  const eligibleForEquityRefresh = [11, 0, 1, 2, 3].includes(monthsSinceStart)
 
   return (
     <div className="flex flex-col items-center justify-center gap-5 pt-8">
@@ -912,6 +942,20 @@ function EmployeeOverview() {
                     <AlertDescription>
                       The location factor will be updated on the next salary
                       update.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {eligibleForEquityRefresh && user?.role === ROLES.ADMIN && (
+                  <Alert variant="default">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>
+                      This employee is eligible for an equity refresh.
+                    </AlertTitle>
+                    <AlertDescription>
+                      Enter an equity refresh percentage in the next salary
+                      update. In the majority of cases, this will be between 18%
+                      and 25%.
                     </AlertDescription>
                   </Alert>
                 )}

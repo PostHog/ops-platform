@@ -62,31 +62,34 @@ enum Priority {
 }
 
 model Salary {
-  id                   String   @id @default(cuid())
-  timestamp            DateTime @default(now())
-  country              String
-  area                 String
-  locationFactor       Float
-  level                Float
-  step                 Float
-  benchmark            String
-  benchmarkFactor      Float
-  totalSalary          Float
-  bonusPercentage      Float    @default(0)
-  bonusAmount          Float    @default(0)
-  changePercentage     Float
-  changeAmount         Float
-  exchangeRate         Float
-  localCurrency        String
-  totalSalaryLocal     Float
-  amountTakenInOptions Float
-  actualSalary         Float
-  actualSalaryLocal    Float
-  notes                String
-  employeeId           String
-  synced               Boolean  @default(true)
-  communicated         Boolean  @default(false)
-  employee             Employee @relation(fields: [employeeId], references: [id])
+  id                      String   @id @default(cuid())
+  timestamp               DateTime @default(now())
+  country                 String
+  area                    String
+  locationFactor          Float
+  level                   Float
+  step                    Float
+  benchmark               String
+  benchmarkFactor         Float
+  totalSalary             Float
+  bonusPercentage         Float    @default(0)
+  bonusAmount             Float    @default(0)
+  changePercentage        Float
+  changeAmount            Float
+  exchangeRate            Float
+  localCurrency           String
+  totalSalaryLocal        Float
+  amountTakenInOptions    Float
+  actualSalary            Float
+  actualSalaryLocal       Float
+  equityRefreshPercentage Float    @default(0)
+  equityRefreshAmount     Float    @default(0)
+  equityRefreshGranted    Boolean  @default(true)
+  notes                   String
+  employeeId              String
+  synced                  Boolean  @default(true)
+  communicated            Boolean  @default(false)
+  employee                Employee @relation(fields: [employeeId], references: [id])
 }
 
 enum DriverOrPassenger {

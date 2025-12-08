@@ -8,6 +8,8 @@ import {
   formatCurrency,
   getCountryFlag,
   SALARY_LEVEL_OPTIONS,
+  roleTypeOptions,
+  roleType,
 } from '@/lib/utils'
 import { updateSalary } from '@/routes/employee.$employeeId'
 import { Salary } from '@prisma/client'
@@ -84,6 +86,8 @@ export function NewSalaryForm({
     amountTakenInOptions: 0,
     actualSalary: latestSalary?.actualSalary ?? 0,
     actualSalaryLocal: latestSalary?.actualSalaryLocal ?? 0,
+    equityRefreshPercentage: 0,
+    equityRefreshAmount: 0,
     notes: '',
     employeeId: employeeId,
   })
@@ -170,6 +174,21 @@ export function NewSalaryForm({
       'actualSalaryLocal',
       Number(actualSalaryLocal.toFixed(2)),
     )
+
+    const equityRefreshPercentage =
+      formApi.getFieldValue('equityRefreshPercentage') ?? 0
+    const equityRefreshAmount =
+      totalSalary *
+      equityRefreshPercentage *
+      (roleTypeOptions[
+        roleType[
+          (benchmarkValue?.replace(' (old)', '') ?? '') as keyof typeof roleType
+        ]
+      ] ?? 0)
+    formApi.setFieldValue(
+      'equityRefreshAmount',
+      Number(equityRefreshAmount.toFixed(2)),
+    )
   }
 
   const form = useForm({
@@ -194,6 +213,7 @@ export function NewSalaryForm({
             'step',
             'benchmark',
             'amountTakenInOptions',
+            'equityRefreshPercentage',
           ].includes(fieldApi.name)
         ) {
           updateFormFields(formApi)
@@ -574,6 +594,46 @@ export function NewSalaryForm({
                         style: 'currency',
                         currency: localCurrency,
                       }).format(field.state.value)}
+                    </div>
+                  )
+                }}
+              />
+            </TableCell>
+            <TableCell>
+              <form.Field
+                name="equityRefreshPercentage"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (value < 0 || value > 1) {
+                      return 'Equity refresh percentage must be between 0 and 1'
+                    }
+                  },
+                }}
+                children={(field) => (
+                  <Input
+                    className={
+                      'h-6 w-full min-w-[70px] text-xs' +
+                      (field.state.meta.errors.length > 0
+                        ? ' border-red-500 ring-red-500'
+                        : '')
+                    }
+                    value={field.state.value}
+                    type="number"
+                    step={0.01}
+                    min={0}
+                    max={1}
+                    onChange={(e) => field.handleChange(Number(e.target.value))}
+                  />
+                )}
+              />
+            </TableCell>
+            <TableCell>
+              <form.Field
+                name="equityRefreshAmount"
+                children={(field) => {
+                  return (
+                    <div className="px-1 py-1 text-right text-xs">
+                      {formatCurrency(field.state.value)}
                     </div>
                   )
                 }}
