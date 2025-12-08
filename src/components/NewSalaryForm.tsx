@@ -180,7 +180,11 @@ export function NewSalaryForm({
     const equityRefreshAmount =
       totalSalary *
       equityRefreshPercentage *
-      roleTypeOptions[roleType[benchmarkValue as keyof typeof roleType]]
+      (roleTypeOptions[
+        roleType[
+          (benchmarkValue?.replace(' (old)', '') ?? '') as keyof typeof roleType
+        ]
+      ] ?? 0)
     formApi.setFieldValue(
       'equityRefreshAmount',
       Number(equityRefreshAmount.toFixed(2)),
