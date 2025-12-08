@@ -5,7 +5,7 @@ import {
   getFilteredRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { MoreHorizontal } from 'lucide-react'
+import { InfoIcon, MoreHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
 import { useLocalStorage } from 'usehooks-ts'
@@ -46,6 +46,12 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { createToast } from 'vercel-toast'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 type Salary = Prisma.SalaryGetPayload<{
   include: {
@@ -332,6 +338,45 @@ function App() {
             >
               Toggle
             </Button>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'synced',
+        header: () => (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-row items-center gap-1">
+                  <span>Synced</span>
+                  <InfoIcon className="h-4 w-4 cursor-help text-gray-600" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  Whether the salary has been automatically synced to the
+                  payroll provider.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ),
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'Yes', value: 'true' },
+            { label: 'No', value: 'false' },
+          ],
+        },
+        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
+          customFilterFns.equals(
+            row.original.synced.toString(),
+            _,
+            filterValue,
+          ),
+        cell: ({ row }) => (
+          <div>
+            <span>{row.original.synced ? 'Yes' : 'No'}</span>
           </div>
         ),
       },
