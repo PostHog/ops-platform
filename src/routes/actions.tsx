@@ -376,19 +376,22 @@ function App() {
     })
 
     const csv = generateCsv(csvConfig)(
-      salaries.map((salary) => ({
-        name: salary.employee.deelEmployee?.name,
-        notes: salary.notes,
-        salary: formatCurrency(salary.actualSalary),
-        currency: salary.localCurrency,
-        salaryLocal: new Intl.NumberFormat('en-US', {
-          style: 'currency',
+      table.getFilteredRowModel().rows.map((row) => {
+        const salary = row.original
+        return {
+          name: salary.employee.deelEmployee?.name,
+          notes: salary.notes,
+          salary: formatCurrency(salary.actualSalary),
           currency: salary.localCurrency,
-        }).format(salary.actualSalaryLocal),
-        changePercentage: salary.changePercentage,
-        reviewer: salary.employee.deelEmployee?.topLevelManager?.name,
-        communicated: salary.communicated ? 'Yes' : 'No',
-      })),
+          salaryLocal: new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: salary.localCurrency,
+          }).format(salary.actualSalaryLocal),
+          changePercentage: salary.changePercentage,
+          reviewer: salary.employee.deelEmployee?.topLevelManager?.name,
+          communicated: salary.communicated ? 'Yes' : 'No',
+        }
+      }),
     )
 
     download(csvConfig)(csv)
@@ -441,7 +444,7 @@ function App() {
               className="ml-auto"
               onClick={handleExportAsCSV}
             >
-              Export as CSV
+              Export visible as CSV
             </Button>
           </div>
         </div>
