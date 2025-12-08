@@ -639,6 +639,24 @@ function EmployeeOverview() {
           </div>
         ),
       },
+      {
+        accessorKey: 'optionsRefreshPercentage',
+        header: () => <div className="text-right">Options refresh (%)</div>,
+        cell: ({ row }) => (
+          <div className="text-right">
+            {(row.original.optionsRefreshPercentage * 100).toFixed(2)}%
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'optionsRefreshAmount',
+        header: () => <div className="text-right">Options refresh ($)</div>,
+        cell: ({ row }) => (
+          <div className="text-right">
+            {formatCurrency(row.original.optionsRefreshAmount)}
+          </div>
+        ),
+      },
     ]
 
     return showDetailedColumns

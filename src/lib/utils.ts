@@ -118,6 +118,48 @@ export const getAreasByCountry = (country: string) => {
   ]
 }
 
+export const roleTypeOptions = {
+  Engineer: 0.75,
+  Sales: 0.15,
+  CS: 0.3,
+  'Everyone else': 0.4,
+}
+
+export const roleType: Record<
+  keyof typeof sfBenchmark,
+  keyof typeof roleTypeOptions
+> = {
+  'Product Engineer': 'Engineer',
+  'Account Executive (OTE)': 'Sales',
+  'Backend Engineer': 'Engineer',
+  'Billing Support Specialist': 'Everyone else',
+  'Business Development Representative (OTE)': 'Sales',
+  'Content Marketer': 'Everyone else',
+  'Community Manager': 'Everyone else',
+  'Customer Success Manager (OTE)': 'CS',
+  'Data Engineer': 'Engineer',
+  'Design Lead': 'Everyone else',
+  'Events Manager': 'Everyone else',
+  'Finance Manager': 'Everyone else',
+  'Front End Developer': 'Engineer',
+  'Full Stack Engineer': 'Engineer',
+  'Graphic Designer': 'Everyone else',
+  'Mobile Engineer': 'Engineer',
+  'Onboarding Specialist': 'Everyone else',
+  'Operations & Finance Lead': 'Everyone else',
+  'Operations Manager': 'Everyone else',
+  'People Operations Manager': 'Everyone else',
+  'Performance Marketer': 'Everyone else',
+  'Product Designer': 'Everyone else',
+  'Product Manager': 'Everyone else',
+  'Product Marketer': 'Everyone else',
+  'Revenue Ops Manager': 'Everyone else',
+  'Site Reliability Engineer': 'Engineer',
+  'Support Engineer': 'Everyone else',
+  'Talent Partner': 'Everyone else',
+  'Video Producer': 'Everyone else',
+}
+
 export const stepModifier: Record<string, Array<number>> = {
   Learning: [0.85, 0.94],
   Established: [0.95, 1.04],
