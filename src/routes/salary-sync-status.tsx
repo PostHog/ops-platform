@@ -18,7 +18,6 @@ import {
 } from '@tanstack/react-table'
 import { useMemo } from 'react'
 import { customFilterFns, Filter } from '.'
-import { useState } from 'react'
 import {
   Table,
   TableBody,
