@@ -73,7 +73,9 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
 
             const { payment: compensation_details } =
               deelEmployee.employments.filter((x: any) =>
-                ['active', 'onboarding'].includes(x.hiring_status),
+                ['active', 'onboarding', 'onboarding_overdue'].includes(
+                  x.hiring_status,
+                ),
               )[0]
 
             const getDeelAnnualSalary = (compensation_details: {
