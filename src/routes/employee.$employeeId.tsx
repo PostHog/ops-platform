@@ -708,9 +708,12 @@ function EmployeeOverview() {
 
   // vesting start of last grant is between 12 and 16 months ago (including the initial grant when joining)
   // TODO: include carta last option grant date in this logic
-  const monthsSinceStart =
-    dayjs().diff(employee.deelEmployee?.startDate, 'month') % 12
-  const eligibleForEquityRefresh = [11, 0, 1, 2, 3].includes(monthsSinceStart)
+  const monthsSinceStart = dayjs().diff(
+    employee.deelEmployee?.startDate,
+    'month',
+  )
+  const eligibleForEquityRefresh =
+    monthsSinceStart >= 10 && [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
 
   return (
     <div className="flex flex-col items-center justify-center gap-5 pt-8">
