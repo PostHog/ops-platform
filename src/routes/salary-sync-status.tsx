@@ -18,7 +18,6 @@ import {
 } from '@tanstack/react-table'
 import { useMemo } from 'react'
 import { customFilterFns, Filter } from '.'
-import { useState } from 'react'
 import {
   Table,
   TableBody,
@@ -77,7 +76,10 @@ function handleSortToggle(column: Column<any, unknown>) {
 }
 
 function RouteComponent() {
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [columnFilters, setColumnFilters] = useLocalStorage<ColumnFiltersState>(
+    'salary-sync-status.table.filters',
+    [],
+  )
   const [sorting, setSorting] = useLocalStorage<SortingState>(
     'salary-sync-status.table.sorting',
     [
