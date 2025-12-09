@@ -85,6 +85,8 @@ model Salary {
   equityRefreshPercentage Float    @default(0)
   equityRefreshAmount     Float    @default(0)
   equityRefreshGranted    Boolean  @default(true)
+  employmentCountry       String?
+  employmentArea          String?
   notes                   String
   employeeId              String
   synced                  Boolean  @default(true)
