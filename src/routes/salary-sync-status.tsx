@@ -77,7 +77,10 @@ function handleSortToggle(column: Column<any, unknown>) {
 }
 
 function RouteComponent() {
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [columnFilters, setColumnFilters] = useLocalStorage<ColumnFiltersState>(
+    'salary-sync-status.table.filters',
+    [],
+  )
   const [sorting, setSorting] = useLocalStorage<SortingState>(
     'salary-sync-status.table.sorting',
     [
