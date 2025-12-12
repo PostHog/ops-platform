@@ -187,13 +187,15 @@ export const getReferenceEmployees = createAuthenticatedFn({
             : {}),
         },
       },
-      ...(data.filterByExec && data.topLevelManagerId
-        ? {
-            deelEmployee: {
+      deelEmployee: {
+        ...(data.filterByExec && data.topLevelManagerId
+          ? {
               topLevelManagerId: data.topLevelManagerId,
-            },
-          }
-        : {}),
+            }
+          : {
+              isNot: null,
+            }),
+      },
     }
 
     const employees = await prisma.employee.findMany({
