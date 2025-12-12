@@ -101,7 +101,6 @@ export function NewSalaryForm({
   })
 
   const updateFormFields = (formApi: AnyFormApi, triggerField?: string) => {
-    console.log('triggered by', triggerField)
     const country = formApi.getFieldValue('country')
     const area = formApi.getFieldValue('area')
 
@@ -172,7 +171,6 @@ export function NewSalaryForm({
     formApi.setFieldValue('changeAmount', Number(changeAmount.toFixed(2)))
 
     const exchangeRate = currencyData[employmentLocation?.currency ?? ''] ?? 1
-    console.log({ exchangeRate })
     formApi.setFieldValue('exchangeRate', exchangeRate)
     formApi.setFieldValue(
       'localCurrency',
