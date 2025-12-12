@@ -665,6 +665,16 @@ function EmployeeOverview() {
           </div>
         ),
       },
+      {
+        accessorKey: 'employmentCountry',
+        header: 'Employment Country',
+        cell: ({ row }) => <div>{row.original.employmentCountry}</div>,
+      },
+      {
+        accessorKey: 'employmentArea',
+        header: () => 'Employment Area',
+        cell: ({ row }) => <div>{row.original.employmentArea}</div>,
+      },
     ]
 
     return showDetailedColumns

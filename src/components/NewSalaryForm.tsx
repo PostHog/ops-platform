@@ -88,16 +88,39 @@ export function NewSalaryForm({
     actualSalaryLocal: latestSalary?.actualSalaryLocal ?? 0,
     equityRefreshPercentage: 0,
     equityRefreshAmount: 0,
+    employmentCountry:
+      latestSalary?.employmentCountry ??
+      latestSalary?.country ??
+      'United States',
+    employmentArea:
+      latestSalary?.employmentArea ??
+      latestSalary?.area ??
+      'San Francisco, California',
     notes: '',
     employeeId: employeeId,
   })
 
-  const updateFormFields = (formApi: AnyFormApi) => {
+  const updateFormFields = (formApi: AnyFormApi, triggerField?: string) => {
+    const country = formApi.getFieldValue('country')
+    const area = formApi.getFieldValue('area')
+
     const location = locationFactor.find(
-      (l) =>
-        l.country === formApi.getFieldValue('country') &&
-        l.area === formApi.getFieldValue('area'),
+      (l) => l.country === country && l.area === area,
     )
+
+    const employmentCountry = formApi.getFieldValue('employmentCountry')
+    const employmentArea = formApi.getFieldValue('employmentArea')
+
+    if (triggerField === 'country')
+      formApi.setFieldValue('employmentCountry', country)
+    if (triggerField === 'area') formApi.setFieldValue('employmentArea', area)
+
+    const employmentLocation = locationFactor.find(
+      (l) => l.country === employmentCountry && l.area === employmentArea,
+    )
+
+    if (!location || !employmentLocation) return
+
     const locationFactorValue = location?.locationFactor ?? 0
     formApi.setFieldValue(
       'locationFactor',
@@ -147,11 +170,13 @@ export function NewSalaryForm({
     const changeAmount = totalSalary - latestTotalSalary
     formApi.setFieldValue('changeAmount', Number(changeAmount.toFixed(2)))
 
-    const exchangeRate = currencyData[location?.currency ?? ''] ?? 1
+    const exchangeRate = currencyData[employmentLocation?.currency ?? ''] ?? 1
     formApi.setFieldValue('exchangeRate', exchangeRate)
     formApi.setFieldValue(
       'localCurrency',
-      currencyData[location?.currency ?? ''] ? location?.currency : 'USD',
+      currencyData[employmentLocation?.currency ?? '']
+        ? employmentLocation?.currency
+        : 'USD',
     )
 
     const totalSalaryLocal = totalSalary * exchangeRate
@@ -214,9 +239,11 @@ export function NewSalaryForm({
             'benchmark',
             'amountTakenInOptions',
             'equityRefreshPercentage',
+            'employmentCountry',
+            'employmentArea',
           ].includes(fieldApi.name)
         ) {
-          updateFormFields(formApi)
+          updateFormFields(formApi, fieldApi.name)
         } else if (
           ['totalSalary', 'bonusPercentage'].includes(fieldApi.name) &&
           showOverride
@@ -262,6 +289,10 @@ export function NewSalaryForm({
   }, [employeeId])
 
   const country = useStore(form.store, (state) => state.values.country)
+  const employmentCountry = useStore(
+    form.store,
+    (state) => state.values.employmentCountry,
+  )
 
   if (displayMode === 'inline')
     return (
@@ -637,6 +668,51 @@ export function NewSalaryForm({
                     </div>
                   )
                 }}
+              />
+            </TableCell>
+            <TableCell>
+              <form.Field
+                name="employmentCountry"
+                children={(field) => (
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(value) => field.handleChange(value)}
+                  >
+                    <SelectTrigger className="h-6 w-full text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getCountries().map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </TableCell>
+            <TableCell>
+              <form.Field
+                name="employmentArea"
+                children={(field) => (
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(value) => field.handleChange(value)}
+                    disabled={!employmentCountry}
+                  >
+                    <SelectTrigger className="h-6 w-full text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getAreasByCountry(employmentCountry).map((area) => (
+                        <SelectItem key={area} value={area}>
+                          {area}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               />
             </TableCell>
           </>
