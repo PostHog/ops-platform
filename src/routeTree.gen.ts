@@ -17,6 +17,7 @@ import { Route as SalarySyncStatusRouteImport } from './routes/salary-sync-statu
 import { Route as RunScheduledJobsRouteImport } from './routes/runScheduledJobs'
 import { Route as ReceiveKeeperTestResultsRouteImport } from './routes/receiveKeeperTestResults'
 import { Route as ProposedHiresRouteImport } from './routes/proposed-hires'
+import { Route as ProcessRouteImport } from './routes/process'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as LoginRouteImport } from './routes/login'
@@ -66,6 +67,11 @@ const ReceiveKeeperTestResultsRoute =
 const ProposedHiresRoute = ProposedHiresRouteImport.update({
   id: '/proposed-hires',
   path: '/proposed-hires',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProcessRoute = ProcessRouteImport.update({
+  id: '/process',
+  path: '/process',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrgChartRoute = OrgChartRouteImport.update({
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
   '/org-chart': typeof OrgChartRoute
+  '/process': typeof ProcessRoute
   '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
   '/org-chart': typeof OrgChartRoute
+  '/process': typeof ProcessRoute
   '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
   '/org-chart': typeof OrgChartRoute
+  '/process': typeof ProcessRoute
   '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
   '/runScheduledJobs': typeof RunScheduledJobsRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/management'
     | '/org-chart'
+    | '/process'
     | '/proposed-hires'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/management'
     | '/org-chart'
+    | '/process'
     | '/proposed-hires'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/management'
     | '/org-chart'
+    | '/process'
     | '/proposed-hires'
     | '/receiveKeeperTestResults'
     | '/runScheduledJobs'
@@ -240,6 +252,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ManagementRoute: typeof ManagementRoute
   OrgChartRoute: typeof OrgChartRoute
+  ProcessRoute: typeof ProcessRoute
   ProposedHiresRoute: typeof ProposedHiresRoute
   ReceiveKeeperTestResultsRoute: typeof ReceiveKeeperTestResultsRoute
   RunScheduledJobsRoute: typeof RunScheduledJobsRoute
@@ -308,6 +321,13 @@ declare module '@tanstack/react-router' {
       path: '/proposed-hires'
       fullPath: '/proposed-hires'
       preLoaderRoute: typeof ProposedHiresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/process': {
+      id: '/process'
+      path: '/process'
+      fullPath: '/process'
+      preLoaderRoute: typeof ProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/org-chart': {
@@ -384,6 +404,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ManagementRoute: ManagementRoute,
   OrgChartRoute: OrgChartRoute,
+  ProcessRoute: ProcessRoute,
   ProposedHiresRoute: ProposedHiresRoute,
   ReceiveKeeperTestResultsRoute: ReceiveKeeperTestResultsRoute,
   RunScheduledJobsRoute: RunScheduledJobsRoute,
