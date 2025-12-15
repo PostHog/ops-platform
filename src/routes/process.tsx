@@ -1,9 +1,34 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useLocalStorage } from 'usehooks-ts'
+import { useServerFn } from '@tanstack/react-start'
+import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import MarkdownComponent from '@/lib/MarkdownComponent'
+import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import prisma from '@/db'
+
+const getProcessDocument = createAuthenticatedFn({
+  method: 'GET',
+}).handler(async () => {
+  const document = await prisma.processDocument.findUnique({
+    where: { id: 'process' },
+  })
+  return document?.content || ''
+})
+
+const saveProcessDocument = createAuthenticatedFn({
+  method: 'POST',
+})
+  .inputValidator((d: { content: string }) => d)
+  .handler(async ({ data }) => {
+    await prisma.processDocument.upsert({
+      where: { id: 'process' },
+      update: { content: data.content },
+      create: { id: 'process', content: data.content },
+    })
+    return { success: true }
+  })
 
 export const Route = createFileRoute('/process')({
   component: RouteComponent,
@@ -11,19 +36,28 @@ export const Route = createFileRoute('/process')({
 
 function RouteComponent() {
   const [isEditing, setIsEditing] = useState(false)
-  const [content, setContent] = useLocalStorage<string>(
-    'pay-review-process',
-    '',
-  )
   const [localContent, setLocalContent] = useState('')
+
+  const getProcessDocumentFn = useServerFn(getProcessDocument)
+  const saveProcessDocumentFn = useServerFn(saveProcessDocument)
+
+  const {
+    data: content = '',
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: ['process-document'],
+    queryFn: () => getProcessDocumentFn(),
+  })
 
   const handleEdit = () => {
     setLocalContent(content)
     setIsEditing(true)
   }
 
-  const handleSave = () => {
-    setContent(localContent)
+  const handleSave = async () => {
+    await saveProcessDocumentFn({ data: { content: localContent } })
+    await refetch()
     setIsEditing(false)
   }
 
@@ -61,7 +95,9 @@ function RouteComponent() {
           </div>
         ) : (
           <div className="rounded-lg border bg-gray-50 p-6">
-            {content ? (
+            {isFetching ? (
+              <div className="text-center text-gray-500">Loading...</div>
+            ) : content ? (
               <MarkdownComponent>{content}</MarkdownComponent>
             ) : (
               <div className="text-center text-gray-500">
