@@ -470,98 +470,97 @@ export default function OrgChart() {
 
   const toggleExpanded = useCallback(
     (node: OrgChartNode, expandAll?: boolean) => {
-      // If expandAll is requested, expand this node and all its descendants
-      if (expandAll) {
-        const childrenMap = new Map<string, string[]>()
-        for (const edge of edges) {
-          if (!childrenMap.has(edge.source)) {
-            childrenMap.set(edge.source, [])
-          }
-          childrenMap.get(edge.source)!.push(edge.target)
-        }
+      let didExpandAll = false
+      let expandedAfterToggle = false
 
-        const descendantIds = new Set<string>()
-        const collectDescendants = (nodeId: string) => {
-          const children = childrenMap.get(nodeId) || []
-          for (const childId of children) {
-            if (!descendantIds.has(childId)) {
-              descendantIds.add(childId)
-              collectDescendants(childId)
+      setNodes((nds) => {
+        const currentNode = nds.find((n) => n.id === node.id)
+        if (!currentNode) return nds
+
+        // Expand-all when Cmd/meta is held
+        if (expandAll) {
+          // Build children map once
+          const childrenMap = new Map<string, string[]>()
+          for (const edge of edges) {
+            if (!childrenMap.has(edge.source)) {
+              childrenMap.set(edge.source, [])
             }
+            childrenMap.get(edge.source)!.push(edge.target)
           }
-        }
 
-        collectDescendants(node.id)
-
-        setNodes((nds) =>
-          nds.map((n) => {
-            if (n.id === node.id || descendantIds.has(n.id)) {
-              return {
-                ...n,
-                data: { ...n.data, expanded: true },
+          const descendantIds = new Set<string>()
+          const collectDescendants = (nodeId: string) => {
+            const children = childrenMap.get(nodeId) || []
+            for (const childId of children) {
+              if (!descendantIds.has(childId)) {
+                descendantIds.add(childId)
+                collectDescendants(childId)
               }
             }
-            return n
-          }),
-        )
+          }
+          collectDescendants(node.id)
 
-        if (autoZoomingEnabled && node.id === 'root-node') {
-          fitView({ duration: 300 })
+          didExpandAll = true
+
+          return nds.map((n) =>
+            n.id === node.id || descendantIds.has(n.id)
+              ? { ...n, data: { ...n.data, expanded: true } }
+              : n,
+          )
         }
 
+        // Normal single-node toggle (works even when Cmd is held)
+        return nds.map((n) => {
+          if (n.id === node.id) {
+            const nextExpanded = !n.data.expanded
+            expandedAfterToggle = nextExpanded
+            return { ...n, data: { ...n.data, expanded: nextExpanded } }
+          }
+          return n
+        })
+      })
+
+      if (!autoZoomingEnabled) {
         return
       }
 
-      // Otherwise, just toggle this node
-      let expanded = false
-      setNodes((nds) =>
-        nds.map((n) => {
-          if (n.id === node.id) {
-            expanded = !n.data.expanded
-            return {
-              ...n,
-              data: { ...n.data, expanded: expanded },
-            }
-          }
+      if (didExpandAll && node.id === 'root-node') {
+        fitView({ duration: 300 })
+        return
+      }
 
-          return n
-        }),
-      )
-
-      if (autoZoomingEnabled) {
-        if (node.id === 'root-node') {
-          fitView({ duration: 300 })
-        } else if (viewMode === 'manager') {
-          fitView({
-            nodes: [
-              {
-                id:
-                  node.data.title === 'Cofounder' && !expanded
-                    ? node.id
-                    : expanded
-                      ? `leaf-container-${node.id}`
+      if (node.id === 'root-node') {
+        fitView({ duration: 300 })
+      } else if (viewMode === 'manager') {
+        fitView({
+          nodes: [
+            {
+              id:
+                node.data.title === 'Cofounder' && !expandedAfterToggle
+                  ? node.id
+                  : expandedAfterToggle
+                    ? `leaf-container-${node.id}`
+                    : `leaf-container-employee-${node.data.manager}`,
+            },
+          ],
+          duration: 300,
+        })
+      } else {
+        fitView({
+          nodes: [
+            {
+              id:
+                node.data.team === 'Blitzscale' && !expandedAfterToggle
+                  ? node.id
+                  : expandedAfterToggle
+                    ? `leaf-container-${node.id}`
+                    : node.type === 'employeeNode'
+                      ? `leaf-container-team-${node.data.team}`
                       : `leaf-container-employee-${node.data.manager}`,
-              },
-            ],
-            duration: 300,
-          })
-        } else {
-          fitView({
-            nodes: [
-              {
-                id:
-                  node.data.team === 'Blitzscale' && !expanded
-                    ? node.id
-                    : expanded
-                      ? `leaf-container-${node.id}`
-                      : node.type === 'employeeNode'
-                        ? `leaf-container-team-${node.data.team}`
-                        : `leaf-container-employee-${node.data.manager}`,
-              },
-            ],
-            duration: 300,
-          })
-        }
+            },
+          ],
+          duration: 300,
+        })
       }
     },
     [edges, autoZoomingEnabled, fitView, viewMode],
