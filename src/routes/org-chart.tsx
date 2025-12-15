@@ -520,12 +520,12 @@ export default function OrgChart() {
         })
       })
 
-      if (!autoZoomingEnabled) {
+      // When expanding all, do not auto-fit/zoom the view
+      if (didExpandAll) {
         return
       }
 
-      if (didExpandAll && node.id === 'root-node') {
-        fitView({ duration: 300 })
+      if (!autoZoomingEnabled) {
         return
       }
 
