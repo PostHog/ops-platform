@@ -1,5 +1,6 @@
 import ReactMarkdown from 'react-markdown'
 import type { ReactNode } from 'react'
+import remarkBreaks from 'remark-breaks'
 
 export default function MarkdownComponent({
   children,
@@ -25,9 +26,11 @@ export default function MarkdownComponent({
         ol: ({ children }) => (
           <ul className="list-inside list-decimal">{children}</ul>
         ),
+        br: ({ children }) => <br>{children}</br>,
       }}
+      remarkPlugins={[remarkBreaks]}
     >
-      {String(children)}
+      {String(children).replaceAll(/(?<=\n\n)(?![*-])\n/gi, '&nbsp;\n')}
     </ReactMarkdown>
   )
 }
