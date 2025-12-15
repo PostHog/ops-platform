@@ -469,7 +469,7 @@ export default function OrgChart() {
   }, [selectedNode])
 
   const toggleExpanded = useCallback(
-    (node: OrgChartNode, expandAll?: boolean) => {
+    (node: OrgChartNode, expandAll?: boolean, edgesForExpand?: Edge[]) => {
       let didExpandAll = false
       let expandedAfterToggle = false
 
@@ -481,7 +481,8 @@ export default function OrgChart() {
         if (expandAll) {
           // Build children map once
           const childrenMap = new Map<string, string[]>()
-          for (const edge of edges) {
+          const sourceEdges = edgesForExpand ?? edges
+          for (const edge of sourceEdges) {
             if (!childrenMap.has(edge.source)) {
               childrenMap.set(edge.source, [])
             }
@@ -568,14 +569,15 @@ export default function OrgChart() {
 
   // Update nodes and edges when viewMode changes
   useEffect(() => {
-    setEdges(getInitialEdges(employees, proposedHires, viewMode))
+    const initialEdges = getInitialEdges(employees, proposedHires, viewMode)
+    setEdges(initialEdges)
     setNodes(
       getInitialNodes(employees, proposedHires, viewMode).map((node) => ({
         ...node,
         data: {
           ...node.data,
           toggleExpanded: (expandAll?: boolean) =>
-            toggleExpanded(node, expandAll),
+            toggleExpanded(node, expandAll, initialEdges),
           handleClick: (id: string) =>
             setSelectedNode(id.replace('employee-', '')),
         },
