@@ -478,7 +478,7 @@ export default function OrgChart() {
         if (!currentNode) return nds
 
         // Expand-all when Cmd/meta is held
-        if (expandAll) {
+        if (expandAll && !currentNode.data.expanded) {
           // Build children map once
           const childrenMap = new Map<string, string[]>()
           const sourceEdges = edgesForExpand ?? edges
