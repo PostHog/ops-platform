@@ -1,4 +1,3 @@
-import ReactMarkdown from 'react-markdown'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useAtom } from 'jotai'
 import { AlertCircle, ArrowLeft, Trash2 } from 'lucide-react'
@@ -43,6 +42,7 @@ import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
 import dayjs from 'dayjs'
+import MarkdownComponent from '@/lib/MarkdownComponent'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -822,38 +822,7 @@ function EmployeeOverview() {
                       <span className="w-full list-disc text-right text-sm text-gray-500">
                         {new Date(timestamp).toLocaleDateString()}
                       </span>
-                      <ReactMarkdown
-                        components={{
-                          h1: ({ children }) => (
-                            <h1 className="text-2xl font-bold">{children}</h1>
-                          ),
-                          h2: ({ children }) => (
-                            <h2 className="text-xl font-bold">{children}</h2>
-                          ),
-                          h3: ({ children }) => (
-                            <h3 className="text-lg font-bold">{children}</h3>
-                          ),
-                          h4: ({ children }) => (
-                            <h4 className="text-base font-bold">{children}</h4>
-                          ),
-                          h5: ({ children }) => (
-                            <h5 className="text-sm font-bold">{children}</h5>
-                          ),
-                          h6: ({ children }) => (
-                            <h6 className="text-xs font-bold">{children}</h6>
-                          ),
-                          ul: ({ children }) => (
-                            <ul className="list-inside list-disc">
-                              {children}
-                            </ul>
-                          ),
-                          ol: ({ children }) => (
-                            <ul className="list-inside list-decimal">
-                              {children}
-                            </ul>
-                          ),
-                        }}
-                      >
+                      <MarkdownComponent>
                         {`### ${title} feedback from ${manager.deelEmployee?.name ?? manager.email}:\n` +
                           `- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${wouldYouTryToKeepThem ? 'Yes' : 'No'}\n` +
                           `- **What makes them so valuable to your team and PostHog?** ${whatMakesThemValuable}\n` +
@@ -865,7 +834,7 @@ function EmployeeOverview() {
                             ? `- **Recommendation**: ${recommendation}\n`
                             : '') +
                           `- **Have you shared this feedback with your team member?** ${sharedWithTeamMember ? 'Yes' : 'No, but I will do right now!'}`}
-                      </ReactMarkdown>
+                      </MarkdownComponent>
                     </div>
                   ),
                 )}
