@@ -69,7 +69,7 @@ const TeamNode = memo(function TeamNode({
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  toggleExpanded()
+                  toggleExpanded(e.metaKey)
                 }}
                 className="rounded bg-blue-100 px-2 py-1 text-xs transition-colors hover:bg-blue-200"
               >
@@ -167,7 +167,7 @@ const EmployeeNode = memo(function EmployeeNode({
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    toggleExpanded()
+                    toggleExpanded(e.metaKey)
                   }}
                   className="rounded bg-gray-100 px-2 py-1 text-xs transition-colors hover:bg-gray-200"
                 >

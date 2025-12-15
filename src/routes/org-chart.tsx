@@ -84,7 +84,7 @@ export type OrgChartNode = Node<
       pending: number
       planned: number
     }
-    toggleExpanded: () => void
+    toggleExpanded: (expandAll?: boolean) => void
     handleClick?: (id: string) => void
     selectedNode: string | null
   } & ProposedHireFields
@@ -374,38 +374,12 @@ export default function OrgChart() {
   )
 
   const [nodes, setNodes] = useState<Array<OrgChartNode>>(
-    getInitialNodes(employees, proposedHires, viewMode).map((node) => ({
-      ...node,
-      data: {
-        ...node.data,
-        toggleExpanded: () => toggleExpanded(node),
-        handleClick: (id: string) =>
-          setSelectedNode(id.replace('employee-', '')),
-      },
-    })),
+    getInitialNodes(employees, proposedHires, viewMode),
   )
   const [edges, setEdges] = useState<Array<Edge>>(
     getInitialEdges(employees, proposedHires, viewMode),
   )
   const { fitView } = useReactFlow()
-
-  useEffect(() => {
-    setEdges(getInitialEdges(employees, proposedHires, viewMode))
-    setNodes(
-      getInitialNodes(employees, proposedHires, viewMode).map((node) => ({
-        ...node,
-        data: {
-          ...node.data,
-          toggleExpanded: () => toggleExpanded(node),
-          handleClick: (id: string) =>
-            setSelectedNode(id.replace('employee-', '')),
-        },
-      })),
-    )
-    if (autoZoomingEnabled) {
-      fitView()
-    }
-  }, [viewMode, autoZoomingEnabled])
 
   const { nodes: visibleNodes, edges: visibleEdges } = useExpandCollapse(
     nodes,
@@ -495,7 +469,50 @@ export default function OrgChart() {
   }, [selectedNode])
 
   const toggleExpanded = useCallback(
-    (node: OrgChartNode) => {
+    (node: OrgChartNode, expandAll?: boolean) => {
+      // If expandAll is requested, expand this node and all its descendants
+      if (expandAll) {
+        const childrenMap = new Map<string, string[]>()
+        for (const edge of edges) {
+          if (!childrenMap.has(edge.source)) {
+            childrenMap.set(edge.source, [])
+          }
+          childrenMap.get(edge.source)!.push(edge.target)
+        }
+
+        const descendantIds = new Set<string>()
+        const collectDescendants = (nodeId: string) => {
+          const children = childrenMap.get(nodeId) || []
+          for (const childId of children) {
+            if (!descendantIds.has(childId)) {
+              descendantIds.add(childId)
+              collectDescendants(childId)
+            }
+          }
+        }
+
+        collectDescendants(node.id)
+
+        setNodes((nds) =>
+          nds.map((n) => {
+            if (n.id === node.id || descendantIds.has(n.id)) {
+              return {
+                ...n,
+                data: { ...n.data, expanded: true },
+              }
+            }
+            return n
+          }),
+        )
+
+        if (autoZoomingEnabled && node.id === 'root-node') {
+          fitView({ duration: 300 })
+        }
+
+        return
+      }
+
+      // Otherwise, just toggle this node
       let expanded = false
       setNodes((nds) =>
         nds.map((n) => {
@@ -547,8 +564,31 @@ export default function OrgChart() {
         }
       }
     },
-    [fitView, viewMode, autoZoomingEnabled],
+    [edges, autoZoomingEnabled, fitView, viewMode],
   )
+
+  // Update nodes and edges when viewMode changes
+  useEffect(() => {
+    setEdges(getInitialEdges(employees, proposedHires, viewMode))
+    setNodes(
+      getInitialNodes(employees, proposedHires, viewMode).map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          toggleExpanded: (expandAll?: boolean) =>
+            toggleExpanded(node, expandAll),
+          handleClick: (id: string) =>
+            setSelectedNode(id.replace('employee-', '')),
+        },
+      })),
+    )
+    if (autoZoomingEnabled) {
+      fitView()
+    }
+    // Deliberately only depend on viewMode/autoZoom so data updates are handled
+    // by their own dedicated effects below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, autoZoomingEnabled])
 
   // Update proposed hire nodes when proposedHires changes
   useEffect(() => {
@@ -615,7 +655,8 @@ export default function OrgChart() {
                 hiringPriority: priority as 'low' | 'medium' | 'high',
                 hiringProfile,
                 expanded: false,
-                toggleExpanded: () => toggleExpanded(newNode),
+                toggleExpanded: (expandAll?: boolean) =>
+                  toggleExpanded(newNode, expandAll),
                 handleClick: (id: string) =>
                   setSelectedNode(id.replace('employee-', '')),
                 selectedNode: null,
