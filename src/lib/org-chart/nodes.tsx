@@ -1,8 +1,34 @@
 import { Handle, Position } from '@xyflow/react'
-import { memo } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { cn } from '../utils'
 import { OrgChartNode } from '@/routes/org-chart'
 import { CalendarClockIcon, ClockIcon, CrownIcon } from 'lucide-react'
+
+const useMetaKeyDown = () => {
+  const [isMetaDown, setIsMetaDown] = useState(false)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey) {
+        setIsMetaDown(true)
+      }
+    }
+
+    const handleKeyUp = () => {
+      setIsMetaDown(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
+
+  return isMetaDown
+}
 
 const NodeHandles = () => {
   return (
@@ -28,6 +54,8 @@ const TeamNode = memo(function TeamNode({
 }: {
   data: OrgChartNode['data']
 }) {
+  const isMetaDown = useMetaKeyDown()
+
   return (
     <div className="transition-all hover:translate-y-[-2px]">
       <div className="flex h-[100px] max-h-[100px] min-h-[100px] w-[200px] min-w-[200px] items-center justify-center rounded-lg border-2 border-blue-300 bg-blue-50 px-6 py-4 shadow-lg">
@@ -69,11 +97,11 @@ const TeamNode = memo(function TeamNode({
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  toggleExpanded()
+                  toggleExpanded(e.metaKey)
                 }}
-                className="rounded bg-blue-100 px-2 py-1 text-xs transition-colors hover:bg-blue-200"
+                className="rounded bg-blue-100 px-2 py-1 text-xs whitespace-nowrap transition-colors hover:bg-blue-200"
               >
-                {expanded ? 'Hide' : 'Show'}
+                {expanded ? 'Hide' : isMetaDown ? 'Expand all' : 'Show'}
               </button>
             </div>
           ) : null}
@@ -103,6 +131,7 @@ const EmployeeNode = memo(function EmployeeNode({
 }: {
   data: OrgChartNode['data']
 }) {
+  const isMetaDown = useMetaKeyDown()
   const isFutureHire = startDate && new Date(startDate) > new Date()
 
   const handleNodeClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -167,11 +196,11 @@ const EmployeeNode = memo(function EmployeeNode({
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    toggleExpanded()
+                    toggleExpanded(e.metaKey)
                   }}
-                  className="rounded bg-gray-100 px-2 py-1 text-xs transition-colors hover:bg-gray-200"
+                  className="rounded bg-gray-100 px-2 py-1 text-xs whitespace-nowrap transition-colors hover:bg-gray-200"
                 >
-                  {expanded ? 'Hide' : 'Show'}
+                  {expanded ? 'Hide' : isMetaDown ? 'Expand all' : 'Show'}
                 </button>
               </div>
             ) : null}

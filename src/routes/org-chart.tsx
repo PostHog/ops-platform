@@ -84,7 +84,7 @@ export type OrgChartNode = Node<
       pending: number
       planned: number
     }
-    toggleExpanded: () => void
+    toggleExpanded: (expandAll?: boolean) => void
     handleClick?: (id: string) => void
     selectedNode: string | null
   } & ProposedHireFields
@@ -374,38 +374,12 @@ export default function OrgChart() {
   )
 
   const [nodes, setNodes] = useState<Array<OrgChartNode>>(
-    getInitialNodes(employees, proposedHires, viewMode).map((node) => ({
-      ...node,
-      data: {
-        ...node.data,
-        toggleExpanded: () => toggleExpanded(node),
-        handleClick: (id: string) =>
-          setSelectedNode(id.replace('employee-', '')),
-      },
-    })),
+    getInitialNodes(employees, proposedHires, viewMode),
   )
   const [edges, setEdges] = useState<Array<Edge>>(
     getInitialEdges(employees, proposedHires, viewMode),
   )
   const { fitView } = useReactFlow()
-
-  useEffect(() => {
-    setEdges(getInitialEdges(employees, proposedHires, viewMode))
-    setNodes(
-      getInitialNodes(employees, proposedHires, viewMode).map((node) => ({
-        ...node,
-        data: {
-          ...node.data,
-          toggleExpanded: () => toggleExpanded(node),
-          handleClick: (id: string) =>
-            setSelectedNode(id.replace('employee-', '')),
-        },
-      })),
-    )
-    if (autoZoomingEnabled) {
-      fitView()
-    }
-  }, [viewMode, autoZoomingEnabled])
 
   const { nodes: visibleNodes, edges: visibleEdges } = useExpandCollapse(
     nodes,
@@ -495,60 +469,127 @@ export default function OrgChart() {
   }, [selectedNode])
 
   const toggleExpanded = useCallback(
-    (node: OrgChartNode) => {
-      let expanded = false
-      setNodes((nds) =>
-        nds.map((n) => {
-          if (n.id === node.id) {
-            expanded = !n.data.expanded
-            return {
-              ...n,
-              data: { ...n.data, expanded: expanded },
+    (node: OrgChartNode, expandAll?: boolean, edgesForExpand?: Edge[]) => {
+      let didExpandAll = false
+      let expandedAfterToggle = false
+
+      setNodes((nds) => {
+        const currentNode = nds.find((n) => n.id === node.id)
+        if (!currentNode) return nds
+
+        // Expand-all when Cmd/meta is held
+        if (expandAll) {
+          // Build children map once
+          const childrenMap = new Map<string, string[]>()
+          const sourceEdges = edgesForExpand ?? edges
+          for (const edge of sourceEdges) {
+            if (!childrenMap.has(edge.source)) {
+              childrenMap.set(edge.source, [])
             }
+            childrenMap.get(edge.source)!.push(edge.target)
           }
 
-          return n
-        }),
-      )
+          const descendantIds = new Set<string>()
+          const collectDescendants = (nodeId: string) => {
+            const children = childrenMap.get(nodeId) || []
+            for (const childId of children) {
+              if (!descendantIds.has(childId)) {
+                descendantIds.add(childId)
+                collectDescendants(childId)
+              }
+            }
+          }
+          collectDescendants(node.id)
 
-      if (autoZoomingEnabled) {
-        if (node.id === 'root-node') {
-          fitView({ duration: 300 })
-        } else if (viewMode === 'manager') {
-          fitView({
-            nodes: [
-              {
-                id:
-                  node.data.title === 'Cofounder' && !expanded
-                    ? node.id
-                    : expanded
-                      ? `leaf-container-${node.id}`
-                      : `leaf-container-employee-${node.data.manager}`,
-              },
-            ],
-            duration: 300,
-          })
-        } else {
-          fitView({
-            nodes: [
-              {
-                id:
-                  node.data.team === 'Blitzscale' && !expanded
-                    ? node.id
-                    : expanded
-                      ? `leaf-container-${node.id}`
-                      : node.type === 'employeeNode'
-                        ? `leaf-container-team-${node.data.team}`
-                        : `leaf-container-employee-${node.data.manager}`,
-              },
-            ],
-            duration: 300,
-          })
+          didExpandAll = true
+
+          return nds.map((n) =>
+            n.id === node.id || descendantIds.has(n.id)
+              ? { ...n, data: { ...n.data, expanded: true } }
+              : n,
+          )
         }
+
+        // Normal single-node toggle (works even when Cmd is held)
+        return nds.map((n) => {
+          if (n.id === node.id) {
+            const nextExpanded = !n.data.expanded
+            expandedAfterToggle = nextExpanded
+            return { ...n, data: { ...n.data, expanded: nextExpanded } }
+          }
+          return n
+        })
+      })
+
+      // When expanding all, do not auto-fit/zoom the view
+      if (didExpandAll) {
+        return
+      }
+
+      if (!autoZoomingEnabled) {
+        return
+      }
+
+      if (node.id === 'root-node') {
+        fitView({ duration: 300 })
+      } else if (viewMode === 'manager') {
+        fitView({
+          nodes: [
+            {
+              id:
+                node.data.title === 'Cofounder' && !expandedAfterToggle
+                  ? node.id
+                  : expandedAfterToggle
+                    ? `leaf-container-${node.id}`
+                    : `leaf-container-employee-${node.data.manager}`,
+            },
+          ],
+          duration: 300,
+        })
+      } else {
+        fitView({
+          nodes: [
+            {
+              id:
+                node.data.team === 'Blitzscale' && !expandedAfterToggle
+                  ? node.id
+                  : expandedAfterToggle
+                    ? `leaf-container-${node.id}`
+                    : node.type === 'employeeNode'
+                      ? `leaf-container-team-${node.data.team}`
+                      : `leaf-container-employee-${node.data.manager}`,
+            },
+          ],
+          duration: 300,
+        })
       }
     },
-    [fitView, viewMode, autoZoomingEnabled],
+    [edges, autoZoomingEnabled, fitView, viewMode],
   )
+
+  // Update nodes and edges when viewMode changes
+  useEffect(() => {
+    const initialEdges = getInitialEdges(employees, proposedHires, viewMode)
+    setEdges(initialEdges)
+    setNodes(
+      getInitialNodes(employees, proposedHires, viewMode).map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          toggleExpanded: (expandAll?: boolean) =>
+            toggleExpanded(node, expandAll, initialEdges),
+          handleClick: (id: string) =>
+            setSelectedNode(id.replace('employee-', '')),
+        },
+      })),
+    )
+    if (autoZoomingEnabled) {
+      fitView()
+    }
+    // Deliberately only depend on viewMode/autoZoom so data updates are handled
+    // by their own dedicated effects below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, autoZoomingEnabled])
 
   // Update proposed hire nodes when proposedHires changes
   useEffect(() => {
@@ -615,7 +656,8 @@ export default function OrgChart() {
                 hiringPriority: priority as 'low' | 'medium' | 'high',
                 hiringProfile,
                 expanded: false,
-                toggleExpanded: () => toggleExpanded(newNode),
+                toggleExpanded: (expandAll?: boolean) =>
+                  toggleExpanded(newNode, expandAll),
                 handleClick: (id: string) =>
                   setSelectedNode(id.replace('employee-', '')),
                 selectedNode: null,
