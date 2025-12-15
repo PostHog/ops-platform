@@ -167,17 +167,21 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
           })
 
           if (
-            ['30 Day check-in', '60 Day check-in', '80 Day check-in'].includes(
-              title,
-            )
+            [
+              '30 Day check-in',
+              '60 Day check-in',
+              '80 Day check-in',
+              'Keeper test',
+            ].includes(title)
           ) {
             const flag =
               createdFeedback.driverOrPassenger === 'DRIVER' &&
               createdFeedback.proactiveToday &&
               createdFeedback.optimisticByDefault &&
               createdFeedback.wouldYouTryToKeepThem &&
-              createdFeedback.recommendation ===
-                'STRONG_HIRE_ON_TRACK_TO_PASS_PROBATION'
+              (createdFeedback.recommendation ===
+                'STRONG_HIRE_ON_TRACK_TO_PASS_PROBATION' ||
+                createdFeedback.recommendation === null)
                 ? ':large_green_circle:'
                 : ':red_circle:'
             const res = await fetch('https://slack.com/api/chat.postMessage', {
