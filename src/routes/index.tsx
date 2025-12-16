@@ -1,12 +1,11 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { Button } from '@/components/ui/button'
-import { signIn, useSession } from '@/lib/auth-client'
-import { useEffect } from 'react'
 import { getMyEmployeeId } from '@/components/Header'
-import { useQuery } from '@tanstack/react-query'
+import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
+import { useQuery } from '@tanstack/react-query'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { useEffect } from 'react'
 
-export const Route = createFileRoute('/login')({
+export const Route = createFileRoute('/')({
   component: RouteComponent,
 })
 
@@ -40,27 +39,5 @@ function RouteComponent() {
     }
   }, [user, myEmployeeId, isLoading, error])
 
-  const handleLogin = async () => {
-    await signIn.social({
-      provider: 'google',
-      callbackURL: '/login',
-    })
-  }
-
-  return (
-    <div className="flex h-full flex-col items-center justify-center">
-      <div className="w-full max-w-md px-6">
-        <h1 className="mb-8 text-center text-3xl font-semibold">
-          Sign in to your account
-        </h1>
-
-        <Button
-          className="h-11 w-full rounded-lg font-medium shadow-lg transition-all"
-          onClick={handleLogin}
-        >
-          Sign in
-        </Button>
-      </div>
-    </div>
-  )
+  return <div>Redirecting...</div>
 }
