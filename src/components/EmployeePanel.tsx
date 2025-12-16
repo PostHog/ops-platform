@@ -6,6 +6,10 @@ import { ROLES } from '@/lib/consts'
 import { useSession } from '@/lib/auth-client'
 import { TeamEditPanel } from './TeamEditPanel'
 import { ManagerEditPanel } from './ManagerEditPanel'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+
+dayjs.extend(relativeTime)
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -73,9 +77,88 @@ const EmployeePanel = ({
           <h1 className="mb-4 text-lg font-bold">
             {employee?.name || proposedHire?.title}
           </h1>
-          <pre className="max-h-[80vh] overflow-auto rounded-lg bg-gray-50 p-4">
-            {JSON.stringify(employee || proposedHire, null, 2)}
-          </pre>
+          <div className="rounded-lg bg-gray-50 p-4">
+            <div className="space-y-3">
+              {employee ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">ID:</span>
+                    <span className="text-gray-900">
+                      {employee.employee?.id || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Deel ID:</span>
+                    <span className="text-gray-900">{employee.id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Email:</span>
+                    <span className="text-gray-900">
+                      {employee.employee?.email || employee.workEmail || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">
+                      Start Date:
+                    </span>
+                    <span className="text-gray-900">
+                      {employee.startDate
+                        ? `${dayjs(employee.startDate).format('M/D/YYYY')} (${dayjs(employee.startDate).fromNow()})`
+                        : 'N/A'}
+                    </span>
+                  </div>
+                </>
+              ) : proposedHire ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">ID:</span>
+                    <span className="text-gray-900">{proposedHire.id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Title:</span>
+                    <span className="text-gray-900">{proposedHire.title}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Manager:</span>
+                    <span className="text-gray-900">
+                      {proposedHire.manager?.deelEmployee?.name || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Team:</span>
+                    <span className="text-gray-900">
+                      {proposedHire.manager?.deelEmployee?.team || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">
+                      Talent Partners:
+                    </span>
+                    <span className="text-gray-900">
+                      {proposedHire.talentPartners
+                        .map((tp) => tp.deelEmployee?.name)
+                        .filter(Boolean)
+                        .join(', ') || 'None'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">
+                      Hiring Profile:
+                    </span>
+                    <span className="text-gray-900">
+                      {proposedHire.hiringProfile || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Priority:</span>
+                    <span className="text-gray-900">
+                      {proposedHire.priority || 'N/A'}
+                    </span>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
           <div className="mt-2 flex flex-col gap-2">
             {employee && user?.role === ROLES.ADMIN ? (
               <Link
