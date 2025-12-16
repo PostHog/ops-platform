@@ -393,6 +393,20 @@ function App() {
       },
     },
     {
+      id: 'team',
+      accessorKey: 'deelEmployee.team',
+      header: () => <span className="font-bold">Team</span>,
+      enableColumnFilter: true,
+      enableHiding: false,
+    },
+    {
+      id: 'role',
+      accessorKey: 'salaries.0.benchmark',
+      header: () => <span className="font-bold">Role</span>,
+      enableColumnFilter: true,
+      enableHiding: false,
+    },
+    {
       accessorKey: 'reviewed',
       header: () => <span className="font-bold">Status</span>,
       meta: {
@@ -428,6 +442,8 @@ function App() {
       columnVisibility: {
         changePercentage: false,
         level: false,
+        team: false,
+        role: false,
       },
     },
     filterFns: {},

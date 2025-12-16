@@ -34,6 +34,26 @@ function buildChildrenMap(edges: Edge[]): Map<string, string[]> {
   return childrenMap
 }
 
+// Recursively collect all descendant node IDs (nested reports)
+function getAllDescendants(
+  nodeId: string,
+  childrenMap: Map<string, string[]>,
+): Set<string> {
+  const descendants = new Set<string>()
+  const directChildren = childrenMap.get(nodeId) || []
+
+  for (const childId of directChildren) {
+    descendants.add(childId)
+    // Recursively get all descendants of this child
+    const childDescendants = getAllDescendants(childId, childrenMap)
+    for (const descendantId of childDescendants) {
+      descendants.add(descendantId)
+    }
+  }
+
+  return descendants
+}
+
 function filterCollapsedChildren(
   dagre: Dagre.graphlib.Graph,
   node: OrgChartNode,
@@ -45,23 +65,29 @@ function filterCollapsedChildren(
   // value to keep TypeScript happy.
   const children = dagre.successors(node.id) as unknown as string[] | undefined
 
-  // Calculate childrenCount based on all children (not just visible ones)
-  const allChildIds = childrenMap.get(node.id) || []
+  // Calculate childrenCount based on all nested descendants (not just direct children)
+  const allDescendantIds = getAllDescendants(node.id, childrenMap)
   let active = 0
   let pending = 0
   let planned = 0
 
-  for (const childId of allChildIds) {
-    const childNode = allNodes.find((n) => n.id === childId)
-    if (!childNode) continue
+  for (const descendantId of allDescendantIds) {
+    const descendantNode = allNodes.find((n) => n.id === descendantId)
+    if (!descendantNode) continue
+
+    // Skip team nodes - only count employee nodes (actual employees and proposed hires)
+    if (descendantNode.type === 'teamNode') continue
 
     // Check if it's a proposed hire (has hiringPriority)
-    if ('hiringPriority' in childNode.data && childNode.data.hiringPriority) {
+    if (
+      'hiringPriority' in descendantNode.data &&
+      descendantNode.data.hiringPriority
+    ) {
       planned++
-    } else if (childNode.data.name) {
+    } else if (descendantNode.data.name) {
       // It's a real employee - check if start date is in the future
-      if (childNode.data.startDate) {
-        const startDate = new Date(childNode.data.startDate)
+      if (descendantNode.data.startDate) {
+        const startDate = new Date(descendantNode.data.startDate)
         const now = new Date()
         if (startDate > now) {
           pending++

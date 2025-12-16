@@ -33,6 +33,8 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
   const [stepFilterOpen, setStepFilterOpen] = useState(false)
   const [priorityFilterOpen, setPriorityFilterOpen] = useState(false)
   const [reviewerFilterOpen, setReviewerFilterOpen] = useState(false)
+  const [teamFilterOpen, setTeamFilterOpen] = useState(false)
+  const [roleFilterOpen, setRoleFilterOpen] = useState(false)
   const [statusFilterOpen, setStatusFilterOpen] = useState(false)
   const [dateFilterOpen, setDateFilterOpen] = useState(false)
   const [percentageFilterOpen, setPercentageFilterOpen] = useState(false)
@@ -55,6 +57,12 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
 
   const reviewerColumn = table.getColumn('reviewer')
   const reviewerFilterValue = (reviewerColumn?.getFilterValue() ?? '') as string
+
+  const teamColumn = table.getColumn('team')
+  const teamFilterValue = (teamColumn?.getFilterValue() ?? '') as string
+
+  const roleColumn = table.getColumn('role')
+  const roleFilterValue = (roleColumn?.getFilterValue() ?? '') as string
 
   const statusColumn = table.getColumn('reviewed')
   const statusFilterValue = (statusColumn?.getFilterValue() ?? []) as boolean[]
@@ -379,6 +387,92 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
                   onClick={() => {
                     reviewerColumn?.setFilterValue('')
                     setReviewerFilterOpen(false)
+                  }}
+                  className="h-7 text-xs"
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <Popover open={teamFilterOpen} onOpenChange={setTeamFilterOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant={teamFilterValue ? 'default' : 'outline'}
+            size="sm"
+            className="h-8"
+          >
+            Team
+            {teamFilterValue && (
+              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
+                1
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80" align="start">
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Filter by team</div>
+            <Input
+              placeholder="Search team name..."
+              value={teamFilterValue}
+              onChange={(e) => teamColumn?.setFilterValue(e.target.value)}
+              className="h-8"
+            />
+            {teamFilterValue && (
+              <div className="flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    teamColumn?.setFilterValue('')
+                    setTeamFilterOpen(false)
+                  }}
+                  className="h-7 text-xs"
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <Popover open={roleFilterOpen} onOpenChange={setRoleFilterOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant={roleFilterValue ? 'default' : 'outline'}
+            size="sm"
+            className="h-8"
+          >
+            Role
+            {roleFilterValue && (
+              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
+                1
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80" align="start">
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Filter by role</div>
+            <Input
+              placeholder="Search role/title..."
+              value={roleFilterValue}
+              onChange={(e) => roleColumn?.setFilterValue(e.target.value)}
+              className="h-8"
+            />
+            {roleFilterValue && (
+              <div className="flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    roleColumn?.setFilterValue('')
+                    setRoleFilterOpen(false)
                   }}
                   className="h-7 text-xs"
                 >

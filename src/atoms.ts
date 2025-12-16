@@ -5,5 +5,5 @@ export const reviewQueueAtom = atom<Array<string>>([])
 
 export const orgChartAutozoomingEnabledAtom = atomWithStorage<boolean>(
   'org-chart.autozoomingEnabled',
-  true,
+  false,
 )
