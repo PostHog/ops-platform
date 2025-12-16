@@ -22,6 +22,7 @@ import { Route as OrgChartRouteImport } from './routes/org-chart'
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ErrorRouteImport } from './routes/error'
+import { Route as EmployeesRouteImport } from './routes/employees'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as IndexRouteImport } from './routes/index'
@@ -94,6 +95,11 @@ const ErrorRoute = ErrorRouteImport.update({
   path: '/error',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmployeesRoute = EmployeesRouteImport.update({
+  id: '/employees',
+  path: '/employees',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/analytics': typeof AnalyticsRoute
+  '/employees': typeof EmployeesRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/analytics': typeof AnalyticsRoute
+  '/employees': typeof EmployeesRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
@@ -165,6 +173,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/analytics': typeof AnalyticsRoute
+  '/employees': typeof EmployeesRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
@@ -187,6 +196,7 @@ export interface FileRouteTypes {
     | '/'
     | '/actions'
     | '/analytics'
+    | '/employees'
     | '/error'
     | '/login'
     | '/management'
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/'
     | '/actions'
     | '/analytics'
+    | '/employees'
     | '/error'
     | '/login'
     | '/management'
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/'
     | '/actions'
     | '/analytics'
+    | '/employees'
     | '/error'
     | '/login'
     | '/management'
@@ -248,6 +260,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActionsRoute: typeof ActionsRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  EmployeesRoute: typeof EmployeesRoute
   ErrorRoute: typeof ErrorRoute
   LoginRoute: typeof LoginRoute
   ManagementRoute: typeof ManagementRoute
@@ -358,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ErrorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/employees': {
+      id: '/employees'
+      path: '/employees'
+      fullPath: '/employees'
+      preLoaderRoute: typeof EmployeesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analytics': {
       id: '/analytics'
       path: '/analytics'
@@ -400,6 +420,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActionsRoute: ActionsRoute,
   AnalyticsRoute: AnalyticsRoute,
+  EmployeesRoute: EmployeesRoute,
   ErrorRoute: ErrorRoute,
   LoginRoute: LoginRoute,
   ManagementRoute: ManagementRoute,

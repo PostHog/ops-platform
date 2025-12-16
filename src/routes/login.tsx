@@ -26,7 +26,7 @@ function RouteComponent() {
   useEffect(() => {
     if (user && !isRefetching) {
       if (user.role === ROLES.ADMIN) {
-        router.navigate({ to: '/' })
+        router.navigate({ to: '/org-chart' })
       } else if (user.role === ROLES.ORG_CHART) {
         router.navigate({ to: '/org-chart' })
       } else if (myEmployeeId) {
