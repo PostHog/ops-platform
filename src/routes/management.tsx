@@ -44,7 +44,11 @@ export const Route = createFileRoute('/management')({
 const getUsers = createAuthenticatedFn({
   method: 'GET',
 }).handler(async () => {
-  return await prisma.user.findMany({})
+  return await prisma.user.findMany({
+    orderBy: {
+      createdAt: 'asc',
+    },
+  })
 })
 
 const updateUserRole = createAuthenticatedFn({
