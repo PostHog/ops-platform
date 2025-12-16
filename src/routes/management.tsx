@@ -25,7 +25,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { currencyData, locationFactor, sfBenchmark } from '@/lib/utils'
+import {
+  bonusPercentage,
+  currencyData,
+  locationFactor,
+  sfBenchmark,
+} from '@/lib/utils'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { fetchDeelEmployees } from './syncDeelEmployees'
 import type { KeeperTestJobPayload } from './runScheduledJobs'
@@ -39,7 +44,11 @@ export const Route = createFileRoute('/management')({
 const getUsers = createAuthenticatedFn({
   method: 'GET',
 }).handler(async () => {
-  return await prisma.user.findMany({})
+  return await prisma.user.findMany({
+    orderBy: {
+      createdAt: 'asc',
+    },
+  })
 })
 
 const updateUserRole = createAuthenticatedFn({
@@ -165,13 +174,20 @@ const populateInitialEmployeeSalaries = createAuthenticatedFn({
 
       const totalSalaryLocal = totalSalary * exchangeRate
 
-      const actualSalary = totalSalary
-
-      const actualSalaryLocal = actualSalary * exchangeRate
-
       if (totalSalaryLocal <= 1) {
         throw new Error('Total salary local is less than 1')
       }
+
+      const mappedRole = getMappedRole(role)
+      const defaultBonusPercentage =
+        bonusPercentage[mappedRole as keyof typeof bonusPercentage] ?? 0
+      const bonusAmount = Number(
+        (totalSalary * defaultBonusPercentage).toFixed(2),
+      )
+
+      const actualSalary = totalSalary - bonusAmount
+
+      const actualSalaryLocal = actualSalary * exchangeRate
 
       await prisma.salary.create({
         data: {
@@ -181,9 +197,11 @@ const populateInitialEmployeeSalaries = createAuthenticatedFn({
           locationFactor: locationFactorValue,
           level: Number(level),
           step: Number(step),
-          benchmark: getMappedRole(role),
+          benchmark: mappedRole,
           benchmarkFactor: benchmarkFactor,
           totalSalary: totalSalary,
+          bonusPercentage: defaultBonusPercentage,
+          bonusAmount: bonusAmount,
           changePercentage: 0, // Always 0 for new entries
           changeAmount: 0, // Always 0 for new entries
           localCurrency: location?.currency ?? 'USD',
