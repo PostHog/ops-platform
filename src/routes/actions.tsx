@@ -9,7 +9,7 @@ import { InfoIcon, MoreHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
 import { useLocalStorage } from 'usehooks-ts'
-import { customFilterFns, Filter, months } from '.'
+import { customFilterFns, Filter, months } from './employees'
 import type { Prisma } from '@prisma/client'
 import type {
   ColumnDef,

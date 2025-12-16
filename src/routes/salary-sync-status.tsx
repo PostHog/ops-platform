@@ -17,7 +17,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useMemo } from 'react'
-import { customFilterFns, Filter } from '.'
+import { customFilterFns, Filter } from './employees'
 import {
   Table,
   TableBody,

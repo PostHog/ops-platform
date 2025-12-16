@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { customFilterFns, Filter } from '.'
+import { customFilterFns, Filter } from './employees'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
 import { useLocalStorage } from 'usehooks-ts'

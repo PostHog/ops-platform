@@ -49,7 +49,7 @@ import { StatusCell } from '@/components/StatusCell'
 import { ReviewerAvatar } from '@/components/ReviewerAvatar'
 import { TableFilters } from '@/components/TableFilters'
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute('/employees')({
   component: App,
 })
 
@@ -672,13 +672,13 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
       ))}
     </select>
   ) : (
-    <DebouncedInput
+    (<DebouncedInput
       className="w-36 rounded border shadow"
       onChange={(value) => column.setFilterValue(value)}
       placeholder={`Search...`}
       type="text"
       value={(columnFilterValue ?? '') as string}
-    />
+    />)
     // See faceted column filters example for datalist search suggestions
   )
 }
