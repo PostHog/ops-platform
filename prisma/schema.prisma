@@ -158,10 +158,11 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
-  role       String?
-  banned     Boolean?  @default(false)
-  banReason  String?
-  banExpires DateTime?
+  role         String?
+  banned       Boolean?      @default(false)
+  banReason    String?
+  banExpires   DateTime?
+  integrations Integration[]
 
   @@unique([email])
   @@map("user")
@@ -230,4 +231,14 @@ model ProcessDocument {
   id        String   @id @default("process")
   content   String   @default("")
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Integration {
+  id             String   @id @default(cuid())
+  kind           String
+  config         Json
+  created_at     DateTime @default(now())
+  created_by_id  String
+  created_by     User     @relation(fields: [created_by_id], references: [id])
+  integration_id String
 }
