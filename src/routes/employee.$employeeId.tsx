@@ -43,6 +43,7 @@ import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
 import dayjs from 'dayjs'
 import MarkdownComponent from '@/lib/MarkdownComponent'
+import StockOptionsCalculator from '@/components/StockOptionsCalculator'
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -85,6 +86,7 @@ const getEmployeeById = createUserFn({
               },
             }
           : {}),
+        cartaOptionGrants: true,
         salaries: {
           orderBy: {
             timestamp: 'desc',
@@ -160,6 +162,7 @@ type Employee = Prisma.EmployeeGetPayload<{
         }
       }
     }
+    cartaOptionGrants: true
   }
 }>
 
@@ -791,6 +794,11 @@ function EmployeeOverview() {
             ) : null}
           </div>
         </div>
+
+        {employee.cartaOptionGrants &&
+          employee.cartaOptionGrants.length > 0 && (
+            <StockOptionsCalculator optionGrants={employee.cartaOptionGrants} />
+          )}
 
         {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
           <>
