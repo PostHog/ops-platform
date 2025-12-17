@@ -1,7 +1,9 @@
 import { createUserFn } from '@/lib/auth-middleware'
 import { formatCurrency } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import type { CartaOptionGrant } from '@prisma/client'
 import { useQuery } from '@tanstack/react-query'
+import { useLocalStorage } from 'usehooks-ts'
 
 interface StockOptionsCalculatorProps {
   optionGrants: CartaOptionGrant[]
@@ -26,6 +28,11 @@ const getValuationAndShares = createUserFn({
 export default function StockOptionsCalculator({
   optionGrants,
 }: StockOptionsCalculatorProps) {
+  const [showVested, setShowVested] = useLocalStorage<boolean>(
+    'stockOptions.showVested',
+    false,
+  )
+
   const { data } = useQuery({
     queryKey: ['valuationAndShares'],
     queryFn: getValuationAndShares,
@@ -44,14 +51,29 @@ export default function StockOptionsCalculator({
     (sum, grant) => sum + grant.exercisePrice * grant.quantity,
     0,
   )
+
+  const vestedQuantity = optionGrants.reduce(
+    (sum, grant) => sum + grant.vestedQuantity,
+    0,
+  )
+  const vestedExerciseCost = optionGrants.reduce(
+    (sum, grant) => sum + grant.exercisePrice * grant.vestedQuantity,
+    0,
+  )
+
+  const displayQuantity = showVested ? vestedQuantity : totalQuantity
+  const displayExerciseCost = showVested
+    ? vestedExerciseCost
+    : totalExerciseCost
+
   const avgExercisePrice =
-    totalQuantity > 0 ? totalExerciseCost / totalQuantity : 0
+    displayQuantity > 0 ? displayExerciseCost / displayQuantity : 0
 
   const currentStockPrice = data.CURRENT_VALUATION / data.FULLY_DILUTED_SHARES
 
-  const sharesAsPercentage = (totalQuantity / data.FULLY_DILUTED_SHARES) * 100
-  const currentValue = totalQuantity * currentStockPrice
-  const totalCostToExercise = totalExerciseCost
+  const sharesAsPercentage = (displayQuantity / data.FULLY_DILUTED_SHARES) * 100
+  const currentValue = displayQuantity * currentStockPrice
+  const totalCostToExercise = displayExerciseCost
   const netValue = currentValue - totalCostToExercise
 
   if (optionGrants.length === 0) {
@@ -62,15 +84,33 @@ export default function StockOptionsCalculator({
     <>
       <div className="mt-2 flex flex-row items-center justify-between gap-2">
         <span className="text-md font-bold">Stock Options</span>
+        <div className="flex gap-1 rounded-md border">
+          <Button
+            type="button"
+            variant={!showVested ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setShowVested(false)}
+          >
+            Total
+          </Button>
+          <Button
+            type="button"
+            variant={showVested ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setShowVested(true)}
+          >
+            Vested
+          </Button>
+        </div>
       </div>
       <div className="mb-4 w-full rounded-lg border bg-gray-50 p-4">
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-600">
-              Number of shares covered by options:
+              Number of {showVested ? 'vested' : 'total'} shares:
             </span>
             <span className="font-medium">
-              {totalQuantity.toLocaleString()}
+              {displayQuantity.toLocaleString()}
             </span>
           </div>
           <div className="flex justify-between">
@@ -100,7 +140,9 @@ export default function StockOptionsCalculator({
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Value of underlying stock:</span>
+            <span className="text-gray-600">
+              Value of {showVested ? 'vested' : 'total'} underlying stock:
+            </span>
             <span className="font-medium">{formatCurrency(currentValue)}</span>
           </div>
           <div className="flex justify-between border-t pt-2">
@@ -113,14 +155,16 @@ export default function StockOptionsCalculator({
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">
-              Total cost to exercise all options:
+              Total cost to exercise {showVested ? 'vested' : 'all'} options:
             </span>
             <span className="font-medium">
               {formatCurrency(totalCostToExercise)}
             </span>
           </div>
           <div className="flex justify-between border-t bg-blue-50 p-2 font-semibold">
-            <span>Net value after exercise:</span>
+            <span>
+              Net value after exercise ({showVested ? 'vested' : 'total'}):
+            </span>
             <span className={netValue >= 0 ? 'text-green-600' : 'text-red-600'}>
               {formatCurrency(netValue)}
             </span>
