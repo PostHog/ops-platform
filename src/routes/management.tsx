@@ -37,6 +37,7 @@ import { fetchDeelEmployees } from './syncDeelEmployees'
 import type { KeeperTestJobPayload } from './runScheduledJobs'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
+import { CartaConfig } from './syncCartaData'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
@@ -420,13 +421,6 @@ function RouteComponent() {
   )
 }
 
-interface CartaConfig {
-  access_token: string
-  expires_in: number
-  token_type: string
-  scope: string
-}
-
 const getCartaIntegration = createAuthenticatedFn({
   method: 'GET',
 }).handler(async ({ context }) => {
@@ -466,7 +460,7 @@ const authorizeCartaAccount = createAuthenticatedFn({
   )
 
   const response = await fetch(
-    'https://login.playground.carta.team/o/access_token/',
+    `https://login.playground.carta.team/o/access_token/`,
     {
       method: 'POST',
       headers: {
@@ -480,7 +474,7 @@ const authorizeCartaAccount = createAuthenticatedFn({
     },
   )
 
-  if (!response.ok) {
+  if (response.status !== 200) {
     const errorText = await response.text()
     throw new Error(`Failed to authorize: ${errorText}`)
   }
@@ -504,7 +498,7 @@ const authorizeCartaAccount = createAuthenticatedFn({
     await prisma.integration.update({
       where: { id: existing.id },
       data: {
-        config: tokenData as CartaConfig,
+        config: tokenData,
         created_at: new Date(),
         created_by_id: context.user.id,
       },
@@ -513,7 +507,7 @@ const authorizeCartaAccount = createAuthenticatedFn({
     await prisma.integration.create({
       data: {
         kind: 'carta',
-        config: tokenData as CartaConfig,
+        config: tokenData,
         created_by_id: context.user.id,
         integration_id: 'carta',
       },
@@ -653,12 +647,9 @@ function CartaIntegration() {
         timeout: 5000,
       })
     } catch (error) {
-      createToast(
-        `Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        {
-          timeout: 5000,
-        },
-      )
+      createToast(error instanceof Error ? error.message : 'Unknown error', {
+        timeout: 5000,
+      })
     }
   }
 
