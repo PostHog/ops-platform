@@ -1,9 +1,16 @@
 import { createUserFn } from '@/lib/auth-middleware'
 import { formatCurrency } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { CartaOptionGrant } from '@prisma/client'
 import { useQuery } from '@tanstack/react-query'
 import { useLocalStorage } from 'usehooks-ts'
+import { AlertCircle } from 'lucide-react'
 
 interface StockOptionsCalculatorProps {
   optionGrants: CartaOptionGrant[]
@@ -18,10 +25,13 @@ const getValuationAndShares = createUserFn({
 
   const FULLY_DILUTED_SHARES = Number(process.env.FULLY_DILUTED_SHARES)
   const CURRENT_VALUATION = Number(process.env.CURRENT_VALUATION)
+  const DILUTION_PER_ROUND =
+    process.env.DILUTION_PER_ROUND?.split(',').map(Number)
 
   return {
     FULLY_DILUTED_SHARES,
     CURRENT_VALUATION,
+    DILUTION_PER_ROUND,
   }
 })
 
@@ -38,9 +48,16 @@ export default function StockOptionsCalculator({
     queryFn: getValuationAndShares,
   })
 
-  if (!data?.FULLY_DILUTED_SHARES || !data?.CURRENT_VALUATION) {
+  if (
+    !data?.FULLY_DILUTED_SHARES ||
+    !data?.CURRENT_VALUATION ||
+    !data?.DILUTION_PER_ROUND
+  ) {
     return null
   }
+
+  const averageDilutionPerRound =
+    (data.DILUTION_PER_ROUND[0] + data.DILUTION_PER_ROUND[1]) / 2
 
   const totalQuantity = optionGrants.reduce(
     (sum, grant) => sum + grant.quantity,
@@ -168,6 +185,89 @@ export default function StockOptionsCalculator({
             <span className={netValue >= 0 ? 'text-green-600' : 'text-red-600'}>
               {formatCurrency(netValue)}
             </span>
+          </div>
+
+          <div className="mt-4 border-t pt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold">Potential Future Value</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertCircle className="h-4 w-4 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm">
+                      <p className="text-sm">
+                        These assume a very rough estimate of dilution per
+                        round/valuation increase. This is highly dependent on
+                        valuation, number of rounds to reach valuation and
+                        amount raised per round. This is very hard to
+                        approximate but for some context, we've experienced{' '}
+                        {averageDilutionPerRound}% dilution per round in our
+                        last 2 rounds.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <span className="text-xs text-gray-600">
+                assumes {averageDilutionPerRound}% dilution per round
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="pr-4 pb-2 text-left font-medium text-gray-600">
+                      Rounds
+                    </th>
+                    <th className="pr-4 pb-2 text-left font-medium text-gray-600">
+                      Valuation
+                    </th>
+                    <th className="pb-2 text-left font-medium text-gray-600">
+                      Net Value
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { rounds: 0, valuation: data.CURRENT_VALUATION },
+                    { rounds: 1, valuation: 3_000_000_000 },
+                    { rounds: 2, valuation: 5_000_000_000 },
+                    { rounds: 3, valuation: 8_000_000_000 },
+                    { rounds: 4, valuation: 10_000_000_000 },
+                    { rounds: 5, valuation: 15_000_000_000 },
+                    { rounds: 6, valuation: 30_000_000_000 },
+                    { rounds: 7, valuation: 60_000_000_000 },
+                  ].map(({ rounds, valuation }) => {
+                    const dilutionFactor = Math.pow(
+                      1 - averageDilutionPerRound / 100,
+                      rounds,
+                    )
+                    const dilutedOwnership =
+                      (displayQuantity / data.FULLY_DILUTED_SHARES) *
+                      dilutionFactor
+                    const futureValue = valuation * dilutedOwnership
+                    const futureNetValue = futureValue - totalCostToExercise
+
+                    return (
+                      <tr key={rounds} className="border-b last:border-b-0">
+                        <td className="py-1.5 pr-4">{rounds}</td>
+                        <td className="py-1.5 pr-4">
+                          {formatCurrency(valuation)}
+                        </td>
+                        <td
+                          className={`py-1.5 font-medium ${futureNetValue >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                        >
+                          {formatCurrency(futureNetValue)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
