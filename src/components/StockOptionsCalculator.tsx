@@ -203,7 +203,8 @@ export default function StockOptionsCalculator({
                         valuation, number of rounds to reach valuation and
                         amount raised per round. This is very hard to
                         approximate but for some context, we've experienced{' '}
-                        {averageDilutionPerRound}% dilution per round in our
+                        {data.DILUTION_PER_ROUND[0]}-
+                        {data.DILUTION_PER_ROUND[1]}% dilution per round in our
                         last 2 rounds.
                       </p>
                     </TooltipContent>
