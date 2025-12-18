@@ -868,7 +868,7 @@ function EmployeeOverview() {
       <div className="flex h-full w-full gap-5 2xl:max-w-[2000px]">
         {/* Sidebar with hierarchy */}
         {employee.deelEmployee && managerHierarchy && (
-          <div className="hidden w-96 flex-shrink-0 border-r px-4 lg:sticky lg:top-0 lg:block lg:self-start">
+          <div className="hidden w-96 flex-shrink-0 border-r px-4 lg:block">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-700">
                 Manager Tree
@@ -988,7 +988,7 @@ function EmployeeOverview() {
         <div
           className={cn(
             'flex w-full min-w-0 flex-1 flex-col gap-5 overflow-y-auto',
-            managerHierarchy ? 'pr-4' : 'px-4',
+            managerHierarchy ? 'pr-4 pl-4 lg:pl-0' : 'px-4',
           )}
         >
           {user?.role === ROLES.ADMIN ? (
