@@ -864,7 +864,7 @@ function EmployeeOverview() {
     monthsSinceStart >= 10 && [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
 
   return (
-    <div className="flex flex-col items-center justify-center gap-5 pt-8">
+    <div className="flex flex-col items-center justify-center gap-5 pt-4">
       <div className="flex w-full gap-5 px-4 2xl:max-w-[2000px]">
         {/* Sidebar with hierarchy */}
         {employee.deelEmployee && managerHierarchy && (

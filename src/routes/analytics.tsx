@@ -97,7 +97,7 @@ function RouteComponent() {
   })
 
   return (
-    <div className="flex w-screen justify-center px-4">
+    <div className="flex justify-center px-4 pb-4">
       <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="mt-6 flex flex-row items-center justify-between">
           <div>
