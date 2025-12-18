@@ -494,6 +494,7 @@ function EmployeeOverview() {
   const { data: managerHierarchy } = useQuery({
     queryKey: ['managerHierarchy'],
     queryFn: () => getManagerHierarchy(),
+    enabled: user?.role === ROLES.ADMIN,
   })
 
   // Flatten hierarchy to get all employees for search
@@ -979,7 +980,12 @@ function EmployeeOverview() {
             </div>
           </div>
         )}
-        <div className="flex w-full min-w-0 flex-1 flex-col gap-5 overflow-y-auto pr-4">
+        <div
+          className={cn(
+            'flex w-full min-w-0 flex-1 flex-col gap-5 overflow-y-auto',
+            managerHierarchy ? 'pr-4' : 'px-4',
+          )}
+        >
           {user?.role === ROLES.ADMIN ? (
             <Button
               variant="ghost"
