@@ -864,134 +864,132 @@ function EmployeeOverview() {
     monthsSinceStart >= 10 && [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
 
   return (
-    <div className="flex flex-col items-center justify-center gap-5 pt-4">
-      <div className="flex w-full gap-5 px-4 2xl:max-w-[2000px]">
+    <div className="flex h-[calc(100vh-2.5rem)] flex-col items-center justify-center gap-5 overflow-hidden pt-4">
+      <div className="flex h-full w-full gap-5 px-4 2xl:max-w-[2000px]">
         {/* Sidebar with hierarchy */}
         {employee.deelEmployee && managerHierarchy && (
-          <div className="hidden w-96 flex-shrink-0 border-r pr-4 lg:block">
-            <div className="sticky top-8">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Manager Hierarchy
-                </h3>
-                <TooltipProvider>
-                  <div className="flex items-center gap-1">
-                    <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <PopoverTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                            >
-                              <Search className="h-3.5 w-3.5" />
-                            </Button>
-                          </PopoverTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Search employee</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <PopoverContent className="w-[300px] p-0">
-                        <Command>
-                          <CommandInput
-                            placeholder="Search employee..."
-                            className="h-9"
-                          />
-                          <CommandList>
-                            <CommandEmpty>No employee found.</CommandEmpty>
-                            <CommandGroup>
-                              {allHierarchyEmployees.map((node) => {
-                                const isCurrentEmployee =
-                                  node.employeeId === employee.id
-                                return (
-                                  <CommandItem
-                                    key={node.id}
-                                    value={`${node.id} - ${node.name} - ${node.employeeId} - ${node.team || ''}`}
-                                    onSelect={() => {
-                                      if (node.employeeId) {
-                                        router.navigate({
-                                          to: '/employee/$employeeId',
-                                          params: {
-                                            employeeId: node.employeeId,
-                                          },
-                                        })
-                                        setSearchOpen(false)
-                                      }
-                                    }}
-                                  >
-                                    <div className="flex flex-1 flex-col">
-                                      <span>{node.name}</span>
-                                      {node.team && (
-                                        <span className="text-xs text-gray-500">
-                                          {node.team}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <Check
-                                      className={cn(
-                                        'ml-auto h-4 w-4',
-                                        isCurrentEmployee
-                                          ? 'opacity-100'
-                                          : 'opacity-0',
-                                      )}
-                                    />
-                                  </CommandItem>
-                                )
-                              })}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+          <div className="hidden w-96 flex-shrink-0 border-r pr-4 lg:sticky lg:top-0 lg:block lg:self-start">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700">
+                Manager Hierarchy
+              </h3>
+              <TooltipProvider>
+                <div className="flex items-center gap-1">
+                  <Popover open={searchOpen} onOpenChange={setSearchOpen}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setExpandAll(true)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <ChevronsLeftRight className="h-3.5 w-3.5" />
-                        </Button>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                          >
+                            <Search className="h-3.5 w-3.5" />
+                          </Button>
+                        </PopoverTrigger>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Expand All</p>
+                        <p>Search employee</p>
                       </TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setExpandAll(false)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <ChevronsRightLeft className="h-3.5 w-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Collapse All</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </TooltipProvider>
-              </div>
-              <div className="h-[calc(100vh-8rem)] rounded-lg border bg-white">
-                <ManagerHierarchyTree
-                  hierarchy={managerHierarchy}
-                  currentEmployeeId={employee.id}
-                  expandAll={expandAll}
-                />
-              </div>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search employee..."
+                          className="h-9"
+                        />
+                        <CommandList>
+                          <CommandEmpty>No employee found.</CommandEmpty>
+                          <CommandGroup>
+                            {allHierarchyEmployees.map((node) => {
+                              const isCurrentEmployee =
+                                node.employeeId === employee.id
+                              return (
+                                <CommandItem
+                                  key={node.id}
+                                  value={`${node.id} - ${node.name} - ${node.employeeId} - ${node.team || ''}`}
+                                  onSelect={() => {
+                                    if (node.employeeId) {
+                                      router.navigate({
+                                        to: '/employee/$employeeId',
+                                        params: {
+                                          employeeId: node.employeeId,
+                                        },
+                                      })
+                                      setSearchOpen(false)
+                                    }
+                                  }}
+                                >
+                                  <div className="flex flex-1 flex-col">
+                                    <span>{node.name}</span>
+                                    {node.team && (
+                                      <span className="text-xs text-gray-500">
+                                        {node.team}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <Check
+                                    className={cn(
+                                      'ml-auto h-4 w-4',
+                                      isCurrentEmployee
+                                        ? 'opacity-100'
+                                        : 'opacity-0',
+                                    )}
+                                  />
+                                </CommandItem>
+                              )
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExpandAll(true)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <ChevronsLeftRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Expand All</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExpandAll(false)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <ChevronsRightLeft className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Collapse All</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
+            </div>
+            <div className="h-[calc(100vh-6rem)] overflow-hidden rounded-lg border bg-white">
+              <ManagerHierarchyTree
+                hierarchy={managerHierarchy}
+                currentEmployeeId={employee.id}
+                expandAll={expandAll}
+              />
             </div>
           </div>
         )}
-        <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
+        <div className="flex w-full min-w-0 flex-1 flex-col gap-5 overflow-y-auto">
           {user?.role === ROLES.ADMIN ? (
             <Button
               variant="ghost"

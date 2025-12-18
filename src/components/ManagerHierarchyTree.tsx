@@ -154,7 +154,7 @@ export function ManagerHierarchyTree({
   const nodes = Array.isArray(hierarchy) ? hierarchy : [hierarchy]
 
   return (
-    <div ref={containerRef} className="h-full overflow-y-auto">
+    <div ref={containerRef} className="h-full overflow-y-auto pr-1">
       <div className="p-2">
         {nodes.map((node) => (
           <TreeNode
