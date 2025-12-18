@@ -48,7 +48,7 @@ export default function Header() {
   if (!user) return null
 
   return (
-    <header className="fixed top-0 right-0 left-0 z-50 flex h-10 justify-between gap-2 border-b border-gray-200 bg-white p-2 text-black">
+    <header className="fixed top-0 right-0 left-0 flex h-10 justify-between gap-2 border-b border-gray-200 bg-white p-2 text-black">
       <nav className="flex flex-row items-center gap-2">
         {user?.role === ROLES.ADMIN ? (
           <DropdownMenu>
