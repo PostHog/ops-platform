@@ -865,10 +865,10 @@ function EmployeeOverview() {
 
   return (
     <div className="flex h-[calc(100vh-2.5rem)] flex-col items-center justify-center gap-5 overflow-hidden pt-4">
-      <div className="flex h-full w-full gap-5 px-4 2xl:max-w-[2000px]">
+      <div className="flex h-full w-full gap-5 2xl:max-w-[2000px]">
         {/* Sidebar with hierarchy */}
         {employee.deelEmployee && managerHierarchy && (
-          <div className="hidden w-96 flex-shrink-0 border-r pr-4 lg:sticky lg:top-0 lg:block lg:self-start">
+          <div className="hidden w-96 flex-shrink-0 border-r px-4 lg:sticky lg:top-0 lg:block lg:self-start">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-700">
                 Manager Tree
@@ -989,7 +989,7 @@ function EmployeeOverview() {
             </div>
           </div>
         )}
-        <div className="flex w-full min-w-0 flex-1 flex-col gap-5 overflow-y-auto">
+        <div className="flex w-full min-w-0 flex-1 flex-col gap-5 overflow-y-auto pr-4">
           {user?.role === ROLES.ADMIN ? (
             <Button
               variant="ghost"
