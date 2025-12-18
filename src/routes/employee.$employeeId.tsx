@@ -871,7 +871,7 @@ function EmployeeOverview() {
           <div className="hidden w-96 flex-shrink-0 border-r pr-4 lg:sticky lg:top-0 lg:block lg:self-start">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-700">
-                Manager Hierarchy
+                Manager Tree
               </h3>
               <TooltipProvider>
                 <div className="flex items-center gap-1">
