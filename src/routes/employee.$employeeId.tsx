@@ -1062,7 +1062,7 @@ function EmployeeOverview() {
                 <span className="text-md font-bold">Feedback</span>
               </div>
 
-              <div className="w-full flex-grow">
+              <div className="w-full">
                 <div className="mb-4 max-h-[300px] overflow-y-auto rounded-lg border bg-gray-50 p-4">
                   {employee.keeperTestFeedback.map(
                     ({
