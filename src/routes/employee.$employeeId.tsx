@@ -1,6 +1,14 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useAtom } from 'jotai'
-import { AlertCircle, ArrowLeft, Trash2 } from 'lucide-react'
+import {
+  AlertCircle,
+  ArrowLeft,
+  Trash2,
+  ChevronsLeftRight,
+  ChevronsRightLeft,
+  Search,
+  Check,
+} from 'lucide-react'
 import {
   flexRender,
   getCoreRowModel,
@@ -24,6 +32,7 @@ import {
   formatCurrency,
   locationFactor,
   sfBenchmark,
+  cn,
 } from '@/lib/utils'
 import {
   Table,
@@ -36,11 +45,31 @@ import {
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import prisma from '@/db'
 import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
+import { ManagerHierarchyTree } from '@/components/ManagerHierarchyTree'
 import dayjs from 'dayjs'
 import MarkdownComponent from '@/lib/MarkdownComponent'
 
@@ -291,6 +320,93 @@ export const deleteSalary = createAuthenticatedFn({
     return { success: true }
   })
 
+type HierarchyNode = {
+  id: string
+  name: string
+  title: string
+  team?: string
+  employeeId?: string
+  children: HierarchyNode[]
+}
+
+export const getManagerHierarchy = createAuthenticatedFn({
+  method: 'GET',
+}).handler(async () => {
+  const allEmployees = await prisma.deelEmployee.findMany({
+    include: {
+      employee: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      name: 'asc',
+    },
+  })
+
+  const managerMap = new Map<string, Array<(typeof allEmployees)[0]>>()
+  for (const emp of allEmployees) {
+    if (emp.managerId) {
+      const reports = managerMap.get(emp.managerId) || []
+      reports.push(emp)
+      managerMap.set(emp.managerId, reports)
+    }
+  }
+
+  const buildTree = (
+    employee: (typeof allEmployees)[0],
+    visited = new Set<string>(),
+  ): HierarchyNode => {
+    if (visited.has(employee.id)) {
+      return {
+        id: employee.id,
+        name: employee.name,
+        title: employee.title,
+        team: employee.team,
+        employeeId: employee.employee?.id,
+        children: [],
+      }
+    }
+
+    visited.add(employee.id)
+    const directReports = (managerMap.get(employee.id) || []).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    )
+
+    return {
+      id: employee.id,
+      name: employee.name,
+      title: employee.title,
+      team: employee.team,
+      employeeId: employee.employee?.id,
+      children: directReports.map((child) => buildTree(child, visited)),
+    }
+  }
+
+  // Find top-level managers (Cofounders or employees without managers)
+  const topLevelManagers = allEmployees.filter(
+    (e) => e.title === 'Cofounder' || !e.managerId,
+  )
+
+  if (topLevelManagers.length === 0) {
+    // Fallback: if no top-level managers found, return first employee as root
+    if (allEmployees.length > 0) {
+      return buildTree(allEmployees[0])
+    }
+    return null
+  }
+
+  // Return array of top-level managers (sorted by name)
+  const trees = topLevelManagers
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((manager) => buildTree(manager))
+
+  // Return single node or array of nodes
+  return trees.length === 1 ? trees[0] : trees
+})
+
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
@@ -311,6 +427,7 @@ function EmployeeOverview() {
     'preferredEmployeeView',
     'table',
   )
+  const [expandAll, setExpandAll] = useState<boolean | null>(null)
 
   // Hide inline form when switching to timeline view
   useEffect(() => {
@@ -379,6 +496,25 @@ function EmployeeOverview() {
     },
     enabled: !!level && !!step && !!benchmark && user?.role === ROLES.ADMIN,
   })
+
+  const { data: managerHierarchy } = useQuery({
+    queryKey: ['managerHierarchy'],
+    queryFn: () => getManagerHierarchy(),
+  })
+
+  // Flatten hierarchy to get all employees for search
+  const allHierarchyEmployees = useMemo(() => {
+    if (!managerHierarchy) return []
+    const flatten = (node: HierarchyNode): Array<HierarchyNode> => {
+      return [node, ...node.children.flatMap(flatten)]
+    }
+    const nodes = Array.isArray(managerHierarchy)
+      ? managerHierarchy
+      : [managerHierarchy]
+    return nodes.flatMap(flatten).filter((n) => n.employeeId)
+  }, [managerHierarchy])
+
+  const [searchOpen, setSearchOpen] = useState(false)
 
   // Combine reference employees with current employee (using form values if available)
   const combinedReferenceEmployees = useMemo(() => {
@@ -729,419 +865,553 @@ function EmployeeOverview() {
 
   return (
     <div className="flex flex-col items-center justify-center gap-5 pt-8">
-      <div className="flex w-full flex-col gap-5 px-4 2xl:max-w-7xl">
-        {user?.role === ROLES.ADMIN ? (
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={() => router.navigate({ to: '/' })}
-            className="-ml-2 self-start"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to overview
-          </Button>
-        ) : null}
-        <div className="flex flex-row items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-xl font-bold">
-              {employee.deelEmployee?.name || employee.email || 'Edit employee'}
-            </span>
-            <div className="mt-1 flex gap-4 text-sm text-gray-600">
-              <span>Email: {employee.email}</span>
-              {employee.priority ? (
-                <span>Priority: {employee.priority}</span>
-              ) : null}
-              {employee.deelEmployee?.topLevelManager?.name && (
-                <span>
-                  Reviewer: {employee.deelEmployee.topLevelManager.name}
-                </span>
-              )}
-              {typeof employee.reviewed === 'boolean' ? (
-                <span>Reviewed: {employee.reviewed ? 'Yes' : 'No'}</span>
-              ) : null}
+      <div className="flex w-full gap-5 px-4 2xl:max-w-[2000px]">
+        {/* Sidebar with hierarchy */}
+        {employee.deelEmployee && managerHierarchy && (
+          <div className="hidden w-96 flex-shrink-0 border-r pr-4 lg:block">
+            <div className="sticky top-8">
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-700">
+                  Manager Hierarchy
+                </h3>
+                <TooltipProvider>
+                  <div className="flex items-center gap-1">
+                    <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                            >
+                              <Search className="h-3.5 w-3.5" />
+                            </Button>
+                          </PopoverTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Search employee</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <PopoverContent className="w-[300px] p-0">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search employee..."
+                            className="h-9"
+                          />
+                          <CommandList>
+                            <CommandEmpty>No employee found.</CommandEmpty>
+                            <CommandGroup>
+                              {allHierarchyEmployees.map((node) => {
+                                const isCurrentEmployee =
+                                  node.employeeId === employee.id
+                                return (
+                                  <CommandItem
+                                    key={node.id}
+                                    value={`${node.id} - ${node.name} - ${node.employeeId} - ${node.team || ''}`}
+                                    onSelect={() => {
+                                      if (node.employeeId) {
+                                        router.navigate({
+                                          to: '/employee/$employeeId',
+                                          params: {
+                                            employeeId: node.employeeId,
+                                          },
+                                        })
+                                        setSearchOpen(false)
+                                      }
+                                    }}
+                                  >
+                                    <div className="flex flex-1 flex-col">
+                                      <span>{node.name}</span>
+                                      {node.team && (
+                                        <span className="text-xs text-gray-500">
+                                          {node.team}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <Check
+                                      className={cn(
+                                        'ml-auto h-4 w-4',
+                                        isCurrentEmployee
+                                          ? 'opacity-100'
+                                          : 'opacity-0',
+                                      )}
+                                    />
+                                  </CommandItem>
+                                )
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setExpandAll(true)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <ChevronsLeftRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Expand All</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setExpandAll(false)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <ChevronsRightLeft className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Collapse All</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TooltipProvider>
+              </div>
+              <div className="h-[calc(100vh-8rem)] rounded-lg border bg-white">
+                <ManagerHierarchyTree
+                  hierarchy={managerHierarchy}
+                  currentEmployeeId={employee.id}
+                  expandAll={expandAll}
+                />
+              </div>
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <div className="flex gap-1 rounded-md border">
-              <Button
-                type="button"
-                variant={viewMode === 'table' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('table')}
-              >
-                Table view
-              </Button>
-              <Button
-                type="button"
-                variant={viewMode === 'card' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('card')}
-              >
-                Timeline view
-              </Button>
-            </div>
-            {reviewQueue.length > 0 ? (
-              <Button
-                variant="outline"
-                type="button"
-                onClick={handleMoveToNextEmployee}
-              >
-                Move to next employee
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
-        {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
-          <>
-            <div className="mt-2 flex flex-row items-center justify-between gap-2">
-              <span className="text-md font-bold">Feedback</span>
-            </div>
-
-            <div className="w-full flex-grow">
-              <div className="mb-4 max-h-[300px] overflow-y-auto rounded-lg border bg-gray-50 p-4">
-                {employee.keeperTestFeedback.map(
-                  ({
-                    id,
-                    title,
-                    manager,
-                    wouldYouTryToKeepThem,
-                    whatMakesThemValuable,
-                    driverOrPassenger,
-                    proactiveToday,
-                    optimisticByDefault,
-                    areasToWatch,
-                    recommendation,
-                    sharedWithTeamMember,
-                    timestamp,
-                  }) => (
-                    <div
-                      key={id}
-                      className="mb-4 rounded-lg border bg-gray-50 p-4"
-                    >
-                      <span className="w-full list-disc text-right text-sm text-gray-500">
-                        {new Date(timestamp).toLocaleDateString()}
-                      </span>
-                      <MarkdownComponent>
-                        {`### ${title} feedback from ${manager.deelEmployee?.name ?? manager.email}:\n` +
-                          `- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${wouldYouTryToKeepThem ? 'Yes' : 'No'}\n` +
-                          `- **What makes them so valuable to your team and PostHog?** ${whatMakesThemValuable}\n` +
-                          `- **Are they a driver or a passenger?** ${driverOrPassenger}\n` +
-                          `- **Do they get things done proactively, today?** ${proactiveToday ? 'Yes' : 'No'}\n` +
-                          `- **Are they optimistic by default?** ${optimisticByDefault ? 'Yes' : 'No'}\n` +
-                          `- **Areas to watch:** ${areasToWatch}\n` +
-                          (recommendation
-                            ? `- **Recommendation**: ${recommendation}\n`
-                            : '') +
-                          `- **Have you shared this feedback with your team member?** ${sharedWithTeamMember ? 'Yes' : 'No, but I will do right now!'}`}
-                      </MarkdownComponent>
-                    </div>
-                  ),
+        )}
+        <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
+          {user?.role === ROLES.ADMIN ? (
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => router.navigate({ to: '/' })}
+              className="-ml-2 self-start"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to overview
+            </Button>
+          ) : null}
+          <div className="flex flex-row items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-xl font-bold">
+                {employee.deelEmployee?.name ||
+                  employee.email ||
+                  'Edit employee'}
+              </span>
+              <div className="mt-1 flex gap-4 text-sm text-gray-600">
+                <span>Email: {employee.email}</span>
+                {employee.priority ? (
+                  <span>Priority: {employee.priority}</span>
+                ) : null}
+                {employee.deelEmployee?.topLevelManager?.name && (
+                  <span>
+                    Reviewer: {employee.deelEmployee.topLevelManager.name}
+                  </span>
                 )}
+                {typeof employee.reviewed === 'boolean' ? (
+                  <span>Reviewed: {employee.reviewed ? 'Yes' : 'No'}</span>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <div className="flex gap-1 rounded-md border">
+                <Button
+                  type="button"
+                  variant={viewMode === 'table' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('table')}
+                >
+                  Table view
+                </Button>
+                <Button
+                  type="button"
+                  variant={viewMode === 'card' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('card')}
+                >
+                  Timeline view
+                </Button>
+              </div>
+              {reviewQueue.length > 0 ? (
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={handleMoveToNextEmployee}
+                >
+                  Move to next employee
+                </Button>
+              ) : null}
+            </div>
+          </div>
 
-                {employee.keeperTestFeedback.length === 0 && (
-                  <div className="text-center text-sm text-gray-500">
-                    No feedback yet.
+          {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
+            <>
+              <div className="mt-2 flex flex-row items-center justify-between gap-2">
+                <span className="text-md font-bold">Feedback</span>
+              </div>
+
+              <div className="w-full flex-grow">
+                <div className="mb-4 max-h-[300px] overflow-y-auto rounded-lg border bg-gray-50 p-4">
+                  {employee.keeperTestFeedback.map(
+                    ({
+                      id,
+                      title,
+                      manager,
+                      wouldYouTryToKeepThem,
+                      whatMakesThemValuable,
+                      driverOrPassenger,
+                      proactiveToday,
+                      optimisticByDefault,
+                      areasToWatch,
+                      recommendation,
+                      sharedWithTeamMember,
+                      timestamp,
+                    }) => (
+                      <div
+                        key={id}
+                        className="mb-4 rounded-lg border bg-gray-50 p-4"
+                      >
+                        <span className="w-full list-disc text-right text-sm text-gray-500">
+                          {new Date(timestamp).toLocaleDateString()}
+                        </span>
+                        <MarkdownComponent>
+                          {`### ${title} feedback from ${manager.deelEmployee?.name ?? manager.email}:\n` +
+                            `- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${wouldYouTryToKeepThem ? 'Yes' : 'No'}\n` +
+                            `- **What makes them so valuable to your team and PostHog?** ${whatMakesThemValuable}\n` +
+                            `- **Are they a driver or a passenger?** ${driverOrPassenger}\n` +
+                            `- **Do they get things done proactively, today?** ${proactiveToday ? 'Yes' : 'No'}\n` +
+                            `- **Are they optimistic by default?** ${optimisticByDefault ? 'Yes' : 'No'}\n` +
+                            `- **Areas to watch:** ${areasToWatch}\n` +
+                            (recommendation
+                              ? `- **Recommendation**: ${recommendation}\n`
+                              : '') +
+                            `- **Have you shared this feedback with your team member?** ${sharedWithTeamMember ? 'Yes' : 'No, but I will do right now!'}`}
+                        </MarkdownComponent>
+                      </div>
+                    ),
+                  )}
+
+                  {employee.keeperTestFeedback.length === 0 && (
+                    <div className="text-center text-sm text-gray-500">
+                      No feedback yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : null}
+
+          <div className="mt-2 flex flex-row items-center justify-between gap-2">
+            {viewMode === 'table' && (
+              <span className="text-md font-bold">Salary history</span>
+            )}
+            <div className="flex gap-2">
+              {showNewSalaryForm ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    setShowReferenceEmployees(!showReferenceEmployees)
+                  }
+                >
+                  {showReferenceEmployees
+                    ? 'Hide reference employees'
+                    : 'Show reference employees'}
+                </Button>
+              ) : null}
+              {showNewSalaryForm ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowOverrideMode(!showOverrideMode)}
+                >
+                  {showOverrideMode
+                    ? 'Disable override mode'
+                    : 'Enable override mode'}
+                </Button>
+              ) : null}
+              {user?.role === ROLES.ADMIN ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowNewSalaryForm(!showNewSalaryForm)}
+                >
+                  {showNewSalaryForm ? 'Cancel' : 'Add New Salary'}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          {employee.salaries[0] &&
+            (() => {
+              const locationFactorUpdated =
+                locationFactor.find(
+                  (l) =>
+                    l.country === employee.salaries[0].country &&
+                    l.area === employee.salaries[0].area,
+                )?.locationFactor !== employee.salaries[0].locationFactor
+
+              return (
+                <>
+                  {benchmarkUpdated && user?.role === ROLES.ADMIN && (
+                    <Alert variant="default">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>
+                        This employee is currently on an old benchmark factor.
+                      </AlertTitle>
+                      <AlertDescription>
+                        You can keep it that way by choosing `
+                        {employee.salaries[0].benchmark} (old)` as the
+                        benchmark, or updated it by choosing `
+                        {employee.salaries[0].benchmark.replace(' (old)', '')}`
+                        as the benchmark.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {locationFactorUpdated && user?.role === ROLES.ADMIN && (
+                    <Alert variant="default">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>
+                        This employee is currently on an old location factor.
+                      </AlertTitle>
+                      <AlertDescription>
+                        The location factor will be updated on the next salary
+                        update.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {eligibleForEquityRefresh && user?.role === ROLES.ADMIN && (
+                    <Alert variant="default">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>
+                        This employee is eligible for an equity refresh.
+                      </AlertTitle>
+                      <AlertDescription>
+                        Enter an equity refresh percentage in the next salary
+                        update. In the majority of cases, this will be between
+                        18% and 25%.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </>
+              )
+            })()}
+
+          {showNewSalaryForm &&
+          showReferenceEmployees &&
+          viewMode === 'card' ? (
+            <ReferenceEmployeesTable
+              referenceEmployees={combinedReferenceEmployees}
+              currentEmployee={employee}
+              filterByLevel={filterByLevel}
+              setFilterByLevel={setFilterByLevel}
+              filterByExec={filterByExec}
+              setFilterByExec={setFilterByExec}
+              filterByTitle={filterByTitle}
+              setFilterByTitle={setFilterByTitle}
+            />
+          ) : null}
+
+          <div className="w-full flex-grow">
+            {viewMode === 'table' ? (
+              <div className="overflow-hidden rounded-md border">
+                <Table className="text-xs">
+                  <TableHeader>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => {
+                          return (
+                            <TableHead key={header.id}>
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext(),
+                                  )}
+                            </TableHead>
+                          )
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {showNewSalaryForm && (
+                      <NewSalaryForm
+                        employeeId={employee.id}
+                        showOverride={showOverrideMode}
+                        setShowOverride={setShowOverrideMode}
+                        latestSalary={employee.salaries[0]}
+                        showDetailedColumns={showDetailedColumns}
+                        totalAmountInStockOptions={employee.salaries.reduce(
+                          (acc, salary) => acc + salary.amountTakenInOptions,
+                          0,
+                        )}
+                        onSuccess={() => {
+                          setShowNewSalaryForm(false)
+                          router.invalidate()
+                        }}
+                        onCancel={() => setShowNewSalaryForm(false)}
+                        benchmarkUpdated={benchmarkUpdated}
+                        setLevel={setLevel}
+                        setStep={setStep}
+                        setBenchmark={setBenchmark}
+                        showBonusPercentage={showBonusPercentage}
+                        displayMode="inline"
+                      />
+                    )}
+                    {table.getRowModel().rows?.length ? (
+                      table.getRowModel().rows.map((row) => (
+                        <TableRow
+                          key={row.id}
+                          data-state={row.getIsSelected() && 'selected'}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id}>
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={columns.length}
+                          className="h-24 text-center"
+                        >
+                          No results.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="mb-8">
+                {showNewSalaryForm && (
+                  <NewSalaryForm
+                    employeeId={employee.id}
+                    showOverride={showOverrideMode}
+                    setShowOverride={setShowOverrideMode}
+                    latestSalary={employee.salaries[0]}
+                    showDetailedColumns={showDetailedColumns}
+                    totalAmountInStockOptions={employee.salaries.reduce(
+                      (acc, salary) => acc + salary.amountTakenInOptions,
+                      0,
+                    )}
+                    onSuccess={() => {
+                      setShowNewSalaryForm(false)
+                      router.invalidate()
+                    }}
+                    onCancel={() => setShowNewSalaryForm(false)}
+                    benchmarkUpdated={benchmarkUpdated}
+                    setLevel={setLevel}
+                    setStep={setStep}
+                    setBenchmark={setBenchmark}
+                    showBonusPercentage={showBonusPercentage}
+                    displayMode="card"
+                  />
+                )}
+                {timelineByMonth.length > 0 ? (
+                  timelineByMonth.map((monthGroup, monthGroupIndex) => (
+                    <div key={`${monthGroup.year}-${monthGroup.month}`}>
+                      <div
+                        className={`flex items-center border border-gray-200 px-4 py-2 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
+                      >
+                        <h3 className="text-lg font-bold">
+                          {months[monthGroup.month]} {monthGroup.year}
+                        </h3>
+                        <span className="mx-2">·</span>
+                        <p className="text-sm text-gray-500">
+                          {(() => {
+                            const now = new Date()
+                            const diffMonths =
+                              (now.getFullYear() - monthGroup.year) * 12 +
+                              (now.getMonth() - monthGroup.month)
+
+                            if (diffMonths === 0) return 'this month'
+                            if (diffMonths === 1) return '1 month ago'
+                            if (diffMonths < 12)
+                              return `${diffMonths} months ago`
+
+                            const years = Math.floor(diffMonths / 12)
+                            const remainingMonths = diffMonths % 12
+                            if (remainingMonths === 0) {
+                              return years === 1
+                                ? '1 year ago'
+                                : `${years} years ago`
+                            }
+                            return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} ago`
+                          })()}
+                        </p>
+                      </div>
+                      <div className="w-full">
+                        {monthGroup.items.map((item, itemIndex) => {
+                          const isLastMonth =
+                            monthGroupIndex === timelineByMonth.length - 1
+                          const isLastItemInMonth =
+                            itemIndex === monthGroup.items.length - 1
+                          const lastTableItem = isLastMonth && isLastItemInMonth
+
+                          return item.type === 'salary' ? (
+                            <SalaryHistoryCard
+                              key={`salary-${item.data.id}`}
+                              salary={item.data}
+                              isAdmin={user?.role === ROLES.ADMIN}
+                              onDelete={handleDeleteSalary}
+                              lastTableItem={lastTableItem}
+                            />
+                          ) : (
+                            <FeedbackCard
+                              key={`feedback-${item.data.id}`}
+                              feedback={item.data}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-12 text-center text-gray-500">
+                    No history available.
                   </div>
                 )}
               </div>
-            </div>
-          </>
-        ) : null}
-
-        <div className="mt-2 flex flex-row items-center justify-between gap-2">
-          {viewMode === 'table' && (
-            <span className="text-md font-bold">Salary history</span>
-          )}
-          <div className="flex gap-2">
-            {showNewSalaryForm ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  setShowReferenceEmployees(!showReferenceEmployees)
-                }
-              >
-                {showReferenceEmployees
-                  ? 'Hide reference employees'
-                  : 'Show reference employees'}
-              </Button>
-            ) : null}
-            {showNewSalaryForm ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowOverrideMode(!showOverrideMode)}
-              >
-                {showOverrideMode
-                  ? 'Disable override mode'
-                  : 'Enable override mode'}
-              </Button>
-            ) : null}
-            {user?.role === ROLES.ADMIN ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowNewSalaryForm(!showNewSalaryForm)}
-              >
-                {showNewSalaryForm ? 'Cancel' : 'Add New Salary'}
-              </Button>
-            ) : null}
+            )}
           </div>
+
+          {showNewSalaryForm &&
+          showReferenceEmployees &&
+          viewMode === 'table' ? (
+            <ReferenceEmployeesTable
+              referenceEmployees={combinedReferenceEmployees}
+              currentEmployee={employee}
+              filterByLevel={filterByLevel}
+              setFilterByLevel={setFilterByLevel}
+              filterByExec={filterByExec}
+              setFilterByExec={setFilterByExec}
+              filterByTitle={filterByTitle}
+              setFilterByTitle={setFilterByTitle}
+            />
+          ) : null}
         </div>
-
-        {employee.salaries[0] &&
-          (() => {
-            const locationFactorUpdated =
-              locationFactor.find(
-                (l) =>
-                  l.country === employee.salaries[0].country &&
-                  l.area === employee.salaries[0].area,
-              )?.locationFactor !== employee.salaries[0].locationFactor
-
-            return (
-              <>
-                {benchmarkUpdated && user?.role === ROLES.ADMIN && (
-                  <Alert variant="default">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>
-                      This employee is currently on an old benchmark factor.
-                    </AlertTitle>
-                    <AlertDescription>
-                      You can keep it that way by choosing `
-                      {employee.salaries[0].benchmark} (old)` as the benchmark,
-                      or updated it by choosing `
-                      {employee.salaries[0].benchmark.replace(' (old)', '')}` as
-                      the benchmark.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {locationFactorUpdated && user?.role === ROLES.ADMIN && (
-                  <Alert variant="default">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>
-                      This employee is currently on an old location factor.
-                    </AlertTitle>
-                    <AlertDescription>
-                      The location factor will be updated on the next salary
-                      update.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {eligibleForEquityRefresh && user?.role === ROLES.ADMIN && (
-                  <Alert variant="default">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>
-                      This employee is eligible for an equity refresh.
-                    </AlertTitle>
-                    <AlertDescription>
-                      Enter an equity refresh percentage in the next salary
-                      update. In the majority of cases, this will be between 18%
-                      and 25%.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </>
-            )
-          })()}
-
-        {showNewSalaryForm && showReferenceEmployees && viewMode === 'card' ? (
-          <ReferenceEmployeesTable
-            referenceEmployees={combinedReferenceEmployees}
-            currentEmployee={employee}
-            filterByLevel={filterByLevel}
-            setFilterByLevel={setFilterByLevel}
-            filterByExec={filterByExec}
-            setFilterByExec={setFilterByExec}
-            filterByTitle={filterByTitle}
-            setFilterByTitle={setFilterByTitle}
-          />
-        ) : null}
-
-        <div className="w-full flex-grow">
-          {viewMode === 'table' ? (
-            <div className="overflow-hidden rounded-md border">
-              <Table className="text-xs">
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => {
-                        return (
-                          <TableHead key={header.id}>
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext(),
-                                )}
-                          </TableHead>
-                        )
-                      })}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {showNewSalaryForm && (
-                    <NewSalaryForm
-                      employeeId={employee.id}
-                      showOverride={showOverrideMode}
-                      setShowOverride={setShowOverrideMode}
-                      latestSalary={employee.salaries[0]}
-                      showDetailedColumns={showDetailedColumns}
-                      totalAmountInStockOptions={employee.salaries.reduce(
-                        (acc, salary) => acc + salary.amountTakenInOptions,
-                        0,
-                      )}
-                      onSuccess={() => {
-                        setShowNewSalaryForm(false)
-                        router.invalidate()
-                      }}
-                      onCancel={() => setShowNewSalaryForm(false)}
-                      benchmarkUpdated={benchmarkUpdated}
-                      setLevel={setLevel}
-                      setStep={setStep}
-                      setBenchmark={setBenchmark}
-                      showBonusPercentage={showBonusPercentage}
-                      displayMode="inline"
-                    />
-                  )}
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && 'selected'}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="h-24 text-center"
-                      >
-                        No results.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="mb-8">
-              {showNewSalaryForm && (
-                <NewSalaryForm
-                  employeeId={employee.id}
-                  showOverride={showOverrideMode}
-                  setShowOverride={setShowOverrideMode}
-                  latestSalary={employee.salaries[0]}
-                  showDetailedColumns={showDetailedColumns}
-                  totalAmountInStockOptions={employee.salaries.reduce(
-                    (acc, salary) => acc + salary.amountTakenInOptions,
-                    0,
-                  )}
-                  onSuccess={() => {
-                    setShowNewSalaryForm(false)
-                    router.invalidate()
-                  }}
-                  onCancel={() => setShowNewSalaryForm(false)}
-                  benchmarkUpdated={benchmarkUpdated}
-                  setLevel={setLevel}
-                  setStep={setStep}
-                  setBenchmark={setBenchmark}
-                  showBonusPercentage={showBonusPercentage}
-                  displayMode="card"
-                />
-              )}
-              {timelineByMonth.length > 0 ? (
-                timelineByMonth.map((monthGroup, monthGroupIndex) => (
-                  <div key={`${monthGroup.year}-${monthGroup.month}`}>
-                    <div
-                      className={`flex items-center border border-gray-200 px-4 py-2 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
-                    >
-                      <h3 className="text-lg font-bold">
-                        {months[monthGroup.month]} {monthGroup.year}
-                      </h3>
-                      <span className="mx-2">·</span>
-                      <p className="text-sm text-gray-500">
-                        {(() => {
-                          const now = new Date()
-                          const diffMonths =
-                            (now.getFullYear() - monthGroup.year) * 12 +
-                            (now.getMonth() - monthGroup.month)
-
-                          if (diffMonths === 0) return 'this month'
-                          if (diffMonths === 1) return '1 month ago'
-                          if (diffMonths < 12) return `${diffMonths} months ago`
-
-                          const years = Math.floor(diffMonths / 12)
-                          const remainingMonths = diffMonths % 12
-                          if (remainingMonths === 0) {
-                            return years === 1
-                              ? '1 year ago'
-                              : `${years} years ago`
-                          }
-                          return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} ago`
-                        })()}
-                      </p>
-                    </div>
-                    <div className="w-full">
-                      {monthGroup.items.map((item, itemIndex) => {
-                        const isLastMonth =
-                          monthGroupIndex === timelineByMonth.length - 1
-                        const isLastItemInMonth =
-                          itemIndex === monthGroup.items.length - 1
-                        const lastTableItem = isLastMonth && isLastItemInMonth
-
-                        return item.type === 'salary' ? (
-                          <SalaryHistoryCard
-                            key={`salary-${item.data.id}`}
-                            salary={item.data}
-                            isAdmin={user?.role === ROLES.ADMIN}
-                            onDelete={handleDeleteSalary}
-                            lastTableItem={lastTableItem}
-                          />
-                        ) : (
-                          <FeedbackCard
-                            key={`feedback-${item.data.id}`}
-                            feedback={item.data}
-                            lastTableItem={lastTableItem}
-                          />
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-12 text-center text-gray-500">
-                  No history available.
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {showNewSalaryForm && showReferenceEmployees && viewMode === 'table' ? (
-          <ReferenceEmployeesTable
-            referenceEmployees={combinedReferenceEmployees}
-            currentEmployee={employee}
-            filterByLevel={filterByLevel}
-            setFilterByLevel={setFilterByLevel}
-            filterByExec={filterByExec}
-            setFilterByExec={setFilterByExec}
-            filterByTitle={filterByTitle}
-            setFilterByTitle={setFilterByTitle}
-          />
-        ) : null}
       </div>
     </div>
   )
