@@ -2,15 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { ChevronRight, ChevronDown } from 'lucide-react'
 import { useRouter } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
-
-type HierarchyNode = {
-  id: string
-  name: string
-  title: string
-  team?: string
-  employeeId?: string
-  children: HierarchyNode[]
-}
+import type { HierarchyNode } from '@/lib/types'
 
 type ManagerHierarchyTreeProps = {
   hierarchy: HierarchyNode | HierarchyNode[] | null

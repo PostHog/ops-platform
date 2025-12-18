@@ -70,6 +70,7 @@ import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
 import { ManagerHierarchyTree } from '@/components/ManagerHierarchyTree'
+import type { HierarchyNode } from '@/lib/types'
 import dayjs from 'dayjs'
 import MarkdownComponent from '@/lib/MarkdownComponent'
 
@@ -319,16 +320,6 @@ export const deleteSalary = createAuthenticatedFn({
 
     return { success: true }
   })
-
-type HierarchyNode = {
-  id: string
-  name: string
-  title: string
-  team?: string
-  employeeId?: string
-  workEmail?: string | null
-  children: HierarchyNode[]
-}
 
 export const getManagerHierarchy = createAuthenticatedFn({
   method: 'GET',
