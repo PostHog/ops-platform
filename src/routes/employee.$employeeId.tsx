@@ -326,6 +326,7 @@ type HierarchyNode = {
   title: string
   team?: string
   employeeId?: string
+  workEmail?: string | null
   children: HierarchyNode[]
 }
 
@@ -366,6 +367,7 @@ export const getManagerHierarchy = createAuthenticatedFn({
         title: employee.title,
         team: employee.team,
         employeeId: employee.employee?.id,
+        workEmail: employee.workEmail,
         children: [],
       }
     }
@@ -381,6 +383,7 @@ export const getManagerHierarchy = createAuthenticatedFn({
       title: employee.title,
       team: employee.team,
       employeeId: employee.employee?.id,
+      workEmail: employee.workEmail,
       children: directReports.map((child) => buildTree(child, visited)),
     }
   }
@@ -902,44 +905,40 @@ function EmployeeOverview() {
                         <CommandList>
                           <CommandEmpty>No employee found.</CommandEmpty>
                           <CommandGroup>
-                            {allHierarchyEmployees.map((node) => {
-                              const isCurrentEmployee =
-                                node.employeeId === employee.id
-                              return (
+                            {allHierarchyEmployees
+                              .filter((node) => node.employeeId)
+                              .map((node) => (
                                 <CommandItem
                                   key={node.id}
-                                  value={`${node.id} - ${node.name} - ${node.employeeId} - ${node.team || ''}`}
-                                  onSelect={() => {
-                                    if (node.employeeId) {
+                                  value={`${node.id} - ${node.name} - ${node.employeeId} - ${node.workEmail || ''}`}
+                                  onSelect={(currentValue) => {
+                                    const selectedEmployeeId =
+                                      currentValue.split(' - ')[2]
+                                    if (
+                                      selectedEmployeeId &&
+                                      selectedEmployeeId !== employee.id
+                                    ) {
                                       router.navigate({
                                         to: '/employee/$employeeId',
                                         params: {
-                                          employeeId: node.employeeId,
+                                          employeeId: selectedEmployeeId,
                                         },
                                       })
-                                      setSearchOpen(false)
                                     }
+                                    setSearchOpen(false)
                                   }}
                                 >
-                                  <div className="flex flex-1 flex-col">
-                                    <span>{node.name}</span>
-                                    {node.team && (
-                                      <span className="text-xs text-gray-500">
-                                        {node.team}
-                                      </span>
-                                    )}
-                                  </div>
+                                  {node.name}
                                   <Check
                                     className={cn(
-                                      'ml-auto h-4 w-4',
-                                      isCurrentEmployee
+                                      'ml-auto',
+                                      employee.id === node.employeeId
                                         ? 'opacity-100'
                                         : 'opacity-0',
                                     )}
                                   />
                                 </CommandItem>
-                              )
-                            })}
+                              ))}
                           </CommandGroup>
                         </CommandList>
                       </Command>
