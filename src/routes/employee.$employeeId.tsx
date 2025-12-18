@@ -314,6 +314,8 @@ function EmployeeOverview() {
     'preferredEmployeeView',
     'table',
   )
+  const [showStockOptionsCalculator, setShowStockOptionsCalculator] =
+    useLocalStorage<boolean>('employee.showStockOptionsCalculator', true)
 
   // Hide inline form when switching to timeline view
   useEffect(() => {
@@ -734,15 +736,32 @@ function EmployeeOverview() {
     <div className="flex flex-col items-center justify-center gap-5 pt-8">
       <div className="flex w-full flex-col gap-5 px-4 2xl:max-w-7xl">
         {user?.role === ROLES.ADMIN ? (
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={() => router.navigate({ to: '/' })}
-            className="-ml-2 self-start"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to overview
-          </Button>
+          <div className="flex w-full items-center justify-between">
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => router.navigate({ to: '/' })}
+              className="-ml-2 self-start"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to overview
+            </Button>
+            {employee.cartaOptionGrants &&
+              employee.cartaOptionGrants.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    setShowStockOptionsCalculator(!showStockOptionsCalculator)
+                  }
+                  className="-mr-2"
+                >
+                  {showStockOptionsCalculator
+                    ? 'Hide stock options calculator'
+                    : 'Show stock options calculator'}
+                </Button>
+              )}
+          </div>
         ) : null}
         <div className="flex flex-row items-center justify-between">
           <div className="flex flex-col">
@@ -796,7 +815,8 @@ function EmployeeOverview() {
         </div>
 
         {employee.cartaOptionGrants &&
-          employee.cartaOptionGrants.length > 0 && (
+          employee.cartaOptionGrants.length > 0 &&
+          showStockOptionsCalculator && (
             <StockOptionsCalculator optionGrants={employee.cartaOptionGrants} />
           )}
 
