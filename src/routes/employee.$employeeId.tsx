@@ -831,7 +831,7 @@ function EmployeeOverview() {
         },
       )
       setReviewQueue([])
-      router.navigate({ to: '/' })
+      router.navigate({ to: '/employees' })
     }
   }
 
@@ -990,7 +990,7 @@ function EmployeeOverview() {
             <Button
               variant="ghost"
               type="button"
-              onClick={() => router.navigate({ to: '/' })}
+              onClick={() => router.navigate({ to: '/employees' })}
               className="-ml-2 self-start"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
