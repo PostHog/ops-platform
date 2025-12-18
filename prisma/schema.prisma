@@ -18,6 +18,8 @@ model Employee {
   priority                     Priority
   reviewed                     Boolean
   email                        String                 @unique
+  cartaStakeholderId           String?                @unique
+  cartaOptionGrants            CartaOptionGrant[]
   salaries                     Salary[]
   deelEmployee                 DeelEmployee?
   keeperTestFeedback           KeeperTestFeedback[]   @relation("employee")
@@ -158,10 +160,11 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
-  role       String?
-  banned     Boolean?  @default(false)
-  banReason  String?
-  banExpires DateTime?
+  role         String?
+  banned       Boolean?      @default(false)
+  banReason    String?
+  banExpires   DateTime?
+  integrations Integration[]
 
   @@unique([email])
   @@map("user")
@@ -230,4 +233,27 @@ model ProcessDocument {
   id        String   @id @default("process")
   content   String   @default("")
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Integration {
+  id             String   @id @default(cuid())
+  kind           String
+  config         Json
+  created_at     DateTime @default(now())
+  created_by_id  String
+  created_by     User     @relation(fields: [created_by_id], references: [id])
+  integration_id String
+}
+
+model CartaOptionGrant {
+  id               String    @id @default(cuid())
+  grantId          String
+  stakeholderId    String
+  employee         Employee  @relation(fields: [stakeholderId], references: [cartaStakeholderId])
+  vestingStartDate DateTime?
+  vestingSchedule  String?
+  exercisePrice    Float
+  quantity         Int
+  vestedQuantity   Int
+  expiredQuantity  Int
 }

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SyncSalaryUpdatesRouteImport } from './routes/syncSalaryUpdates'
 import { Route as SyncDeelEmployeesRouteImport } from './routes/syncDeelEmployees'
+import { Route as SyncCartaDataRouteImport } from './routes/syncCartaData'
 import { Route as ScheduleCheckInsRouteImport } from './routes/scheduleCheckIns'
 import { Route as SalaryDeviationCheckerRouteImport } from './routes/salaryDeviationChecker'
 import { Route as SalarySyncStatusRouteImport } from './routes/salary-sync-status'
@@ -37,6 +38,11 @@ const SyncSalaryUpdatesRoute = SyncSalaryUpdatesRouteImport.update({
 const SyncDeelEmployeesRoute = SyncDeelEmployeesRouteImport.update({
   id: '/syncDeelEmployees',
   path: '/syncDeelEmployees',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SyncCartaDataRoute = SyncCartaDataRouteImport.update({
+  id: '/syncCartaData',
+  path: '/syncCartaData',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ScheduleCheckInsRoute = ScheduleCheckInsRouteImport.update({
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/salary-sync-status': typeof SalarySyncStatusRoute
   '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
+  '/syncCartaData': typeof SyncCartaDataRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/salary-sync-status': typeof SalarySyncStatusRoute
   '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
+  '/syncCartaData': typeof SyncCartaDataRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
@@ -185,6 +193,7 @@ export interface FileRoutesById {
   '/salary-sync-status': typeof SalarySyncStatusRoute
   '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
+  '/syncCartaData': typeof SyncCartaDataRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/salary-sync-status'
     | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
+    | '/syncCartaData'
     | '/syncDeelEmployees'
     | '/syncSalaryUpdates'
     | '/employee/$employeeId'
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
     | '/salary-sync-status'
     | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
+    | '/syncCartaData'
     | '/syncDeelEmployees'
     | '/syncSalaryUpdates'
     | '/employee/$employeeId'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/salary-sync-status'
     | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
+    | '/syncCartaData'
     | '/syncDeelEmployees'
     | '/syncSalaryUpdates'
     | '/employee/$employeeId'
@@ -272,6 +284,7 @@ export interface RootRouteChildren {
   SalarySyncStatusRoute: typeof SalarySyncStatusRoute
   SalaryDeviationCheckerRoute: typeof SalaryDeviationCheckerRoute
   ScheduleCheckInsRoute: typeof ScheduleCheckInsRoute
+  SyncCartaDataRoute: typeof SyncCartaDataRoute
   SyncDeelEmployeesRoute: typeof SyncDeelEmployeesRoute
   SyncSalaryUpdatesRoute: typeof SyncSalaryUpdatesRoute
   EmployeeEmployeeIdRoute: typeof EmployeeEmployeeIdRoute
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       path: '/syncDeelEmployees'
       fullPath: '/syncDeelEmployees'
       preLoaderRoute: typeof SyncDeelEmployeesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/syncCartaData': {
+      id: '/syncCartaData'
+      path: '/syncCartaData'
+      fullPath: '/syncCartaData'
+      preLoaderRoute: typeof SyncCartaDataRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/scheduleCheckIns': {
@@ -432,6 +452,7 @@ const rootRouteChildren: RootRouteChildren = {
   SalarySyncStatusRoute: SalarySyncStatusRoute,
   SalaryDeviationCheckerRoute: SalaryDeviationCheckerRoute,
   ScheduleCheckInsRoute: ScheduleCheckInsRoute,
+  SyncCartaDataRoute: SyncCartaDataRoute,
   SyncDeelEmployeesRoute: SyncDeelEmployeesRoute,
   SyncSalaryUpdatesRoute: SyncSalaryUpdatesRoute,
   EmployeeEmployeeIdRoute: EmployeeEmployeeIdRoute,
