@@ -321,10 +321,10 @@ export const deleteSalary = createAuthenticatedFn({
     return { success: true }
   })
 
-export const getManagerHierarchy = createAuthenticatedFn({
+export const getAllDeelEmployees = createAuthenticatedFn({
   method: 'GET',
 }).handler(async () => {
-  const allEmployees = await prisma.deelEmployee.findMany({
+  return await prisma.deelEmployee.findMany({
     include: {
       employee: {
         select: {
@@ -337,68 +337,6 @@ export const getManagerHierarchy = createAuthenticatedFn({
       name: 'asc',
     },
   })
-
-  const managerMap = new Map<string, Array<(typeof allEmployees)[0]>>()
-  for (const emp of allEmployees) {
-    if (emp.managerId) {
-      const reports = managerMap.get(emp.managerId) || []
-      reports.push(emp)
-      managerMap.set(emp.managerId, reports)
-    }
-  }
-
-  const buildTree = (
-    employee: (typeof allEmployees)[0],
-    visited = new Set<string>(),
-  ): HierarchyNode => {
-    if (visited.has(employee.id)) {
-      return {
-        id: employee.id,
-        name: employee.name,
-        title: employee.title,
-        team: employee.team,
-        employeeId: employee.employee?.id,
-        workEmail: employee.workEmail,
-        children: [],
-      }
-    }
-
-    visited.add(employee.id)
-    const directReports = (managerMap.get(employee.id) || []).sort((a, b) =>
-      a.name.localeCompare(b.name),
-    )
-
-    return {
-      id: employee.id,
-      name: employee.name,
-      title: employee.title,
-      team: employee.team,
-      employeeId: employee.employee?.id,
-      workEmail: employee.workEmail,
-      children: directReports.map((child) => buildTree(child, visited)),
-    }
-  }
-
-  // Find top-level managers (Cofounders or employees without managers)
-  const topLevelManagers = allEmployees.filter(
-    (e) => e.title === 'Cofounder' || !e.managerId,
-  )
-
-  if (topLevelManagers.length === 0) {
-    // Fallback: if no top-level managers found, return first employee as root
-    if (allEmployees.length > 0) {
-      return buildTree(allEmployees[0])
-    }
-    return null
-  }
-
-  // Return array of top-level managers (sorted by name)
-  const trees = topLevelManagers
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((manager) => buildTree(manager))
-
-  // Return single node or array of nodes
-  return trees.length === 1 ? trees[0] : trees
 })
 
 function EmployeeOverview() {
@@ -491,11 +429,78 @@ function EmployeeOverview() {
     enabled: !!level && !!step && !!benchmark && user?.role === ROLES.ADMIN,
   })
 
-  const { data: managerHierarchy } = useQuery({
-    queryKey: ['managerHierarchy'],
-    queryFn: () => getManagerHierarchy(),
+  const { data: deelEmployees } = useQuery({
+    queryKey: ['deelEmployees'],
+    queryFn: () => getAllDeelEmployees(),
     enabled: user?.role === ROLES.ADMIN,
   })
+
+  // Build hierarchy tree from flat list
+  const managerHierarchy = useMemo(() => {
+    if (!deelEmployees) return null
+
+    const managerMap = new Map<string, Array<(typeof deelEmployees)[0]>>()
+    for (const emp of deelEmployees) {
+      if (emp.managerId) {
+        const reports = managerMap.get(emp.managerId) || []
+        reports.push(emp)
+        managerMap.set(emp.managerId, reports)
+      }
+    }
+
+    const buildTree = (
+      employee: (typeof deelEmployees)[0],
+      visited = new Set<string>(),
+    ): HierarchyNode => {
+      if (visited.has(employee.id)) {
+        return {
+          id: employee.id,
+          name: employee.name,
+          title: employee.title,
+          team: employee.team,
+          employeeId: employee.employee?.id,
+          workEmail: employee.workEmail,
+          children: [],
+        }
+      }
+
+      visited.add(employee.id)
+      const directReports = (managerMap.get(employee.id) || []).sort((a, b) =>
+        a.name.localeCompare(b.name),
+      )
+
+      return {
+        id: employee.id,
+        name: employee.name,
+        title: employee.title,
+        team: employee.team,
+        employeeId: employee.employee?.id,
+        workEmail: employee.workEmail,
+        children: directReports.map((child) => buildTree(child, visited)),
+      }
+    }
+
+    // Find top-level managers (Cofounders or employees without managers)
+    const topLevelManagers = deelEmployees.filter(
+      (e) => e.title === 'Cofounder' || !e.managerId,
+    )
+
+    if (topLevelManagers.length === 0) {
+      // Fallback: if no top-level managers found, return first employee as root
+      if (deelEmployees.length > 0) {
+        return buildTree(deelEmployees[0])
+      }
+      return null
+    }
+
+    // Return array of top-level managers (sorted by name)
+    const trees = topLevelManagers
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((manager) => buildTree(manager))
+
+    // Return single node or array of nodes
+    return trees.length === 1 ? trees[0] : trees
+  }, [deelEmployees])
 
   // Flatten hierarchy to get all employees for search
   const allHierarchyEmployees = useMemo(() => {
