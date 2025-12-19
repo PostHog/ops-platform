@@ -840,6 +840,7 @@ export function NewSalaryForm({
                     Area
                   </label>
                   <Select
+                    key={field.state.value}
                     value={field.state.value}
                     onValueChange={field.handleChange}
                   >
