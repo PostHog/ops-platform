@@ -268,6 +268,51 @@ const createEmployeeNode = (emp: DeelEmployee): HierarchyNode => ({
   children: [],
 })
 
+// Helper to create proposed hire node
+const createProposedHireNode = (ph: ProposedHire): HierarchyNode => ({
+  id: `employee-${ph.id}`,
+  name: '',
+  title: ph.title || '',
+  team: ph.manager.deelEmployee!.team || undefined,
+  employeeId: undefined,
+  workEmail: undefined,
+  startDate: null,
+  hiringPriority: ph.priority as 'low' | 'medium' | 'high',
+  children: [],
+})
+
+// Helper to filter and map proposed hires by manager
+const mapProposedHiresByManager = (
+  proposedHires: ProposedHire[],
+): Map<string, ProposedHire[]> => {
+  const map = new Map<string, ProposedHire[]>()
+  proposedHires
+    .filter(
+      ({ manager, priority }) =>
+        manager.deelEmployee && ['low', 'medium', 'high'].includes(priority),
+    )
+    .forEach((ph) => {
+      const managerId = ph.manager.deelEmployee!.id
+      if (!map.has(managerId)) map.set(managerId, [])
+      map.get(managerId)!.push(ph)
+    })
+  return map
+}
+
+// Helper to create proposed hires map for count calculations
+const createProposedHiresMap = (
+  proposedHires: ProposedHire[],
+): Map<string, ProposedHire> => {
+  const map = new Map<string, ProposedHire>()
+  proposedHires
+    .filter(
+      ({ manager, priority }) =>
+        manager.deelEmployee && ['low', 'medium', 'high'].includes(priority),
+    )
+    .forEach((ph) => map.set(`employee-${ph.id}`, ph))
+  return map
+}
+
 // Calculate childrenCount for a node (all descendants, excluding the node itself)
 const calculateChildrenCount = (
   node: HierarchyNode,
@@ -321,23 +366,8 @@ const buildTeamHierarchy = (
   employees: DeelEmployee[],
   proposedHires: ProposedHire[] = [],
 ): HierarchyNode[] => {
-  // Map proposed hires by their manager's deelEmployee ID
-  const proposedHiresByManager = new Map<string, ProposedHire[]>()
-  const proposedHiresMap = new Map<string, ProposedHire>()
-
-  proposedHires
-    .filter(
-      ({ manager, priority }) =>
-        manager.deelEmployee && ['low', 'medium', 'high'].includes(priority),
-    )
-    .forEach((ph) => {
-      const managerId = ph.manager.deelEmployee!.id
-      if (!proposedHiresByManager.has(managerId)) {
-        proposedHiresByManager.set(managerId, [])
-      }
-      proposedHiresByManager.get(managerId)!.push(ph)
-      proposedHiresMap.set(`employee-${ph.id}`, ph)
-    })
+  const proposedHiresByManager = mapProposedHiresByManager(proposedHires)
+  const proposedHiresMap = createProposedHiresMap(proposedHires)
   const blitzscaleEmployees = employees.filter((e) => e.team === 'Blitzscale')
   const employeesWithTeams = employees.filter(
     (e) => e.team && e.team !== '' && e.team !== 'Blitzscale',
@@ -407,17 +437,7 @@ const buildTeamHierarchy = (
       )
       .map((ph) => {
         addedProposedHireIds.add(ph.id)
-        return {
-          id: `employee-${ph.id}`,
-          name: '',
-          title: ph.title || '',
-          team: ph.manager.deelEmployee!.team || undefined,
-          employeeId: undefined,
-          workEmail: undefined,
-          startDate: null,
-          hiringPriority: ph.priority as 'low' | 'medium' | 'high',
-          children: [],
-        }
+        return createProposedHireNode(ph)
       })
     employeeNodes.push(...teamProposedHires)
 
@@ -512,7 +532,7 @@ const buildTeamHierarchy = (
   return [...blitzscaleNodes, ...topLevelTeams]
 }
 
-// Calculate childrenCount for manager hierarchy
+// Calculate childrenCount for all nodes in manager hierarchy
 const calculateManagerHierarchyCounts = (
   node: HierarchyNode,
   proposedHiresMap: Map<string, ProposedHire>,
@@ -533,19 +553,11 @@ export function ManagerHierarchyTree({
 }: ManagerHierarchyTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Create proposed hires map
-  const proposedHiresMap = useMemo(() => {
-    const map = new Map<string, ProposedHire>()
-    proposedHires
-      .filter(
-        ({ manager, priority }) =>
-          manager.deelEmployee && ['low', 'medium', 'high'].includes(priority),
-      )
-      .forEach((ph) => {
-        map.set(`employee-${ph.id}`, ph)
-      })
-    return map
-  }, [proposedHires])
+  // Create proposed hires map for count calculations
+  const proposedHiresMap = useMemo(
+    () => createProposedHiresMap(proposedHires),
+    [proposedHires],
+  )
 
   // Transform hierarchy based on view mode
   const displayHierarchy = useMemo(() => {
