@@ -9,7 +9,7 @@ import { InfoIcon, MoreHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
 import { useLocalStorage } from 'usehooks-ts'
-import { customFilterFns, Filter, months } from './employees'
+import { customFilterFns, months } from './employees'
 import type { Prisma } from '@prisma/client'
 import type {
   ColumnDef,
@@ -311,16 +311,13 @@ function App() {
         meta: {
           filterVariant: 'select',
           filterOptions: [
-            { label: 'Yes', value: 'true' },
-            { label: 'No', value: 'false' },
+            { label: 'Yes', value: true },
+            { label: 'No', value: false },
           ],
         },
-        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
-          customFilterFns.equals(
-            row.original.communicated.toString(),
-            _,
-            filterValue,
-          ),
+        filterFn: (row: Row<Salary>, _: string, filterValue: boolean[]) => {
+          return filterValue.includes(row.original.communicated)
+        },
         cell: ({ row }) => (
           <div>
             <span>{row.original.communicated ? 'Yes' : 'No'}</span>
@@ -366,16 +363,13 @@ function App() {
         meta: {
           filterVariant: 'select',
           filterOptions: [
-            { label: 'Yes', value: 'true' },
-            { label: 'No', value: 'false' },
+            { label: 'Yes', value: true },
+            { label: 'No', value: false },
           ],
         },
-        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
-          customFilterFns.equals(
-            row.original.synced.toString(),
-            _,
-            filterValue,
-          ),
+        filterFn: (row: Row<Salary>, _: string, filterValue: boolean[]) => {
+          return filterValue.includes(row.original.synced)
+        },
         cell: ({ row }) => (
           <div>
             <span>{row.original.synced ? 'Yes' : 'No'}</span>
