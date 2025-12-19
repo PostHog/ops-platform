@@ -56,7 +56,8 @@ declare module '@tanstack/react-table' {
   // allows us to define custom properties for our columns
   interface ColumnMeta<TData extends RowData, TValue> {
     filterVariant?: 'text' | 'range' | 'select' | 'dateRange'
-    filterOptions?: Array<{ label: string; value: string }>
+    filterOptions?: Array<{ label: string; value: string | number | boolean }>
+    filterLabel?: string
   }
 }
 
