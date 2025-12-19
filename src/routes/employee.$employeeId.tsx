@@ -331,24 +331,6 @@ export const deleteSalary = createAuthenticatedFn({
     return { success: true }
   })
 
-export const getAllDeelEmployees = createAuthenticatedFn({
-  method: 'GET',
-}).handler(async () => {
-  return await prisma.deelEmployee.findMany({
-    include: {
-      employee: {
-        select: {
-          id: true,
-          email: true,
-        },
-      },
-    },
-    orderBy: {
-      name: 'asc',
-    },
-  })
-})
-
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
@@ -439,18 +421,13 @@ function EmployeeOverview() {
     enabled: !!level && !!step && !!benchmark && user?.role === ROLES.ADMIN,
   })
 
-  const { data: deelEmployees } = useQuery({
-    queryKey: ['deelEmployees'],
-    queryFn: () => getAllDeelEmployees(),
-    enabled: user?.role === ROLES.ADMIN,
-  })
-
-  const { data: proposedHiresData } = useQuery({
+  const { data: deelEmployeesAndProposedHiresData } = useQuery({
     queryKey: ['deelEmployeesAndProposedHires'],
     queryFn: () => getDeelEmployeesAndProposedHires(),
     enabled: user?.role === ROLES.ADMIN,
   })
-  const proposedHires = proposedHiresData?.proposedHires || []
+  const deelEmployees = deelEmployeesAndProposedHiresData?.employees
+  const proposedHires = deelEmployeesAndProposedHiresData?.proposedHires || []
 
   // Build hierarchy tree from flat list
   const managerHierarchy = useMemo(() => {
