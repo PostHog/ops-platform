@@ -1,7 +1,7 @@
 import prisma from '@/db'
 import { createAuthenticatedFn } from '@/lib/auth-middleware'
 import { formatCurrency } from '@/lib/utils'
-import { Salary, type Prisma } from '@prisma/client'
+import { type Prisma } from '@prisma/client'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import {
