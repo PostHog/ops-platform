@@ -101,19 +101,33 @@ export function NewSalaryForm({
   })
 
   const updateFormFields = (formApi: AnyFormApi, triggerField?: string) => {
+    if (triggerField === 'country') {
+      const country = formApi.getFieldValue('country')
+      formApi.setFieldValue('employmentCountry', country)
+      const areas = getAreasByCountry(country)
+      if (areas.length > 0) {
+        formApi.setFieldValue('area', areas[0])
+      }
+    }
+    if (triggerField === 'area') {
+      formApi.setFieldValue('employmentArea', formApi.getFieldValue('area'))
+    }
+    if (triggerField === 'employmentCountry') {
+      const employmentCountry = formApi.getFieldValue('employmentCountry')
+      const areas = getAreasByCountry(employmentCountry)
+      if (areas.length > 0) {
+        formApi.setFieldValue('employmentArea', areas[0])
+      }
+    }
+
     const country = formApi.getFieldValue('country')
     const area = formApi.getFieldValue('area')
+    const employmentCountry = formApi.getFieldValue('employmentCountry')
+    const employmentArea = formApi.getFieldValue('employmentArea')
 
     const location = locationFactor.find(
       (l) => l.country === country && l.area === area,
     )
-
-    const employmentCountry = formApi.getFieldValue('employmentCountry')
-    const employmentArea = formApi.getFieldValue('employmentArea')
-
-    if (triggerField === 'country')
-      formApi.setFieldValue('employmentCountry', country)
-    if (triggerField === 'area') formApi.setFieldValue('employmentArea', area)
 
     const employmentLocation = locationFactor.find(
       (l) => l.country === employmentCountry && l.area === employmentArea,
@@ -746,7 +760,7 @@ export function NewSalaryForm({
     )
 
   return (
-    <div className="mb-4 max-w-5xl bg-white">
+    <div className="mb-4 w-full bg-white">
       <div className="rounded-lg border border-green-600 p-4">
         <form
           onSubmit={(e) => {
@@ -826,6 +840,7 @@ export function NewSalaryForm({
                     Area
                   </label>
                   <Select
+                    key={field.state.value}
                     value={field.state.value}
                     onValueChange={field.handleChange}
                   >
