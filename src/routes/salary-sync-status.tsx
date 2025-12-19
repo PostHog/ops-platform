@@ -13,11 +13,13 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   Row,
+  RowData,
   SortingState,
   useReactTable,
 } from '@tanstack/react-table'
 import { useMemo } from 'react'
-import { customFilterFns, Filter } from './employees'
+import { customFilterFns } from './employees'
+import { TableFilters } from '@/components/TableFilters'
 import {
   Table,
   TableBody,
@@ -32,6 +34,15 @@ import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { useLocalStorage } from 'usehooks-ts'
 
 dayjs.extend(relativeTime)
+
+declare module '@tanstack/react-table' {
+  // allows us to define custom properties for our columns
+  interface ColumnMeta<TData extends RowData, TValue> {
+    filterVariant?: 'text' | 'range' | 'select' | 'dateRange'
+    filterOptions?: Array<{ label: string; value: string | number | boolean }>
+    filterLabel?: string
+  }
+}
 
 export const Route = createFileRoute('/salary-sync-status')({
   component: RouteComponent,
@@ -162,7 +173,13 @@ function RouteComponent() {
           filterOptions: [
             { label: 'In sync', value: 'IN_SYNC' },
             { label: 'Deviated', value: 'DEVIATED' },
+            { label: 'Not available', value: 'N/A' },
           ],
+        },
+        filterFn: (row: Row<Employee>, _: string, filterValue: string[]) => {
+          return filterValue.includes(
+            row.original.salaryDeviationStatus ?? 'N/A',
+          )
         },
         cell: ({ row }) => {
           const salaryDeviationStatus = row.original.salaryDeviationStatus
@@ -183,6 +200,7 @@ function RouteComponent() {
       {
         accessorKey: 'salaryDeviationCheckedAt',
         header: 'Checked at',
+        enableColumnFilter: false,
         cell: ({ row }) => {
           const salaryDeviationCheckedAt = row.original.salaryDeviationCheckedAt
 
@@ -194,6 +212,7 @@ function RouteComponent() {
       {
         accessorKey: 'salaries.0.timestamp',
         header: 'Salary updated at',
+        enableColumnFilter: false,
         cell: ({ row }) => {
           const salaryUpdatedAt = row.original.salaries[0]?.timestamp
 
@@ -228,12 +247,9 @@ function RouteComponent() {
     <div className="flex w-full justify-center px-4 pb-4">
       <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="flex justify-between py-4">
-          <div></div>
-          {/* <div className="flex items-center space-x-2">
-            <Button variant="outline" className="ml-auto">
-              Some button
-            </Button>
-          </div> */}
+          <div>
+            <TableFilters table={table} />
+          </div>
         </div>
         <div className="overflow-hidden rounded-md border">
           <Table>
@@ -269,11 +285,6 @@ function RouteComponent() {
                               ))}
                           </div>
                         )}
-                        {header.column.getCanFilter() ? (
-                          <div>
-                            <Filter column={header.column} />
-                          </div>
-                        ) : null}
                       </TableHead>
                     )
                   })}

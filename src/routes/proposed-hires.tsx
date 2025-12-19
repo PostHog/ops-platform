@@ -23,11 +23,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { customFilterFns, Filter } from './employees'
+import { customFilterFns } from './employees'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
 import { useLocalStorage } from 'usehooks-ts'
 import { PriorityBadge } from '@/components/PriorityBadge'
+import { TableFilters } from '@/components/TableFilters'
 
 type ProposedHire = Prisma.ProposedHireGetPayload<{
   include: {
@@ -56,7 +57,8 @@ declare module '@tanstack/react-table' {
   // allows us to define custom properties for our columns
   interface ColumnMeta<TData extends RowData, TValue> {
     filterVariant?: 'text' | 'range' | 'select' | 'dateRange'
-    filterOptions?: Array<{ label: string; value: string }>
+    filterOptions?: Array<{ label: string; value: string | number | boolean }>
+    filterLabel?: string
   }
 }
 
@@ -136,6 +138,19 @@ function RouteComponent() {
       cell: ({ row }) => {
         return <PriorityBadge priority={row.original.priority} />
       },
+      meta: {
+        filterVariant: 'select',
+        filterOptions: [
+          { label: 'High', value: 'high' },
+          { label: 'Medium', value: 'medium' },
+          { label: 'Low', value: 'low' },
+          { label: 'Filled', value: 'filled' },
+          { label: 'Pushed to next quarter', value: 'pushed_to_next_quarter' },
+        ],
+      },
+      filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) => {
+        return filterValue.includes(row.original.priority)
+      },
       sortingFn: (rowA, rowB) => {
         const priorityOrder = [
           'high',
@@ -164,6 +179,7 @@ function RouteComponent() {
     {
       id: 'actions',
       header: 'Actions',
+      enableColumnFilter: false,
       cell: ({ row }) => {
         return (
           <AddProposedHirePanel
@@ -195,7 +211,9 @@ function RouteComponent() {
     <div className="flex justify-center px-4 pb-4">
       <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="flex justify-between py-4">
-          <div></div>
+          <div>
+            <TableFilters table={table} />
+          </div>
           <div className="flex items-center space-x-2">
             <AddProposedHirePanel employees={employees} />
           </div>
@@ -234,11 +252,6 @@ function RouteComponent() {
                                   <ArrowUpDown className="h-4 w-4 opacity-50" />
                                 ))}
                             </div>
-                            {header.column.getCanFilter() ? (
-                              <div>
-                                <Filter column={header.column} />
-                              </div>
-                            ) : null}
                           </>
                         )}
                       </TableHead>

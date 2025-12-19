@@ -1,6 +1,5 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback, ReactNode, memo } from 'react'
 import type { Table } from '@tanstack/react-table'
-import type { Priority } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -9,704 +8,445 @@ import {
 } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { SALARY_LEVEL_OPTIONS } from '@/lib/utils'
-import { PriorityBadge } from '@/components/PriorityBadge'
+
+export type FilterType =
+  | 'text'
+  | 'multi-select'
+  | 'range'
+  | 'date-range'
+  | 'percentage-range'
+
+export interface FilterOption<T = string | number | boolean> {
+  label: string
+  value: T
+  render?: (value: T) => ReactNode
+}
+
+export interface FilterConfig {
+  columnId: string
+  label: string
+  type: FilterType
+  options?: FilterOption[]
+  placeholder?: string
+  minLabel?: string
+  maxLabel?: string
+}
 
 interface TableFiltersProps<TData> {
   table: Table<TData>
 }
 
-const PRIORITY_OPTIONS: Array<{ label: string; value: Priority }> = [
-  { label: 'Low', value: 'low' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'High', value: 'high' },
-]
+type ColumnMeta = {
+  filterVariant?: string
+  filterOptions?: Array<{ label: string; value: string }>
+  filterLabel?: string
+}
 
-const STATUS_OPTIONS = [
-  { label: 'Reviewed', value: true },
-  { label: 'Needs Review', value: false },
-]
+function formatLabel(label: string): string {
+  return (
+    label.charAt(0).toUpperCase() + label.slice(1).replace(/([A-Z])/g, ' $1')
+  )
+}
+
+function getColumnLabel(columnId: string, def: any, meta?: ColumnMeta): string {
+  if (meta?.filterLabel) return meta.filterLabel
+  if (typeof def.header === 'string') return def.header
+  return formatLabel(columnId)
+}
+
+function getFilterType(meta?: ColumnMeta): FilterType {
+  const variant = meta?.filterVariant
+  if (variant === 'select' || (meta?.filterOptions && !variant)) {
+    return 'multi-select'
+  }
+  if (variant === 'dateRange') return 'date-range'
+  if (variant === 'range') return 'range'
+  return 'text'
+}
+
+const FilterPopover = memo(
+  ({
+    filter,
+    hasValue,
+    badgeCount,
+    isOpen,
+    onOpenChange,
+    contentWidth = 'w-64',
+    children,
+  }: {
+    filter: FilterConfig
+    hasValue: boolean
+    badgeCount?: number
+    isOpen: boolean
+    onOpenChange: (open: boolean) => void
+    contentWidth?: string
+    children: ReactNode
+  }) => (
+    <Popover open={isOpen} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <Button
+          variant={hasValue ? 'default' : 'outline'}
+          size="sm"
+          className="h-8"
+        >
+          {filter.label}
+          {hasValue && (
+            <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
+              {badgeCount ?? 1}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className={contentWidth}
+        align="start"
+        onInteractOutside={(e) => {
+          // Prevent closing when interacting with inputs
+          const target = e.target as HTMLElement
+          if (target.tagName === 'INPUT' || target.closest('input')) {
+            e.preventDefault()
+          }
+        }}
+      >
+        <div className="space-y-3">
+          <div className="text-sm font-medium">
+            Filter by {filter.label.toLowerCase()}
+          </div>
+          {children}
+        </div>
+      </PopoverContent>
+    </Popover>
+  ),
+)
+
+FilterPopover.displayName = 'FilterPopover'
+
+const ClearButton = memo(({ onClear }: { onClear: () => void }) => (
+  <div className="flex justify-end border-t pt-2">
+    <Button variant="ghost" size="sm" onClick={onClear} className="h-7 text-xs">
+      Clear
+    </Button>
+  </div>
+))
+
+ClearButton.displayName = 'ClearButton'
 
 export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
-  const [nameFilterOpen, setNameFilterOpen] = useState(false)
-  const [levelFilterOpen, setLevelFilterOpen] = useState(false)
-  const [stepFilterOpen, setStepFilterOpen] = useState(false)
-  const [priorityFilterOpen, setPriorityFilterOpen] = useState(false)
-  const [reviewerFilterOpen, setReviewerFilterOpen] = useState(false)
-  const [teamFilterOpen, setTeamFilterOpen] = useState(false)
-  const [roleFilterOpen, setRoleFilterOpen] = useState(false)
-  const [statusFilterOpen, setStatusFilterOpen] = useState(false)
-  const [dateFilterOpen, setDateFilterOpen] = useState(false)
-  const [percentageFilterOpen, setPercentageFilterOpen] = useState(false)
+  const [filterOpenStates, setFilterOpenStates] = useState<
+    Record<string, boolean>
+  >({})
 
-  const nameColumn = table.getColumn('name')
-  const nameFilterValue = (nameColumn?.getFilterValue() ?? '') as string
+  const setFilterOpen = useCallback((columnId: string, open: boolean) => {
+    setFilterOpenStates((prev) => ({ ...prev, [columnId]: open }))
+  }, [])
 
-  const levelColumn = table.getColumn('level')
-  const levelFilterValue = (levelColumn?.getFilterValue() ?? []) as number[]
+  const filters: FilterConfig[] = useMemo(
+    () =>
+      table
+        .getAllColumns()
+        .filter((col) => col.columnDef.enableColumnFilter !== false)
+        .map((column) => {
+          const def = column.columnDef
+          const meta = def.meta as ColumnMeta | undefined
 
-  const stepLevelColumn = table.getColumn('stepLevel')
-  const stepLevelFilterValue = (stepLevelColumn?.getFilterValue() ?? [
-    '',
-    '',
-  ]) as [number | '', number | '']
+          return {
+            columnId: column.id,
+            label: getColumnLabel(column.id, def, meta),
+            type: getFilterType(meta),
+            options: meta?.filterOptions?.map((opt) => ({
+              label: opt.label,
+              value: opt.value as string | number | boolean,
+            })),
+          }
+        })
+        .filter((filter) => table.getColumn(filter.columnId) != null),
+    [table],
+  )
 
-  const priorityColumn = table.getColumn('priority')
-  const priorityFilterValue = (priorityColumn?.getFilterValue() ??
-    []) as Priority[]
+  // Create stable onOpenChange callbacks for each filter
+  const onOpenChangeCallbacks = useMemo(() => {
+    const callbacks: Record<string, (open: boolean) => void> = {}
+    filters.forEach((filter) => {
+      callbacks[filter.columnId] = (open: boolean) =>
+        setFilterOpen(filter.columnId, open)
+    })
+    return callbacks
+  }, [filters, setFilterOpen])
 
-  const reviewerColumn = table.getColumn('reviewer')
-  const reviewerFilterValue = (reviewerColumn?.getFilterValue() ?? '') as string
+  const renderFilter = (filter: FilterConfig) => {
+    const column = table.getColumn(filter.columnId)
+    if (!column) return null
 
-  const teamColumn = table.getColumn('team')
-  const teamFilterValue = (teamColumn?.getFilterValue() ?? '') as string
+    const filterValue = column.getFilterValue()
+    const isOpen = filterOpenStates[filter.columnId] ?? false
 
-  const roleColumn = table.getColumn('role')
-  const roleFilterValue = (roleColumn?.getFilterValue() ?? '') as string
-
-  const statusColumn = table.getColumn('reviewed')
-  const statusFilterValue = (statusColumn?.getFilterValue() ?? []) as boolean[]
-
-  const lastChangeColumn = table.getColumn('lastChange')
-  const lastChangeFilterValue = (lastChangeColumn?.getFilterValue() ?? [
-    '',
-    '',
-  ]) as [string, string]
-
-  const changePercentageColumn = table.getColumn('changePercentage')
-  const changePercentageFilterValue =
-    (changePercentageColumn?.getFilterValue() ?? ['', '']) as [
-      number | '',
-      number | '',
-    ]
-
-  const toggleLevel = (levelValue: number) => {
-    const current = levelFilterValue
-    const newValue = current.includes(levelValue)
-      ? current.filter((v) => v !== levelValue)
-      : [...current, levelValue]
-
-    levelColumn?.setFilterValue(newValue.length > 0 ? newValue : undefined)
+    switch (filter.type) {
+      case 'text':
+        return renderTextFilter(filter, filterValue as string, isOpen, column)
+      case 'multi-select':
+        return renderMultiSelectFilter(
+          filter,
+          filterValue as Array<string | number | boolean>,
+          isOpen,
+          column,
+        )
+      case 'range':
+      case 'percentage-range':
+        return renderRangeFilter(
+          filter,
+          filterValue as [number | '', number | ''],
+          isOpen,
+          column,
+        )
+      case 'date-range':
+        return renderDateRangeFilter(
+          filter,
+          filterValue as [string, string],
+          isOpen,
+          column,
+        )
+      default:
+        return null
+    }
   }
 
-  const togglePriority = (priorityValue: Priority) => {
-    const current = priorityFilterValue
-    const newValue = current.includes(priorityValue)
-      ? current.filter((v) => v !== priorityValue)
-      : [...current, priorityValue]
+  type ColumnType = ReturnType<typeof table.getColumn>
 
-    priorityColumn?.setFilterValue(newValue.length > 0 ? newValue : undefined)
+  const renderTextFilter = (
+    filter: FilterConfig,
+    value: string,
+    isOpen: boolean,
+    column: ColumnType,
+  ) => {
+    const hasValue = !!value
+    return (
+      <FilterPopover
+        filter={filter}
+        hasValue={hasValue}
+        isOpen={isOpen}
+        onOpenChange={onOpenChangeCallbacks[filter.columnId]}
+        contentWidth="w-80"
+      >
+        <div className="space-y-2">
+          <Input
+            placeholder={filter.placeholder || 'Search...'}
+            value={value || ''}
+            onChange={(e) => column?.setFilterValue(e.target.value)}
+            className="h-8"
+          />
+          {hasValue && (
+            <ClearButton
+              onClear={() => {
+                column?.setFilterValue('')
+                setFilterOpen(filter.columnId, false)
+              }}
+            />
+          )}
+        </div>
+      </FilterPopover>
+    )
   }
 
-  const toggleStatus = (statusValue: boolean) => {
-    const current = statusFilterValue
-    const newValue = current.includes(statusValue)
-      ? current.filter((v) => v !== statusValue)
-      : [...current, statusValue]
+  const renderMultiSelectFilter = (
+    filter: FilterConfig,
+    value: Array<string | number | boolean>,
+    isOpen: boolean,
+    column: ColumnType,
+  ) => {
+    const currentValue = (value ?? []) as Array<string | number | boolean>
+    const hasValue = currentValue.length > 0
 
-    statusColumn?.setFilterValue(newValue.length > 0 ? newValue : undefined)
+    const toggleValue = (optionValue: string | number | boolean) => {
+      const newValue = currentValue.includes(optionValue)
+        ? currentValue.filter((v) => v !== optionValue)
+        : [...currentValue, optionValue]
+      column?.setFilterValue(newValue.length > 0 ? newValue : undefined)
+    }
+
+    return (
+      <FilterPopover
+        filter={filter}
+        hasValue={hasValue}
+        badgeCount={currentValue.length}
+        isOpen={isOpen}
+        onOpenChange={(open) => setFilterOpen(filter.columnId, open)}
+      >
+        <div className="space-y-2">
+          {filter.options?.map((option) => (
+            <div
+              key={String(option.value)}
+              className="flex items-center space-x-2"
+            >
+              <Checkbox
+                id={`${filter.columnId}-${option.value}`}
+                checked={currentValue.includes(option.value)}
+                onCheckedChange={() => toggleValue(option.value)}
+              />
+              <label
+                htmlFor={`${filter.columnId}-${option.value}`}
+                className="flex-1 cursor-pointer text-sm"
+              >
+                {option.render ? option.render(option.value) : option.label}
+              </label>
+            </div>
+          ))}
+        </div>
+        {hasValue && (
+          <ClearButton
+            onClear={() => {
+              column?.setFilterValue(undefined)
+              setFilterOpen(filter.columnId, false)
+            }}
+          />
+        )}
+      </FilterPopover>
+    )
   }
 
-  const hasStepFilter =
-    stepLevelFilterValue[0] !== '' || stepLevelFilterValue[1] !== ''
+  const updateRangeValue = (
+    currentValue: [number | '', number | ''],
+    index: 0 | 1,
+    newVal: string,
+    column: ColumnType,
+  ) => {
+    const newValue: [number | '', number | ''] = [...currentValue]
+    newValue[index] = newVal === '' ? '' : Number(newVal)
+    column?.setFilterValue(
+      newValue[0] === '' && newValue[1] === '' ? undefined : newValue,
+    )
+  }
 
-  const hasDateFilter =
-    lastChangeFilterValue[0] !== '' || lastChangeFilterValue[1] !== ''
+  const updateDateRangeValue = (
+    currentValue: [string, string],
+    index: 0 | 1,
+    newVal: string,
+    column: ColumnType,
+  ) => {
+    const newValue: [string, string] = [...currentValue]
+    newValue[index] = newVal
+    column?.setFilterValue(
+      newValue[0] === '' && newValue[1] === '' ? undefined : newValue,
+    )
+  }
 
-  const hasPercentageFilter =
-    changePercentageFilterValue[0] !== '' ||
-    changePercentageFilterValue[1] !== ''
+  const renderRangeFilter = (
+    filter: FilterConfig,
+    value: [number | '', number | ''],
+    isOpen: boolean,
+    column: ColumnType,
+  ) => {
+    const currentValue = (value ?? ['', '']) as [number | '', number | '']
+    const hasValue = currentValue[0] !== '' || currentValue[1] !== ''
+    const isPercentage = filter.type === 'percentage-range'
+    const minLabel = filter.minLabel || (isPercentage ? 'Min %' : 'Min')
+    const maxLabel = filter.maxLabel || (isPercentage ? 'Max %' : 'Max')
+
+    return (
+      <FilterPopover
+        filter={filter}
+        hasValue={hasValue}
+        isOpen={isOpen}
+        onOpenChange={(open) => setFilterOpen(filter.columnId, open)}
+      >
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <label className="text-muted-foreground text-xs">{minLabel}</label>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="Min"
+              value={currentValue[0]}
+              onChange={(e) =>
+                updateRangeValue(currentValue, 0, e.target.value, column)
+              }
+              className="h-8"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-muted-foreground text-xs">{maxLabel}</label>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="Max"
+              value={currentValue[1]}
+              onChange={(e) =>
+                updateRangeValue(currentValue, 1, e.target.value, column)
+              }
+              className="h-8"
+            />
+          </div>
+        </div>
+        {hasValue && (
+          <ClearButton
+            onClear={() => {
+              column?.setFilterValue(undefined)
+              setFilterOpen(filter.columnId, false)
+            }}
+          />
+        )}
+      </FilterPopover>
+    )
+  }
+
+  const renderDateRangeFilter = (
+    filter: FilterConfig,
+    value: [string, string],
+    isOpen: boolean,
+    column: ColumnType,
+  ) => {
+    const currentValue = (value ?? ['', '']) as [string, string]
+    const hasValue = currentValue[0] !== '' || currentValue[1] !== ''
+
+    return (
+      <FilterPopover
+        filter={filter}
+        hasValue={hasValue}
+        isOpen={isOpen}
+        onOpenChange={(open) => setFilterOpen(filter.columnId, open)}
+        contentWidth="w-80"
+      >
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <label className="text-muted-foreground text-xs">From</label>
+            <Input
+              type="date"
+              value={currentValue[0]}
+              onChange={(e) =>
+                updateDateRangeValue(currentValue, 0, e.target.value, column)
+              }
+              className="h-8"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-muted-foreground text-xs">To</label>
+            <Input
+              type="date"
+              value={currentValue[1]}
+              onChange={(e) =>
+                updateDateRangeValue(currentValue, 1, e.target.value, column)
+              }
+              className="h-8"
+            />
+          </div>
+        </div>
+        {hasValue && (
+          <ClearButton
+            onClear={() => {
+              column?.setFilterValue(undefined)
+              setFilterOpen(filter.columnId, false)
+            }}
+          />
+        )}
+      </FilterPopover>
+    )
+  }
 
   return (
     <div className="flex items-center gap-2 py-4">
       <div className="text-sm font-medium">Filters:</div>
-
-      <Popover open={nameFilterOpen} onOpenChange={setNameFilterOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant={nameFilterValue ? 'default' : 'outline'}
-            size="sm"
-            className="h-8"
-          >
-            Name
-            {nameFilterValue && (
-              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
-                1
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80" align="start">
-          <div className="space-y-2">
-            <div className="text-sm font-medium">Filter by name</div>
-            <Input
-              placeholder="Search names, emails, or notes..."
-              value={nameFilterValue}
-              onChange={(e) => nameColumn?.setFilterValue(e.target.value)}
-              className="h-8"
-            />
-            {nameFilterValue && (
-              <div className="flex justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    nameColumn?.setFilterValue('')
-                    setNameFilterOpen(false)
-                  }}
-                  className="h-7 text-xs"
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Popover open={levelFilterOpen} onOpenChange={setLevelFilterOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant={levelFilterValue.length > 0 ? 'default' : 'outline'}
-            size="sm"
-            className="h-8"
-          >
-            Level
-            {levelFilterValue.length > 0 && (
-              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
-                {levelFilterValue.length}
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64" align="start">
-          <div className="space-y-3">
-            <div className="text-sm font-medium">Filter by level</div>
-            <div className="space-y-2">
-              {SALARY_LEVEL_OPTIONS.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`level-${option.value}`}
-                    checked={levelFilterValue.includes(option.value)}
-                    onCheckedChange={() => toggleLevel(option.value)}
-                  />
-                  <label
-                    htmlFor={`level-${option.value}`}
-                    className="flex-1 cursor-pointer text-sm"
-                  >
-                    {option.name} ({option.value})
-                  </label>
-                </div>
-              ))}
-            </div>
-            {levelFilterValue.length > 0 && (
-              <div className="flex justify-end border-t pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    levelColumn?.setFilterValue(undefined)
-                    setLevelFilterOpen(false)
-                  }}
-                  className="h-7 text-xs"
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Popover open={stepFilterOpen} onOpenChange={setStepFilterOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant={hasStepFilter ? 'default' : 'outline'}
-            size="sm"
-            className="h-8"
-          >
-            Step
-            {hasStepFilter && (
-              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
-                1
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64" align="start">
-          <div className="space-y-3">
-            <div className="text-sm font-medium">Filter by step</div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <label className="text-muted-foreground text-xs">Min</label>
-                <Input
-                  type="number"
-                  placeholder="Min"
-                  value={stepLevelFilterValue[0]}
-                  onChange={(e) => {
-                    const value =
-                      e.target.value === '' ? '' : Number(e.target.value)
-                    const newValue: [number | '', number | ''] = [
-                      value,
-                      stepLevelFilterValue[1],
-                    ]
-                    stepLevelColumn?.setFilterValue(
-                      newValue[0] === '' && newValue[1] === ''
-                        ? undefined
-                        : newValue,
-                    )
-                  }}
-                  className="h-8"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-muted-foreground text-xs">Max</label>
-                <Input
-                  type="number"
-                  placeholder="Max"
-                  value={stepLevelFilterValue[1]}
-                  onChange={(e) => {
-                    const value =
-                      e.target.value === '' ? '' : Number(e.target.value)
-                    const newValue: [number | '', number | ''] = [
-                      stepLevelFilterValue[0],
-                      value,
-                    ]
-                    stepLevelColumn?.setFilterValue(
-                      newValue[0] === '' && newValue[1] === ''
-                        ? undefined
-                        : newValue,
-                    )
-                  }}
-                  className="h-8"
-                />
-              </div>
-            </div>
-            {hasStepFilter && (
-              <div className="flex justify-end border-t pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    stepLevelColumn?.setFilterValue(undefined)
-                    setStepFilterOpen(false)
-                  }}
-                  className="h-7 text-xs"
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Popover open={priorityFilterOpen} onOpenChange={setPriorityFilterOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant={priorityFilterValue.length > 0 ? 'default' : 'outline'}
-            size="sm"
-            className="h-8"
-          >
-            Priority
-            {priorityFilterValue.length > 0 && (
-              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
-                {priorityFilterValue.length}
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64" align="start">
-          <div className="space-y-3">
-            <div className="text-sm font-medium">Filter by priority</div>
-            <div className="space-y-2">
-              {PRIORITY_OPTIONS.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`priority-${option.value}`}
-                    checked={priorityFilterValue.includes(option.value)}
-                    onCheckedChange={() => togglePriority(option.value)}
-                  />
-                  <label
-                    htmlFor={`priority-${option.value}`}
-                    className="flex-1 cursor-pointer"
-                  >
-                    <PriorityBadge priority={option.value} />
-                  </label>
-                </div>
-              ))}
-            </div>
-            {priorityFilterValue.length > 0 && (
-              <div className="flex justify-end border-t pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    priorityColumn?.setFilterValue(undefined)
-                    setPriorityFilterOpen(false)
-                  }}
-                  className="h-7 text-xs"
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Popover open={reviewerFilterOpen} onOpenChange={setReviewerFilterOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant={reviewerFilterValue ? 'default' : 'outline'}
-            size="sm"
-            className="h-8"
-          >
-            Reviewer
-            {reviewerFilterValue && (
-              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
-                1
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80" align="start">
-          <div className="space-y-2">
-            <div className="text-sm font-medium">Filter by reviewer</div>
-            <Input
-              placeholder="Search reviewer name..."
-              value={reviewerFilterValue}
-              onChange={(e) => reviewerColumn?.setFilterValue(e.target.value)}
-              className="h-8"
-            />
-            {reviewerFilterValue && (
-              <div className="flex justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    reviewerColumn?.setFilterValue('')
-                    setReviewerFilterOpen(false)
-                  }}
-                  className="h-7 text-xs"
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Popover open={teamFilterOpen} onOpenChange={setTeamFilterOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant={teamFilterValue ? 'default' : 'outline'}
-            size="sm"
-            className="h-8"
-          >
-            Team
-            {teamFilterValue && (
-              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
-                1
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80" align="start">
-          <div className="space-y-2">
-            <div className="text-sm font-medium">Filter by team</div>
-            <Input
-              placeholder="Search team name..."
-              value={teamFilterValue}
-              onChange={(e) => teamColumn?.setFilterValue(e.target.value)}
-              className="h-8"
-            />
-            {teamFilterValue && (
-              <div className="flex justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    teamColumn?.setFilterValue('')
-                    setTeamFilterOpen(false)
-                  }}
-                  className="h-7 text-xs"
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Popover open={roleFilterOpen} onOpenChange={setRoleFilterOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant={roleFilterValue ? 'default' : 'outline'}
-            size="sm"
-            className="h-8"
-          >
-            Role
-            {roleFilterValue && (
-              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
-                1
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80" align="start">
-          <div className="space-y-2">
-            <div className="text-sm font-medium">Filter by role</div>
-            <Input
-              placeholder="Search role/title..."
-              value={roleFilterValue}
-              onChange={(e) => roleColumn?.setFilterValue(e.target.value)}
-              className="h-8"
-            />
-            {roleFilterValue && (
-              <div className="flex justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    roleColumn?.setFilterValue('')
-                    setRoleFilterOpen(false)
-                  }}
-                  className="h-7 text-xs"
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Popover open={statusFilterOpen} onOpenChange={setStatusFilterOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant={statusFilterValue.length > 0 ? 'default' : 'outline'}
-            size="sm"
-            className="h-8"
-          >
-            Status
-            {statusFilterValue.length > 0 && (
-              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
-                {statusFilterValue.length}
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64" align="start">
-          <div className="space-y-3">
-            <div className="text-sm font-medium">Filter by status</div>
-            <div className="space-y-2">
-              {STATUS_OPTIONS.map((option) => (
-                <div
-                  key={String(option.value)}
-                  className="flex items-center space-x-2"
-                >
-                  <Checkbox
-                    id={`status-${option.value}`}
-                    checked={statusFilterValue.includes(option.value)}
-                    onCheckedChange={() => toggleStatus(option.value)}
-                  />
-                  <label
-                    htmlFor={`status-${option.value}`}
-                    className="flex-1 cursor-pointer text-sm"
-                  >
-                    {option.label}
-                  </label>
-                </div>
-              ))}
-            </div>
-            {statusFilterValue.length > 0 && (
-              <div className="flex justify-end border-t pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    statusColumn?.setFilterValue(undefined)
-                    setStatusFilterOpen(false)
-                  }}
-                  className="h-7 text-xs"
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Popover open={dateFilterOpen} onOpenChange={setDateFilterOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant={hasDateFilter ? 'default' : 'outline'}
-            size="sm"
-            className="h-8"
-          >
-            Date
-            {hasDateFilter && (
-              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
-                1
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80" align="start">
-          <div className="space-y-3">
-            <div className="text-sm font-medium">
-              Filter by last change date
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <label className="text-muted-foreground text-xs">From</label>
-                <Input
-                  type="date"
-                  value={lastChangeFilterValue[0]}
-                  onChange={(e) => {
-                    const newValue: [string, string] = [
-                      e.target.value,
-                      lastChangeFilterValue[1],
-                    ]
-                    lastChangeColumn?.setFilterValue(
-                      newValue[0] === '' && newValue[1] === ''
-                        ? undefined
-                        : newValue,
-                    )
-                  }}
-                  className="h-8"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-muted-foreground text-xs">To</label>
-                <Input
-                  type="date"
-                  value={lastChangeFilterValue[1]}
-                  onChange={(e) => {
-                    const newValue: [string, string] = [
-                      lastChangeFilterValue[0],
-                      e.target.value,
-                    ]
-                    lastChangeColumn?.setFilterValue(
-                      newValue[0] === '' && newValue[1] === ''
-                        ? undefined
-                        : newValue,
-                    )
-                  }}
-                  className="h-8"
-                />
-              </div>
-            </div>
-            {hasDateFilter && (
-              <div className="flex justify-end border-t pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    lastChangeColumn?.setFilterValue(undefined)
-                    setDateFilterOpen(false)
-                  }}
-                  className="h-7 text-xs"
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Popover
-        open={percentageFilterOpen}
-        onOpenChange={setPercentageFilterOpen}
-      >
-        <PopoverTrigger asChild>
-          <Button
-            variant={hasPercentageFilter ? 'default' : 'outline'}
-            size="sm"
-            className="h-8"
-          >
-            Change %
-            {hasPercentageFilter && (
-              <span className="bg-background text-foreground ml-1 rounded-full px-1.5 text-xs">
-                1
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64" align="start">
-          <div className="space-y-3">
-            <div className="text-sm font-medium">
-              Filter by change percentage
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <label className="text-muted-foreground text-xs">Min %</label>
-                <Input
-                  type="number"
-                  placeholder="Min"
-                  value={changePercentageFilterValue[0]}
-                  onChange={(e) => {
-                    const value =
-                      e.target.value === '' ? '' : Number(e.target.value)
-                    const newValue: [number | '', number | ''] = [
-                      value,
-                      changePercentageFilterValue[1],
-                    ]
-                    changePercentageColumn?.setFilterValue(
-                      newValue[0] === '' && newValue[1] === ''
-                        ? undefined
-                        : newValue,
-                    )
-                  }}
-                  className="h-8"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-muted-foreground text-xs">Max %</label>
-                <Input
-                  type="number"
-                  placeholder="Max"
-                  value={changePercentageFilterValue[1]}
-                  onChange={(e) => {
-                    const value =
-                      e.target.value === '' ? '' : Number(e.target.value)
-                    const newValue: [number | '', number | ''] = [
-                      changePercentageFilterValue[0],
-                      value,
-                    ]
-                    changePercentageColumn?.setFilterValue(
-                      newValue[0] === '' && newValue[1] === ''
-                        ? undefined
-                        : newValue,
-                    )
-                  }}
-                  className="h-8"
-                />
-              </div>
-            </div>
-            {hasPercentageFilter && (
-              <div className="flex justify-end border-t pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    changePercentageColumn?.setFilterValue(undefined)
-                    setPercentageFilterOpen(false)
-                  }}
-                  className="h-7 text-xs"
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
+      {filters.map((filter) => (
+        <div key={filter.columnId}>{renderFilter(filter)}</div>
+      ))}
     </div>
   )
 }

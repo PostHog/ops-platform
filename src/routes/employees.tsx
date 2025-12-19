@@ -48,6 +48,7 @@ import { PriorityBadge } from '@/components/PriorityBadge'
 import { StatusCell } from '@/components/StatusCell'
 import { ReviewerAvatar } from '@/components/ReviewerAvatar'
 import { TableFilters } from '@/components/TableFilters'
+import { SALARY_LEVEL_OPTIONS } from '@/lib/utils'
 
 export const Route = createFileRoute('/employees')({
   component: App,
@@ -72,7 +73,8 @@ declare module '@tanstack/react-table' {
   // allows us to define custom properties for our columns
   interface ColumnMeta<TData extends RowData, TValue> {
     filterVariant?: 'text' | 'range' | 'select' | 'dateRange'
-    filterOptions?: Array<{ label: string; value: string }>
+    filterOptions?: Array<{ label: string; value: string | number | boolean }>
+    filterLabel?: string
   }
 }
 
@@ -153,27 +155,12 @@ export const customFilterFns = {
     if (max !== undefined && value > max) return false
     return true
   },
-  inNumberRange: (
-    value: number,
-    _: string,
-    filterValue: [number | undefined, number | undefined],
-  ) => {
-    const [min, max] = filterValue as [number | '', number | '']
-
-    if (min !== '' && value < min) return false
-    if (max !== '' && value > max) return false
-    return true
-  },
   containsText: (value: string, _: string, filterValue: string) => {
     if (
       filterValue.toLowerCase() !== '' &&
       !value.toLowerCase().includes(filterValue.toLowerCase())
     )
       return false
-    return true
-  },
-  equals: (value: string, _: string, filterValue: string) => {
-    if (filterValue !== '' && value !== filterValue) return false
     return true
   },
 }
@@ -202,9 +189,6 @@ function App() {
     {
       accessorKey: 'name',
       header: () => <span className="pl-2 font-bold">Employee</span>,
-      meta: {
-        filterVariant: 'text',
-      },
       filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
         (row.original.deelEmployee?.name &&
           customFilterFns.containsText(
@@ -230,6 +214,7 @@ function App() {
       header: () => <span className="font-bold">Last Change</span>,
       meta: {
         filterVariant: 'dateRange',
+        filterLabel: 'Last Change (date)',
       },
       filterFn: customFilterFns.inDateRange,
       enableColumnFilter: true,
@@ -253,34 +238,17 @@ function App() {
       },
     },
     {
-      accessorKey: 'stepLevel',
-      header: () => <span className="font-bold">Level / Step</span>,
-      meta: {
-        filterVariant: 'range',
-      },
-      filterFn: (
-        row: Row<Employee>,
-        _: string,
-        filterValue: [number | undefined, number | undefined],
-      ) =>
-        customFilterFns.inNumberRange(
-          row.original.salaries?.[0]?.step,
-          _,
-          filterValue,
-        ),
-      cell: ({ row }) => {
-        const salary = row.original.salaries?.[0]
-        if (!salary) return null
-        return (
-          <LevelStepDisplay level={salary.level} step={salary.step} size="sm" />
-        )
-      },
-    },
-    {
       id: 'level',
       accessorFn: (row) => row.salaries?.[0]?.level,
       enableColumnFilter: true,
       enableHiding: false,
+      meta: {
+        filterVariant: 'select',
+        filterOptions: SALARY_LEVEL_OPTIONS.map((level) => ({
+          label: `${level.name} (${level.value})`,
+          value: level.value,
+        })),
+      },
       filterFn: (row: Row<Employee>, _: string, filterValue: number[]) => {
         const level = row.original.salaries?.[0]?.level
         if (!level) return false
@@ -288,40 +256,18 @@ function App() {
       },
     },
     {
-      id: 'changePercentage',
-      accessorFn: (row) => row.salaries?.[0]?.changePercentage,
-      enableColumnFilter: true,
-      enableHiding: false,
-      filterFn: (
-        row: Row<Employee>,
-        _: string,
-        filterValue: [number | '', number | ''],
-      ) => {
-        const rawPercentage = row.original.salaries?.[0]?.changePercentage
-
-        // Don't filter out rows without percentage data
-        if (rawPercentage == null || rawPercentage === undefined) {
-          return true
-        }
-
-        // Ensure we're working with a number
-        const percentage =
-          typeof rawPercentage === 'number'
-            ? rawPercentage
-            : parseFloat(String(rawPercentage))
-
-        // If conversion failed, don't filter
-        if (isNaN(percentage)) {
-          return true
-        }
-
-        // Convert empty string to undefined for the filter function
-        const normalizedFilter: [number | undefined, number | undefined] = [
-          filterValue[0] === '' ? undefined : filterValue[0],
-          filterValue[1] === '' ? undefined : filterValue[1],
-        ]
-
-        return customFilterFns.inNumberRange(percentage, _, normalizedFilter)
+      accessorKey: 'salaries.0.step',
+      header: () => <span className="font-bold">Level / Step</span>,
+      meta: {
+        filterLabel: 'Step',
+        filterVariant: 'range',
+      },
+      cell: ({ row }) => {
+        const salary = row.original.salaries?.[0]
+        if (!salary) return null
+        return (
+          <LevelStepDisplay level={salary.level} step={salary.step} size="sm" />
+        )
       },
     },
     {
@@ -377,9 +323,6 @@ function App() {
     {
       accessorKey: 'reviewer',
       header: () => <span className="font-bold">Reviewer</span>,
-      meta: {
-        filterVariant: 'text',
-      },
       filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
         customFilterFns.containsText(
           row.original.deelEmployee?.topLevelManager?.name ?? '',
@@ -412,8 +355,8 @@ function App() {
       meta: {
         filterVariant: 'select',
         filterOptions: [
-          { label: 'Reviewed', value: 'true' },
-          { label: 'Needs Review', value: 'false' },
+          { label: 'Reviewed', value: true },
+          { label: 'Needs Review', value: false },
         ],
       },
       filterFn: (row: Row<Employee>, _: string, filterValue: boolean[]) => {
@@ -425,6 +368,16 @@ function App() {
           employeeId={row.original.id}
         />
       ),
+    },
+    {
+      id: 'changePercentage',
+      accessorFn: (row) => row.salaries?.[0]?.changePercentage,
+      enableColumnFilter: true,
+      enableHiding: false,
+      meta: {
+        filterLabel: 'Change (%)',
+        filterVariant: 'range',
+      },
     },
   ]
 
@@ -464,7 +417,9 @@ function App() {
     <div className="flex justify-center px-4 pb-4">
       <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="flex justify-between py-4">
-          <div></div>
+          <div>
+            <TableFilters table={table} />
+          </div>
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
@@ -475,7 +430,6 @@ function App() {
             </Button>
           </div>
         </div>
-        <TableFilters table={table} />
         <div className="rounded-md border">
           <Table className="text-xs">
             <TableHeader>
@@ -666,7 +620,7 @@ export function Filter({ column }: { column: Column<any, unknown> }) {
       {/* See faceted column filters example for dynamic select options */}
       <option value="">All</option>
       {filterOptions?.map((option) => (
-        <option key={option.value} value={option.value}>
+        <option key={String(option.value)} value={String(option.value)}>
           {option.label}
         </option>
       ))}

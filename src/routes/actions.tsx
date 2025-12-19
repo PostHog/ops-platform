@@ -9,7 +9,7 @@ import { InfoIcon, MoreHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
 import { useLocalStorage } from 'usehooks-ts'
-import { customFilterFns, Filter, months } from './employees'
+import { customFilterFns, months } from './employees'
 import type { Prisma } from '@prisma/client'
 import type {
   ColumnDef,
@@ -52,6 +52,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { TableFilters } from '@/components/TableFilters'
 
 type Salary = Prisma.SalaryGetPayload<{
   include: {
@@ -201,6 +202,7 @@ function App() {
     () => [
       {
         id: 'select-col',
+        enableColumnFilter: false,
         header: ({ table }) => (
           <Checkbox
             checked={
@@ -309,16 +311,13 @@ function App() {
         meta: {
           filterVariant: 'select',
           filterOptions: [
-            { label: 'Yes', value: 'true' },
-            { label: 'No', value: 'false' },
+            { label: 'Yes', value: true },
+            { label: 'No', value: false },
           ],
         },
-        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
-          customFilterFns.equals(
-            row.original.communicated.toString(),
-            _,
-            filterValue,
-          ),
+        filterFn: (row: Row<Salary>, _: string, filterValue: boolean[]) => {
+          return filterValue.includes(row.original.communicated)
+        },
         cell: ({ row }) => (
           <div>
             <span>{row.original.communicated ? 'Yes' : 'No'}</span>
@@ -364,16 +363,13 @@ function App() {
         meta: {
           filterVariant: 'select',
           filterOptions: [
-            { label: 'Yes', value: 'true' },
-            { label: 'No', value: 'false' },
+            { label: 'Yes', value: true },
+            { label: 'No', value: false },
           ],
         },
-        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
-          customFilterFns.equals(
-            row.original.synced.toString(),
-            _,
-            filterValue,
-          ),
+        filterFn: (row: Row<Salary>, _: string, filterValue: boolean[]) => {
+          return filterValue.includes(row.original.synced)
+        },
         cell: ({ row }) => (
           <div>
             <span>{row.original.synced ? 'Yes' : 'No'}</span>
@@ -382,6 +378,7 @@ function App() {
       },
       {
         id: 'actions',
+        enableColumnFilter: false,
         enableHiding: false,
         cell: ({ row }) => {
           return (
@@ -463,7 +460,9 @@ function App() {
     <div className="flex w-full justify-center px-4 pb-4">
       <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="flex justify-between py-4">
-          <div></div>
+          <div>
+            <TableFilters table={table} />
+          </div>
           <div className="flex items-center space-x-2">
             {Object.keys(rowSelection).length > 0 ? (
               <Button
@@ -507,11 +506,6 @@ function App() {
                               header.column.columnDef.header,
                               header.getContext(),
                             )}
-                        {header.column.getCanFilter() ? (
-                          <div>
-                            <Filter column={header.column} />
-                          </div>
-                        ) : null}
                       </TableHead>
                     )
                   })}
