@@ -71,6 +71,7 @@ import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
 import { ManagerHierarchyTree } from '@/components/ManagerHierarchyTree'
 import type { HierarchyNode } from '@/lib/types'
+import { getDeelEmployeesAndProposedHires } from './org-chart'
 import {
   Select,
   SelectContent,
@@ -444,6 +445,13 @@ function EmployeeOverview() {
     enabled: user?.role === ROLES.ADMIN,
   })
 
+  const { data: proposedHiresData } = useQuery({
+    queryKey: ['deelEmployeesAndProposedHires'],
+    queryFn: () => getDeelEmployeesAndProposedHires(),
+    enabled: user?.role === ROLES.ADMIN,
+  })
+  const proposedHires = proposedHiresData?.proposedHires || []
+
   // Build hierarchy tree from flat list
   const managerHierarchy = useMemo(() => {
     if (!deelEmployees) return null
@@ -457,6 +465,21 @@ function EmployeeOverview() {
       }
     }
 
+    // Map proposed hires by manager
+    const proposedHiresByManager = new Map<string, typeof proposedHires>()
+    proposedHires
+      .filter(
+        ({ manager, priority }) =>
+          manager.deelEmployee && ['low', 'medium', 'high'].includes(priority),
+      )
+      .forEach((ph) => {
+        const managerId = ph.manager.deelEmployee!.id
+        if (!proposedHiresByManager.has(managerId)) {
+          proposedHiresByManager.set(managerId, [])
+        }
+        proposedHiresByManager.get(managerId)!.push(ph)
+      })
+
     const buildTree = (
       employee: (typeof deelEmployees)[0],
       visited = new Set<string>(),
@@ -469,6 +492,7 @@ function EmployeeOverview() {
           team: employee.team,
           employeeId: employee.employee?.id,
           workEmail: employee.workEmail,
+          startDate: employee.startDate,
           children: [],
         }
       }
@@ -478,6 +502,34 @@ function EmployeeOverview() {
         a.name.localeCompare(b.name),
       )
 
+      // Add proposed hires for this manager
+      const managerProposedHires = (
+        proposedHiresByManager.get(employee.id) || []
+      ).map((ph) => ({
+        id: `employee-${ph.id}`,
+        name: '',
+        title: ph.title || '',
+        team: ph.manager.deelEmployee!.team || undefined,
+        employeeId: undefined,
+        workEmail: undefined,
+        startDate: null,
+        hiringPriority: ph.priority as 'low' | 'medium' | 'high',
+        children: [],
+      }))
+
+      const reportNodes = directReports.map((child) =>
+        buildTree(child, visited),
+      )
+      const allChildren = [...reportNodes, ...managerProposedHires].sort(
+        (a, b) => {
+          // Sort: employees first (by name), then proposed hires (by title)
+          if (a.name && !b.name) return -1
+          if (!a.name && b.name) return 1
+          if (a.name && b.name) return a.name.localeCompare(b.name)
+          return (a.title || '').localeCompare(b.title || '')
+        },
+      )
+
       return {
         id: employee.id,
         name: employee.name,
@@ -485,7 +537,8 @@ function EmployeeOverview() {
         team: employee.team,
         employeeId: employee.employee?.id,
         workEmail: employee.workEmail,
-        children: directReports.map((child) => buildTree(child, visited)),
+        startDate: employee.startDate,
+        children: allChildren,
       }
     }
 
@@ -509,7 +562,7 @@ function EmployeeOverview() {
 
     // Return single node or array of nodes
     return trees.length === 1 ? trees[0] : trees
-  }, [deelEmployees])
+  }, [deelEmployees, proposedHires])
 
   // Flatten hierarchy to get all employees for search
   const allHierarchyEmployees = useMemo(() => {
@@ -1008,6 +1061,7 @@ function EmployeeOverview() {
                 currentEmployeeId={employee.id}
                 expandAll={expandAll}
                 deelEmployees={deelEmployees}
+                proposedHires={proposedHires}
                 viewMode={managerTreeViewMode}
                 onViewModeChange={(mode: 'manager' | 'team') =>
                   setManagerTreeViewMode(mode)

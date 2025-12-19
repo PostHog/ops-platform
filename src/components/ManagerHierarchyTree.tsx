@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { ChevronRight, ChevronDown } from 'lucide-react'
+import { ChevronRight, ChevronDown, Clock, CalendarClock } from 'lucide-react'
 import { useRouter } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import type { HierarchyNode } from '@/lib/types'
@@ -18,6 +18,18 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   }
 }>
 
+type ProposedHire = Prisma.ProposedHireGetPayload<{
+  include: {
+    manager: {
+      select: {
+        id: true
+        email: true
+        deelEmployee: true
+      }
+    }
+  }
+}>
+
 type ManagerHierarchyTreeProps = {
   hierarchy: HierarchyNode | HierarchyNode[] | null
   currentEmployeeId: string
@@ -25,6 +37,7 @@ type ManagerHierarchyTreeProps = {
   onExpandAllChange?: (expand: boolean | null) => void
   onNodeExpand?: (nodeId: string, expand: boolean) => void
   deelEmployees?: DeelEmployee[]
+  proposedHires?: ProposedHire[]
   viewMode?: ViewMode
   onViewModeChange?: (mode: ViewMode) => void
 }
@@ -37,6 +50,7 @@ function TreeNode({
   containerRef,
   onNodeExpand,
   isTeamNode = false,
+  proposedHiresMap,
 }: {
   node: HierarchyNode
   level: number
@@ -45,12 +59,17 @@ function TreeNode({
   containerRef?: React.RefObject<HTMLDivElement | null>
   onNodeExpand?: (nodeId: string, expand: boolean) => void
   isTeamNode?: boolean
+  proposedHiresMap?: Map<string, ProposedHire>
 }) {
   const [isExpanded, setIsExpanded] = useState(true)
   const nodeRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const hasChildren = node.children.length > 0
   const isCurrentEmployee = node.employeeId === currentEmployeeId
+  const isProposedHire =
+    node.hiringPriority ||
+    (proposedHiresMap && proposedHiresMap.has(node.id)) ||
+    (!node.name && node.title && !node.employeeId)
 
   // Check if any child is the current employee
   const hasCurrentEmployeeAsChild = (n: HierarchyNode): boolean => {
@@ -125,13 +144,66 @@ function TreeNode({
         ) : (
           <div className="h-3 w-3 flex-shrink-0" />
         )}
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="truncate">{node.name}</span>
-          {!isTeamNode && node.team && (
-            <span className="flex-shrink-0 truncate text-xs text-gray-500">
-              {node.team}
-            </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex items-center gap-2">
+            {isProposedHire ? (
+              <span className="truncate text-xs text-gray-500 italic">
+                {node.title}
+              </span>
+            ) : (
+              <span className="truncate">{node.name}</span>
+            )}
+            {!isTeamNode && !isProposedHire && node.team && (
+              <span className="flex-shrink-0 truncate text-xs text-gray-500">
+                {node.team}
+              </span>
+            )}
+          </div>
+          {isProposedHire && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-violet-600">
+                Proposed hire
+                {node.hiringPriority
+                  ? ` (${node.hiringPriority})`
+                  : proposedHiresMap?.get(node.id)?.priority
+                    ? ` (${proposedHiresMap.get(node.id)!.priority})`
+                    : ''}
+              </span>
+            </div>
           )}
+          {node.childrenCount &&
+          (node.childrenCount.active > 0 ||
+            node.childrenCount.pending > 0 ||
+            node.childrenCount.planned > 0) ? (
+            <div className="flex items-center gap-2 text-xs text-blue-600">
+              {node.childrenCount.active > 0 ? (
+                <span className="font-medium">
+                  {node.childrenCount.active}{' '}
+                  {isTeamNode
+                    ? node.childrenCount.active === 1
+                      ? 'member'
+                      : 'members'
+                    : node.childrenCount.active === 1
+                      ? 'report'
+                      : 'reports'}
+                </span>
+              ) : null}
+              <div className="flex items-center gap-2">
+                {node.childrenCount.pending > 0 ? (
+                  <div className="flex items-center gap-1">
+                    <span>{node.childrenCount.pending}</span>
+                    <Clock className="h-3 w-3" />
+                  </div>
+                ) : null}
+                {node.childrenCount.planned > 0 ? (
+                  <div className="flex items-center gap-1">
+                    <span>{node.childrenCount.planned}</span>
+                    <CalendarClock className="h-3 w-3" />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
       {hasChildren && isExpanded && (
@@ -146,6 +218,7 @@ function TreeNode({
               containerRef={containerRef}
               onNodeExpand={onNodeExpand}
               isTeamNode={child.id.startsWith('team-')}
+              proposedHiresMap={proposedHiresMap}
             />
           ))}
         </div>
@@ -191,11 +264,80 @@ const createEmployeeNode = (emp: DeelEmployee): HierarchyNode => ({
   team: emp.team || undefined,
   employeeId: emp.employee?.id,
   workEmail: emp.workEmail,
+  startDate: emp.startDate,
   children: [],
 })
 
+// Calculate childrenCount for a node (all descendants, excluding the node itself)
+const calculateChildrenCount = (
+  node: HierarchyNode,
+  proposedHiresMap: Map<string, ProposedHire>,
+): { active: number; pending: number; planned: number } => {
+  let active = 0
+  let pending = 0
+  let planned = 0
+
+  const countDescendants = (n: HierarchyNode) => {
+    // Skip team nodes - only count employee nodes
+    if (n.id.startsWith('team-')) {
+      n.children.forEach(countDescendants)
+      return
+    }
+
+    // Check if it's a proposed hire
+    const proposedHire = proposedHiresMap.get(n.id)
+    if (
+      proposedHire &&
+      ['low', 'medium', 'high'].includes(proposedHire.priority)
+    ) {
+      planned++
+    } else if (n.name) {
+      // It's a real employee - check start date
+      if (n.startDate) {
+        const startDate = new Date(n.startDate)
+        const now = new Date()
+        if (startDate > now) {
+          pending++
+        } else {
+          active++
+        }
+      } else {
+        // No start date means already active
+        active++
+      }
+    }
+
+    // Recursively count children
+    n.children.forEach(countDescendants)
+  }
+
+  // Only count children, not the node itself
+  node.children.forEach(countDescendants)
+  return { active, pending, planned }
+}
+
 // Transform manager hierarchy to team hierarchy
-const buildTeamHierarchy = (employees: DeelEmployee[]): HierarchyNode[] => {
+const buildTeamHierarchy = (
+  employees: DeelEmployee[],
+  proposedHires: ProposedHire[] = [],
+): HierarchyNode[] => {
+  // Map proposed hires by their manager's deelEmployee ID
+  const proposedHiresByManager = new Map<string, ProposedHire[]>()
+  const proposedHiresMap = new Map<string, ProposedHire>()
+
+  proposedHires
+    .filter(
+      ({ manager, priority }) =>
+        manager.deelEmployee && ['low', 'medium', 'high'].includes(priority),
+    )
+    .forEach((ph) => {
+      const managerId = ph.manager.deelEmployee!.id
+      if (!proposedHiresByManager.has(managerId)) {
+        proposedHiresByManager.set(managerId, [])
+      }
+      proposedHiresByManager.get(managerId)!.push(ph)
+      proposedHiresMap.set(`employee-${ph.id}`, ph)
+    })
   const blitzscaleEmployees = employees.filter((e) => e.team === 'Blitzscale')
   const employeesWithTeams = employees.filter(
     (e) => e.team && e.team !== '' && e.team !== 'Blitzscale',
@@ -210,6 +352,7 @@ const buildTeamHierarchy = (employees: DeelEmployee[]): HierarchyNode[] => {
   })
 
   const addedEmployeeIds = new Set<string>()
+  const addedProposedHireIds = new Set<string>()
   const managerToTeamsMap = new Map<string, string[]>()
 
   // Map teams to their managers via team leads
@@ -254,15 +397,44 @@ const buildTeamHierarchy = (employees: DeelEmployee[]): HierarchyNode[] => {
       }
     }
 
-    return {
+    // Add proposed hires for this team (based on their manager's team)
+    const teamProposedHires = Array.from(proposedHiresByManager.values())
+      .flat()
+      .filter(
+        (ph) =>
+          ph.manager.deelEmployee?.team === teamName &&
+          !addedProposedHireIds.has(ph.id),
+      )
+      .map((ph) => {
+        addedProposedHireIds.add(ph.id)
+        return {
+          id: `employee-${ph.id}`,
+          name: '',
+          title: ph.title || '',
+          team: ph.manager.deelEmployee!.team || undefined,
+          employeeId: undefined,
+          workEmail: undefined,
+          startDate: null,
+          hiringPriority: ph.priority as 'low' | 'medium' | 'high',
+          children: [],
+        }
+      })
+    employeeNodes.push(...teamProposedHires)
+
+    const teamNode: HierarchyNode = {
       id: `team-${teamName}`,
       name: teamName,
       title: '',
       team: teamName,
       employeeId: undefined,
       workEmail: undefined,
+      startDate: null,
       children: employeeNodes.sort((a, b) => a.name.localeCompare(b.name)),
     }
+
+    // Calculate childrenCount
+    teamNode.childrenCount = calculateChildrenCount(teamNode, proposedHiresMap)
+    return teamNode
   }
 
   // Recursively build employee node with teams and nested employees
@@ -296,10 +468,20 @@ const buildTeamHierarchy = (employees: DeelEmployee[]): HierarchyNode[] => {
         return buildEmployeeNode(emp.id, visited) || createEmployeeNode(emp)
       })
 
-    return {
+    // In team view, proposed hires appear in teams, not under managers
+    // So we don't add them here
+
+    const employeeNode: HierarchyNode = {
       ...createEmployeeNode(employee),
       children: [...teamNodes, ...directReports],
     }
+
+    // Calculate childrenCount
+    employeeNode.childrenCount = calculateChildrenCount(
+      employeeNode,
+      proposedHiresMap,
+    )
+    return employeeNode
   }
 
   // Build Blitzscale employee nodes (all at top level)
@@ -311,7 +493,13 @@ const buildTeamHierarchy = (employees: DeelEmployee[]): HierarchyNode[] => {
     })
     .map((emp) => {
       addedEmployeeIds.add(emp.id)
-      return buildEmployeeNode(emp.id, new Set()) || createEmployeeNode(emp)
+      const node =
+        buildEmployeeNode(emp.id, new Set()) || createEmployeeNode(emp)
+      // Ensure childrenCount is calculated
+      if (!node.childrenCount) {
+        node.childrenCount = calculateChildrenCount(node, proposedHiresMap)
+      }
+      return node
     })
 
   // Find top-level teams (teams without managers)
@@ -324,22 +512,55 @@ const buildTeamHierarchy = (employees: DeelEmployee[]): HierarchyNode[] => {
   return [...blitzscaleNodes, ...topLevelTeams]
 }
 
+// Calculate childrenCount for manager hierarchy
+const calculateManagerHierarchyCounts = (
+  node: HierarchyNode,
+  proposedHiresMap: Map<string, ProposedHire>,
+): void => {
+  node.childrenCount = calculateChildrenCount(node, proposedHiresMap)
+  node.children.forEach((child) =>
+    calculateManagerHierarchyCounts(child, proposedHiresMap),
+  )
+}
+
 export function ManagerHierarchyTree({
   hierarchy,
   currentEmployeeId,
   expandAll = null,
   deelEmployees,
+  proposedHires = [],
   viewMode = 'manager',
 }: ManagerHierarchyTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Create proposed hires map
+  const proposedHiresMap = useMemo(() => {
+    const map = new Map<string, ProposedHire>()
+    proposedHires
+      .filter(
+        ({ manager, priority }) =>
+          manager.deelEmployee && ['low', 'medium', 'high'].includes(priority),
+      )
+      .forEach((ph) => {
+        map.set(`employee-${ph.id}`, ph)
+      })
+    return map
+  }, [proposedHires])
+
   // Transform hierarchy based on view mode
   const displayHierarchy = useMemo(() => {
     if (viewMode === 'team' && deelEmployees) {
-      return buildTeamHierarchy(deelEmployees)
+      return buildTeamHierarchy(deelEmployees, proposedHires)
+    }
+    // Calculate counts for manager hierarchy
+    if (hierarchy) {
+      const nodes = Array.isArray(hierarchy) ? hierarchy : [hierarchy]
+      nodes.forEach((node) =>
+        calculateManagerHierarchyCounts(node, proposedHiresMap),
+      )
     }
     return hierarchy
-  }, [viewMode, hierarchy, deelEmployees])
+  }, [viewMode, hierarchy, deelEmployees, proposedHires, proposedHiresMap])
 
   if (!displayHierarchy) {
     return (
@@ -365,6 +586,7 @@ export function ManagerHierarchyTree({
             expandAll={expandAll}
             containerRef={containerRef}
             isTeamNode={node.id.startsWith('team-')}
+            proposedHiresMap={proposedHiresMap}
           />
         ))}
       </div>
