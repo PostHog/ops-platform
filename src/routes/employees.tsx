@@ -229,9 +229,10 @@ function App() {
       header: () => <span className="font-bold">Last Change</span>,
       meta: {
         filterVariant: 'dateRange',
+        filterLabel: 'Last Change (date)',
       },
       filterFn: customFilterFns.inDateRange,
-      enableColumnFilter: false,
+      enableColumnFilter: true,
       cell: ({ row }) => {
         const salary = row.original.salaries?.[0]
         if (!salary) return null
