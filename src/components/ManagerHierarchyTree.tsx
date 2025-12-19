@@ -74,6 +74,13 @@ function TreeNode({
     (proposedHiresMap && proposedHiresMap.has(node.id)) ||
     (!node.name && node.title && !node.employeeId)
 
+  // Check if employee is a future starter
+  const isFutureStarter =
+    !isProposedHire &&
+    node.name &&
+    node.startDate &&
+    new Date(node.startDate) > new Date()
+
   // Check if any child is the current employee
   const hasCurrentEmployeeAsChild = (n: HierarchyNode): boolean => {
     if (n.employeeId === currentEmployeeId) return true
@@ -190,6 +197,19 @@ function TreeNode({
                   : proposedHiresMap?.get(node.id)?.priority
                     ? ` (${proposedHiresMap.get(node.id)!.priority})`
                     : ''}
+              </span>
+            </div>
+          )}
+          {isFutureStarter && (
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3 text-amber-600" />
+              <span className="text-xs font-medium text-amber-600">
+                Starts{' '}
+                {new Date(node.startDate!).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
               </span>
             </div>
           )}
