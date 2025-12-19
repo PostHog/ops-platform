@@ -517,11 +517,26 @@ const buildTeamHierarchy = (
       })
 
     // In team view, proposed hires appear in teams, not under managers
-    // So we don't add them here
+    // However, for Blitzscale employees (who don't have team nodes),
+    // we need to add their proposed hires as direct children
+    const managerProposedHires: HierarchyNode[] = []
+    if (employee.team === 'Blitzscale') {
+      const blitzscaleProposedHires = (
+        proposedHiresByManager.get(employeeId) || []
+      )
+        .filter((ph) => !addedProposedHireIds.has(ph.id))
+        .map((ph) => {
+          addedProposedHireIds.add(ph.id)
+          return createProposedHireNode(ph)
+        })
+      managerProposedHires.push(...blitzscaleProposedHires)
+    }
 
     const employeeNode: HierarchyNode = {
       ...createEmployeeNode(employee),
-      children: [...teamNodes, ...directReports],
+      children: [...teamNodes, ...directReports, ...managerProposedHires].sort(
+        sortHierarchyNodes,
+      ),
     }
 
     // Calculate childrenCount
