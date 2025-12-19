@@ -352,6 +352,7 @@ function EmployeeOverview() {
     'table',
   )
   const [expandAll, setExpandAll] = useState<boolean | null>(null)
+  const [expandAllCounter, setExpandAllCounter] = useState(0)
 
   // Hide inline form when switching to timeline view
   useEffect(() => {
@@ -1003,7 +1004,10 @@ function EmployeeOverview() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => setExpandAll(true)}
+                        onClick={() => {
+                          setExpandAll(true)
+                          setExpandAllCounter((prev) => prev + 1)
+                        }}
                         className="h-6 w-6 p-0"
                       >
                         <ChevronsLeftRight className="h-3.5 w-3.5" />
@@ -1019,7 +1023,10 @@ function EmployeeOverview() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => setExpandAll(false)}
+                        onClick={() => {
+                          setExpandAll(false)
+                          setExpandAllCounter((prev) => prev + 1)
+                        }}
                         className="h-6 w-6 p-0"
                       >
                         <ChevronsRightLeft className="h-3.5 w-3.5" />
@@ -1037,6 +1044,7 @@ function EmployeeOverview() {
                 hierarchy={managerHierarchy}
                 currentEmployeeId={employee.id}
                 expandAll={expandAll}
+                expandAllCounter={expandAllCounter}
                 deelEmployees={deelEmployees}
                 proposedHires={proposedHires}
                 viewMode={managerTreeViewMode}

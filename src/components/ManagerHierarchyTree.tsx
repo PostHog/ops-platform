@@ -34,6 +34,7 @@ type ManagerHierarchyTreeProps = {
   hierarchy: HierarchyNode | HierarchyNode[] | null
   currentEmployeeId: string
   expandAll?: boolean | null
+  expandAllCounter?: number
   onExpandAllChange?: (expand: boolean | null) => void
   onNodeExpand?: (nodeId: string, expand: boolean) => void
   deelEmployees?: DeelEmployee[]
@@ -47,6 +48,7 @@ function TreeNode({
   level = 0,
   currentEmployeeId,
   expandAll,
+  expandAllCounter,
   containerRef,
   onNodeExpand,
   isTeamNode = false,
@@ -56,6 +58,7 @@ function TreeNode({
   level: number
   currentEmployeeId: string
   expandAll: boolean | null
+  expandAllCounter?: number
   containerRef?: React.RefObject<HTMLDivElement | null>
   onNodeExpand?: (nodeId: string, expand: boolean) => void
   isTeamNode?: boolean
@@ -81,7 +84,7 @@ function TreeNode({
     if (expandAll !== null) {
       setIsExpanded(expandAll)
     }
-  }, [expandAll])
+  }, [expandAll, expandAllCounter])
 
   // Expand if current employee is a descendant (to make it visible)
   useEffect(() => {
@@ -234,6 +237,7 @@ function TreeNode({
               level={level + 1}
               currentEmployeeId={currentEmployeeId}
               expandAll={expandAll}
+              expandAllCounter={expandAllCounter}
               containerRef={containerRef}
               onNodeExpand={onNodeExpand}
               isTeamNode={child.id.startsWith('team-')}
@@ -590,6 +594,7 @@ export function ManagerHierarchyTree({
   hierarchy,
   currentEmployeeId,
   expandAll = null,
+  expandAllCounter = 0,
   deelEmployees,
   proposedHires = [],
   viewMode = 'manager',
@@ -639,6 +644,7 @@ export function ManagerHierarchyTree({
             level={0}
             currentEmployeeId={currentEmployeeId}
             expandAll={expandAll}
+            expandAllCounter={expandAllCounter}
             containerRef={containerRef}
             isTeamNode={node.id.startsWith('team-')}
             proposedHiresMap={proposedHiresMap}
