@@ -1039,7 +1039,7 @@ function EmployeeOverview() {
                 </div>
               </TooltipProvider>
             </div>
-            <div className="h-[calc(100vh-6rem)] overflow-hidden rounded-lg border bg-white">
+            <div className="h-[calc(100vh-7rem)] overflow-hidden rounded-lg border bg-white">
               <ManagerHierarchyTree
                 hierarchy={managerHierarchy}
                 currentEmployeeId={employee.id}
