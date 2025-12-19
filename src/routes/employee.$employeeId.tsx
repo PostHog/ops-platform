@@ -71,6 +71,15 @@ import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
 import { ManagerHierarchyTree } from '@/components/ManagerHierarchyTree'
 import type { HierarchyNode } from '@/lib/types'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import dayjs from 'dayjs'
 import MarkdownComponent from '@/lib/MarkdownComponent'
 
@@ -515,6 +524,9 @@ function EmployeeOverview() {
   }, [managerHierarchy])
 
   const [searchOpen, setSearchOpen] = useState(false)
+  const [managerTreeViewMode, setManagerTreeViewMode] = useLocalStorage<
+    'manager' | 'team'
+  >('manager-tree.viewMode', 'manager')
 
   // Combine reference employees with current employee (using form values if available)
   const combinedReferenceEmployees = useMemo(() => {
@@ -870,9 +882,23 @@ function EmployeeOverview() {
         {employee.deelEmployee && managerHierarchy && (
           <div className="hidden w-96 flex-shrink-0 border-r px-4 lg:block">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700">
-                Manager Tree
-              </h3>
+              <Select
+                value={managerTreeViewMode}
+                onValueChange={(value) =>
+                  setManagerTreeViewMode(value as 'manager' | 'team')
+                }
+              >
+                <SelectTrigger className="h-8 w-[140px] bg-white text-sm font-semibold text-gray-700">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>View modes</SelectLabel>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="team">Team</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
               <TooltipProvider>
                 <div className="flex items-center gap-1">
                   <Popover open={searchOpen} onOpenChange={setSearchOpen}>
@@ -981,6 +1007,11 @@ function EmployeeOverview() {
                 hierarchy={managerHierarchy}
                 currentEmployeeId={employee.id}
                 expandAll={expandAll}
+                deelEmployees={deelEmployees}
+                viewMode={managerTreeViewMode}
+                onViewModeChange={(mode: 'manager' | 'team') =>
+                  setManagerTreeViewMode(mode)
+                }
               />
             </div>
           </div>
