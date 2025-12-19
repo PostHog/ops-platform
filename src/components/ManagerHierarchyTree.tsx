@@ -106,11 +106,15 @@ function TreeNode({
     }
   }, [isCurrentEmployee, containerRef])
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleExpandClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
     if (hasChildren) {
-      e.stopPropagation()
       setIsExpanded(!isExpanded)
     }
+  }
+
+  const handleEmployeeClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
     // Only navigate if it's an employee node (not a team node)
     if (
       !isTeamNode &&
@@ -124,27 +128,42 @@ function TreeNode({
     }
   }
 
+  const canNavigate =
+    !isTeamNode && node.employeeId && node.employeeId !== currentEmployeeId
+
   return (
     <div ref={nodeRef}>
       <div
         className={cn(
-          'flex cursor-pointer items-center gap-1 rounded px-2 py-1.5 text-sm hover:bg-gray-100',
+          'flex items-center gap-1 rounded px-2 py-1.5 text-sm',
+          !isTeamNode && canNavigate && 'hover:bg-gray-100',
           isCurrentEmployee && 'bg-blue-50 font-semibold',
           isTeamNode && 'font-medium text-gray-700',
         )}
         style={{ paddingLeft: `${level * 16 + 8}px` }}
-        onClick={handleClick}
       >
         {hasChildren ? (
-          isExpanded ? (
-            <ChevronDown className="h-3 w-3 flex-shrink-0 text-gray-500" />
-          ) : (
-            <ChevronRight className="h-3 w-3 flex-shrink-0 text-gray-500" />
-          )
+          <button
+            onClick={handleExpandClick}
+            className="flex h-4 w-4 flex-shrink-0 cursor-pointer items-center justify-center rounded p-0.5 hover:bg-gray-200"
+            aria-label={isExpanded ? 'Collapse' : 'Expand'}
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-3 w-3 text-gray-500" />
+            ) : (
+              <ChevronRight className="h-3 w-3 text-gray-500" />
+            )}
+          </button>
         ) : (
-          <div className="h-3 w-3 flex-shrink-0" />
+          <div className="h-4 w-4 flex-shrink-0" />
         )}
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div
+          className={cn(
+            'flex min-w-0 flex-1 flex-col gap-1',
+            canNavigate && 'cursor-pointer',
+          )}
+          onClick={handleEmployeeClick}
+        >
           <div className="flex items-center gap-2">
             {isProposedHire ? (
               <span className="truncate text-xs text-gray-500 italic">
