@@ -313,6 +313,15 @@ const createProposedHiresMap = (
   return map
 }
 
+// Helper to sort hierarchy nodes: employees first (by name), then proposed hires (by title)
+const sortHierarchyNodes = (a: HierarchyNode, b: HierarchyNode): number => {
+  // Sort: employees first (by name), then proposed hires (by title)
+  if (a.name && !b.name) return -1
+  if (!a.name && b.name) return 1
+  if (a.name && b.name) return a.name.localeCompare(b.name)
+  return (a.title || '').localeCompare(b.title || '')
+}
+
 // Calculate childrenCount for a node (all descendants, excluding the node itself)
 const calculateChildrenCount = (
   node: HierarchyNode,
@@ -449,7 +458,7 @@ const buildTeamHierarchy = (
       employeeId: undefined,
       workEmail: undefined,
       startDate: null,
-      children: employeeNodes.sort((a, b) => a.name.localeCompare(b.name)),
+      children: employeeNodes.sort(sortHierarchyNodes),
     }
 
     // Calculate childrenCount
