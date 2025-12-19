@@ -746,7 +746,7 @@ export function NewSalaryForm({
     )
 
   return (
-    <div className="mb-4 max-w-5xl bg-white">
+    <div className="mb-4 w-full bg-white">
       <div className="rounded-lg border border-green-600 p-4">
         <form
           onSubmit={(e) => {
