@@ -71,6 +71,16 @@ import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
 import { ManagerHierarchyTree } from '@/components/ManagerHierarchyTree'
 import type { HierarchyNode } from '@/lib/types'
+import { getDeelEmployeesAndProposedHires } from './org-chart'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import dayjs from 'dayjs'
 import MarkdownComponent from '@/lib/MarkdownComponent'
 
@@ -321,24 +331,6 @@ export const deleteSalary = createAuthenticatedFn({
     return { success: true }
   })
 
-export const getAllDeelEmployees = createAuthenticatedFn({
-  method: 'GET',
-}).handler(async () => {
-  return await prisma.deelEmployee.findMany({
-    include: {
-      employee: {
-        select: {
-          id: true,
-          email: true,
-        },
-      },
-    },
-    orderBy: {
-      name: 'asc',
-    },
-  })
-})
-
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
@@ -360,6 +352,7 @@ function EmployeeOverview() {
     'table',
   )
   const [expandAll, setExpandAll] = useState<boolean | null>(null)
+  const [expandAllCounter, setExpandAllCounter] = useState(0)
 
   // Hide inline form when switching to timeline view
   useEffect(() => {
@@ -429,11 +422,13 @@ function EmployeeOverview() {
     enabled: !!level && !!step && !!benchmark && user?.role === ROLES.ADMIN,
   })
 
-  const { data: deelEmployees } = useQuery({
-    queryKey: ['deelEmployees'],
-    queryFn: () => getAllDeelEmployees(),
+  const { data: deelEmployeesAndProposedHiresData } = useQuery({
+    queryKey: ['deelEmployeesAndProposedHires'],
+    queryFn: () => getDeelEmployeesAndProposedHires(),
     enabled: user?.role === ROLES.ADMIN,
   })
+  const deelEmployees = deelEmployeesAndProposedHiresData?.employees
+  const proposedHires = deelEmployeesAndProposedHiresData?.proposedHires || []
 
   // Build hierarchy tree from flat list
   const managerHierarchy = useMemo(() => {
@@ -448,6 +443,21 @@ function EmployeeOverview() {
       }
     }
 
+    // Map proposed hires by manager
+    const proposedHiresByManager = new Map<string, typeof proposedHires>()
+    proposedHires
+      .filter(
+        ({ manager, priority }) =>
+          manager.deelEmployee && ['low', 'medium', 'high'].includes(priority),
+      )
+      .forEach((ph) => {
+        const managerId = ph.manager.deelEmployee!.id
+        if (!proposedHiresByManager.has(managerId)) {
+          proposedHiresByManager.set(managerId, [])
+        }
+        proposedHiresByManager.get(managerId)!.push(ph)
+      })
+
     const buildTree = (
       employee: (typeof deelEmployees)[0],
       visited = new Set<string>(),
@@ -460,6 +470,7 @@ function EmployeeOverview() {
           team: employee.team,
           employeeId: employee.employee?.id,
           workEmail: employee.workEmail,
+          startDate: employee.startDate,
           children: [],
         }
       }
@@ -469,6 +480,34 @@ function EmployeeOverview() {
         a.name.localeCompare(b.name),
       )
 
+      // Add proposed hires for this manager
+      const managerProposedHires = (
+        proposedHiresByManager.get(employee.id) || []
+      ).map((ph) => ({
+        id: `employee-${ph.id}`,
+        name: '',
+        title: ph.title || '',
+        team: ph.manager.deelEmployee!.team || undefined,
+        employeeId: undefined,
+        workEmail: undefined,
+        startDate: null,
+        hiringPriority: ph.priority as 'low' | 'medium' | 'high',
+        children: [],
+      }))
+
+      const reportNodes = directReports.map((child) =>
+        buildTree(child, visited),
+      )
+      const allChildren = [...reportNodes, ...managerProposedHires].sort(
+        (a, b) => {
+          // Sort: employees first (by name), then proposed hires (by title)
+          if (a.name && !b.name) return -1
+          if (!a.name && b.name) return 1
+          if (a.name && b.name) return a.name.localeCompare(b.name)
+          return (a.title || '').localeCompare(b.title || '')
+        },
+      )
+
       return {
         id: employee.id,
         name: employee.name,
@@ -476,7 +515,8 @@ function EmployeeOverview() {
         team: employee.team,
         employeeId: employee.employee?.id,
         workEmail: employee.workEmail,
-        children: directReports.map((child) => buildTree(child, visited)),
+        startDate: employee.startDate,
+        children: allChildren,
       }
     }
 
@@ -500,7 +540,7 @@ function EmployeeOverview() {
 
     // Return single node or array of nodes
     return trees.length === 1 ? trees[0] : trees
-  }, [deelEmployees])
+  }, [deelEmployees, proposedHires])
 
   // Flatten hierarchy to get all employees for search
   const allHierarchyEmployees = useMemo(() => {
@@ -515,6 +555,9 @@ function EmployeeOverview() {
   }, [managerHierarchy])
 
   const [searchOpen, setSearchOpen] = useState(false)
+  const [managerTreeViewMode, setManagerTreeViewMode] = useLocalStorage<
+    'manager' | 'team'
+  >('manager-tree.viewMode', 'manager')
 
   // Combine reference employees with current employee (using form values if available)
   const combinedReferenceEmployees = useMemo(() => {
@@ -870,9 +913,23 @@ function EmployeeOverview() {
         {employee.deelEmployee && managerHierarchy && (
           <div className="hidden w-96 flex-shrink-0 border-r px-4 lg:block">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700">
-                Manager Tree
-              </h3>
+              <Select
+                value={managerTreeViewMode}
+                onValueChange={(value) =>
+                  setManagerTreeViewMode(value as 'manager' | 'team')
+                }
+              >
+                <SelectTrigger className="h-8 w-[140px] bg-white text-sm font-semibold text-gray-700">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>View modes</SelectLabel>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="team">Team</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
               <TooltipProvider>
                 <div className="flex items-center gap-1">
                   <Popover open={searchOpen} onOpenChange={setSearchOpen}>
@@ -947,7 +1004,10 @@ function EmployeeOverview() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => setExpandAll(true)}
+                        onClick={() => {
+                          setExpandAll(true)
+                          setExpandAllCounter((prev) => prev + 1)
+                        }}
                         className="h-6 w-6 p-0"
                       >
                         <ChevronsLeftRight className="h-3.5 w-3.5" />
@@ -963,7 +1023,10 @@ function EmployeeOverview() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => setExpandAll(false)}
+                        onClick={() => {
+                          setExpandAll(false)
+                          setExpandAllCounter((prev) => prev + 1)
+                        }}
                         className="h-6 w-6 p-0"
                       >
                         <ChevronsRightLeft className="h-3.5 w-3.5" />
@@ -976,11 +1039,18 @@ function EmployeeOverview() {
                 </div>
               </TooltipProvider>
             </div>
-            <div className="h-[calc(100vh-6rem)] overflow-hidden rounded-lg border bg-white">
+            <div className="h-[calc(100vh-7rem)] overflow-hidden rounded-lg border bg-white">
               <ManagerHierarchyTree
                 hierarchy={managerHierarchy}
                 currentEmployeeId={employee.id}
                 expandAll={expandAll}
+                expandAllCounter={expandAllCounter}
+                deelEmployees={deelEmployees}
+                proposedHires={proposedHires}
+                viewMode={managerTreeViewMode}
+                onViewModeChange={(mode: 'manager' | 'team') =>
+                  setManagerTreeViewMode(mode)
+                }
               />
             </div>
           </div>
