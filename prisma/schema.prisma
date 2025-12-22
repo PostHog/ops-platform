@@ -29,6 +29,7 @@ model Employee {
   keeperTestFeedbackSubmitted  KeeperTestFeedback[]   @relation("manager")
   salaryDeviationStatus        SalaryDeviationStatus?
   salaryDeviationCheckedAt     DateTime               @default(now())
+  performancePrograms          PerformanceProgram[]
 }
 
 enum SalaryDeviationStatus {
@@ -163,6 +164,11 @@ model User {
   banReason  String?
   banExpires DateTime?
 
+  performanceProgramsStarted PerformanceProgram[]              @relation("ProgramStartedBy")
+  checklistItemsCompleted    PerformanceProgramChecklistItem[] @relation("ChecklistItemCompletedBy")
+  filesUploaded              File[]                            @relation("FileUploadedBy")
+  feedbackGiven              PerformanceProgramFeedback[]      @relation("FeedbackGivenBy")
+
   @@unique([email])
   @@map("user")
 }
@@ -230,4 +236,70 @@ model ProcessDocument {
   id        String   @id @default("process")
   content   String   @default("")
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum PerformanceProgramStatus {
+  ACTIVE
+  RESOLVED
+}
+
+enum ChecklistItemType {
+  SLACK_FEEDBACK_MEETING
+  EMAIL_FEEDBACK_MEETING
+}
+
+model PerformanceProgram {
+  id              String                            @id @default(cuid())
+  employeeId      String
+  employee        Employee                          @relation(fields: [employeeId], references: [id])
+  status          PerformanceProgramStatus          @default(ACTIVE)
+  startedAt       DateTime                          @default(now())
+  resolvedAt      DateTime?
+  startedByUserId String
+  startedBy       User                              @relation("ProgramStartedBy", fields: [startedByUserId], references: [id])
+  checklistItems  PerformanceProgramChecklistItem[]
+  feedback        PerformanceProgramFeedback[]
+  createdAt       DateTime                          @default(now())
+  updatedAt       DateTime                          @default(now()) @updatedAt
+}
+
+model PerformanceProgramChecklistItem {
+  id                String             @id @default(cuid())
+  programId         String
+  program           PerformanceProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  type              ChecklistItemType
+  completed         Boolean            @default(false)
+  completedAt       DateTime?
+  completedByUserId String?
+  completedBy       User?              @relation("ChecklistItemCompletedBy", fields: [completedByUserId], references: [id])
+  files             File[]
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @default(now()) @updatedAt
+}
+
+model File {
+  id               String                           @id @default(cuid())
+  checklistItemId  String?
+  checklistItem    PerformanceProgramChecklistItem? @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+  feedbackId       String?
+  feedback         PerformanceProgramFeedback?      @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  fileName         String
+  fileUrl          String
+  fileSize         Int
+  mimeType         String
+  uploadedAt       DateTime                         @default(now())
+  uploadedByUserId String
+  uploadedBy       User                             @relation("FileUploadedBy", fields: [uploadedByUserId], references: [id])
+}
+
+model PerformanceProgramFeedback {
+  id            String             @id @default(cuid())
+  programId     String
+  program       PerformanceProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  feedback      String
+  givenByUserId String
+  givenBy       User               @relation("FeedbackGivenBy", fields: [givenByUserId], references: [id])
+  files         File[]
+  createdAt     DateTime           @default(now())
 }
