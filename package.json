@@ -16,6 +16,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.956.0",
+    "@aws-sdk/s3-request-presigner": "^3.956.0",
     "@dagrejs/dagre": "^1.1.5",
     "@faker-js/faker": "^9.9.0",
     "@netlify/vite-plugin-tanstack-start": "^1.2.1",
