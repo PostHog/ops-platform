@@ -251,13 +251,25 @@ export function PerformanceProgramPanel({
 
       <div className="space-y-3">
         <h4 className="font-semibold">Checklist Items</h4>
-        {program.checklistItems.map((item) => (
-          <PerformanceProgramChecklistItem
-            key={item.id}
-            item={item}
-            onUpdate={onUpdate}
-          />
-        ))}
+        {[...program.checklistItems]
+          .sort((a, b) => {
+            // First sort by completed status (incomplete items first)
+            if (a.completed !== b.completed) {
+              return a.completed ? 1 : -1
+            }
+            // Then sort by due date (earliest first, nulls last)
+            if (!a.dueDate && !b.dueDate) return 0
+            if (!a.dueDate) return 1
+            if (!b.dueDate) return -1
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+          })
+          .map((item) => (
+            <PerformanceProgramChecklistItem
+              key={item.id}
+              item={item}
+              onUpdate={onUpdate}
+            />
+          ))}
       </div>
 
       <div className="rounded-lg border bg-white p-4">

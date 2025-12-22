@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, Circle, Upload, File as FileIcon, X } from 'lucide-react'
+import { Upload, File as FileIcon, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -255,11 +255,12 @@ export function PerformanceProgramChecklistItem({
           : 'border-gray-200 bg-white'
       }`}
     >
-      {item.completed ? (
-        <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
-      ) : (
-        <Circle className="h-4 w-4 shrink-0 text-gray-400" />
-      )}
+      <Checkbox
+        checked={item.completed}
+        onCheckedChange={handleToggleComplete}
+        disabled={isUpdating}
+        className="shrink-0"
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <div
@@ -405,11 +406,6 @@ export function PerformanceProgramChecklistItem({
             </Button>
           </Label>
         </div>
-        <Checkbox
-          checked={item.completed}
-          onCheckedChange={handleToggleComplete}
-          disabled={isUpdating}
-        />
       </div>
     </div>
   )
