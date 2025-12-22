@@ -92,15 +92,6 @@ export function PerformanceProgramTimelineCard({
     }
   }
 
-  const timestamp =
-    event === 'started'
-      ? program.startedAt
-      : event === 'resolved'
-        ? program.resolvedAt!
-        : event === 'checklist-completed'
-          ? checklistItem?.completedAt!
-          : feedback?.createdAt!
-
   const completedBy =
     event === 'checklist-completed' && checklistItem?.completedBy
       ? checklistItem.completedBy.name || checklistItem.completedBy.email
@@ -124,8 +115,9 @@ export function PerformanceProgramTimelineCard({
             {completedBy && (
               <span className="font-normal text-gray-500">
                 {' '}
-                - {event === 'checklist-completed' ? 'completed' : 'started'} by{' '}
-                {completedBy}
+                - {event === 'checklist-completed'
+                  ? 'completed'
+                  : 'started'} by {completedBy}
               </span>
             )}
           </h4>
