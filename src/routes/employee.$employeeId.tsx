@@ -483,6 +483,12 @@ export const createPerformanceProgram = createAuthenticatedFn({
     const managerId = employee?.deelEmployee?.managerId || null
 
     // Create program with initial checklist items
+    const now = new Date()
+    const slackDueDate = new Date(now)
+    slackDueDate.setDate(now.getDate() + 5)
+    const emailDueDate = new Date(now)
+    emailDueDate.setDate(now.getDate() + 7)
+
     const program = await prisma.performanceProgram.create({
       data: {
         employeeId: data.employeeId,
@@ -492,10 +498,12 @@ export const createPerformanceProgram = createAuthenticatedFn({
             {
               type: 'SLACK_FEEDBACK_MEETING',
               assignedToDeelEmployeeId: managerId,
+              dueDate: slackDueDate,
             },
             {
               type: 'EMAIL_FEEDBACK_MEETING',
               assignedToDeelEmployeeId: managerId,
+              dueDate: emailDueDate,
             },
           ],
         },
@@ -554,6 +562,7 @@ export const updateChecklistItem = createAuthenticatedFn({
       completed: boolean
       notes?: string
       assignedToDeelEmployeeId?: string | null
+      dueDate?: string | null
     }) => d,
   )
   .handler(async ({ data, context }) => {
@@ -581,6 +590,7 @@ export const updateChecklistItem = createAuthenticatedFn({
         completedByUserId: data.completed ? context.user.id : null,
         notes: data.notes,
         assignedToDeelEmployeeId: data.assignedToDeelEmployeeId,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
       },
       include: {
         files: true,

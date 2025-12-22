@@ -113,6 +113,7 @@ export function PerformanceProgramChecklistItem({
           notes: notes || undefined,
           assignedToDeelEmployeeId:
             deelEmployeeId === 'unassign' ? null : deelEmployeeId,
+          dueDate: item.dueDate ? new Date(item.dueDate).toISOString() : null,
         },
       })
       createToast(
@@ -188,6 +189,7 @@ export function PerformanceProgramChecklistItem({
             completed: true,
             notes: notes || undefined,
             assignedToDeelEmployeeId: item.assignedTo?.id || null,
+            dueDate: item.dueDate ? new Date(item.dueDate).toISOString() : null,
           },
         })
         createToast('File uploaded and item marked complete', { timeout: 3000 })
@@ -267,6 +269,11 @@ export function PerformanceProgramChecklistItem({
           >
             {itemTypeLabel}
           </div>
+          {item.dueDate && (
+            <div className="text-xs text-gray-500">
+              Due {new Date(item.dueDate).toLocaleDateString()}
+            </div>
+          )}
           {item.completed && item.completedAt && (
             <div className="text-xs text-gray-500">
               Completed {new Date(item.completedAt).toLocaleDateString()}
@@ -320,6 +327,9 @@ export function PerformanceProgramChecklistItem({
                     completed: item.completed,
                     notes: notes || undefined,
                     assignedToDeelEmployeeId: item.assignedTo?.id || null,
+                    dueDate: item.dueDate
+                      ? new Date(item.dueDate).toISOString()
+                      : null,
                   },
                 })
                 onUpdate()

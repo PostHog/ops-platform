@@ -275,6 +275,7 @@ model PerformanceProgramChecklistItem {
   completedBy              User?              @relation("ChecklistItemCompletedBy", fields: [completedByUserId], references: [id])
   assignedToDeelEmployeeId String?
   assignedTo               DeelEmployee?      @relation("ChecklistItemAssignedTo", fields: [assignedToDeelEmployeeId], references: [id])
+  dueDate                  DateTime?
   files                    File[]
   notes                    String?
   createdAt                DateTime           @default(now())
