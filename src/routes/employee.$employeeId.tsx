@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { useServerFn } from '@tanstack/react-start'
 import { useAtom } from 'jotai'
 import {
   AlertCircle,
@@ -8,6 +9,7 @@ import {
   ChevronsRightLeft,
   Search,
   Check,
+  MoreVertical,
 } from 'lucide-react'
 import {
   flexRender,
@@ -46,6 +48,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Tooltip,
   TooltipContent,
@@ -420,11 +428,6 @@ export const createPerformanceProgram = createAuthenticatedFn({
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
-    if (context.user.role !== ROLES.ADMIN) {
-      throw new Error('Unauthorized')
-    }
-
-    // Check if employee already has an active program
     const existingProgram = await prisma.performanceProgram.findFirst({
       where: {
         employeeId: data.employeeId,
@@ -864,6 +867,7 @@ function EmployeeOverview() {
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
   const [reviewQueue, setReviewQueue] = useAtom(reviewQueueAtom)
+  const createProgram = useServerFn(createPerformanceProgram)
   const [level, setLevel] = useState(employee.salaries[0]?.level ?? 1)
   const [step, setStep] = useState(employee.salaries[0]?.step ?? 1)
   const [benchmark, setBenchmark] = useState(
@@ -875,6 +879,25 @@ function EmployeeOverview() {
     Object.keys(bonusPercentage).includes(benchmark)
 
   if (!employee) return null
+
+  const handleStartPerformanceProgram = async () => {
+    try {
+      await createProgram({
+        data: {
+          employeeId: employee.id,
+        },
+      })
+      createToast('Performance program started', { timeout: 3000 })
+      router.invalidate()
+    } catch (error) {
+      createToast(
+        error instanceof Error
+          ? error.message
+          : 'Failed to start performance program',
+        { timeout: 3000 },
+      )
+    }
+  }
 
   const handleDeleteSalary = async (salaryId: string) => {
     try {
@@ -1703,6 +1726,20 @@ function EmployeeOverview() {
                 >
                   Move to next employee
                 </Button>
+              ) : null}
+              {user?.role === ROLES.ADMIN ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleStartPerformanceProgram}>
+                      Start Performance Program
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : null}
             </div>
           </div>

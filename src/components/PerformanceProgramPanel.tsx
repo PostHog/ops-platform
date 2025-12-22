@@ -1,12 +1,5 @@
 import { useState } from 'react'
-import {
-  MessageSquare,
-  Plus,
-  Send,
-  Upload,
-  File as FileIcon,
-  X,
-} from 'lucide-react'
+import { MessageSquare, Send, Upload, File as FileIcon, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -14,7 +7,6 @@ import { Badge } from '@/components/ui/badge'
 import { createToast } from 'vercel-toast'
 import { useServerFn } from '@tanstack/react-start'
 import {
-  createPerformanceProgram,
   addProgramFeedback,
   resolvePerformanceProgram,
   getProofFileUploadUrl,
@@ -68,7 +60,6 @@ interface PerformanceProgramPanelProps {
 }
 
 export function PerformanceProgramPanel({
-  employeeId,
   program,
   onUpdate,
 }: PerformanceProgramPanelProps) {
@@ -80,32 +71,12 @@ export function PerformanceProgramPanel({
   >([])
   const [isUploadingFiles, setIsUploadingFiles] = useState(false)
 
-  const createProgram = useServerFn(createPerformanceProgram)
   const addFeedback = useServerFn(addProgramFeedback)
   const resolveProgram = useServerFn(resolvePerformanceProgram)
   const getUploadUrl = useServerFn(getProofFileUploadUrl)
   const createFileRecord = useServerFn(createProofFileRecord)
   const getFileUrl = useServerFn(getProofFileUrl)
   const deleteFile = useServerFn(deleteProofFile)
-
-  const handleStartProgram = async () => {
-    try {
-      await createProgram({
-        data: {
-          employeeId,
-        },
-      })
-      createToast('Performance program started', { timeout: 3000 })
-      onUpdate()
-    } catch (error) {
-      createToast(
-        error instanceof Error
-          ? error.message
-          : 'Failed to start performance program',
-        { timeout: 3000 },
-      )
-    }
-  }
 
   const handleFileUpload = async (file: File) => {
     if (!program) return
@@ -230,22 +201,7 @@ export function PerformanceProgramPanel({
   }
 
   if (!program) {
-    return (
-      <div className="rounded-lg border bg-white p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold">Performance Program</h3>
-            <p className="text-sm text-gray-500">
-              No active performance program
-            </p>
-          </div>
-          <Button onClick={handleStartProgram} variant="default">
-            <Plus className="mr-2 h-4 w-4" />
-            Start Performance Program
-          </Button>
-        </div>
-      </div>
-    )
+    return null
   }
 
   const allItemsCompleted = program.checklistItems.every(
