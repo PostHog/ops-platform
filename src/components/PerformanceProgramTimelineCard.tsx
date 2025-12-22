@@ -117,19 +117,19 @@ export function PerformanceProgramTimelineCard({
       <div
         className={`ml-8 flex flex-col gap-2 border-l-[3px] ${getEventColor()} px-4 py-2`}
       >
-        <div className="flex items-center gap-2">
-          {getEventIcon()}
-          <h4 className="text-sm font-semibold">{getEventLabel()}</h4>
+        <div>
+          <h4 className="flex items-center gap-1.5 text-sm font-semibold">
+            {getEventIcon()}
+            {getEventLabel()}
+            {completedBy && (
+              <span className="font-normal text-gray-500">
+                {' '}
+                - {event === 'checklist-completed' ? 'completed' : 'started'} by{' '}
+                {completedBy}
+              </span>
+            )}
+          </h4>
         </div>
-        {completedBy && (
-          <p className="text-xs text-gray-500">
-            {event === 'checklist-completed' ? 'Completed' : 'Started'} by{' '}
-            {completedBy}
-          </p>
-        )}
-        <p className="text-xs text-gray-500">
-          {new Date(timestamp).toLocaleDateString()}
-        </p>
       </div>
     </div>
   )
