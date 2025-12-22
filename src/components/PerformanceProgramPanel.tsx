@@ -272,76 +272,47 @@ export function PerformanceProgramPanel({
           ))}
       </div>
 
-      <div className="rounded-lg border bg-white p-4">
-        <h4 className="mb-3 font-semibold">Feedback</h4>
+      <div className="rounded-lg border bg-white p-3">
+        <h4 className="mb-2 text-sm font-semibold">Feedback</h4>
         {program.status === 'ACTIVE' && (
-          <div className="mb-4 space-y-2">
-            <Label htmlFor="feedback-input">Add Feedback</Label>
+          <div className="mb-2 flex items-center gap-1.5">
             <Textarea
               id="feedback-input"
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder="Enter feedback about the performance program..."
-              rows={3}
+              placeholder="Enter feedback..."
+              rows={1}
+              className="min-h-[32px] flex-1 resize-none text-xs"
             />
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <input
-                  type="file"
-                  id="feedback-file-upload"
-                  className="hidden"
-                  accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) {
-                      handleFileUpload(file)
-                    }
-                    e.target.value = ''
-                  }}
+            <div className="relative shrink-0">
+              <input
+                type="file"
+                id="feedback-file-upload"
+                className="hidden"
+                accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    handleFileUpload(file)
+                  }
+                  e.target.value = ''
+                }}
+                disabled={isUploadingFiles}
+              />
+              <Label htmlFor="feedback-file-upload" className="cursor-pointer">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   disabled={isUploadingFiles}
-                />
-                <Label
-                  htmlFor="feedback-file-upload"
-                  className="cursor-pointer"
+                  className="h-8 w-8 p-0"
+                  asChild
                 >
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={isUploadingFiles}
-                    asChild
-                  >
-                    <span>
-                      <Upload className="mr-2 h-4 w-4" />
-                      {isUploadingFiles ? 'Uploading...' : 'Attach File'}
-                    </span>
-                  </Button>
-                </Label>
-              </div>
-              {feedbackFiles.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {feedbackFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-1 rounded border bg-gray-50 px-2 py-1 text-xs"
-                    >
-                      <FileIcon className="h-3 w-3 text-gray-500" />
-                      <span>{file.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFeedbackFiles((prev) =>
-                            prev.filter((_, i) => i !== index),
-                          )
-                        }}
-                        className="ml-1 text-gray-500 hover:text-gray-700"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                  <span>
+                    <Upload className="h-4 w-4" />
+                  </span>
+                </Button>
+              </Label>
             </div>
             <Button
               onClick={handleAddFeedback}
@@ -349,48 +320,71 @@ export function PerformanceProgramPanel({
                 !feedbackText.trim() || isSubmittingFeedback || isUploadingFiles
               }
               size="sm"
+              className="h-8 w-8 shrink-0 p-0"
             >
-              <Send className="mr-2 h-4 w-4" />
-              {isSubmittingFeedback ? 'Adding...' : 'Add Feedback'}
+              <Send className="h-4 w-4" />
             </Button>
+            {feedbackFiles.length > 0 && (
+              <div className="flex shrink-0 items-center gap-1">
+                {feedbackFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-1 rounded border bg-gray-50 px-1.5 py-0.5 text-xs"
+                  >
+                    <FileIcon className="h-3 w-3 text-gray-500" />
+                    <span className="max-w-[80px] truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFeedbackFiles((prev) =>
+                          prev.filter((_, i) => i !== index),
+                        )
+                      }}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
-        <div className="space-y-3">
+        <div className="space-y-2">
           {program.feedback.length === 0 ? (
             <p className="text-sm text-gray-500">No feedback yet</p>
           ) : (
             program.feedback.map((feedback) => (
-              <div key={feedback.id} className="rounded border bg-gray-50 p-3">
-                <div className="mb-2 flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-semibold">
-                    {feedback.givenBy.name || feedback.givenBy.email}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {new Date(feedback.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-                <p className="mb-2 text-sm text-gray-700">
+              <div
+                key={feedback.id}
+                className="flex items-center gap-2 rounded border border-gray-200 bg-gray-50/50 px-3 py-2"
+              >
+                <MessageSquare className="h-4 w-4 shrink-0 text-gray-500" />
+                <span className="shrink-0 text-sm font-medium whitespace-nowrap">
+                  {feedback.givenBy.name || feedback.givenBy.email}
+                </span>
+                <span className="shrink-0 text-sm whitespace-nowrap text-gray-500">
+                  {new Date(feedback.createdAt).toLocaleDateString()}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm text-gray-700">
                   {feedback.feedback}
-                </p>
+                </span>
                 {feedback.files && feedback.files.length > 0 && (
-                  <div className="mt-2 space-y-1">
+                  <div className="flex shrink-0 items-center gap-1">
                     {feedback.files.map((file) => (
                       <div
                         key={file.id}
-                        className="group flex items-center justify-between rounded border bg-white p-2 hover:border-gray-300"
+                        className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-2 py-1 text-sm hover:border-gray-300"
                       >
-                        <div className="flex items-center gap-2">
-                          <FileIcon className="h-4 w-4 text-gray-500" />
-                          <span className="text-xs">{file.fileName}</span>
-                          <span className="text-xs text-gray-500">
-                            ({(file.fileSize / 1024).toFixed(1)} KB)
-                          </span>
-                        </div>
+                        <FileIcon className="h-4 w-4 shrink-0 text-gray-500" />
+                        <span className="max-w-[120px] truncate">
+                          {file.fileName}
+                        </span>
                         <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-6 px-1 text-xs"
                             onClick={async () => {
                               try {
                                 const { url } = await getFileUrl({
@@ -413,7 +407,7 @@ export function PerformanceProgramPanel({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              className="h-6 w-6 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
                               onClick={async () => {
                                 if (
                                   !confirm(
