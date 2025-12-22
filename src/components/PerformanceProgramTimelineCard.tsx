@@ -1,4 +1,9 @@
-import { AlertTriangle, CheckCircle2, MessageSquare } from 'lucide-react'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  MessageSquare,
+  PencilLine,
+} from 'lucide-react'
 import type { Prisma } from '@prisma/client'
 
 type PerformanceProgram = Prisma.PerformanceProgramGetPayload<{
@@ -101,6 +106,13 @@ export function PerformanceProgramTimelineCard({
           ? feedback.givenBy.name || feedback.givenBy.email
           : null
 
+  const notes =
+    event === 'checklist-completed' && checklistItem?.notes
+      ? checklistItem.notes
+      : event === 'feedback' && feedback?.feedback
+        ? feedback.feedback
+        : null
+
   return (
     <div
       className={`border border-t-0 border-gray-200${lastTableItem ? 'rounded-b-md' : ''}`}
@@ -122,6 +134,12 @@ export function PerformanceProgramTimelineCard({
             )}
           </h4>
         </div>
+        {notes && (
+          <div className="flex text-xs whitespace-pre-line text-gray-700 italic">
+            <PencilLine className="mr-2 h-4 w-4 shrink-0 text-gray-500" />
+            <span>{notes}</span>
+          </div>
+        )}
       </div>
     </div>
   )

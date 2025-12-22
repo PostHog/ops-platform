@@ -134,9 +134,6 @@ const getEmployeeById = createUserFn({
                 },
               },
               performancePrograms: {
-                where: {
-                  status: 'ACTIVE',
-                },
                 include: {
                   checklistItems: {
                     include: {
