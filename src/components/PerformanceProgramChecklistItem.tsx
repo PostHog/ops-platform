@@ -107,7 +107,8 @@ export function PerformanceProgramChecklistItem({
           checklistItemId: item.id,
           completed: item.completed,
           notes: notes,
-          assignedToDeelEmployeeId: deelEmployeeId === 'unassign' ? null : deelEmployeeId,
+          assignedToDeelEmployeeId:
+            deelEmployeeId === 'unassign' ? null : deelEmployeeId,
         },
       })
       createToast(
@@ -271,30 +272,40 @@ export function PerformanceProgramChecklistItem({
                   {new Date(item.completedAt).toLocaleDateString()}
                 </span>
               )}
-              {item.assignedTo && (
-                <span className="text-xs text-gray-500">
-                  Assigned to: {item.assignedTo.name || item.assignedTo.workEmail}
-                </span>
-              )}
             </div>
             <div className="flex items-center gap-2">
-              <Select
-                value={item.assignedTo?.id || 'unassign'}
-                onValueChange={handleAssignDeelEmployee}
-                disabled={isUpdating}
-              >
-                <SelectTrigger className="h-8 w-[180px] text-xs">
-                  <SelectValue placeholder="Assign to..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassign">Unassign</SelectItem>
-                  {deelEmployees?.map((deelEmployee) => (
-                    <SelectItem key={deelEmployee.id} value={deelEmployee.id}>
-                      {deelEmployee.name || deelEmployee.workEmail}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Label
+                  htmlFor={`assign-${item.id}`}
+                  className="text-xs text-gray-600"
+                >
+                  Assign:
+                </Label>
+                <Select
+                  value={item.assignedTo?.id || 'unassign'}
+                  onValueChange={handleAssignDeelEmployee}
+                  disabled={isUpdating}
+                >
+                  <SelectTrigger
+                    id={`assign-${item.id}`}
+                    className="h-8 w-[180px] text-xs"
+                  >
+                    <SelectValue placeholder="Assign to...">
+                      {item.assignedTo
+                        ? item.assignedTo.name || item.assignedTo.workEmail
+                        : 'Assign to...'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassign">Unassign</SelectItem>
+                    {deelEmployees?.map((deelEmployee) => (
+                      <SelectItem key={deelEmployee.id} value={deelEmployee.id}>
+                        {deelEmployee.name || deelEmployee.workEmail}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <Checkbox
                 checked={item.completed}
                 onCheckedChange={handleToggleComplete}

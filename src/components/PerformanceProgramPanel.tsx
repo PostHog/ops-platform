@@ -223,34 +223,30 @@ export function PerformanceProgramPanel({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border bg-white p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold">Performance Program</h3>
-              <Badge className={statusColor}>{program.status}</Badge>
-            </div>
-            <p className="text-sm text-gray-500">
-              Started {new Date(program.startedAt).toLocaleDateString()} by{' '}
-              {program.startedBy.name || program.startedBy.email}
-              {program.resolvedAt && (
-                <>
-                  {' '}
-                  · Resolved {new Date(program.resolvedAt).toLocaleDateString()}
-                </>
-              )}
-            </p>
-          </div>
-          {program.status === 'ACTIVE' && allItemsCompleted && (
-            <Button
-              onClick={handleResolveProgram}
-              disabled={isResolving}
-              variant="default"
-            >
-              {isResolving ? 'Resolving...' : 'Resolve Program'}
-            </Button>
-          )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Badge className={statusColor}>{program.status}</Badge>
+          <span className="text-sm text-gray-500">
+            Started {new Date(program.startedAt).toLocaleDateString()} by{' '}
+            {program.startedBy.name || program.startedBy.email}
+            {program.resolvedAt && (
+              <>
+                {' '}
+                · Resolved {new Date(program.resolvedAt).toLocaleDateString()}
+              </>
+            )}
+          </span>
         </div>
+        {program.status === 'ACTIVE' && allItemsCompleted && (
+          <Button
+            onClick={handleResolveProgram}
+            disabled={isResolving}
+            variant="default"
+            size="sm"
+          >
+            {isResolving ? 'Resolving...' : 'Resolve Program'}
+          </Button>
+        )}
       </div>
 
       <div className="space-y-3">
