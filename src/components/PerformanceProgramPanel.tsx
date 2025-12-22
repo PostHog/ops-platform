@@ -275,64 +275,71 @@ export function PerformanceProgramPanel({
       <div className="rounded-lg border bg-white p-3">
         <h4 className="mb-2 text-sm font-semibold">Feedback</h4>
         {program.status === 'ACTIVE' && (
-          <div className="mb-2 flex items-center gap-1.5">
-            <Textarea
-              id="feedback-input"
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder="Enter feedback..."
-              rows={1}
-              className="min-h-[32px] flex-1 resize-none text-xs"
-            />
-            <div className="relative shrink-0">
-              <input
-                type="file"
-                id="feedback-file-upload"
-                className="hidden"
-                accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    handleFileUpload(file)
-                  }
-                  e.target.value = ''
-                }}
-                disabled={isUploadingFiles}
+          <div className="mb-2 space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <Textarea
+                id="feedback-input"
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Enter feedback..."
+                rows={1}
+                className="min-h-[32px] flex-1 resize-none text-xs"
               />
-              <Label htmlFor="feedback-file-upload" className="cursor-pointer">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
+              <div className="relative shrink-0">
+                <input
+                  type="file"
+                  id="feedback-file-upload"
+                  className="hidden"
+                  accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      handleFileUpload(file)
+                    }
+                    e.target.value = ''
+                  }}
                   disabled={isUploadingFiles}
-                  className="h-8 w-8 p-0"
-                  asChild
+                />
+                <Label
+                  htmlFor="feedback-file-upload"
+                  className="cursor-pointer"
                 >
-                  <span>
-                    <Upload className="h-4 w-4" />
-                  </span>
-                </Button>
-              </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploadingFiles}
+                    className="h-8 w-8 p-0"
+                    asChild
+                  >
+                    <span>
+                      <Upload className="h-4 w-4" />
+                    </span>
+                  </Button>
+                </Label>
+              </div>
+              <Button
+                onClick={handleAddFeedback}
+                disabled={
+                  !feedbackText.trim() ||
+                  isSubmittingFeedback ||
+                  isUploadingFiles
+                }
+                size="sm"
+                className="h-8 w-8 shrink-0 p-0"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
-            <Button
-              onClick={handleAddFeedback}
-              disabled={
-                !feedbackText.trim() || isSubmittingFeedback || isUploadingFiles
-              }
-              size="sm"
-              className="h-8 w-8 shrink-0 p-0"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
             {feedbackFiles.length > 0 && (
-              <div className="flex shrink-0 items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1">
                 {feedbackFiles.map((file, index) => (
                   <div
                     key={index}
                     className="flex items-center gap-1 rounded border bg-gray-50 px-1.5 py-0.5 text-xs"
                   >
                     <FileIcon className="h-3 w-3 text-gray-500" />
-                    <span className="max-w-[80px] truncate">{file.name}</span>
+                    <span className="max-w-[120px] truncate">{file.name}</span>
                     <button
                       type="button"
                       onClick={() => {
