@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { ChevronRight, ChevronDown, Clock, CalendarClock } from 'lucide-react'
+import {
+  ChevronRight,
+  ChevronDown,
+  Clock,
+  CalendarClock,
+  AlertTriangle,
+} from 'lucide-react'
 import { useRouter } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import type { HierarchyNode } from '@/lib/types'
@@ -13,6 +19,15 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
       select: {
         id: true
         email: true
+        performancePrograms: {
+          where: {
+            status: 'ACTIVE'
+          }
+          select: {
+            id: true
+          }
+          take: 1
+        }
       }
     }
   }
@@ -213,6 +228,14 @@ function TreeNode({
               </span>
             </div>
           )}
+          {node.hasActivePerformanceProgram && (
+            <div className="flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3 text-orange-600" />
+              <span className="text-xs font-medium text-orange-600">
+                Perf. Program
+              </span>
+            </div>
+          )}
           {node.childrenCount &&
           (node.childrenCount.active > 0 ||
             node.childrenCount.pending > 0 ||
@@ -308,6 +331,9 @@ const createEmployeeNode = (emp: DeelEmployee): HierarchyNode => ({
   employeeId: emp.employee?.id,
   workEmail: emp.workEmail,
   startDate: emp.startDate,
+  hasActivePerformanceProgram:
+    emp.employee?.performancePrograms &&
+    emp.employee.performancePrograms.length > 0,
   children: [],
 })
 

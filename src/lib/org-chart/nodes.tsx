@@ -2,7 +2,12 @@ import { Handle, Position } from '@xyflow/react'
 import { memo, useEffect, useState } from 'react'
 import { cn } from '../utils'
 import { OrgChartNode } from '@/routes/org-chart'
-import { CalendarClockIcon, ClockIcon, CrownIcon } from 'lucide-react'
+import {
+  CalendarClockIcon,
+  ClockIcon,
+  CrownIcon,
+  AlertTriangle,
+} from 'lucide-react'
 
 const useMetaKeyDown = () => {
   const [isMetaDown, setIsMetaDown] = useState(false)
@@ -127,6 +132,7 @@ const EmployeeNode = memo(function EmployeeNode({
     selectedNode,
     hiringPriority,
     isTeamLead,
+    hasActivePerformanceProgram,
   },
 }: {
   data: OrgChartNode['data']
@@ -215,6 +221,14 @@ const EmployeeNode = memo(function EmployeeNode({
               <div className="mt-1 flex items-center gap-2">
                 <span className="text-xs font-medium text-violet-600">
                   Proposed hire ({hiringPriority})
+                </span>
+              </div>
+            )}
+            {hasActivePerformanceProgram && (
+              <div className="mt-1 flex items-center gap-2">
+                <AlertTriangle className="h-3 w-3 text-orange-600" />
+                <span className="text-xs font-medium text-orange-600">
+                  Perf. Program
                 </span>
               </div>
             )}
