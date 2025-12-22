@@ -232,7 +232,7 @@ function TreeNode({
             <div className="flex items-center gap-1">
               <AlertTriangle className="h-3 w-3 text-orange-600" />
               <span className="text-xs font-medium text-orange-600">
-                Perf. Program
+                Performance Program
               </span>
             </div>
           )}
