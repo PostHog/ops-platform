@@ -29,6 +29,13 @@ type PerformanceProgram = Prisma.PerformanceProgramGetPayload<{
             email: true
           }
         }
+        assignedTo: {
+          select: {
+            id: true
+            name: true
+            workEmail: true
+          }
+        }
       }
     }
     feedback: {

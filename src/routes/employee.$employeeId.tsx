@@ -148,6 +148,13 @@ const getEmployeeById = createUserFn({
                           email: true,
                         },
                       },
+                      assignedTo: {
+                        select: {
+                          id: true,
+                          name: true,
+                          workEmail: true,
+                        },
+                      },
                     },
                     orderBy: {
                       createdAt: 'asc',
@@ -270,6 +277,13 @@ type Employee = Prisma.EmployeeGetPayload<{
                 email: true
               }
             }
+            assignedTo: {
+              select: {
+                id: true
+                name: true
+                workEmail: true
+              }
+            }
           }
         }
         feedback: {
@@ -369,6 +383,21 @@ export const getReferenceEmployees = createAuthenticatedFn({
       .sort((a, b) => a.step * a.level - b.step * b.level)
   })
 
+export const getDeelEmployees = createAuthenticatedFn({
+  method: 'GET',
+}).handler(async () => {
+  return await prisma.deelEmployee.findMany({
+    orderBy: {
+      name: 'asc',
+    },
+    select: {
+      id: true,
+      name: true,
+      workEmail: true,
+    },
+  })
+})
+
 export const updateSalary = createAuthenticatedFn({
   method: 'POST',
 })
@@ -439,6 +468,20 @@ export const createPerformanceProgram = createAuthenticatedFn({
       throw new Error('Employee already has an active performance program')
     }
 
+    // Get the employee's manager
+    const employee = await prisma.employee.findUnique({
+      where: { id: data.employeeId },
+      include: {
+        deelEmployee: {
+          select: {
+            managerId: true,
+          },
+        },
+      },
+    })
+
+    const managerId = employee?.deelEmployee?.managerId || null
+
     // Create program with initial checklist items
     const program = await prisma.performanceProgram.create({
       data: {
@@ -448,9 +491,11 @@ export const createPerformanceProgram = createAuthenticatedFn({
           create: [
             {
               type: 'SLACK_FEEDBACK_MEETING',
+              assignedToDeelEmployeeId: managerId,
             },
             {
               type: 'EMAIL_FEEDBACK_MEETING',
+              assignedToDeelEmployeeId: managerId,
             },
           ],
         },
@@ -464,6 +509,13 @@ export const createPerformanceProgram = createAuthenticatedFn({
                 id: true,
                 name: true,
                 email: true,
+              },
+            },
+            assignedTo: {
+              select: {
+                id: true,
+                name: true,
+                workEmail: true,
               },
             },
           },
@@ -497,7 +549,12 @@ export const updateChecklistItem = createAuthenticatedFn({
   method: 'POST',
 })
   .inputValidator(
-    (d: { checklistItemId: string; completed: boolean; notes?: string }) => d,
+    (d: {
+      checklistItemId: string
+      completed: boolean
+      notes?: string
+      assignedToDeelEmployeeId?: string | null
+    }) => d,
   )
   .handler(async ({ data, context }) => {
     if (context.user.role !== ROLES.ADMIN) {
@@ -523,6 +580,7 @@ export const updateChecklistItem = createAuthenticatedFn({
         completedAt: data.completed ? new Date() : null,
         completedByUserId: data.completed ? context.user.id : null,
         notes: data.notes,
+        assignedToDeelEmployeeId: data.assignedToDeelEmployeeId,
       },
       include: {
         files: true,
@@ -531,6 +589,13 @@ export const updateChecklistItem = createAuthenticatedFn({
             id: true,
             name: true,
             email: true,
+          },
+        },
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            workEmail: true,
           },
         },
       },

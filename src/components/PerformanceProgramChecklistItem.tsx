@@ -4,10 +4,19 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { createToast } from 'vercel-toast'
 import { useServerFn } from '@tanstack/react-start'
+import { useQuery } from '@tanstack/react-query'
 import {
   updateChecklistItem,
+  getDeelEmployees,
   getProofFileUploadUrl,
   createProofFileRecord,
   getProofFileUrl,
@@ -23,6 +32,13 @@ type ChecklistItem = Prisma.PerformanceProgramChecklistItemGetPayload<{
         id: true
         name: true
         email: true
+      }
+    }
+    assignedTo: {
+      select: {
+        id: true
+        name: true
+        workEmail: true
       }
     }
   }
@@ -42,10 +58,16 @@ export function PerformanceProgramChecklistItem({
   const [isUpdating, setIsUpdating] = useState(false)
 
   const updateItem = useServerFn(updateChecklistItem)
+  const getDeelEmployeesFn = useServerFn(getDeelEmployees)
   const getUploadUrl = useServerFn(getProofFileUploadUrl)
   const createFileRecord = useServerFn(createProofFileRecord)
   const getFileUrl = useServerFn(getProofFileUrl)
   const deleteFileFn = useServerFn(deleteProofFile)
+
+  const { data: deelEmployees } = useQuery({
+    queryKey: ['deelEmployees'],
+    queryFn: () => getDeelEmployeesFn(),
+  })
 
   const handleToggleComplete = async (checked: boolean) => {
     setIsUpdating(true)
@@ -55,6 +77,7 @@ export function PerformanceProgramChecklistItem({
           checklistItemId: item.id,
           completed: checked,
           notes: notes,
+          assignedToDeelEmployeeId: item.assignedTo?.id || null,
         },
       })
       createToast(
@@ -69,6 +92,36 @@ export function PerformanceProgramChecklistItem({
         error instanceof Error
           ? error.message
           : 'Failed to update checklist item',
+        { timeout: 3000 },
+      )
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleAssignDeelEmployee = async (deelEmployeeId: string) => {
+    setIsUpdating(true)
+    try {
+      await updateItem({
+        data: {
+          checklistItemId: item.id,
+          completed: item.completed,
+          notes: notes,
+          assignedToDeelEmployeeId: deelEmployeeId === 'unassign' ? null : deelEmployeeId,
+        },
+      })
+      createToast(
+        deelEmployeeId === 'unassign'
+          ? 'Assignment removed'
+          : 'Checklist item assigned',
+        { timeout: 3000 },
+      )
+      onUpdate()
+    } catch (error) {
+      createToast(
+        error instanceof Error
+          ? error.message
+          : 'Failed to assign checklist item',
         { timeout: 3000 },
       )
     } finally {
@@ -129,6 +182,7 @@ export function PerformanceProgramChecklistItem({
             checklistItemId: item.id,
             completed: true,
             notes: notes,
+            assignedToDeelEmployeeId: item.assignedTo?.id || null,
           },
         })
         createToast('File uploaded and item marked complete', { timeout: 3000 })
@@ -217,12 +271,36 @@ export function PerformanceProgramChecklistItem({
                   {new Date(item.completedAt).toLocaleDateString()}
                 </span>
               )}
+              {item.assignedTo && (
+                <span className="text-xs text-gray-500">
+                  Assigned to: {item.assignedTo.name || item.assignedTo.workEmail}
+                </span>
+              )}
             </div>
-            <Checkbox
-              checked={item.completed}
-              onCheckedChange={handleToggleComplete}
-              disabled={isUpdating}
-            />
+            <div className="flex items-center gap-2">
+              <Select
+                value={item.assignedTo?.id || 'unassign'}
+                onValueChange={handleAssignDeelEmployee}
+                disabled={isUpdating}
+              >
+                <SelectTrigger className="h-8 w-[180px] text-xs">
+                  <SelectValue placeholder="Assign to..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassign">Unassign</SelectItem>
+                  {deelEmployees?.map((deelEmployee) => (
+                    <SelectItem key={deelEmployee.id} value={deelEmployee.id}>
+                      {deelEmployee.name || deelEmployee.workEmail}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Checkbox
+                checked={item.completed}
+                onCheckedChange={handleToggleComplete}
+                disabled={isUpdating}
+              />
+            </div>
           </div>
 
           {item.files.length > 0 && (
@@ -301,6 +379,7 @@ export function PerformanceProgramChecklistItem({
                       checklistItemId: item.id,
                       completed: item.completed,
                       notes: notes,
+                      assignedToDeelEmployeeId: item.assignedTo?.id || null,
                     },
                   })
                   onUpdate()

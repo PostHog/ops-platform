@@ -38,20 +38,21 @@ enum SalaryDeviationStatus {
 }
 
 model DeelEmployee {
-  id                    String         @id
-  name                  String
-  title                 String
-  team                  String
-  workEmail             String?        @unique
-  personalEmail         String?
-  managerId             String?
-  manager               DeelEmployee?  @relation("manager", fields: [managerId], references: [id])
-  directReports         DeelEmployee[] @relation("manager")
-  topLevelManagerId     String?
-  topLevelManager       DeelEmployee?  @relation("topLevelManager", fields: [topLevelManagerId], references: [id])
-  topLevelDirectReports DeelEmployee[] @relation("topLevelManager")
-  employee              Employee?      @relation(fields: [workEmail], references: [email])
-  startDate             DateTime
+  id                     String                            @id
+  name                   String
+  title                  String
+  team                   String
+  workEmail              String?                           @unique
+  personalEmail          String?
+  managerId              String?
+  manager                DeelEmployee?                     @relation("manager", fields: [managerId], references: [id])
+  directReports          DeelEmployee[]                    @relation("manager")
+  topLevelManagerId      String?
+  topLevelManager        DeelEmployee?                     @relation("topLevelManager", fields: [topLevelManagerId], references: [id])
+  topLevelDirectReports  DeelEmployee[]                    @relation("topLevelManager")
+  employee               Employee?                         @relation(fields: [workEmail], references: [email])
+  checklistItemsAssigned PerformanceProgramChecklistItem[] @relation("ChecklistItemAssignedTo")
+  startDate              DateTime
 }
 
 enum Priority {
@@ -264,18 +265,20 @@ model PerformanceProgram {
 }
 
 model PerformanceProgramChecklistItem {
-  id                String             @id @default(cuid())
-  programId         String
-  program           PerformanceProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
-  type              ChecklistItemType
-  completed         Boolean            @default(false)
-  completedAt       DateTime?
-  completedByUserId String?
-  completedBy       User?              @relation("ChecklistItemCompletedBy", fields: [completedByUserId], references: [id])
-  files             File[]
-  notes             String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @default(now()) @updatedAt
+  id                       String             @id @default(cuid())
+  programId                String
+  program                  PerformanceProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  type                     ChecklistItemType
+  completed                Boolean            @default(false)
+  completedAt              DateTime?
+  completedByUserId        String?
+  completedBy              User?              @relation("ChecklistItemCompletedBy", fields: [completedByUserId], references: [id])
+  assignedToDeelEmployeeId String?
+  assignedTo               DeelEmployee?      @relation("ChecklistItemAssignedTo", fields: [assignedToDeelEmployeeId], references: [id])
+  files                    File[]
+  notes                    String?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @default(now()) @updatedAt
 }
 
 model File {
