@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CheckCircle2, Circle, Upload, File as FileIcon, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -69,6 +69,10 @@ export function PerformanceProgramChecklistItem({
     queryFn: () => getDeelEmployeesFn(),
   })
 
+  useEffect(() => {
+    setNotes(item.notes || '')
+  }, [item.notes])
+
   const handleToggleComplete = async (checked: boolean) => {
     setIsUpdating(true)
     try {
@@ -76,7 +80,7 @@ export function PerformanceProgramChecklistItem({
         data: {
           checklistItemId: item.id,
           completed: checked,
-          notes: notes,
+          notes: notes || undefined,
           assignedToDeelEmployeeId: item.assignedTo?.id || null,
         },
       })
@@ -106,7 +110,7 @@ export function PerformanceProgramChecklistItem({
         data: {
           checklistItemId: item.id,
           completed: item.completed,
-          notes: notes,
+          notes: notes || undefined,
           assignedToDeelEmployeeId:
             deelEmployeeId === 'unassign' ? null : deelEmployeeId,
         },
@@ -182,7 +186,7 @@ export function PerformanceProgramChecklistItem({
           data: {
             checklistItemId: item.id,
             completed: true,
-            notes: notes,
+            notes: notes || undefined,
             assignedToDeelEmployeeId: item.assignedTo?.id || null,
           },
         })
@@ -243,175 +247,159 @@ export function PerformanceProgramChecklistItem({
 
   return (
     <div
-      className={`rounded-lg border p-4 transition-colors ${
+      className={`flex items-center gap-3 rounded border px-3 py-2 transition-colors ${
         item.completed
           ? 'border-green-200 bg-green-50/50'
           : 'border-gray-200 bg-white'
       }`}
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5">
-          {item.completed ? (
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-          ) : (
-            <Circle className="h-5 w-5 text-gray-400" />
+      {item.completed ? (
+        <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+      ) : (
+        <Circle className="h-4 w-4 shrink-0 text-gray-400" />
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <div
+            className={`text-sm font-medium ${
+              item.completed ? 'text-green-900' : 'text-gray-900'
+            }`}
+          >
+            {itemTypeLabel}
+          </div>
+          {item.completed && item.completedAt && (
+            <div className="text-xs text-gray-500">
+              Completed {new Date(item.completedAt).toLocaleDateString()}
+            </div>
           )}
         </div>
-        <div className="flex-1 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h4
-                className={`font-medium ${
-                  item.completed ? 'text-green-900' : 'text-gray-900'
-                }`}
+        {item.files.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {item.files.map((file) => (
+              <div
+                key={file.id}
+                className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs hover:border-gray-300"
               >
-                {itemTypeLabel}
-              </h4>
-              {item.completed && item.completedAt && (
-                <span className="text-xs text-gray-500">
-                  {new Date(item.completedAt).toLocaleDateString()}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                <Label
-                  htmlFor={`assign-${item.id}`}
-                  className="text-xs text-gray-600"
-                >
-                  Assign:
-                </Label>
-                <Select
-                  value={item.assignedTo?.id || 'unassign'}
-                  onValueChange={handleAssignDeelEmployee}
-                  disabled={isUpdating}
-                >
-                  <SelectTrigger
-                    id={`assign-${item.id}`}
-                    className="h-8 w-[180px] text-xs"
+                <FileIcon className="h-3 w-3 text-gray-500" />
+                <span className="text-gray-700">{file.fileName}</span>
+                <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 px-1 text-xs"
+                    onClick={() => handleDownloadFile(file.id)}
                   >
-                    <SelectValue placeholder="Assign to...">
-                      {item.assignedTo
-                        ? item.assignedTo.name || item.assignedTo.workEmail
-                        : 'Assign to...'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassign">Unassign</SelectItem>
-                    {deelEmployees?.map((deelEmployee) => (
-                      <SelectItem key={deelEmployee.id} value={deelEmployee.id}>
-                        {deelEmployee.name || deelEmployee.workEmail}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Checkbox
-                checked={item.completed}
-                onCheckedChange={handleToggleComplete}
-                disabled={isUpdating}
-              />
-            </div>
-          </div>
-
-          {item.files.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {item.files.map((file) => (
-                <div
-                  key={file.id}
-                  className="group flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm hover:border-gray-300"
-                >
-                  <FileIcon className="h-3.5 w-3.5 text-gray-500" />
-                  <span className="text-gray-700">{file.fileName}</span>
-                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-5 px-1.5 text-xs"
-                      onClick={() => handleDownloadFile(file.id)}
-                    >
-                      Download
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-5 w-5 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
-                      onClick={() => handleDeleteFile(file.id)}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                    Download
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    onClick={() => handleDeleteFile(file.id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="file"
-                id={`file-upload-${item.id}`}
-                className="hidden"
-                accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
-                onChange={handleFileUpload}
-                disabled={isUploading}
-              />
-              <Label
-                htmlFor={`file-upload-${item.id}`}
-                className="cursor-pointer"
-              >
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isUploading}
-                  className="w-full"
-                  asChild
-                >
-                  <span>
-                    <Upload className="mr-2 h-4 w-4" />
-                    {isUploading ? 'Uploading...' : 'Upload Proof'}
-                  </span>
-                </Button>
-              </Label>
-            </div>
+              </div>
+            ))}
           </div>
-
-          <Textarea
-            id={`notes-${item.id}`}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onBlur={async () => {
-              if (notes !== item.notes) {
-                setIsUpdating(true)
-                try {
-                  await updateItem({
-                    data: {
-                      checklistItemId: item.id,
-                      completed: item.completed,
-                      notes: notes,
-                      assignedToDeelEmployeeId: item.assignedTo?.id || null,
-                    },
-                  })
-                  onUpdate()
-                } catch (error) {
-                  createToast(
-                    error instanceof Error
-                      ? error.message
-                      : 'Failed to update notes',
-                    { timeout: 3000 },
-                  )
-                } finally {
-                  setIsUpdating(false)
-                }
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Textarea
+          id={`notes-${item.id}`}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          onBlur={async () => {
+            if (notes !== (item.notes || '')) {
+              setIsUpdating(true)
+              try {
+                await updateItem({
+                  data: {
+                    checklistItemId: item.id,
+                    completed: item.completed,
+                    notes: notes || undefined,
+                    assignedToDeelEmployeeId: item.assignedTo?.id || null,
+                  },
+                })
+                onUpdate()
+              } catch (error) {
+                createToast(
+                  error instanceof Error
+                    ? error.message
+                    : 'Failed to update notes',
+                  { timeout: 3000 },
+                )
+              } finally {
+                setIsUpdating(false)
               }
-            }}
-            placeholder="Add notes (optional)..."
-            className="min-h-[60px] resize-none text-sm"
-            rows={2}
-            disabled={item.completed}
-          />
+            }
+          }}
+          placeholder="Add notes (optional)..."
+          className="min-h-[24px] w-[200px] resize-none !text-xs"
+          rows={1}
+          disabled={item.completed}
+        />
+        <div className="flex items-center gap-2">
+          <Label
+            htmlFor={`assign-${item.id}`}
+            className="text-xs text-gray-600"
+          >
+            Assign:
+          </Label>
+          <Select
+            value={item.assignedTo?.id || 'unassign'}
+            onValueChange={handleAssignDeelEmployee}
+            disabled={isUpdating}
+          >
+            <SelectTrigger
+              id={`assign-${item.id}`}
+              className="h-8 w-[180px] text-xs"
+            >
+              <SelectValue placeholder="Assign to...">
+                {item.assignedTo
+                  ? item.assignedTo.name || item.assignedTo.workEmail
+                  : 'Assign to...'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unassign">Unassign</SelectItem>
+              {deelEmployees?.map((deelEmployee) => (
+                <SelectItem key={deelEmployee.id} value={deelEmployee.id}>
+                  {deelEmployee.name || deelEmployee.workEmail}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+        <div className="relative">
+          <input
+            type="file"
+            id={`file-upload-${item.id}`}
+            className="hidden"
+            accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
+            onChange={handleFileUpload}
+            disabled={isUploading}
+          />
+          <Label htmlFor={`file-upload-${item.id}`} className="cursor-pointer">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isUploading}
+              asChild
+            >
+              <span>
+                <Upload className="h-3.5 w-3.5" />
+              </span>
+            </Button>
+          </Label>
+        </div>
+        <Checkbox
+          checked={item.completed}
+          onCheckedChange={handleToggleComplete}
+          disabled={isUpdating}
+        />
       </div>
     </div>
   )
