@@ -210,6 +210,10 @@ export function PerformanceProgramPanel({
     return null
   }
 
+  if (program.status !== 'ACTIVE') {
+    return null
+  }
+
   const allItemsCompleted = program.checklistItems.every(
     (item) => item.completed,
   )
