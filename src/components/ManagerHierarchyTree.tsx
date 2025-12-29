@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import { ChevronRight, ChevronDown, Clock, CalendarClock } from 'lucide-react'
 import { useRouter } from '@tanstack/react-router'
+import { useLocalStorage } from 'usehooks-ts'
 import { cn } from '@/lib/utils'
 import type { HierarchyNode } from '@/lib/types'
 import type { Prisma } from '@prisma/client'
@@ -64,7 +65,10 @@ function TreeNode({
   isTeamNode?: boolean
   proposedHiresMap?: Map<string, ProposedHire>
 }) {
-  const [isExpanded, setIsExpanded] = useState(true)
+  const [isExpanded, setIsExpanded] = useLocalStorage<boolean>(
+    `manager-tree.expanded.${node.id}`,
+    true,
+  )
   const nodeRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const hasChildren = node.children.length > 0
@@ -91,7 +95,7 @@ function TreeNode({
     if (expandAll !== null) {
       setIsExpanded(expandAll)
     }
-  }, [expandAll, expandAllCounter])
+  }, [expandAll, expandAllCounter, setIsExpanded])
 
   // Expand if current employee is a descendant (to make it visible)
   useEffect(() => {
