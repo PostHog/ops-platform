@@ -127,9 +127,11 @@ export function PerformanceProgramTimelineCard({
             {completedBy && (
               <span className="font-normal text-gray-500">
                 {' '}
-                - {event === 'checklist-completed'
+                -{' '}
+                {event === 'checklist-completed' || event === 'feedback'
                   ? 'completed'
-                  : 'started'} by {completedBy}
+                  : 'started'}{' '}
+                by {completedBy}
               </span>
             )}
           </h4>
