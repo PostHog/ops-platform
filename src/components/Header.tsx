@@ -84,6 +84,9 @@ export default function Header() {
                 <Link to="/org-chart">Org chart</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/org-tree">Org tree</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/proposed-hires">Proposed hires</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
