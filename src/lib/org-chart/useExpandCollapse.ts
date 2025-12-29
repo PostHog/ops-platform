@@ -70,6 +70,7 @@ function filterCollapsedChildren(
   let active = 0
   let pending = 0
   let planned = 0
+  let performanceIssues = 0
 
   for (const descendantId of allDescendantIds) {
     const descendantNode = allNodes.find((n) => n.id === descendantId)
@@ -98,6 +99,11 @@ function filterCollapsedChildren(
         // No start date means they're already active
         active++
       }
+
+      // Count performance issues
+      if (descendantNode.data.hasActivePerformanceProgram) {
+        performanceIssues++
+      }
     }
   }
 
@@ -107,6 +113,7 @@ function filterCollapsedChildren(
     active,
     pending,
     planned,
+    performanceIssues,
   }
 
   // If the node is collpased (ie it is not expanded) then we want to remove all

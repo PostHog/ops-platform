@@ -33,6 +33,15 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
       select: {
         id: true
         email: true
+        performancePrograms: {
+          where: {
+            status: 'ACTIVE'
+          }
+          select: {
+            id: true
+          }
+          take: 1
+        }
       }
     }
     manager: {
@@ -79,10 +88,12 @@ export type OrgChartNode = Node<
     startDate?: Date
     expanded: boolean
     isTeamLead?: boolean
+    hasActivePerformanceProgram?: boolean
     childrenCount?: {
       active: number
       pending: number
       planned: number
+      performanceIssues: number
     }
     toggleExpanded: (expandAll?: boolean) => void
     handleClick?: (id: string) => void
@@ -99,6 +110,15 @@ export const getDeelEmployeesAndProposedHires = createOrgChartFn({
         select: {
           id: true,
           email: true,
+          performancePrograms: {
+            where: {
+              status: 'ACTIVE',
+            },
+            select: {
+              id: true,
+            },
+            take: 1,
+          },
         },
       },
       manager: {
@@ -171,6 +191,9 @@ const getInitialNodes = (
       manager: employee.managerId,
       startDate: employee.startDate,
       isTeamLead: teamLeads.has(employee.id),
+      hasActivePerformanceProgram:
+        employee.employee?.performancePrograms &&
+        employee.employee.performancePrograms.length > 0,
     },
   }))
 

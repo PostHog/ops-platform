@@ -7,10 +7,12 @@ export type HierarchyNode = {
   workEmail?: string | null
   startDate?: Date | null
   hiringPriority?: 'low' | 'medium' | 'high'
+  hasActivePerformanceProgram?: boolean
   children: HierarchyNode[]
   childrenCount?: {
     active: number
     pending: number
     planned: number
+    performanceIssues: number
   }
 }

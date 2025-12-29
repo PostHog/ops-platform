@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { useServerFn } from '@tanstack/react-start'
 import { useAtom } from 'jotai'
 import {
   AlertCircle,
@@ -8,6 +9,7 @@ import {
   ChevronsRightLeft,
   Search,
   Check,
+  MoreVertical,
 } from 'lucide-react'
 import {
   flexRender,
@@ -26,6 +28,7 @@ import { reviewQueueAtom } from '@/atoms'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
 import { FeedbackCard } from '@/components/FeedbackCard'
+import { PerformanceProgramTimelineCard } from '@/components/PerformanceProgramTimelineCard'
 import { SalaryWithMismatchIndicator } from '@/components/SalaryWithMismatchIndicator'
 import {
   bonusPercentage,
@@ -45,6 +48,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Tooltip,
   TooltipContent,
@@ -72,6 +81,7 @@ import { NewSalaryForm } from '@/components/NewSalaryForm'
 import { ManagerHierarchyTree } from '@/components/ManagerHierarchyTree'
 import type { HierarchyNode } from '@/lib/types'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
+import { PerformanceProgramPanel } from '@/components/PerformanceProgramPanel'
 import {
   Select,
   SelectContent,
@@ -121,6 +131,57 @@ const getEmployeeById = createUserFn({
                       deelEmployee: true,
                     },
                   },
+                },
+              },
+              performancePrograms: {
+                include: {
+                  checklistItems: {
+                    include: {
+                      files: true,
+                      completedBy: {
+                        select: {
+                          id: true,
+                          name: true,
+                          email: true,
+                        },
+                      },
+                      assignedTo: {
+                        select: {
+                          id: true,
+                          name: true,
+                          workEmail: true,
+                        },
+                      },
+                    },
+                    orderBy: {
+                      createdAt: 'asc',
+                    },
+                  },
+                  feedback: {
+                    orderBy: {
+                      createdAt: 'desc',
+                    },
+                    include: {
+                      givenBy: {
+                        select: {
+                          id: true,
+                          name: true,
+                          email: true,
+                        },
+                      },
+                      files: true,
+                    },
+                  },
+                  startedBy: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
+                },
+                orderBy: {
+                  startedAt: 'desc',
                 },
               },
             }
@@ -196,6 +257,47 @@ type Employee = Prisma.EmployeeGetPayload<{
         manager: {
           include: {
             deelEmployee: true
+          }
+        }
+      }
+    }
+    performancePrograms: {
+      include: {
+        checklistItems: {
+          include: {
+            files: true
+            completedBy: {
+              select: {
+                id: true
+                name: true
+                email: true
+              }
+            }
+            assignedTo: {
+              select: {
+                id: true
+                name: true
+                workEmail: true
+              }
+            }
+          }
+        }
+        feedback: {
+          include: {
+            givenBy: {
+              select: {
+                id: true
+                name: true
+                email: true
+              }
+            }
+          }
+        }
+        startedBy: {
+          select: {
+            id: true
+            name: true
+            email: true
           }
         }
       }
@@ -277,6 +379,21 @@ export const getReferenceEmployees = createAuthenticatedFn({
       .sort((a, b) => a.step * a.level - b.step * b.level)
   })
 
+export const getDeelEmployees = createAuthenticatedFn({
+  method: 'GET',
+}).handler(async () => {
+  return await prisma.deelEmployee.findMany({
+    orderBy: {
+      name: 'asc',
+    },
+    select: {
+      id: true,
+      name: true,
+      workEmail: true,
+    },
+  })
+})
+
 export const updateSalary = createAuthenticatedFn({
   method: 'POST',
 })
@@ -331,6 +448,463 @@ export const deleteSalary = createAuthenticatedFn({
     return { success: true }
   })
 
+export const createPerformanceProgram = createAuthenticatedFn({
+  method: 'POST',
+})
+  .inputValidator((d: { employeeId: string }) => d)
+  .handler(async ({ data, context }) => {
+    const existingProgram = await prisma.performanceProgram.findFirst({
+      where: {
+        employeeId: data.employeeId,
+        status: 'ACTIVE',
+      },
+    })
+
+    if (existingProgram) {
+      throw new Error('Employee already has an active performance program')
+    }
+
+    // Get the employee's manager
+    const employee = await prisma.employee.findUnique({
+      where: { id: data.employeeId },
+      include: {
+        deelEmployee: {
+          select: {
+            managerId: true,
+          },
+        },
+      },
+    })
+
+    const managerId = employee?.deelEmployee?.managerId || null
+
+    // Create program with initial checklist items
+    const now = new Date()
+    const slackDueDate = new Date(now)
+    slackDueDate.setDate(now.getDate() + 5)
+    const emailDueDate = new Date(now)
+    emailDueDate.setDate(now.getDate() + 7)
+
+    const program = await prisma.performanceProgram.create({
+      data: {
+        employeeId: data.employeeId,
+        startedByUserId: context.user.id,
+        checklistItems: {
+          create: [
+            {
+              type: 'SLACK_FEEDBACK_MEETING',
+              assignedToDeelEmployeeId: managerId,
+              dueDate: slackDueDate,
+            },
+            {
+              type: 'EMAIL_FEEDBACK_MEETING',
+              assignedToDeelEmployeeId: managerId,
+              dueDate: emailDueDate,
+            },
+          ],
+        },
+      },
+      include: {
+        checklistItems: {
+          include: {
+            files: true,
+            completedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            assignedTo: {
+              select: {
+                id: true,
+                name: true,
+                workEmail: true,
+              },
+            },
+          },
+        },
+        feedback: {
+          include: {
+            givenBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            files: true,
+          },
+        },
+        startedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    })
+
+    return program
+  })
+
+export const updateChecklistItem = createAuthenticatedFn({
+  method: 'POST',
+})
+  .inputValidator(
+    (d: {
+      checklistItemId: string
+      completed: boolean
+      notes?: string
+      assignedToDeelEmployeeId?: string | null
+      dueDate?: string | null
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    if (context.user.role !== ROLES.ADMIN) {
+      throw new Error('Unauthorized')
+    }
+
+    const checklistItem =
+      await prisma.performanceProgramChecklistItem.findUnique({
+        where: { id: data.checklistItemId },
+        include: {
+          program: true,
+        },
+      })
+
+    if (!checklistItem) {
+      throw new Error('Checklist item not found')
+    }
+
+    const updated = await prisma.performanceProgramChecklistItem.update({
+      where: { id: data.checklistItemId },
+      data: {
+        completed: data.completed,
+        completedAt: data.completed ? new Date() : null,
+        completedByUserId: data.completed ? context.user.id : null,
+        notes: data.notes,
+        assignedToDeelEmployeeId: data.assignedToDeelEmployeeId,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+      },
+      include: {
+        files: true,
+        completedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            workEmail: true,
+          },
+        },
+      },
+    })
+
+    return updated
+  })
+
+export const addProgramFeedback = createAuthenticatedFn({
+  method: 'POST',
+})
+  .inputValidator((d: { programId: string; feedback: string }) => d)
+  .handler(async ({ data, context }) => {
+    if (context.user.role !== ROLES.ADMIN) {
+      throw new Error('Unauthorized')
+    }
+
+    const program = await prisma.performanceProgram.findUnique({
+      where: { id: data.programId },
+    })
+
+    if (!program) {
+      throw new Error('Performance program not found')
+    }
+
+    const feedback = await prisma.performanceProgramFeedback.create({
+      data: {
+        programId: data.programId,
+        feedback: data.feedback,
+        givenByUserId: context.user.id,
+      },
+      include: {
+        givenBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        files: true,
+      },
+    })
+
+    return feedback
+  })
+
+export const resolvePerformanceProgram = createAuthenticatedFn({
+  method: 'POST',
+})
+  .inputValidator((d: { programId: string }) => d)
+  .handler(async ({ data, context }) => {
+    if (context.user.role !== ROLES.ADMIN) {
+      throw new Error('Unauthorized')
+    }
+
+    const program = await prisma.performanceProgram.findUnique({
+      where: { id: data.programId },
+      include: {
+        checklistItems: true,
+      },
+    })
+
+    if (!program) {
+      throw new Error('Performance program not found')
+    }
+
+    if (program.status !== 'ACTIVE') {
+      throw new Error('Program is not active')
+    }
+
+    // Check if all checklist items are completed
+    const allCompleted = program.checklistItems.every((item) => item.completed)
+
+    if (!allCompleted) {
+      throw new Error('All checklist items must be completed before resolving')
+    }
+
+    const updated = await prisma.performanceProgram.update({
+      where: { id: data.programId },
+      data: {
+        status: 'RESOLVED',
+        resolvedAt: new Date(),
+      },
+      include: {
+        checklistItems: {
+          include: {
+            files: true,
+            completedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        feedback: {
+          include: {
+            givenBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        startedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    })
+
+    return updated
+  })
+
+export const getProofFileUploadUrl = createAuthenticatedFn({
+  method: 'POST',
+})
+  .inputValidator(
+    (d: {
+      checklistItemId?: string
+      programId?: string
+      fileName: string
+      fileSize: number
+      mimeType: string
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    if (context.user.role !== ROLES.ADMIN) {
+      throw new Error('Unauthorized')
+    }
+
+    if (!data.checklistItemId && !data.programId) {
+      throw new Error('Either checklistItemId or programId must be provided')
+    }
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    if (data.fileSize > maxSize) {
+      throw new Error('File size exceeds 10MB limit')
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/gif',
+      'text/plain',
+    ]
+    if (!allowedTypes.includes(data.mimeType)) {
+      throw new Error('File type not allowed')
+    }
+
+    let programId: string
+    let fileKey: string
+
+    if (data.checklistItemId) {
+      const checklistItem =
+        await prisma.performanceProgramChecklistItem.findUnique({
+          where: { id: data.checklistItemId },
+          include: {
+            program: true,
+          },
+        })
+
+      if (!checklistItem) {
+        throw new Error('Checklist item not found')
+      }
+
+      programId = checklistItem.programId
+
+      // Generate file key for checklist item
+      const { generateFileKey } = await import('@/lib/s3')
+      fileKey = generateFileKey(programId, data.checklistItemId, data.fileName)
+    } else {
+      // For feedback files, verify program exists
+      const program = await prisma.performanceProgram.findUnique({
+        where: { id: data.programId! },
+      })
+
+      if (!program) {
+        throw new Error('Performance program not found')
+      }
+
+      programId = data.programId!
+
+      // Generate file key for feedback
+      const sanitizedFileName = data.fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const timestamp = Date.now()
+      fileKey = `performance-programs/${programId}/feedback/${timestamp}-${sanitizedFileName}`
+    }
+
+    // Generate presigned upload URL
+    const { getPresignedUploadUrl } = await import('@/lib/s3')
+    const uploadUrl = await getPresignedUploadUrl(
+      fileKey,
+      data.mimeType,
+      3600, // 1 hour
+    )
+
+    return {
+      uploadUrl,
+      fileKey,
+    }
+  })
+
+export const createProofFileRecord = createAuthenticatedFn({
+  method: 'POST',
+})
+  .inputValidator(
+    (d: {
+      checklistItemId?: string
+      feedbackId?: string
+      fileName: string
+      fileSize: number
+      mimeType: string
+      fileKey: string
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    if (context.user.role !== ROLES.ADMIN) {
+      throw new Error('Unauthorized')
+    }
+
+    if (!data.checklistItemId && !data.feedbackId) {
+      throw new Error('Either checklistItemId or feedbackId must be provided')
+    }
+
+    // Create database record
+    const proofFile = await prisma.file.create({
+      data: {
+        checklistItemId: data.checklistItemId || null,
+        feedbackId: data.feedbackId || null,
+        fileName: data.fileName,
+        fileUrl: data.fileKey, // Store the S3 key
+        fileSize: data.fileSize,
+        mimeType: data.mimeType,
+        uploadedByUserId: context.user.id,
+      },
+    })
+
+    return proofFile
+  })
+
+export const getProofFileUrl = createAuthenticatedFn({
+  method: 'GET',
+})
+  .inputValidator((d: { proofFileId: string }) => d)
+  .handler(async ({ data, context }) => {
+    if (context.user.role !== ROLES.ADMIN) {
+      throw new Error('Unauthorized')
+    }
+
+    const proofFile = await prisma.file.findUnique({
+      where: { id: data.proofFileId },
+    })
+
+    if (!proofFile) {
+      throw new Error('Proof file not found')
+    }
+
+    // Generate presigned download URL
+    const { getPresignedDownloadUrl } = await import('@/lib/s3')
+    const url = await getPresignedDownloadUrl(proofFile.fileUrl, 3600) // 1 hour
+
+    return { url, fileName: proofFile.fileName }
+  })
+
+export const deleteProofFile = createAuthenticatedFn({
+  method: 'POST',
+})
+  .inputValidator((d: { proofFileId: string }) => d)
+  .handler(async ({ data, context }) => {
+    if (context.user.role !== ROLES.ADMIN) {
+      throw new Error('Unauthorized')
+    }
+
+    const proofFile = await prisma.file.findUnique({
+      where: { id: data.proofFileId },
+    })
+
+    if (!proofFile) {
+      throw new Error('Proof file not found')
+    }
+
+    // Delete from database (cascade will handle relations)
+    await prisma.file.delete({
+      where: { id: data.proofFileId },
+    })
+
+    // Note: We don't delete from S3 to avoid potential issues
+    // The file will remain in S3 but won't be accessible through the app
+
+    return { success: true }
+  })
+
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
@@ -364,6 +938,7 @@ function EmployeeOverview() {
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
   const [reviewQueue, setReviewQueue] = useAtom(reviewQueueAtom)
+  const createProgram = useServerFn(createPerformanceProgram)
   const [level, setLevel] = useState(employee.salaries[0]?.level ?? 1)
   const [step, setStep] = useState(employee.salaries[0]?.step ?? 1)
   const [benchmark, setBenchmark] = useState(
@@ -375,6 +950,25 @@ function EmployeeOverview() {
     Object.keys(bonusPercentage).includes(benchmark)
 
   if (!employee) return null
+
+  const handleStartPerformanceProgram = async () => {
+    try {
+      await createProgram({
+        data: {
+          employeeId: employee.id,
+        },
+      })
+      createToast('Performance program started', { timeout: 3000 })
+      router.invalidate()
+    } catch (error) {
+      createToast(
+        error instanceof Error
+          ? error.message
+          : 'Failed to start performance program',
+        { timeout: 3000 },
+      )
+    }
+  }
 
   const handleDeleteSalary = async (salaryId: string) => {
     try {
@@ -471,6 +1065,9 @@ function EmployeeOverview() {
           employeeId: employee.employee?.id,
           workEmail: employee.workEmail,
           startDate: employee.startDate,
+          hasActivePerformanceProgram:
+            employee.employee?.performancePrograms &&
+            employee.employee.performancePrograms.length > 0,
           children: [],
         }
       }
@@ -516,6 +1113,9 @@ function EmployeeOverview() {
         employeeId: employee.employee?.id,
         workEmail: employee.workEmail,
         startDate: employee.startDate,
+        hasActivePerformanceProgram:
+          employee.employee?.performancePrograms &&
+          employee.employee.performancePrograms.length > 0,
         children: allChildren,
       }
     }
@@ -581,7 +1181,7 @@ function EmployeeOverview() {
     return combined.sort((a, b) => a.step * a.level - b.step * b.level)
   }, [referenceEmployees, employee, level, step])
 
-  // Combine and sort salary history with feedback, grouped by month
+  // Combine and sort salary history with feedback and performance programs, grouped by month
   const timelineByMonth = useMemo(() => {
     const salaryItems = employee.salaries.map((salary) => ({
       type: 'salary' as const,
@@ -597,9 +1197,81 @@ function EmployeeOverview() {
       }),
     )
 
-    const allItems = [...salaryItems, ...feedbackItems].sort(
-      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
-    )
+    const performanceProgramItems: Array<{
+      type: 'performance-program'
+      timestamp: Date
+      data: {
+        event: 'started' | 'resolved' | 'checklist-completed' | 'feedback'
+        program?: any
+        checklistItem?: any
+        feedback?: any
+      }
+    }> = []
+
+    if (
+      'performancePrograms' in employee &&
+      employee.performancePrograms &&
+      employee.performancePrograms.length > 0
+    ) {
+      const programs = employee.performancePrograms
+      programs.forEach((program) => {
+        // Program start
+        performanceProgramItems.push({
+          type: 'performance-program',
+          timestamp: program.startedAt,
+          data: {
+            event: 'started',
+            program,
+          },
+        })
+
+        // Program resolution
+        if (program.resolvedAt) {
+          performanceProgramItems.push({
+            type: 'performance-program',
+            timestamp: program.resolvedAt,
+            data: {
+              event: 'resolved',
+              program,
+            },
+          })
+        }
+
+        // Checklist item completions
+        program.checklistItems.forEach((item) => {
+          if (item.completed && item.completedAt) {
+            performanceProgramItems.push({
+              type: 'performance-program',
+              timestamp: item.completedAt,
+              data: {
+                event: 'checklist-completed',
+                program,
+                checklistItem: item,
+              },
+            })
+          }
+        })
+
+        // Feedback entries
+        program.feedback.forEach((feedback) => {
+          performanceProgramItems.push({
+            type: 'performance-program',
+            timestamp: feedback.createdAt,
+            data: {
+              event: 'feedback',
+              program,
+              feedback,
+            },
+          })
+        })
+      })
+    }
+
+    const allItems = [
+      ...salaryItems,
+      ...feedbackItems,
+      ...performanceProgramItems,
+    ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 
     // Group items by month/year
     const grouped = new Map<
@@ -626,7 +1298,11 @@ function EmployeeOverview() {
     })
 
     return Array.from(grouped.values())
-  }, [employee.salaries, employee.keeperTestFeedback])
+  }, [
+    employee.salaries,
+    employee.keeperTestFeedback,
+    employee.performancePrograms,
+  ])
 
   const columns: Array<ColumnDef<Salary>> = useMemo(() => {
     const baseColumns: Array<ColumnDef<Salary>> = [
@@ -1122,8 +1798,38 @@ function EmployeeOverview() {
                   Move to next employee
                 </Button>
               ) : null}
+              {user?.role === ROLES.ADMIN ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleStartPerformanceProgram}>
+                      Start Performance Program
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
             </div>
           </div>
+
+          {user?.role === ROLES.ADMIN ? (
+            <div className="w-full">
+              <PerformanceProgramPanel
+                employeeId={employee.id}
+                program={
+                  'performancePrograms' in employee &&
+                  employee.performancePrograms &&
+                  employee.performancePrograms.length > 0
+                    ? (employee.performancePrograms[0] as any)
+                    : null
+                }
+                onUpdate={() => router.invalidate()}
+              />
+            </div>
+          ) : null}
 
           {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
             <>
@@ -1438,21 +2144,37 @@ function EmployeeOverview() {
                             itemIndex === monthGroup.items.length - 1
                           const lastTableItem = isLastMonth && isLastItemInMonth
 
-                          return item.type === 'salary' ? (
-                            <SalaryHistoryCard
-                              key={`salary-${item.data.id}`}
-                              salary={item.data}
-                              isAdmin={user?.role === ROLES.ADMIN}
-                              onDelete={handleDeleteSalary}
-                              lastTableItem={lastTableItem}
-                            />
-                          ) : (
-                            <FeedbackCard
-                              key={`feedback-${item.data.id}`}
-                              feedback={item.data}
-                              lastTableItem={lastTableItem}
-                            />
-                          )
+                          if (item.type === 'salary') {
+                            return (
+                              <SalaryHistoryCard
+                                key={`salary-${item.data.id}`}
+                                salary={item.data}
+                                isAdmin={user?.role === ROLES.ADMIN}
+                                onDelete={handleDeleteSalary}
+                                lastTableItem={lastTableItem}
+                              />
+                            )
+                          } else if (item.type === 'feedback') {
+                            return (
+                              <FeedbackCard
+                                key={`feedback-${item.data.id}`}
+                                feedback={item.data}
+                                lastTableItem={lastTableItem}
+                              />
+                            )
+                          } else if (item.type === 'performance-program') {
+                            return (
+                              <PerformanceProgramTimelineCard
+                                key={`perf-program-${item.data.program.id}-${item.data.event}-${item.data.checklistItem?.id || item.data.feedback?.id || ''}`}
+                                event={item.data.event}
+                                program={item.data.program}
+                                checklistItem={item.data.checklistItem}
+                                feedback={item.data.feedback}
+                                lastTableItem={lastTableItem}
+                              />
+                            )
+                          }
+                          return null
                         })}
                       </div>
                     </div>

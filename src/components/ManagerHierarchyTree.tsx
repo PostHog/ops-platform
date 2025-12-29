@@ -1,5 +1,11 @@
 import { useEffect, useRef, useMemo } from 'react'
-import { ChevronRight, ChevronDown, Clock, CalendarClock } from 'lucide-react'
+import {
+  ChevronRight,
+  ChevronDown,
+  Clock,
+  CalendarClock,
+  AlertTriangle,
+} from 'lucide-react'
 import { useRouter } from '@tanstack/react-router'
 import { useLocalStorage } from 'usehooks-ts'
 import { cn } from '@/lib/utils'
@@ -14,6 +20,14 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
       select: {
         id: true
         email: true
+        performancePrograms: {
+          where: {
+            status: 'ACTIVE'
+          }
+          select: {
+            id: true
+          }
+        }
       }
     }
   }
@@ -217,10 +231,19 @@ function TreeNode({
               </span>
             </div>
           )}
+          {node.hasActivePerformanceProgram && (
+            <div className="flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3 text-orange-600" />
+              <span className="text-xs font-medium text-orange-600">
+                Performance Program
+              </span>
+            </div>
+          )}
           {node.childrenCount &&
           (node.childrenCount.active > 0 ||
             node.childrenCount.pending > 0 ||
-            node.childrenCount.planned > 0) ? (
+            node.childrenCount.planned > 0 ||
+            node.childrenCount.performanceIssues > 0) ? (
             <div className="flex items-center gap-2 text-xs text-blue-600">
               {node.childrenCount.active > 0 ? (
                 <span className="font-medium">
@@ -245,6 +268,12 @@ function TreeNode({
                   <div className="flex items-center gap-1">
                     <span>{node.childrenCount.planned}</span>
                     <CalendarClock className="h-3 w-3" />
+                  </div>
+                ) : null}
+                {node.childrenCount.performanceIssues > 0 ? (
+                  <div className="flex items-center gap-1 text-orange-600">
+                    <span>{node.childrenCount.performanceIssues}</span>
+                    <AlertTriangle className="h-3 w-3" />
                   </div>
                 ) : null}
               </div>
@@ -312,6 +341,9 @@ const createEmployeeNode = (emp: DeelEmployee): HierarchyNode => ({
   employeeId: emp.employee?.id,
   workEmail: emp.workEmail,
   startDate: emp.startDate,
+  hasActivePerformanceProgram:
+    emp.employee?.performancePrograms &&
+    emp.employee.performancePrograms.length > 0,
   children: [],
 })
 
@@ -373,10 +405,16 @@ const sortHierarchyNodes = (a: HierarchyNode, b: HierarchyNode): number => {
 const calculateChildrenCount = (
   node: HierarchyNode,
   proposedHiresMap: Map<string, ProposedHire>,
-): { active: number; pending: number; planned: number } => {
+): {
+  active: number
+  pending: number
+  planned: number
+  performanceIssues: number
+} => {
   let active = 0
   let pending = 0
   let planned = 0
+  let performanceIssues = 0
 
   const countDescendants = (n: HierarchyNode) => {
     // Skip team nodes - only count employee nodes
@@ -406,6 +444,11 @@ const calculateChildrenCount = (
         // No start date means already active
         active++
       }
+
+      // Count performance issues
+      if (n.hasActivePerformanceProgram) {
+        performanceIssues++
+      }
     }
 
     // Recursively count children
@@ -414,7 +457,7 @@ const calculateChildrenCount = (
 
   // Only count children, not the node itself
   node.children.forEach(countDescendants)
-  return { active, pending, planned }
+  return { active, pending, planned, performanceIssues }
 }
 
 // Transform manager hierarchy to team hierarchy
