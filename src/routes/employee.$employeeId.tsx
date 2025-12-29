@@ -1816,26 +1816,24 @@ function EmployeeOverview() {
             </div>
           </div>
 
+          {user?.role === ROLES.ADMIN ? (
+            <div className="w-full">
+              <PerformanceProgramPanel
+                employeeId={employee.id}
+                program={
+                  'performancePrograms' in employee &&
+                  employee.performancePrograms &&
+                  employee.performancePrograms.length > 0
+                    ? (employee.performancePrograms[0] as any)
+                    : null
+                }
+                onUpdate={() => router.invalidate()}
+              />
+            </div>
+          ) : null}
+
           {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
             <>
-              <div className="mt-2 flex flex-row items-center justify-between gap-2">
-                <span className="text-md font-bold">Performance Program</span>
-              </div>
-
-              <div className="w-full">
-                <PerformanceProgramPanel
-                  employeeId={employee.id}
-                  program={
-                    'performancePrograms' in employee &&
-                    employee.performancePrograms &&
-                    employee.performancePrograms.length > 0
-                      ? (employee.performancePrograms[0] as any)
-                      : null
-                  }
-                  onUpdate={() => router.invalidate()}
-                />
-              </div>
-
               <div className="mt-2 flex flex-row items-center justify-between gap-2">
                 <span className="text-md font-bold">Feedback</span>
               </div>

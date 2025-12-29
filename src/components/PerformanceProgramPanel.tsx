@@ -3,7 +3,6 @@ import { MessageSquare, Send, Upload, File as FileIcon, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { createToast } from 'vercel-toast'
 import { useServerFn } from '@tanstack/react-start'
 import {
@@ -214,18 +213,12 @@ export function PerformanceProgramPanel({
   const allItemsCompleted = program.checklistItems.every(
     (item) => item.completed,
   )
-  const statusColor =
-    program.status === 'ACTIVE'
-      ? 'bg-orange-100 text-orange-800'
-      : program.status === 'RESOLVED'
-        ? 'bg-green-100 text-green-800'
-        : 'bg-gray-100 text-gray-800'
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Badge className={statusColor}>{program.status}</Badge>
+          <span className="font-semibold">Performance Program</span>
           <span className="text-sm text-gray-500">
             Started {new Date(program.startedAt).toLocaleDateString()} by{' '}
             {program.startedBy.name || program.startedBy.email}
@@ -250,7 +243,6 @@ export function PerformanceProgramPanel({
       </div>
 
       <div className="space-y-3">
-        <h4 className="font-semibold">Checklist Items</h4>
         {[...program.checklistItems]
           .sort((a, b) => {
             // First sort by completed status (incomplete items first)
