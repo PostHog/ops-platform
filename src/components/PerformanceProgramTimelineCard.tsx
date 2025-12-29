@@ -3,8 +3,13 @@ import {
   CheckCircle2,
   MessageSquare,
   PencilLine,
+  File as FileIcon,
 } from 'lucide-react'
 import type { Prisma } from '@prisma/client'
+import { useServerFn } from '@tanstack/react-start'
+import { getProofFileUrl } from '@/routes/employee.$employeeId'
+import { Button } from '@/components/ui/button'
+import { createToast } from 'vercel-toast'
 
 type PerformanceProgram = Prisma.PerformanceProgramGetPayload<{
   include: {
@@ -27,8 +32,11 @@ type ChecklistItem = Prisma.PerformanceProgramChecklistItemGetPayload<{
         email: true
       }
     }
+    files: true
   }
 }>
+
+type File = ChecklistItem['files'][number]
 
 interface PerformanceProgramTimelineCardProps {
   event: 'started' | 'resolved' | 'checklist-completed' | 'feedback'
@@ -43,6 +51,7 @@ interface PerformanceProgramTimelineCardProps {
       name: string | null
       email: string
     }
+    files?: File[]
   }
   lastTableItem?: boolean
 }
@@ -113,6 +122,13 @@ export function PerformanceProgramTimelineCard({
         ? feedback.feedback
         : null
 
+  const files =
+    event === 'checklist-completed' && checklistItem?.files
+      ? checklistItem.files
+      : event === 'feedback' && feedback?.files
+        ? feedback.files
+        : []
+
   return (
     <div
       className={`border border-t-0 border-gray-200${lastTableItem ? 'rounded-b-md' : ''}`}
@@ -142,7 +158,48 @@ export function PerformanceProgramTimelineCard({
             <span>{notes}</span>
           </div>
         )}
+        {files.length > 0 && <FileList files={files} />}
       </div>
+    </div>
+  )
+}
+
+function FileList({ files }: { files: File[] }) {
+  const getFileUrl = useServerFn(getProofFileUrl)
+
+  const handleDownloadFile = async (fileId: string) => {
+    try {
+      const { url } = await getFileUrl({ data: { proofFileId: fileId } })
+      window.open(url, '_blank')
+    } catch (error) {
+      createToast(
+        error instanceof Error ? error.message : 'Failed to get file URL',
+        { timeout: 3000 },
+      )
+    }
+  }
+
+  return (
+    <div className="mt-1 flex flex-wrap gap-1">
+      {files.map((file) => (
+        <div
+          key={file.id}
+          className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs hover:border-gray-300"
+        >
+          <FileIcon className="h-3 w-3 text-gray-500" />
+          <span className="text-gray-700">{file.fileName}</span>
+          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-4 px-1 text-xs"
+              onClick={() => handleDownloadFile(file.id)}
+            >
+              Download
+            </Button>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
