@@ -73,7 +73,8 @@ const TeamNode = memo(function TeamNode({
           {childrenCount !== undefined &&
           (childrenCount.active > 0 ||
             childrenCount.pending > 0 ||
-            childrenCount.planned > 0) ? (
+            childrenCount.planned > 0 ||
+            childrenCount.performanceIssues > 0) ? (
             <div className="flex items-center gap-2">
               <div className="text-xs font-medium text-blue-600">
                 {childrenCount.active > 0 ? (
@@ -95,6 +96,12 @@ const TeamNode = memo(function TeamNode({
                     <div className="flex flex-row items-center gap-1">
                       <span>{childrenCount.planned}</span>
                       <CalendarClockIcon className="h-3 w-3" />
+                    </div>
+                  ) : null}
+                  {childrenCount.performanceIssues > 0 ? (
+                    <div className="flex flex-row items-center gap-1 text-orange-600">
+                      <span>{childrenCount.performanceIssues}</span>
+                      <AlertTriangle className="h-3 w-3" />
                     </div>
                   ) : null}
                 </div>
@@ -173,7 +180,8 @@ const EmployeeNode = memo(function EmployeeNode({
             {childrenCount !== undefined &&
             (childrenCount.active > 0 ||
               childrenCount.pending > 0 ||
-              childrenCount.planned > 0) ? (
+              childrenCount.planned > 0 ||
+              childrenCount.performanceIssues > 0) ? (
               <div className="mt-1 flex items-center gap-2">
                 <div className="flex flex-col text-xs font-medium text-blue-600">
                   {childrenCount.active > 0 ? (
@@ -195,6 +203,12 @@ const EmployeeNode = memo(function EmployeeNode({
                       <div className="flex flex-row items-center gap-1">
                         <span>{childrenCount.planned}</span>
                         <CalendarClockIcon className="h-3 w-3" />
+                      </div>
+                    ) : null}
+                    {childrenCount.performanceIssues > 0 ? (
+                      <div className="flex flex-row items-center gap-1 text-orange-600">
+                        <span>{childrenCount.performanceIssues}</span>
+                        <AlertTriangle className="h-3 w-3" />
                       </div>
                     ) : null}
                   </div>

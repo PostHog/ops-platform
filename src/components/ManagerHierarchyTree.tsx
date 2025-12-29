@@ -242,7 +242,8 @@ function TreeNode({
           {node.childrenCount &&
           (node.childrenCount.active > 0 ||
             node.childrenCount.pending > 0 ||
-            node.childrenCount.planned > 0) ? (
+            node.childrenCount.planned > 0 ||
+            node.childrenCount.performanceIssues > 0) ? (
             <div className="flex items-center gap-2 text-xs text-blue-600">
               {node.childrenCount.active > 0 ? (
                 <span className="font-medium">
@@ -267,6 +268,12 @@ function TreeNode({
                   <div className="flex items-center gap-1">
                     <span>{node.childrenCount.planned}</span>
                     <CalendarClock className="h-3 w-3" />
+                  </div>
+                ) : null}
+                {node.childrenCount.performanceIssues > 0 ? (
+                  <div className="flex items-center gap-1 text-orange-600">
+                    <span>{node.childrenCount.performanceIssues}</span>
+                    <AlertTriangle className="h-3 w-3" />
                   </div>
                 ) : null}
               </div>
@@ -398,10 +405,16 @@ const sortHierarchyNodes = (a: HierarchyNode, b: HierarchyNode): number => {
 const calculateChildrenCount = (
   node: HierarchyNode,
   proposedHiresMap: Map<string, ProposedHire>,
-): { active: number; pending: number; planned: number } => {
+): {
+  active: number
+  pending: number
+  planned: number
+  performanceIssues: number
+} => {
   let active = 0
   let pending = 0
   let planned = 0
+  let performanceIssues = 0
 
   const countDescendants = (n: HierarchyNode) => {
     // Skip team nodes - only count employee nodes
@@ -431,6 +444,11 @@ const calculateChildrenCount = (
         // No start date means already active
         active++
       }
+
+      // Count performance issues
+      if (n.hasActivePerformanceProgram) {
+        performanceIssues++
+      }
     }
 
     // Recursively count children
@@ -439,7 +457,7 @@ const calculateChildrenCount = (
 
   // Only count children, not the node itself
   node.children.forEach(countDescendants)
-  return { active, pending, planned }
+  return { active, pending, planned, performanceIssues }
 }
 
 // Transform manager hierarchy to team hierarchy

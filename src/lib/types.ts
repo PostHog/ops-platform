@@ -13,5 +13,6 @@ export type HierarchyNode = {
     active: number
     pending: number
     planned: number
+    performanceIssues: number
   }
 }

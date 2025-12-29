@@ -93,6 +93,7 @@ export type OrgChartNode = Node<
       active: number
       pending: number
       planned: number
+      performanceIssues: number
     }
     toggleExpanded: (expandAll?: boolean) => void
     handleClick?: (id: string) => void
