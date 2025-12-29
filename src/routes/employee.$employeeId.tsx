@@ -183,7 +183,6 @@ const getEmployeeById = createUserFn({
                 orderBy: {
                   startedAt: 'desc',
                 },
-                take: 1,
               },
             }
           : {}),

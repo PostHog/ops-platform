@@ -26,7 +26,6 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
           select: {
             id: true
           }
-          take: 1
         }
       }
     }
