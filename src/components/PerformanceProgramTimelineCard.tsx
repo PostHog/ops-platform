@@ -10,6 +10,7 @@ import { useServerFn } from '@tanstack/react-start'
 import { getProofFileUrl } from '@/routes/employee.$employeeId'
 import { Button } from '@/components/ui/button'
 import { createToast } from 'vercel-toast'
+import { cn } from '@/lib/utils'
 
 type PerformanceProgram = Prisma.PerformanceProgramGetPayload<{
   include: {
@@ -131,7 +132,10 @@ export function PerformanceProgramTimelineCard({
 
   return (
     <div
-      className={`border border-t-0 border-gray-200${lastTableItem ? 'rounded-b-md' : ''}`}
+      className={cn(
+        'border border-t-0 border-gray-200',
+        lastTableItem && 'rounded-b-md',
+      )}
     >
       <div
         className={`ml-8 flex flex-col gap-2 border-l-[3px] ${getEventColor()} px-4 py-2`}
