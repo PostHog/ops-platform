@@ -56,6 +56,8 @@ type ManagerHierarchyTreeProps = {
   proposedHires?: ProposedHire[]
   viewMode?: ViewMode
   onViewModeChange?: (mode: ViewMode) => void
+  disableNavigation?: boolean
+  onNodeClick?: (employeeId: string) => void
 }
 
 function TreeNode({
@@ -68,6 +70,8 @@ function TreeNode({
   onNodeExpand,
   isTeamNode = false,
   proposedHiresMap,
+  disableNavigation = false,
+  onNodeClick,
 }: {
   node: HierarchyNode
   level: number
@@ -78,6 +82,8 @@ function TreeNode({
   onNodeExpand?: (nodeId: string, expand: boolean) => void
   isTeamNode?: boolean
   proposedHiresMap?: Map<string, ProposedHire>
+  disableNavigation?: boolean
+  onNodeClick?: (employeeId: string) => void
 }) {
   const [isExpanded, setIsExpanded] = useLocalStorage<boolean>(
     `manager-tree.expanded.${node.id}`,
@@ -143,8 +149,20 @@ function TreeNode({
 
   const handleEmployeeClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    // Only navigate if it's an employee node (not a team node)
+    // If navigation is disabled but we have a callback, call it
     if (
+      disableNavigation &&
+      onNodeClick &&
+      !isTeamNode &&
+      node.employeeId &&
+      node.employeeId !== currentEmployeeId
+    ) {
+      onNodeClick(node.employeeId)
+      return
+    }
+    // Only navigate if it's an employee node (not a team node) and navigation is not disabled
+    if (
+      !disableNavigation &&
       !isTeamNode &&
       node.employeeId &&
       node.employeeId !== currentEmployeeId
@@ -157,14 +175,23 @@ function TreeNode({
   }
 
   const canNavigate =
-    !isTeamNode && node.employeeId && node.employeeId !== currentEmployeeId
+    !disableNavigation &&
+    !isTeamNode &&
+    node.employeeId &&
+    node.employeeId !== currentEmployeeId
+
+  const canClick =
+    (canNavigate || (disableNavigation && onNodeClick)) &&
+    !isTeamNode &&
+    node.employeeId &&
+    node.employeeId !== currentEmployeeId
 
   return (
     <div ref={nodeRef}>
       <div
         className={cn(
           'flex items-center gap-1 rounded px-2 py-1.5 text-sm',
-          !isTeamNode && canNavigate && 'hover:bg-gray-100',
+          !isTeamNode && canClick && 'hover:bg-gray-100',
           isCurrentEmployee && 'bg-blue-50 font-semibold',
           isTeamNode && 'font-medium text-gray-700',
         )}
@@ -188,7 +215,7 @@ function TreeNode({
         <div
           className={cn(
             'flex min-w-0 flex-1 flex-col gap-1',
-            canNavigate && 'cursor-pointer',
+            canClick && 'cursor-pointer',
           )}
           onClick={handleEmployeeClick}
         >
@@ -295,6 +322,8 @@ function TreeNode({
               onNodeExpand={onNodeExpand}
               isTeamNode={child.id.startsWith('team-')}
               proposedHiresMap={proposedHiresMap}
+              disableNavigation={disableNavigation}
+              onNodeClick={onNodeClick}
             />
           ))}
         </div>
@@ -665,6 +694,8 @@ export function ManagerHierarchyTree({
   deelEmployees,
   proposedHires = [],
   viewMode = 'manager',
+  disableNavigation = false,
+  onNodeClick,
 }: ManagerHierarchyTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -715,6 +746,8 @@ export function ManagerHierarchyTree({
             containerRef={containerRef}
             isTeamNode={node.id.startsWith('team-')}
             proposedHiresMap={proposedHiresMap}
+            disableNavigation={disableNavigation}
+            onNodeClick={onNodeClick}
           />
         ))}
       </div>
