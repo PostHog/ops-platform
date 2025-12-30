@@ -1003,12 +1003,12 @@ export function NewSalaryForm({
                   <span
                     className={`font-bold ${changePercentage > 0 ? 'text-green-600' : changePercentage < 0 ? 'text-red-600' : ''}`}
                   >
-                    {changePercentage >= 0 ? '+' : ''}
+                    {changePercentage > 0 ? '+' : ''}
                     {(changePercentage * 100).toFixed(2)}%
                   </span>
                   <span className="text-gray-400">·</span>
                   <span className="text-gray-400">
-                    {changeAmount >= 0 ? '+' : ''}
+                    {changeAmount > 0 ? '+' : ''}
                     {formatCurrency(changeAmount)}
                   </span>
                   <span className="text-gray-400">·</span>
