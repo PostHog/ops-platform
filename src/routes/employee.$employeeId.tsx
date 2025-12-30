@@ -1862,29 +1862,40 @@ function EmployeeOverview() {
                       recommendation,
                       sharedWithTeamMember,
                       timestamp,
-                    }) => (
-                      <div
-                        key={id}
-                        className="mb-4 rounded-lg border bg-gray-50 p-4"
-                      >
-                        <span className="w-full list-disc text-right text-sm text-gray-500">
-                          {new Date(timestamp).toLocaleDateString()}
-                        </span>
-                        <MarkdownComponent>
-                          {`### ${title} feedback from ${manager.deelEmployee?.name ?? manager.email}:\n` +
-                            `- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${ratingToText(wouldYouTryToKeepThem)}\n` +
-                            `- **What makes them so valuable to your team and PostHog?** ${whatMakesThemValuable}\n` +
-                            `- **Are they a driver or a passenger?** ${driverRatingToText(driverOrPassenger)}\n` +
-                            `- **Do they get things done proactively, today?** ${proactiveRatingToText(proactiveToday)}\n` +
-                            `- **Are they optimistic by default?** ${optimisticRatingToText(optimisticByDefault)}\n` +
-                            `- **Areas to watch:** ${areasToWatch}\n` +
-                            (recommendation
-                              ? `- **Recommendation**: ${recommendation}\n`
-                              : '') +
-                            `- **Have you shared this feedback with your team member?** ${sharedWithTeamMember ? 'Yes' : 'No, but I will do right now!'}`}
-                        </MarkdownComponent>
-                      </div>
-                    ),
+                    }) => {
+                      const isManagerFeedback = title === 'Manager feedback'
+                      return (
+                        <div
+                          key={id}
+                          className="mb-4 rounded-lg border bg-gray-50 p-4"
+                        >
+                          <span className="w-full list-disc text-right text-sm text-gray-500">
+                            {new Date(timestamp).toLocaleDateString()}
+                          </span>
+                          {isManagerFeedback ? (
+                            <MarkdownComponent>
+                              {`### ${title} feedback from ${manager.deelEmployee?.name ?? manager.email}:\n` +
+                                `- **Given the above, how would you rate your manager?** ${wouldYouTryToKeepThem}\n` +
+                                `- **Why have you given this answer?** ${whatMakesThemValuable}`}
+                            </MarkdownComponent>
+                          ) : (
+                            <MarkdownComponent>
+                              {`### ${title} feedback from ${manager.deelEmployee?.name ?? manager.email}:\n` +
+                                `- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${ratingToText(wouldYouTryToKeepThem)}\n` +
+                                `- **What makes them so valuable to your team and PostHog?** ${whatMakesThemValuable}\n` +
+                                `- **Are they a driver or a passenger?** ${driverRatingToText(driverOrPassenger)}\n` +
+                                `- **Do they get things done proactively, today?** ${proactiveRatingToText(proactiveToday)}\n` +
+                                `- **Are they optimistic by default?** ${optimisticRatingToText(optimisticByDefault)}\n` +
+                                `- **Areas to watch:** ${areasToWatch}\n` +
+                                (recommendation
+                                  ? `- **Recommendation**: ${recommendation}\n`
+                                  : '') +
+                                `- **Have you shared this feedback with your team member?** ${sharedWithTeamMember ? 'Yes' : 'No, but I will do right now!'}`}
+                            </MarkdownComponent>
+                          )}
+                        </div>
+                      )
+                    },
                   )}
 
                   {employee.keeperTestFeedback.length === 0 && (
