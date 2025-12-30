@@ -105,6 +105,8 @@ export function FeedbackCard({
   feedback,
   lastTableItem = false,
 }: FeedbackCardProps) {
+  const isManagerFeedback = feedback.title === 'Manager feedback'
+
   return (
     <TooltipProvider>
       <div
@@ -123,9 +125,11 @@ export function FeedbackCard({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span>
-                    {isPositiveRating(feedback.wouldYouTryToKeepThem)
-                      ? 'I would fight to keep'
-                      : 'I would not fight to keep'}
+                    {isManagerFeedback
+                      ? 'Manager Feedback'
+                      : isPositiveRating(feedback.wouldYouTryToKeepThem)
+                        ? 'I would fight to keep'
+                        : 'I would not fight to keep'}
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -140,38 +144,53 @@ export function FeedbackCard({
             </h4>
           </div>
 
-          <div className="flex flex-wrap gap-1.5">
-            <TraitBadge
-              positiveIcon={<TrendingUp className="h-3 w-3" />}
-              negativeIcon={<TrendingDown className="h-3 w-3" />}
-              getLabel={driverRatingToText}
-              rating={feedback.driverOrPassenger}
-            />
-            <TraitBadge
-              positiveIcon={<Zap className="h-3 w-3" />}
-              negativeIcon={<Clock className="h-3 w-3" />}
-              getLabel={proactiveRatingToText}
-              rating={feedback.proactiveToday}
-            />
-            <TraitBadge
-              positiveIcon={<Sun className="h-3 w-3" />}
-              negativeIcon={<CloudRain className="h-3 w-3" />}
-              getLabel={optimisticRatingToText}
-              rating={feedback.optimisticByDefault}
-            />
-          </div>
-          <OptionalField
-            label="What makes them so valuable to your team and PostHog?"
-            value={feedback.whatMakesThemValuable}
-          />
-          <OptionalField
-            label="Areas to watch:"
-            value={feedback.areasToWatch}
-          />
-          <OptionalField
-            label="Recommendation:"
-            value={feedback.recommendation || null}
-          />
+          {isManagerFeedback ? (
+            <>
+              <OptionalField
+                label="Given the above, how would you rate your manager?"
+                value={feedback.wouldYouTryToKeepThem}
+              />
+              <OptionalField
+                label="Why have you given this answer?"
+                value={feedback.whatMakesThemValuable}
+              />
+            </>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-1.5">
+                <TraitBadge
+                  positiveIcon={<TrendingUp className="h-3 w-3" />}
+                  negativeIcon={<TrendingDown className="h-3 w-3" />}
+                  getLabel={driverRatingToText}
+                  rating={feedback.driverOrPassenger}
+                />
+                <TraitBadge
+                  positiveIcon={<Zap className="h-3 w-3" />}
+                  negativeIcon={<Clock className="h-3 w-3" />}
+                  getLabel={proactiveRatingToText}
+                  rating={feedback.proactiveToday}
+                />
+                <TraitBadge
+                  positiveIcon={<Sun className="h-3 w-3" />}
+                  negativeIcon={<CloudRain className="h-3 w-3" />}
+                  getLabel={optimisticRatingToText}
+                  rating={feedback.optimisticByDefault}
+                />
+              </div>
+              <OptionalField
+                label="What makes them so valuable to your team and PostHog?"
+                value={feedback.whatMakesThemValuable}
+              />
+              <OptionalField
+                label="Areas to watch:"
+                value={feedback.areasToWatch}
+              />
+              <OptionalField
+                label="Recommendation:"
+                value={feedback.recommendation || null}
+              />
+            </>
+          )}
         </div>
       </div>
     </TooltipProvider>

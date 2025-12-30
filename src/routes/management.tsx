@@ -436,6 +436,35 @@ export const scheduleKeeperTests = createAuthenticatedFn({
     },
   })
 
+  const managerFeedbackJobResult = await prisma.cyclotronJob.createMany({
+    data: employees
+      .map((employee) => {
+        if (
+          !employee.deelEmployee?.manager ||
+          !employee.deelEmployee?.manager?.workEmail
+        ) {
+          return null
+        }
+        return {
+          queue_name: 'send_manager_feedback' as const,
+          data: JSON.stringify({
+            title: 'Manager feedback',
+            employee: {
+              id: employee.id,
+              email: employee.email,
+              name: employee.deelEmployee?.name,
+            },
+            manager: {
+              id: employee.deelEmployee?.manager?.id,
+              email: employee.deelEmployee?.manager?.workEmail,
+              name: employee.deelEmployee?.manager?.name,
+            },
+          } satisfies KeeperTestJobPayload),
+        }
+      })
+      .filter((emp) => emp !== null),
+  })
+
   const result = await prisma.cyclotronJob.createMany({
     data: employees
       .map((employee) => {
@@ -467,7 +496,7 @@ export const scheduleKeeperTests = createAuthenticatedFn({
 
   return {
     success: true,
-    count: result.count,
+    count: result.count + managerFeedbackJobResult.count,
   }
 })
 
@@ -485,7 +514,7 @@ function KeeperTestManagement() {
         })
       }}
     >
-      Schedule keeper tests for every employee
+      Schedule keeper tests for every employee (incl. manager feedback)
     </Button>
   )
 }

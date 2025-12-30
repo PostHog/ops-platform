@@ -248,6 +248,186 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
                 feedback,
             }),
           })
+        } else if (body.actions[0].action_id === 'submit_manager_feedback') {
+          const [
+            managerEmail,
+            employeeId,
+            employeeName,
+            managerId,
+            jobId,
+            title,
+          ] = body.actions[0].value.split('|')
+          for (const [, value] of Object.entries(
+            body.state.values as Record<string, any>,
+          )) {
+            const fieldId = Object.keys(value)[0]
+            const { type, selected_option } = value[fieldId]
+            if (type === 'radio_buttons' && selected_option === null) {
+              invalidFields.push(fieldId)
+            } else if (
+              type === 'plain_text_input' &&
+              value[fieldId].value === null
+            ) {
+              invalidFields.push(fieldId)
+            }
+          }
+
+          if (invalidFields.length > 0) {
+            await fetch(body.response_url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                thread_ts: body.container.message_ts,
+                text:
+                  'Please complete all required fields: ' +
+                  invalidFields.join(', '),
+                response_type: 'in_channel',
+                replace_original: false,
+              }),
+            })
+
+            return new Response(
+              JSON.stringify({
+                success: false,
+                invalidFields: invalidFields,
+              }),
+              { status: 400 },
+            )
+          }
+
+          const fieldData: Record<string, any> = {}
+
+          for (const [, value] of Object.entries(
+            body.state.values as Record<string, any>,
+          )) {
+            const fieldId = Object.keys(value)[0]
+            fieldData[fieldId] = value[fieldId]
+          }
+
+          const feedback =
+            `### ${title} feedback from ${employeeName}:\n` +
+            `- *Given the above, how would you rate your manager?* ${fieldData['keeper-test-question-1']?.selected_option.value}\n` +
+            `- *Why have you given this answer?* ${fieldData['keeper-test-question-2']?.value}`
+
+          const deelManager = await prisma.deelEmployee.findUnique({
+            where: {
+              id: managerId,
+            },
+            select: {
+              id: true,
+              employee: {
+                select: {
+                  id: true,
+                },
+              },
+            },
+          })
+
+          if (!deelManager?.employee?.id) {
+            return new Response(
+              JSON.stringify({
+                success: false,
+                error: 'Manager not found',
+              }),
+              { status: 400 },
+            )
+          }
+
+          const createdFeedback = await prisma.keeperTestFeedback.create({
+            data: {
+              employee: {
+                connect: {
+                  id: deelManager.employee.id,
+                },
+              },
+              manager: {
+                connect: {
+                  id: employeeId,
+                },
+              },
+              title: title,
+              wouldYouTryToKeepThem: fieldData['keeper-test-question-1']
+                ?.selected_option.value as KeeperTestRating,
+              whatMakesThemValuable: fieldData['keeper-test-question-2']?.value,
+              driverOrPassenger: 'STRONG_YES',
+              proactiveToday: 'STRONG_YES',
+              optimisticByDefault: 'STRONG_YES',
+              areasToWatch: '',
+              sharedWithTeamMember: true,
+            },
+          })
+
+          if (['Manager feedback'].includes(title)) {
+            // Flag logic:
+            // Green: All responses are STRONG_YES
+            // Yellow: All responses are YES or STRONG_YES (but at least one is YES)
+            // Red: At least one response is NO or STRONG_NO
+            const ratings = [createdFeedback.wouldYouTryToKeepThem]
+
+            const hasNegative = ratings.some(
+              (rating) => rating === 'NO' || rating === 'STRONG_NO',
+            )
+            const allStrongYes = ratings.every(
+              (rating) => rating === 'STRONG_YES',
+            )
+            const allPositive = ratings.every(
+              (rating) => rating === 'YES' || rating === 'STRONG_YES',
+            )
+
+            let flag: string
+            if (hasNegative) {
+              flag = ':red_circle:'
+            } else if (allStrongYes) {
+              flag = ':large_green_circle:'
+            } else if (allPositive) {
+              flag = ':large_yellow_circle:'
+            } else {
+              flag = ':red_circle:'
+            }
+            const res = await fetch('https://slack.com/api/chat.postMessage', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+              },
+              body: JSON.stringify({
+                channel: process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
+                text:
+                  `${flag} ${employeeName} has submitted manager feedback for ${managerEmail}\n\nSummary:\n\n` +
+                  feedback,
+              }),
+            })
+
+            const body = await res.json()
+
+            if (res.status !== 200 || !body.ok) {
+              return new Response(
+                JSON.stringify({
+                  success: false,
+                  error: `Error from Slack API: ${res.status}: ${JSON.stringify(body)}`,
+                }),
+                { status: 500 },
+              )
+            }
+          }
+
+          await prisma.cyclotronJob.delete({
+            where: { id: jobId },
+          })
+
+          await fetch(body.response_url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              text:
+                `Successfully submitted manager feedback for ${managerEmail}\n\nSummary:\n\n` +
+                feedback,
+            }),
+          })
         }
 
         return new Response(
