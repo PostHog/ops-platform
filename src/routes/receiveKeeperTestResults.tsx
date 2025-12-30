@@ -395,7 +395,7 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
               body: JSON.stringify({
                 channel: process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
                 text:
-                  `${flag} ${employeeName} has submitted keeper test feedback for ${managerEmail}\n\nSummary:\n\n` +
+                  `${flag} ${employeeName} has submitted manager feedback for ${managerEmail}\n\nSummary:\n\n` +
                   feedback,
               }),
             })
