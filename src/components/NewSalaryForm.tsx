@@ -662,52 +662,46 @@ export function NewSalaryForm({
                 }}
               />
             </TableCell>
-            {eligibleForEquityRefresh && (
-              <>
-                <TableCell>
-                  <form.Field
-                    name="equityRefreshPercentage"
-                    validators={{
-                      onChange: ({ value }) => {
-                        if (value < 0 || value > 1) {
-                          return 'Equity refresh percentage must be between 0 and 1'
-                        }
-                      },
-                    }}
-                    children={(field) => (
-                      <Input
-                        className={
-                          'h-6 w-full min-w-[70px] text-xs' +
-                          (field.state.meta.errors.length > 0
-                            ? ' border-red-500 ring-red-500'
-                            : '')
-                        }
-                        value={field.state.value}
-                        type="number"
-                        step={0.01}
-                        min={0}
-                        max={1}
-                        onChange={(e) =>
-                          field.handleChange(Number(e.target.value))
-                        }
-                      />
-                    )}
+            <TableCell>
+              <form.Field
+                name="equityRefreshPercentage"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (value < 0 || value > 1) {
+                      return 'Equity refresh percentage must be between 0 and 1'
+                    }
+                  },
+                }}
+                children={(field) => (
+                  <Input
+                    className={
+                      'h-6 w-full min-w-[70px] text-xs' +
+                      (field.state.meta.errors.length > 0
+                        ? ' border-red-500 ring-red-500'
+                        : '')
+                    }
+                    value={field.state.value}
+                    type="number"
+                    step={0.01}
+                    min={0}
+                    max={1}
+                    onChange={(e) => field.handleChange(Number(e.target.value))}
                   />
-                </TableCell>
-                <TableCell>
-                  <form.Field
-                    name="equityRefreshAmount"
-                    children={(field) => {
-                      return (
-                        <div className="px-1 py-1 text-right text-xs">
-                          {formatCurrency(field.state.value)}
-                        </div>
-                      )
-                    }}
-                  />
-                </TableCell>
-              </>
-            )}
+                )}
+              />
+            </TableCell>
+            <TableCell>
+              <form.Field
+                name="equityRefreshAmount"
+                children={(field) => {
+                  return (
+                    <div className="px-1 py-1 text-right text-xs">
+                      {formatCurrency(field.state.value)}
+                    </div>
+                  )
+                }}
+              />
+            </TableCell>
             <TableCell>
               <form.Field
                 name="employmentCountry"
@@ -1063,6 +1057,64 @@ export function NewSalaryForm({
                 ) : null}
               </>
             ) : null}
+          </div>
+
+          {/* Employment Country and Area */}
+          <div
+            className={`mb-4 grid gap-4 ${
+              eligibleForEquityRefresh ? 'grid-cols-6' : 'grid-cols-5'
+            }`}
+          >
+            <form.Field name="employmentCountry">
+              {(field) => (
+                <div>
+                  <label className="text-xs font-medium text-gray-700">
+                    Employment Country
+                  </label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={field.handleChange}
+                  >
+                    <SelectTrigger className="w-full text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getCountries().map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="employmentArea">
+              {(field) => (
+                <div>
+                  <label className="text-xs font-medium text-gray-700">
+                    Employment Area
+                  </label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={field.handleChange}
+                    disabled={!employmentCountry}
+                  >
+                    <SelectTrigger className="w-full text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getAreasByCountry(employmentCountry).map((area) => (
+                        <SelectItem key={area} value={area}>
+                          {area}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </form.Field>
           </div>
 
           {/* Calculated values display */}
