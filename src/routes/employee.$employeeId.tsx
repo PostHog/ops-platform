@@ -1380,6 +1380,9 @@ function EmployeeOverview() {
               level={salary.level}
               step={salary.step}
               align="right"
+              totalSalaryLocal={salary.totalSalaryLocal}
+              actualSalaryLocal={salary.actualSalaryLocal}
+              localCurrency={salary.localCurrency}
             />
           )
         },

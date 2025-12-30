@@ -18,6 +18,9 @@ interface SalaryChangeDisplayProps {
   locationFactor?: number
   level?: number
   step?: number
+  totalSalaryLocal?: number
+  actualSalaryLocal?: number
+  localCurrency?: string
 }
 
 export function SalaryChangeDisplay({
@@ -31,6 +34,9 @@ export function SalaryChangeDisplay({
   locationFactor,
   level,
   step,
+  totalSalaryLocal,
+  actualSalaryLocal,
+  localCurrency,
 }: SalaryChangeDisplayProps) {
   const textSize = size === 'lg' ? 'text-xl' : 'text-sm'
 
@@ -85,6 +91,9 @@ export function SalaryChangeDisplay({
             level={level}
             step={step}
             className="text-gray-700"
+            totalSalaryLocal={totalSalaryLocal}
+            actualSalaryLocal={actualSalaryLocal}
+            localCurrency={localCurrency}
           />
         </div>
         {showDate && timestamp && (

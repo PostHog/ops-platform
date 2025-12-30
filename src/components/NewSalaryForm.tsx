@@ -290,6 +290,18 @@ export function NewSalaryForm({
     form.store,
     (state) => state.values.locationFactor,
   )
+  const totalSalaryLocal = useStore(
+    form.store,
+    (state) => state.values.totalSalaryLocal,
+  )
+  const localCurrency = useStore(
+    form.store,
+    (state) => state.values.localCurrency,
+  )
+  const actualSalaryLocal = useStore(
+    form.store,
+    (state) => state.values.actualSalaryLocal,
+  )
 
   useEffect(() => {
     setLevel(level)
@@ -1014,6 +1026,24 @@ export function NewSalaryForm({
                   <span className="text-gray-400">·</span>
                   <span className="text-gray-700">
                     {formatCurrency(totalSalary)}
+                  </span>
+                  <span className="text-gray-400">·</span>
+                  <span className="text-gray-600">
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: localCurrency ?? 'USD',
+                    }).format(totalSalaryLocal)}
+                    {Math.abs(totalSalaryLocal - actualSalaryLocal) > 0.01 && (
+                      <>
+                        {' '}
+                        (
+                        {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: localCurrency ?? 'USD',
+                        }).format(actualSalaryLocal)}
+                        )
+                      </>
+                    )}
                   </span>
                 </div>
                 <div className="mb-2 text-xs leading-none">
