@@ -32,9 +32,9 @@ export function driverRatingToText(rating: string): string {
 export function proactiveRatingToText(rating: string): string {
   const map: Record<string, string> = {
     STRONG_YES: "It's very rare they are not proactive",
-    YES: 'More often than not',
-    NO: '50/50',
-    STRONG_NO: 'No, quite the opposite',
+    YES: 'Mostly proactive',
+    NO: 'Sometimes proactive',
+    STRONG_NO: 'Not proactive',
   }
   return map[rating] || rating
 }

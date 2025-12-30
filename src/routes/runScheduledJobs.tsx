@@ -165,7 +165,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'No, quite the opposite',
+                      text: 'Not proactive',
                       emoji: true,
                     },
                     value: 'STRONG_NO',
@@ -173,7 +173,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: '50/50',
+                      text: 'Sometimes proactive',
                       emoji: true,
                     },
                     value: 'NO',
@@ -181,7 +181,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'More often than not',
+                      text: 'Mostly proactive',
                       emoji: true,
                     },
                     value: 'YES',
