@@ -2,12 +2,12 @@
 CREATE TYPE "KeeperTestRating" AS ENUM ('STRONG_YES', 'YES', 'NO', 'STRONG_NO');
 
 -- AlterTable: Convert wouldYouTryToKeepThem from boolean to KeeperTestRating
--- true -> YES, false -> NO
+-- true -> STRONG_YES, false -> STRONG_NO
 ALTER TABLE "KeeperTestFeedback" 
   ALTER COLUMN "wouldYouTryToKeepThem" TYPE "KeeperTestRating" 
   USING CASE 
-    WHEN "wouldYouTryToKeepThem" = true THEN 'YES'::"KeeperTestRating"
-    ELSE 'NO'::"KeeperTestRating"
+    WHEN "wouldYouTryToKeepThem" = true THEN 'STRONG_YES'::"KeeperTestRating"
+    ELSE 'STRONG_NO'::"KeeperTestRating"
   END;
 
 -- AlterTable: Convert driverOrPassenger from DriverOrPassenger enum to KeeperTestRating
@@ -20,21 +20,21 @@ ALTER TABLE "KeeperTestFeedback"
   END;
 
 -- AlterTable: Convert proactiveToday from boolean to KeeperTestRating
--- true -> YES, false -> NO
+-- true -> STRONG_YES, false -> STRONG_NO
 ALTER TABLE "KeeperTestFeedback" 
   ALTER COLUMN "proactiveToday" TYPE "KeeperTestRating" 
   USING CASE 
-    WHEN "proactiveToday" = true THEN 'YES'::"KeeperTestRating"
-    ELSE 'NO'::"KeeperTestRating"
+    WHEN "proactiveToday" = true THEN 'STRONG_YES'::"KeeperTestRating"
+    ELSE 'STRONG_NO'::"KeeperTestRating"
   END;
 
 -- AlterTable: Convert optimisticByDefault from boolean to KeeperTestRating
--- true -> YES, false -> NO
+-- true -> STRONG_YES, false -> STRONG_NO
 ALTER TABLE "KeeperTestFeedback" 
   ALTER COLUMN "optimisticByDefault" TYPE "KeeperTestRating" 
   USING CASE 
-    WHEN "optimisticByDefault" = true THEN 'YES'::"KeeperTestRating"
-    ELSE 'NO'::"KeeperTestRating"
+    WHEN "optimisticByDefault" = true THEN 'STRONG_YES'::"KeeperTestRating"
+    ELSE 'STRONG_NO'::"KeeperTestRating"
   END;
 
 -- DropEnum: Remove the old DriverOrPassenger enum
