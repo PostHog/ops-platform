@@ -62,18 +62,34 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'Yes',
+                      text: 'Absolutely not - in fact we should consider letting this person go',
                       emoji: true,
                     },
-                    value: 'yes',
+                    value: 'STRONG_NO',
                   },
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'No',
+                      text: 'No, they seem fine but we can find better',
                       emoji: true,
                     },
-                    value: 'no',
+                    value: 'NO',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'Yes, I would try and keep them',
+                      emoji: true,
+                    },
+                    value: 'YES',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: '1000%, I would pull in the Blitzscale team to convince them to stay',
+                      emoji: true,
+                    },
+                    value: 'STRONG_YES',
                   },
                 ],
                 action_id: 'keeper-test-question-1',
@@ -104,18 +120,34 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'Driver',
+                      text: "They're asleep in the back of the cab",
                       emoji: true,
                     },
-                    value: 'driver',
+                    value: 'STRONG_NO',
                   },
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'Passenger',
+                      text: 'A passenger',
                       emoji: true,
                     },
-                    value: 'passenger',
+                    value: 'NO',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'They definitely drive but do sometimes need breaks',
+                      emoji: true,
+                    },
+                    value: 'YES',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: "They're driving across the country with no stops",
+                      emoji: true,
+                    },
+                    value: 'STRONG_YES',
                   },
                 ],
                 action_id: 'keeper-test-question-2',
@@ -133,18 +165,34 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'Yes',
+                      text: 'Not proactive',
                       emoji: true,
                     },
-                    value: 'yes',
+                    value: 'STRONG_NO',
                   },
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'No',
+                      text: 'Sometimes proactive',
                       emoji: true,
                     },
-                    value: 'no',
+                    value: 'NO',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'Mostly proactive',
+                      emoji: true,
+                    },
+                    value: 'YES',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: "It's very rare they are not proactive",
+                      emoji: true,
+                    },
+                    value: 'STRONG_YES',
                   },
                 ],
                 action_id: 'keeper-test-question-3',
@@ -162,18 +210,34 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'Yes',
+                      text: 'Eeyore',
                       emoji: true,
                     },
-                    value: 'yes',
+                    value: 'STRONG_NO',
                   },
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'No',
+                      text: 'They are a bit doom and gloom sometimes',
                       emoji: true,
                     },
-                    value: 'no',
+                    value: 'NO',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'Yes, they are positive to be around',
+                      emoji: true,
+                    },
+                    value: 'YES',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'I think they might be Ted Lasso',
+                      emoji: true,
+                    },
+                    value: 'STRONG_YES',
                   },
                 ],
                 action_id: 'keeper-test-question-4',

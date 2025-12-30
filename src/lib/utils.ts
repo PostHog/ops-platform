@@ -6,6 +6,49 @@ export function cn(...inputs: Array<ClassValue>) {
   return twMerge(clsx(inputs))
 }
 
+// Helper functions to convert KeeperTestRating enum values to display text
+export function ratingToText(rating: string): string {
+  const map: Record<string, string> = {
+    STRONG_YES:
+      '1000%, I would pull in the Blitzscale team to convince them to stay',
+    YES: 'Yes, I would try and keep them',
+    NO: 'No, they seem fine but we can find better',
+    STRONG_NO:
+      'Absolutely not - in fact we should consider letting this person go',
+  }
+  return map[rating] || rating
+}
+
+export function driverRatingToText(rating: string): string {
+  const map: Record<string, string> = {
+    STRONG_YES: "They're driving across the country with no stops",
+    YES: 'They definitely drive but do sometimes need breaks',
+    NO: 'A passenger',
+    STRONG_NO: "They're asleep in the back of the cab",
+  }
+  return map[rating] || rating
+}
+
+export function proactiveRatingToText(rating: string): string {
+  const map: Record<string, string> = {
+    STRONG_YES: "It's very rare they are not proactive",
+    YES: 'Mostly proactive',
+    NO: 'Sometimes proactive',
+    STRONG_NO: 'Not proactive',
+  }
+  return map[rating] || rating
+}
+
+export function optimisticRatingToText(rating: string): string {
+  const map: Record<string, string> = {
+    STRONG_YES: 'I think they might be Ted Lasso',
+    YES: 'Yes, they are positive to be around',
+    NO: 'They are a bit doom and gloom sometimes',
+    STRONG_NO: 'Eeyore',
+  }
+  return map[rating] || rating
+}
+
 export function formatCurrency(
   amount: number | null | undefined,
   currency: string = 'USD',

@@ -36,6 +36,10 @@ import {
   locationFactor,
   sfBenchmark,
   cn,
+  ratingToText,
+  driverRatingToText,
+  proactiveRatingToText,
+  optimisticRatingToText,
 } from '@/lib/utils'
 import {
   Table,
@@ -1868,11 +1872,11 @@ function EmployeeOverview() {
                         </span>
                         <MarkdownComponent>
                           {`### ${title} feedback from ${manager.deelEmployee?.name ?? manager.email}:\n` +
-                            `- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${wouldYouTryToKeepThem ? 'Yes' : 'No'}\n` +
+                            `- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${ratingToText(wouldYouTryToKeepThem)}\n` +
                             `- **What makes them so valuable to your team and PostHog?** ${whatMakesThemValuable}\n` +
-                            `- **Are they a driver or a passenger?** ${driverOrPassenger}\n` +
-                            `- **Do they get things done proactively, today?** ${proactiveToday ? 'Yes' : 'No'}\n` +
-                            `- **Are they optimistic by default?** ${optimisticByDefault ? 'Yes' : 'No'}\n` +
+                            `- **Are they a driver or a passenger?** ${driverRatingToText(driverOrPassenger)}\n` +
+                            `- **Do they get things done proactively, today?** ${proactiveRatingToText(proactiveToday)}\n` +
+                            `- **Are they optimistic by default?** ${optimisticRatingToText(optimisticByDefault)}\n` +
                             `- **Areas to watch:** ${areasToWatch}\n` +
                             (recommendation
                               ? `- **Recommendation**: ${recommendation}\n`

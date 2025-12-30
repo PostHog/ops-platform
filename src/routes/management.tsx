@@ -430,7 +430,7 @@ export const scheduleKeeperTests = createAuthenticatedFn({
           not: 'Blitzscale',
         },
         startDate: {
-          gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // only schedule for employees who have passed probation
+          lte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // only schedule for employees who have passed probation
         },
       },
     },

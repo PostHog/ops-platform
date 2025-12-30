@@ -1,5 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import prisma from '@/db'
+import type { KeeperTestRating } from '@prisma/client'
+import {
+  ratingToText,
+  driverRatingToText,
+  proactiveRatingToText,
+  optimisticRatingToText,
+} from '@/lib/utils'
 
 export const Route = createFileRoute('/receiveKeeperTestResults')({
   server: {
@@ -82,11 +89,11 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
 
           const feedback =
             `### ${title} feedback from ${managerName}:\n` +
-            `- *If this team member was leaving for a similar role at another company, would you try to keep them?* ${fieldData['keeper-test-question-1']?.selected_option.value}\n` +
+            `- *If this team member was leaving for a similar role at another company, would you try to keep them?* ${ratingToText(fieldData['keeper-test-question-1']?.selected_option.value)}\n` +
             `- *If yes, what is it specifically that makes them so valuable to your team and PostHog?* ${fieldData['keeper-test-question-1-text']?.value}\n` +
-            `- *Are they a driver or a passenger?* ${fieldData['keeper-test-question-2']?.selected_option.value}\n` +
-            `- *Do they get things done proactively, today?* ${fieldData['keeper-test-question-3']?.selected_option.value}\n` +
-            `- *Are they optimistic by default?* ${fieldData['keeper-test-question-4']?.selected_option.value}\n` +
+            `- *Are they a driver or a passenger?* ${driverRatingToText(fieldData['keeper-test-question-2']?.selected_option.value)}\n` +
+            `- *Do they get things done proactively, today?* ${proactiveRatingToText(fieldData['keeper-test-question-3']?.selected_option.value)}\n` +
+            `- *Are they optimistic by default?* ${optimisticRatingToText(fieldData['keeper-test-question-4']?.selected_option.value)}\n` +
             `- *Areas to watch:* ${fieldData['keeper-test-question-4-text']?.value}\n` +
             (['30 Day check-in', '60 Day check-in', '80 Day check-in'].includes(
               title,
@@ -132,22 +139,16 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
                 },
               },
               title: title,
-              wouldYouTryToKeepThem:
-                fieldData['keeper-test-question-1']?.selected_option.value ===
-                'yes',
+              wouldYouTryToKeepThem: fieldData['keeper-test-question-1']
+                ?.selected_option.value as KeeperTestRating,
               whatMakesThemValuable:
                 fieldData['keeper-test-question-1-text']?.value,
-              driverOrPassenger:
-                fieldData['keeper-test-question-2']?.selected_option.value ===
-                'driver'
-                  ? 'DRIVER'
-                  : 'PASSENGER',
-              proactiveToday:
-                fieldData['keeper-test-question-3']?.selected_option.value ===
-                'yes',
-              optimisticByDefault:
-                fieldData['keeper-test-question-4']?.selected_option.value ===
-                'yes',
+              driverOrPassenger: fieldData['keeper-test-question-2']
+                ?.selected_option.value as KeeperTestRating,
+              proactiveToday: fieldData['keeper-test-question-3']
+                ?.selected_option.value as KeeperTestRating,
+              optimisticByDefault: fieldData['keeper-test-question-4']
+                ?.selected_option.value as KeeperTestRating,
               areasToWatch: fieldData['keeper-test-question-4-text']?.value,
               recommendation:
                 fieldData['keeper-test-question-5']?.selected_option.value ===
@@ -174,16 +175,37 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
               'Keeper test',
             ].includes(title)
           ) {
-            const flag =
-              createdFeedback.driverOrPassenger === 'DRIVER' &&
-              createdFeedback.proactiveToday &&
-              createdFeedback.optimisticByDefault &&
-              createdFeedback.wouldYouTryToKeepThem &&
-              (createdFeedback.recommendation ===
-                'STRONG_HIRE_ON_TRACK_TO_PASS_PROBATION' ||
-                createdFeedback.recommendation === null)
-                ? ':large_green_circle:'
-                : ':red_circle:'
+            // Flag logic:
+            // Green: All responses are STRONG_YES
+            // Yellow: All responses are YES or STRONG_YES (but at least one is YES)
+            // Red: At least one response is NO or STRONG_NO
+            const ratings = [
+              createdFeedback.wouldYouTryToKeepThem,
+              createdFeedback.driverOrPassenger,
+              createdFeedback.proactiveToday,
+              createdFeedback.optimisticByDefault,
+            ]
+
+            const hasNegative = ratings.some(
+              (rating) => rating === 'NO' || rating === 'STRONG_NO',
+            )
+            const allStrongYes = ratings.every(
+              (rating) => rating === 'STRONG_YES',
+            )
+            const allPositive = ratings.every(
+              (rating) => rating === 'YES' || rating === 'STRONG_YES',
+            )
+
+            let flag: string
+            if (hasNegative) {
+              flag = ':red_circle:'
+            } else if (allStrongYes) {
+              flag = ':large_green_circle:'
+            } else if (allPositive) {
+              flag = ':large_yellow_circle:'
+            } else {
+              flag = ':red_circle:'
+            }
             const res = await fetch('https://slack.com/api/chat.postMessage', {
               method: 'POST',
               headers: {
