@@ -51,6 +51,7 @@ export function NewSalaryForm({
   setBenchmark,
   showBonusPercentage,
   displayMode,
+  eligibleForEquityRefresh,
 }: {
   employeeId: string
   showOverride: boolean
@@ -66,6 +67,7 @@ export function NewSalaryForm({
   setBenchmark: (benchmark: string) => void
   showBonusPercentage: boolean
   displayMode: 'inline' | 'card'
+  eligibleForEquityRefresh?: boolean
 }) {
   const getDefaultValues = () => ({
     country: latestSalary?.country ?? 'United States',
@@ -289,6 +291,22 @@ export function NewSalaryForm({
   const locationFactorValue = useStore(
     form.store,
     (state) => state.values.locationFactor,
+  )
+  const totalSalaryLocal = useStore(
+    form.store,
+    (state) => state.values.totalSalaryLocal,
+  )
+  const localCurrency = useStore(
+    form.store,
+    (state) => state.values.localCurrency,
+  )
+  const actualSalaryLocal = useStore(
+    form.store,
+    (state) => state.values.actualSalaryLocal,
+  )
+  const equityRefreshAmount = useStore(
+    form.store,
+    (state) => state.values.equityRefreshAmount,
   )
 
   useEffect(() => {
@@ -805,7 +823,11 @@ export function NewSalaryForm({
             </div>
           </div>
 
-          <div className="mb-4 grid grid-cols-5 gap-4">
+          <div
+            className={`mb-4 grid gap-4 ${
+              eligibleForEquityRefresh ? 'grid-cols-6' : 'grid-cols-5'
+            }`}
+          >
             {/* Country */}
             <form.Field name="country">
               {(field) => (
@@ -948,6 +970,48 @@ export function NewSalaryForm({
               )}
             </form.Field>
 
+            {/* Equity Refresh Percentage */}
+            {eligibleForEquityRefresh && (
+              <form.Field
+                name="equityRefreshPercentage"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (value < 0 || value > 1) {
+                      return 'Equity refresh percentage must be between 0 and 1'
+                    }
+                  },
+                }}
+              >
+                {(field) => (
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">
+                      Equity Refresh (%)
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      max={1}
+                      value={field.state.value}
+                      onChange={(e) =>
+                        field.handleChange(Number(e.target.value))
+                      }
+                      className={`text-sm ${
+                        field.state.meta.errors.length > 0
+                          ? 'border-red-500 ring-red-500'
+                          : ''
+                      }`}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="mt-1 text-xs text-red-500">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+            )}
+
             {/* Actual Salary Override - conditionally shown */}
             {showOverride ? (
               <>
@@ -995,6 +1059,64 @@ export function NewSalaryForm({
             ) : null}
           </div>
 
+          {/* Employment Country and Area */}
+          <div
+            className={`mb-4 grid gap-4 ${
+              eligibleForEquityRefresh ? 'grid-cols-6' : 'grid-cols-5'
+            }`}
+          >
+            <form.Field name="employmentCountry">
+              {(field) => (
+                <div>
+                  <label className="text-xs font-medium text-gray-700">
+                    Employment Country
+                  </label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={field.handleChange}
+                  >
+                    <SelectTrigger className="w-full text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getCountries().map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="employmentArea">
+              {(field) => (
+                <div>
+                  <label className="text-xs font-medium text-gray-700">
+                    Employment Area
+                  </label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={field.handleChange}
+                    disabled={!employmentCountry}
+                  >
+                    <SelectTrigger className="w-full text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getAreasByCountry(employmentCountry).map((area) => (
+                        <SelectItem key={area} value={area}>
+                          {area}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </form.Field>
+          </div>
+
           {/* Calculated values display */}
           <div className="mb-4 rounded-lg bg-green-50 p-4">
             <div className="flex items-start justify-between">
@@ -1014,6 +1136,32 @@ export function NewSalaryForm({
                   <span className="text-gray-400">·</span>
                   <span className="text-gray-700">
                     {formatCurrency(totalSalary)}
+                  </span>
+                  {eligibleForEquityRefresh && equityRefreshAmount > 0 && (
+                    <>
+                      <span className="text-gray-400">·</span>
+                      <span className="text-gray-500">
+                        Equity Refresh: {formatCurrency(equityRefreshAmount)}
+                      </span>
+                    </>
+                  )}
+                  <span className="text-gray-400">·</span>
+                  <span className="text-gray-600">
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: localCurrency ?? 'USD',
+                    }).format(totalSalaryLocal)}
+                    {Math.abs(totalSalaryLocal - actualSalaryLocal) > 0.01 && (
+                      <>
+                        {' '}
+                        (
+                        {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: localCurrency ?? 'USD',
+                        }).format(actualSalaryLocal)}
+                        )
+                      </>
+                    )}
                   </span>
                 </div>
                 <div className="mb-2 text-xs leading-none">

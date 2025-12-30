@@ -63,15 +63,72 @@ export function SalaryHistoryCard({
                 {isMismatch ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="text-red-600">
+                      <span className="cursor-help text-red-600">
                         {formatCurrency(salary.totalSalary)}
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>
                         Mismatch detected! Expected:{' '}
-                        {formatCurrency(expectedTotal)}, Actual:{' '}
+                        {formatCurrency(expectedTotal)}
+                        {salary.totalSalaryLocal !== null &&
+                          salary.totalSalaryLocal !== undefined && (
+                            <>
+                              <br />
+                              Local:{' '}
+                              {new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: salary.localCurrency ?? 'USD',
+                              }).format(salary.totalSalaryLocal)}
+                              {salary.actualSalaryLocal !== null &&
+                                salary.actualSalaryLocal !== undefined &&
+                                Math.abs(
+                                  salary.totalSalaryLocal -
+                                    salary.actualSalaryLocal,
+                                ) > 0.01 && (
+                                  <>
+                                    {' '}
+                                    · Actual:{' '}
+                                    {new Intl.NumberFormat('en-US', {
+                                      style: 'currency',
+                                      currency: salary.localCurrency ?? 'USD',
+                                    }).format(salary.actualSalaryLocal)}
+                                  </>
+                                )}
+                            </>
+                          )}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : salary.totalSalaryLocal !== null &&
+                  salary.totalSalaryLocal !== undefined ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help text-gray-700">
                         {formatCurrency(salary.totalSalary)}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Local:{' '}
+                        {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: salary.localCurrency ?? 'USD',
+                        }).format(salary.totalSalaryLocal)}
+                        {salary.actualSalaryLocal !== null &&
+                          salary.actualSalaryLocal !== undefined &&
+                          Math.abs(
+                            salary.totalSalaryLocal - salary.actualSalaryLocal,
+                          ) > 0.01 && (
+                            <>
+                              {' '}
+                              · Actual:{' '}
+                              {new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: salary.localCurrency ?? 'USD',
+                              }).format(salary.actualSalaryLocal)}
+                            </>
+                          )}
                       </p>
                     </TooltipContent>
                   </Tooltip>

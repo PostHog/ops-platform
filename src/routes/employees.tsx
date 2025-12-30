@@ -233,6 +233,9 @@ function App() {
             locationFactor={salary.locationFactor}
             level={salary.level}
             step={salary.step}
+            totalSalaryLocal={salary.totalSalaryLocal}
+            actualSalaryLocal={salary.actualSalaryLocal}
+            localCurrency={salary.localCurrency}
           />
         )
       },
