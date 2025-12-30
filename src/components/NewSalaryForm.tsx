@@ -1098,7 +1098,10 @@ export function NewSalaryForm({
                   </label>
                   <Select
                     value={field.state.value}
-                    onValueChange={field.handleChange}
+                    onValueChange={(value) => {
+                      if (value === '') return
+                      field.handleChange(value)
+                    }}
                     disabled={!employmentCountry}
                   >
                     <SelectTrigger className="w-full text-sm">
