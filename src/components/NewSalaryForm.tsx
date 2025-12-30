@@ -51,6 +51,7 @@ export function NewSalaryForm({
   setBenchmark,
   showBonusPercentage,
   displayMode,
+  eligibleForEquityRefresh,
 }: {
   employeeId: string
   showOverride: boolean
@@ -66,6 +67,7 @@ export function NewSalaryForm({
   setBenchmark: (benchmark: string) => void
   showBonusPercentage: boolean
   displayMode: 'inline' | 'card'
+  eligibleForEquityRefresh?: boolean
 }) {
   const getDefaultValues = () => ({
     country: latestSalary?.country ?? 'United States',
@@ -301,6 +303,10 @@ export function NewSalaryForm({
   const actualSalaryLocal = useStore(
     form.store,
     (state) => state.values.actualSalaryLocal,
+  )
+  const equityRefreshAmount = useStore(
+    form.store,
+    (state) => state.values.equityRefreshAmount,
   )
 
   useEffect(() => {
@@ -656,46 +662,52 @@ export function NewSalaryForm({
                 }}
               />
             </TableCell>
-            <TableCell>
-              <form.Field
-                name="equityRefreshPercentage"
-                validators={{
-                  onChange: ({ value }) => {
-                    if (value < 0 || value > 1) {
-                      return 'Equity refresh percentage must be between 0 and 1'
-                    }
-                  },
-                }}
-                children={(field) => (
-                  <Input
-                    className={
-                      'h-6 w-full min-w-[70px] text-xs' +
-                      (field.state.meta.errors.length > 0
-                        ? ' border-red-500 ring-red-500'
-                        : '')
-                    }
-                    value={field.state.value}
-                    type="number"
-                    step={0.01}
-                    min={0}
-                    max={1}
-                    onChange={(e) => field.handleChange(Number(e.target.value))}
+            {eligibleForEquityRefresh && (
+              <>
+                <TableCell>
+                  <form.Field
+                    name="equityRefreshPercentage"
+                    validators={{
+                      onChange: ({ value }) => {
+                        if (value < 0 || value > 1) {
+                          return 'Equity refresh percentage must be between 0 and 1'
+                        }
+                      },
+                    }}
+                    children={(field) => (
+                      <Input
+                        className={
+                          'h-6 w-full min-w-[70px] text-xs' +
+                          (field.state.meta.errors.length > 0
+                            ? ' border-red-500 ring-red-500'
+                            : '')
+                        }
+                        value={field.state.value}
+                        type="number"
+                        step={0.01}
+                        min={0}
+                        max={1}
+                        onChange={(e) =>
+                          field.handleChange(Number(e.target.value))
+                        }
+                      />
+                    )}
                   />
-                )}
-              />
-            </TableCell>
-            <TableCell>
-              <form.Field
-                name="equityRefreshAmount"
-                children={(field) => {
-                  return (
-                    <div className="px-1 py-1 text-right text-xs">
-                      {formatCurrency(field.state.value)}
-                    </div>
-                  )
-                }}
-              />
-            </TableCell>
+                </TableCell>
+                <TableCell>
+                  <form.Field
+                    name="equityRefreshAmount"
+                    children={(field) => {
+                      return (
+                        <div className="px-1 py-1 text-right text-xs">
+                          {formatCurrency(field.state.value)}
+                        </div>
+                      )
+                    }}
+                  />
+                </TableCell>
+              </>
+            )}
             <TableCell>
               <form.Field
                 name="employmentCountry"
@@ -817,7 +829,11 @@ export function NewSalaryForm({
             </div>
           </div>
 
-          <div className="mb-4 grid grid-cols-5 gap-4">
+          <div
+            className={`mb-4 grid gap-4 ${
+              eligibleForEquityRefresh ? 'grid-cols-6' : 'grid-cols-5'
+            }`}
+          >
             {/* Country */}
             <form.Field name="country">
               {(field) => (
@@ -960,6 +976,48 @@ export function NewSalaryForm({
               )}
             </form.Field>
 
+            {/* Equity Refresh Percentage */}
+            {eligibleForEquityRefresh && (
+              <form.Field
+                name="equityRefreshPercentage"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (value < 0 || value > 1) {
+                      return 'Equity refresh percentage must be between 0 and 1'
+                    }
+                  },
+                }}
+              >
+                {(field) => (
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">
+                      Equity Refresh (%)
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      max={1}
+                      value={field.state.value}
+                      onChange={(e) =>
+                        field.handleChange(Number(e.target.value))
+                      }
+                      className={`text-sm ${
+                        field.state.meta.errors.length > 0
+                          ? 'border-red-500 ring-red-500'
+                          : ''
+                      }`}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="mt-1 text-xs text-red-500">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+            )}
+
             {/* Actual Salary Override - conditionally shown */}
             {showOverride ? (
               <>
@@ -1027,6 +1085,14 @@ export function NewSalaryForm({
                   <span className="text-gray-700">
                     {formatCurrency(totalSalary)}
                   </span>
+                  {eligibleForEquityRefresh && equityRefreshAmount > 0 && (
+                    <>
+                      <span className="text-gray-400">·</span>
+                      <span className="text-gray-500">
+                        Equity Refresh: {formatCurrency(equityRefreshAmount)}
+                      </span>
+                    </>
+                  )}
                   <span className="text-gray-400">·</span>
                   <span className="text-gray-600">
                     {new Intl.NumberFormat('en-US', {

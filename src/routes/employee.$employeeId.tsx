@@ -1583,7 +1583,9 @@ function EmployeeOverview() {
     'month',
   )
   const eligibleForEquityRefresh =
-    monthsSinceStart >= 10 && [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
+    false &&
+    monthsSinceStart >= 10 &&
+    [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
 
   return (
     <div className="flex h-[calc(100vh-2.5rem)] flex-col items-center justify-center gap-5 overflow-hidden pt-4">
@@ -2049,6 +2051,7 @@ function EmployeeOverview() {
                         setBenchmark={setBenchmark}
                         showBonusPercentage={showBonusPercentage}
                         displayMode="inline"
+                        eligibleForEquityRefresh={eligibleForEquityRefresh}
                       />
                     )}
                     {table.getRowModel().rows?.length ? (
@@ -2104,6 +2107,7 @@ function EmployeeOverview() {
                     setBenchmark={setBenchmark}
                     showBonusPercentage={showBonusPercentage}
                     displayMode="card"
+                    eligibleForEquityRefresh={eligibleForEquityRefresh}
                   />
                 )}
                 {timelineByMonth.length > 0 ? (
