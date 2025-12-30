@@ -11,12 +11,12 @@ ALTER TABLE "KeeperTestFeedback"
   END;
 
 -- AlterTable: Convert driverOrPassenger from DriverOrPassenger enum to KeeperTestRating
--- DRIVER -> YES, PASSENGER -> NO
+-- DRIVER -> STRONG_YES, PASSENGER -> STRONG_NO
 ALTER TABLE "KeeperTestFeedback" 
   ALTER COLUMN "driverOrPassenger" TYPE "KeeperTestRating" 
   USING CASE 
-    WHEN "driverOrPassenger" = 'DRIVER'::"DriverOrPassenger" THEN 'YES'::"KeeperTestRating"
-    ELSE 'NO'::"KeeperTestRating"
+    WHEN "driverOrPassenger" = 'DRIVER'::"DriverOrPassenger" THEN 'STRONG_YES'::"KeeperTestRating"
+    ELSE 'STRONG_NO'::"KeeperTestRating"
   END;
 
 -- AlterTable: Convert proactiveToday from boolean to KeeperTestRating
