@@ -129,7 +129,9 @@ model KeeperTestFeedback {
 
 enum CyclotronQueueName {
   send_keeper_test
+  send_manager_feedback
   receive_keeper_test_results
+  receive_manager_feedback_results
   dead_letter
 }
 
