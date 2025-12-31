@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/select'
 import 'vercel-toast/dist/vercel-toast.css'
 import { reviewQueueAtom } from '@/atoms'
-import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { createAdminFn } from '@/lib/auth-middleware'
 import { EmployeeNameCell } from '@/components/EmployeeNameCell'
 import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
 import { LevelStepDisplay } from '@/components/LevelStepDisplay'
@@ -93,7 +93,7 @@ export const months = [
   'December',
 ]
 
-const getEmployees = createAuthenticatedFn({
+const getEmployees = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.employee.findMany({
@@ -126,7 +126,7 @@ const getEmployees = createAuthenticatedFn({
   })
 })
 
-const updateEmployeePriority = createAuthenticatedFn({
+const updateEmployeePriority = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { employeeId: string; priority: string }) => d)

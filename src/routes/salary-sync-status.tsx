@@ -1,5 +1,5 @@
 import prisma from '@/db'
-import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { createAdminFn } from '@/lib/auth-middleware'
 import { formatCurrency } from '@/lib/utils'
 import { type Prisma } from '@prisma/client'
 import { useQuery } from '@tanstack/react-query'
@@ -55,7 +55,7 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
-const getSalarySyncStatus = createAuthenticatedFn({
+const getSalarySyncStatus = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.employee.findMany({

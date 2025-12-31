@@ -78,7 +78,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import prisma from '@/db'
-import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
+import { createAdminFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
@@ -309,7 +309,7 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
-export const getReferenceEmployees = createAuthenticatedFn({
+export const getReferenceEmployees = createAdminFn({
   method: 'GET',
 })
   .inputValidator(
@@ -383,7 +383,7 @@ export const getReferenceEmployees = createAuthenticatedFn({
       .sort((a, b) => a.step * a.level - b.step * b.level)
   })
 
-export const getDeelEmployees = createAuthenticatedFn({
+export const getDeelEmployees = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.deelEmployee.findMany({
@@ -398,7 +398,7 @@ export const getDeelEmployees = createAuthenticatedFn({
   })
 })
 
-export const updateSalary = createAuthenticatedFn({
+export const updateSalary = createAdminFn({
   method: 'POST',
 })
   .inputValidator(
@@ -426,7 +426,7 @@ export const updateSalary = createAuthenticatedFn({
     return salary
   })
 
-export const deleteSalary = createAuthenticatedFn({
+export const deleteSalary = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string }) => d)
@@ -452,7 +452,7 @@ export const deleteSalary = createAuthenticatedFn({
     return { success: true }
   })
 
-export const createPerformanceProgram = createAuthenticatedFn({
+export const createPerformanceProgram = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { employeeId: string }) => d)
@@ -553,7 +553,7 @@ export const createPerformanceProgram = createAuthenticatedFn({
     return program
   })
 
-export const updateChecklistItem = createAuthenticatedFn({
+export const updateChecklistItem = createAdminFn({
   method: 'POST',
 })
   .inputValidator(
@@ -614,7 +614,7 @@ export const updateChecklistItem = createAuthenticatedFn({
     return updated
   })
 
-export const addProgramFeedback = createAuthenticatedFn({
+export const addProgramFeedback = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { programId: string; feedback: string }) => d)
@@ -652,7 +652,7 @@ export const addProgramFeedback = createAuthenticatedFn({
     return feedback
   })
 
-export const resolvePerformanceProgram = createAuthenticatedFn({
+export const resolvePerformanceProgram = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { programId: string }) => d)
@@ -726,7 +726,7 @@ export const resolvePerformanceProgram = createAuthenticatedFn({
     return updated
   })
 
-export const getProofFileUploadUrl = createAuthenticatedFn({
+export const getProofFileUploadUrl = createAdminFn({
   method: 'POST',
 })
   .inputValidator(
@@ -819,7 +819,7 @@ export const getProofFileUploadUrl = createAuthenticatedFn({
     }
   })
 
-export const createProofFileRecord = createAuthenticatedFn({
+export const createProofFileRecord = createAdminFn({
   method: 'POST',
 })
   .inputValidator(
@@ -857,7 +857,7 @@ export const createProofFileRecord = createAuthenticatedFn({
     return proofFile
   })
 
-export const getProofFileUrl = createAuthenticatedFn({
+export const getProofFileUrl = createAdminFn({
   method: 'GET',
 })
   .inputValidator((d: { proofFileId: string }) => d)
@@ -881,7 +881,7 @@ export const getProofFileUrl = createAuthenticatedFn({
     return { url, fileName: proofFile.fileName }
   })
 
-export const deleteProofFile = createAuthenticatedFn({
+export const deleteProofFile = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { proofFileId: string }) => d)
