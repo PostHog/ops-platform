@@ -15,17 +15,7 @@ pnpm install
 pnpm dev
 ```
 
-If this is the first time you're running the app, you'll need to sync from Deel and import historical data. The CURL request requires a bearer token - get that from a friend as well.
-
-```bash
-curl --request POST \
-  --url 'http://localhost:3000/syncDeelEmployees?=' \
-  --header 'Authorization: Bearer {{token}}' \
-  --header 'User-Agent: insomnia/11.6.1'
-pnpm import-historical
-```
-
-After starting the application, log in with your posthog google account.
+After starting the application, log in with your google account. To gain admin access, you'll need to change your role in the `user` table to `admin`.
 
 # Building For Production
 
