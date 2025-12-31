@@ -98,7 +98,7 @@ import {
 import dayjs from 'dayjs'
 import MarkdownComponent from '@/lib/MarkdownComponent'
 
-export async function isManagerOfEmployee(
+async function isManagerOfEmployee(
   userEmail: string,
   employeeId: string,
 ): Promise<boolean> {
