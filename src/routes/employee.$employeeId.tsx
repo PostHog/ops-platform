@@ -1234,10 +1234,44 @@ function EmployeeOverview() {
     return nodes.flatMap(flatten).filter((n) => n.employeeId)
   }, [managerHierarchy])
 
+  // Get all employee IDs in the manager hierarchy (for filtering in team mode)
+  const managerHierarchyEmployeeIds = useMemo(() => {
+    // Use the already computed allHierarchyEmployees to get employee IDs
+    return new Set(
+      allHierarchyEmployees.map((n) => n.employeeId).filter(Boolean),
+    )
+  }, [allHierarchyEmployees])
+
   const [searchOpen, setSearchOpen] = useState(false)
   const [managerTreeViewMode, setManagerTreeViewMode] = useLocalStorage<
     'manager' | 'team'
   >('manager-tree.viewMode', 'manager')
+
+  // Filter employees to only those in manager's hierarchy when in team mode for non-admin users
+  const filteredDeelEmployees = useMemo(() => {
+    if (!deelEmployees) return null
+    // For admins, show all employees
+    if (user?.role === ROLES.ADMIN) return deelEmployees
+    // For team mode, filter to only employees in the manager's hierarchy
+    if (managerTreeViewMode === 'team') {
+      return deelEmployees.filter((emp) => {
+        // Include the manager themselves
+        if (emp.id === managerDeelEmployeeId) return true
+        // Include only employees that are in the manager hierarchy
+        return emp.employee?.id
+          ? managerHierarchyEmployeeIds.has(emp.employee.id)
+          : false
+      })
+    }
+    // For manager mode, return all (already filtered by manager hierarchy)
+    return deelEmployees
+  }, [
+    deelEmployees,
+    user?.role,
+    managerTreeViewMode,
+    managerDeelEmployeeId,
+    managerHierarchyEmployeeIds,
+  ])
 
   // Combine reference employees with current employee (using form values if available)
   const combinedReferenceEmployees = useMemo(() => {
@@ -1670,8 +1704,6 @@ function EmployeeOverview() {
   const showEmployeeTree =
     managerHierarchy && (user?.role === ROLES.ADMIN || hasReports)
 
-  console.log('showEmployeeTree', showEmployeeTree)
-
   return (
     <div className="flex h-[calc(100vh-2.5rem)] flex-col items-center justify-center gap-5 overflow-hidden pt-4">
       <div className="flex h-full w-full gap-5 2xl:max-w-[2000px]">
@@ -1811,7 +1843,7 @@ function EmployeeOverview() {
                 currentEmployeeId={employee.id}
                 expandAll={expandAll}
                 expandAllCounter={expandAllCounter}
-                deelEmployees={deelEmployees}
+                deelEmployees={filteredDeelEmployees || deelEmployees}
                 proposedHires={proposedHires}
                 viewMode={managerTreeViewMode}
                 onViewModeChange={(mode: 'manager' | 'team') =>
