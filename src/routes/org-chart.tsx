@@ -166,7 +166,11 @@ export const getDeelEmployeesAndProposedHires = createUserFn({
     (employee) => employee.workEmail === context.user.email,
   )?.id
 
-  return { employees, proposedHires, managerDeelEmployeeId }
+  const hasReports = employees.some(
+    (employee) => employee.managerId === managerDeelEmployeeId,
+  )
+
+  return { employees, proposedHires, managerDeelEmployeeId, hasReports }
 })
 
 export const Route = createFileRoute('/org-chart')({

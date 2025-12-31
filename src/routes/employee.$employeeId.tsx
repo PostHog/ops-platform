@@ -1087,6 +1087,7 @@ function EmployeeOverview() {
   const proposedHires = deelEmployeesAndProposedHiresData?.proposedHires || []
   const managerDeelEmployeeId =
     deelEmployeesAndProposedHiresData?.managerDeelEmployeeId
+  const hasReports = deelEmployeesAndProposedHiresData?.hasReports
 
   // Build hierarchy tree from flat list
   const managerHierarchy = useMemo(() => {
@@ -1666,11 +1667,16 @@ function EmployeeOverview() {
     monthsSinceStart >= 10 &&
     [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
 
+  const showEmployeeTree =
+    managerHierarchy && (user?.role === ROLES.ADMIN || hasReports)
+
+  console.log('showEmployeeTree', showEmployeeTree)
+
   return (
     <div className="flex h-[calc(100vh-2.5rem)] flex-col items-center justify-center gap-5 overflow-hidden pt-4">
       <div className="flex h-full w-full gap-5 2xl:max-w-[2000px]">
         {/* Sidebar with hierarchy */}
-        {employee.deelEmployee && managerHierarchy && (
+        {showEmployeeTree && (
           <div className="hidden w-96 flex-shrink-0 border-r px-4 lg:block">
             <div className="mb-2 flex items-center justify-between">
               <Select
@@ -1818,7 +1824,7 @@ function EmployeeOverview() {
         <div
           className={cn(
             'flex w-full min-w-0 flex-1 flex-col gap-5 overflow-y-auto',
-            managerHierarchy ? 'pr-4 pl-4 lg:pl-0' : 'px-4',
+            showEmployeeTree ? 'pr-4 pl-4 lg:pl-0' : 'px-4',
           )}
         >
           {user?.role === ROLES.ADMIN ? (
