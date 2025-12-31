@@ -12,15 +12,15 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useCallback, useEffect, useState } from 'react'
-
-import type { Prisma } from '@prisma/client'
+import { PerformanceProgramStatus, type Prisma } from '@prisma/client'
 import EmployeePanel from '@/components/EmployeePanel'
 import prisma from '@/db'
 import { nodeTypes } from '@/lib/org-chart/nodes'
 import useExpandCollapse from '@/lib/org-chart/useExpandCollapse'
 import OrgChartPanel from '@/components/OrgChartPanel'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
-import { createOrgChartFn } from '@/lib/auth-middleware'
+import { createUserFn } from '@/lib/auth-middleware'
+import { ROLES } from '@/lib/consts'
 import { useLocalStorage } from 'usehooks-ts'
 import { orgChartAutozoomingEnabledAtom } from '@/atoms'
 import { useAtom } from 'jotai'
@@ -101,24 +101,34 @@ export type OrgChartNode = Node<
   } & ProposedHireFields
 >
 
-export const getDeelEmployeesAndProposedHires = createOrgChartFn({
+export const getDeelEmployeesAndProposedHires = createUserFn({
   method: 'GET',
-}).handler(async () => {
+}).handler(async ({ context }) => {
+  const isAdmin = context.user.role === ROLES.ADMIN
+
+  if (!context.user.email.endsWith('@posthog.com')) {
+    throw new Error('Unauthorized')
+  }
+
   const employees = await prisma.deelEmployee.findMany({
     include: {
       employee: {
         select: {
           id: true,
           email: true,
-          performancePrograms: {
-            where: {
-              status: 'ACTIVE',
-            },
-            select: {
-              id: true,
-            },
-            take: 1,
-          },
+          ...(isAdmin
+            ? {
+                performancePrograms: {
+                  where: {
+                    status: PerformanceProgramStatus.ACTIVE,
+                  },
+                  select: {
+                    id: true,
+                  },
+                  take: 1,
+                },
+              }
+            : {}),
         },
       },
       manager: {
@@ -152,7 +162,11 @@ export const getDeelEmployeesAndProposedHires = createOrgChartFn({
     },
   })
 
-  return { employees, proposedHires }
+  const managerDeelEmployeeId = employees.find(
+    (employee) => employee.workEmail === context.user.email,
+  )?.id
+
+  return { employees, proposedHires, managerDeelEmployeeId }
 })
 
 export const Route = createFileRoute('/org-chart')({

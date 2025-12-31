@@ -98,6 +98,38 @@ import {
 import dayjs from 'dayjs'
 import MarkdownComponent from '@/lib/MarkdownComponent'
 
+export async function isManagerOfEmployee(
+  userEmail: string,
+  employeeId: string,
+): Promise<boolean> {
+  // Get user's DeelEmployee ID
+  const userEmployee = await prisma.employee.findUnique({
+    where: { email: userEmail },
+    include: { deelEmployee: { select: { id: true } } },
+  })
+  const userDeelEmployeeId = userEmployee?.deelEmployee?.id
+  if (!userDeelEmployeeId) return false
+
+  // Recursively get all report employee IDs
+  const reportIds = new Set<string>()
+  const getReportIds = async (managerDeelEmployeeId: string): Promise<void> => {
+    const directReports = await prisma.deelEmployee.findMany({
+      where: { managerId: managerDeelEmployeeId },
+      include: { employee: { select: { id: true } } },
+    })
+
+    for (const report of directReports) {
+      if (report.employee?.id) {
+        reportIds.add(report.employee.id)
+        await getReportIds(report.id)
+      }
+    }
+  }
+
+  await getReportIds(userDeelEmployeeId)
+  return reportIds.has(employeeId)
+}
+
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
   loader: async ({ params }) =>
@@ -110,22 +142,34 @@ const getEmployeeById = createUserFn({
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    return await prisma.employee.findUnique({
+    const isManager =
+      !isAdmin &&
+      (await isManagerOfEmployee(context.user.email, data.employeeId))
+
+    const employee = await prisma.employee.findUnique({
       where: {
         id: data.employeeId,
-        ...(!isAdmin
-          ? {
-              email: context.user.email,
-            }
-          : {}),
+        ...(!isAdmin && !isManager ? { email: context.user.email } : {}),
       },
       select: {
         id: true,
         email: true,
+        // Admin-only fields
         ...(isAdmin ? { priority: true, reviewed: true } : {}),
-        ...(isAdmin
+        // Keeper tests: available to admin and managers
+        // Managers only see tests from the last 12 months
+        ...(isAdmin || isManager
           ? {
               keeperTestFeedback: {
+                ...(isManager
+                  ? {
+                      where: {
+                        timestamp: {
+                          gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 12 months ago
+                        },
+                      },
+                    }
+                  : {}),
                 orderBy: {
                   timestamp: 'desc',
                 },
@@ -137,6 +181,11 @@ const getEmployeeById = createUserFn({
                   },
                 },
               },
+            }
+          : {}),
+        // Performance programs: admin only
+        ...(isAdmin
+          ? {
               performancePrograms: {
                 include: {
                   checklistItems: {
@@ -196,44 +245,48 @@ const getEmployeeById = createUserFn({
           },
           ...(isAdmin
             ? {}
-            : {
-                select: {
-                  id: true,
-                  timestamp: true,
-                  country: true,
-                  area: true,
-                  locationFactor: true,
-                  level: true,
-                  step: true,
-                  bonusPercentage: true,
-                  bonusAmount: true,
-                  benchmark: true,
-                  benchmarkFactor: true,
-                  totalSalary: true,
-                  changePercentage: true,
-                  changeAmount: true,
-                  exchangeRate: true,
-                  localCurrency: true,
-                  totalSalaryLocal: true,
-                  amountTakenInOptions: true,
-                  actualSalary: true,
-                  actualSalaryLocal: true,
-                },
-                where: {
-                  OR: [
-                    {
-                      communicated: true,
-                    },
-                    {
-                      timestamp: {
-                        lte: new Date(
-                          new Date().setDate(new Date().getDate() - 30),
-                        ),
+            : isManager
+              ? {
+                  take: 0, // Return empty for managers
+                }
+              : {
+                  select: {
+                    id: true,
+                    timestamp: true,
+                    country: true,
+                    area: true,
+                    locationFactor: true,
+                    level: true,
+                    step: true,
+                    bonusPercentage: true,
+                    bonusAmount: true,
+                    benchmark: true,
+                    benchmarkFactor: true,
+                    totalSalary: true,
+                    changePercentage: true,
+                    changeAmount: true,
+                    exchangeRate: true,
+                    localCurrency: true,
+                    totalSalaryLocal: true,
+                    amountTakenInOptions: true,
+                    actualSalary: true,
+                    actualSalaryLocal: true,
+                  },
+                  where: {
+                    OR: [
+                      {
+                        communicated: true,
                       },
-                    },
-                  ],
-                },
-              }),
+                      {
+                        timestamp: {
+                          lte: new Date(
+                            new Date().setDate(new Date().getDate() - 30),
+                          ),
+                        },
+                      },
+                    ],
+                  },
+                }),
         },
         deelEmployee: {
           include: {
@@ -242,6 +295,12 @@ const getEmployeeById = createUserFn({
         },
       },
     })
+
+    if (!isAdmin && !isManager && employee?.email !== context.user.email) {
+      throw new Error('Unauthorized')
+    }
+
+    return employee
   })
 
 type Employee = Prisma.EmployeeGetPayload<{
@@ -1023,10 +1082,11 @@ function EmployeeOverview() {
   const { data: deelEmployeesAndProposedHiresData } = useQuery({
     queryKey: ['deelEmployeesAndProposedHires'],
     queryFn: () => getDeelEmployeesAndProposedHires(),
-    enabled: user?.role === ROLES.ADMIN,
   })
   const deelEmployees = deelEmployeesAndProposedHiresData?.employees
   const proposedHires = deelEmployeesAndProposedHiresData?.proposedHires || []
+  const managerDeelEmployeeId =
+    deelEmployeesAndProposedHiresData?.managerDeelEmployeeId
 
   // Build hierarchy tree from flat list
   const managerHierarchy = useMemo(() => {
@@ -1124,7 +1184,22 @@ function EmployeeOverview() {
       }
     }
 
-    // Find top-level managers (Cofounders or employees without managers)
+    // For non-admins, start from manager's DeelEmployee
+    if (user?.role !== ROLES.ADMIN && managerDeelEmployeeId) {
+      const managerEmployee = deelEmployees.find(
+        (e) => e.id === managerDeelEmployeeId,
+      )
+      if (managerEmployee) {
+        return buildTree(managerEmployee)
+      }
+      // Fallback: if manager not found in filtered list, return first employee
+      if (deelEmployees.length > 0) {
+        return buildTree(deelEmployees[0])
+      }
+      return null
+    }
+
+    // For admins, find top-level managers (Cofounders or employees without managers)
     const topLevelManagers = deelEmployees.filter(
       (e) => e.title === 'Cofounder' || !e.managerId,
     )
@@ -1144,7 +1219,7 @@ function EmployeeOverview() {
 
     // Return single node or array of nodes
     return trees.length === 1 ? trees[0] : trees
-  }, [deelEmployees, proposedHires])
+  }, [deelEmployees, proposedHires, user?.role, managerDeelEmployeeId])
 
   // Flatten hierarchy to get all employees for search
   const allHierarchyEmployees = useMemo(() => {
@@ -1840,7 +1915,9 @@ function EmployeeOverview() {
             </div>
           ) : null}
 
-          {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
+          {'keeperTestFeedback' in employee &&
+          employee.keeperTestFeedback &&
+          viewMode === 'table' ? (
             <>
               <div className="mt-2 flex flex-row items-center justify-between gap-2">
                 <span className="text-md font-bold">Feedback</span>
