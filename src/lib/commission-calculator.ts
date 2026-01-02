@@ -67,4 +67,3 @@ export function validateQuota(quota: number): boolean {
 export function validateAttainment(attainment: number): boolean {
   return attainment >= 0
 }
-

@@ -29,6 +29,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
 import { FeedbackCard } from '@/components/FeedbackCard'
 import { PerformanceProgramTimelineCard } from '@/components/PerformanceProgramTimelineCard'
+import { CommissionBonusTimelineCard } from '@/components/CommissionBonusTimelineCard'
 import { SalaryWithMismatchIndicator } from '@/components/SalaryWithMismatchIndicator'
 import {
   bonusPercentage,
@@ -288,6 +289,11 @@ const getEmployeeById = createUserFn({
                   },
                 }),
         },
+        commissionBonuses: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         deelEmployee: {
           include: {
             topLevelManager: true,
@@ -363,6 +369,11 @@ type Employee = Prisma.EmployeeGetPayload<{
             email: true
           }
         }
+      }
+    }
+    commissionBonuses: {
+      orderBy: {
+        createdAt: 'desc'
       }
     }
   }
@@ -1381,10 +1392,21 @@ function EmployeeOverview() {
       })
     }
 
+    const commissionBonusItems = (
+      'commissionBonuses' in employee && employee.commissionBonuses
+        ? employee.commissionBonuses
+        : []
+    ).map((bonus) => ({
+      type: 'commission-bonus' as const,
+      timestamp: bonus.createdAt,
+      data: bonus,
+    }))
+
     const allItems = [
       ...salaryItems,
       ...feedbackItems,
       ...performanceProgramItems,
+      ...commissionBonusItems,
     ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 
     // Group items by month/year
@@ -1416,6 +1438,7 @@ function EmployeeOverview() {
     employee.salaries,
     employee.keeperTestFeedback,
     employee.performancePrograms,
+    'commissionBonuses' in employee ? employee.commissionBonuses : [],
   ])
 
   const columns: Array<ColumnDef<Salary>> = useMemo(() => {
@@ -2307,6 +2330,14 @@ function EmployeeOverview() {
                                 program={item.data.program}
                                 checklistItem={item.data.checklistItem}
                                 feedback={item.data.feedback}
+                                lastTableItem={lastTableItem}
+                              />
+                            )
+                          } else if (item.type === 'commission-bonus') {
+                            return (
+                              <CommissionBonusTimelineCard
+                                key={`commission-bonus-${item.data.id}`}
+                                bonus={item.data}
                                 lastTableItem={lastTableItem}
                               />
                             )
