@@ -632,11 +632,6 @@ export const getEmployeesForImport = createAdminFn({
         orderBy: { timestamp: 'desc' },
         take: 1,
       },
-      deelEmployee: {
-        select: {
-          name: true,
-        },
-      },
     },
   })
 })

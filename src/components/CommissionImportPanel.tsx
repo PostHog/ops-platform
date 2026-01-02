@@ -33,7 +33,6 @@ type ImportRow = {
   attainment: number
   quarter: string
   employeeId?: string
-  employeeName?: string
   bonusAmount?: number
   calculatedAmount?: number
   attainmentPercentage?: number
@@ -253,7 +252,6 @@ export function CommissionImportPanel() {
             attainment,
             quarter: quarter,
             employeeId: employee.id,
-            employeeName: employee.deelEmployee?.name || email,
             bonusAmount: quarterlyBonusAmount,
             calculatedAmount,
             attainmentPercentage,
