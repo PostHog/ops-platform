@@ -46,6 +46,18 @@ export function CommissionBonusTimelineCard({
                       {attainmentPercentage.toFixed(1)}%)
                       <br />
                       Bonus Amount: {formatCurrency(bonus.bonusAmount)}
+                      {bonus.calculatedAmountLocal &&
+                        bonus.localCurrency &&
+                        bonus.localCurrency !== 'USD' && (
+                          <>
+                            <br />
+                            Local:{' '}
+                            {formatCurrency(
+                              bonus.calculatedAmountLocal,
+                              bonus.localCurrency,
+                            )}
+                          </>
+                        )}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -56,6 +68,18 @@ export function CommissionBonusTimelineCard({
                 </span>
                 <span className="ml-1 text-gray-600">
                   · {attainmentPercentage.toFixed(1)}% attainment
+                  {bonus.calculatedAmountLocal &&
+                    bonus.localCurrency &&
+                    bonus.localCurrency !== 'USD' && (
+                      <>
+                        {' '}
+                        ·{' '}
+                        {formatCurrency(
+                          bonus.calculatedAmountLocal,
+                          bonus.localCurrency,
+                        )}
+                      </>
+                    )}
                 </span>
               </div>
             </div>

@@ -581,6 +581,13 @@ export const importCommissionBonuses = createAdminFn({
           )
         }
 
+        // Get exchange rate and local currency from latest salary
+        const latestSalary = employee.salaries[0]
+        const exchangeRate = latestSalary?.exchangeRate ?? 1
+        const localCurrency = latestSalary?.localCurrency ?? 'USD'
+        const calculatedAmountLocal = bonus.calculatedAmount * exchangeRate
+
+        // Note: bonus.bonusAmount is already the quarterly amount (annual / 4) from the import panel
         // Create commission bonus
         const created = await prisma.commissionBonus.create({
           data: {
@@ -588,8 +595,11 @@ export const importCommissionBonuses = createAdminFn({
             quarter: bonus.quarter,
             quota: bonus.quota,
             attainment: bonus.attainment,
-            bonusAmount: bonus.bonusAmount,
+            bonusAmount: bonus.bonusAmount, // This is already quarterly (annual / 4)
             calculatedAmount: bonus.calculatedAmount,
+            exchangeRate: exchangeRate,
+            localCurrency: localCurrency,
+            calculatedAmountLocal: calculatedAmountLocal,
             communicated: false,
             synced: false,
           },

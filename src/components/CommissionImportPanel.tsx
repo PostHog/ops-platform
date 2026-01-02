@@ -224,21 +224,24 @@ export function CommissionImportPanel() {
             )
           }
 
-          // Get latest salary bonus amount
+          // Get latest salary bonus amount (annual) and divide by 4 for quarterly
           const latestSalary = employee.salaries?.[0]
-          const bonusAmount = latestSalary?.bonusAmount || 0
+          const annualBonusAmount = latestSalary?.bonusAmount || 0
 
-          if (bonusAmount <= 0) {
+          if (annualBonusAmount <= 0) {
             throw new Error(
               'Employee has no bonus amount in their latest salary record',
             )
           }
 
-          // Calculate commission bonus
+          // Convert annual bonus to quarterly bonus
+          const quarterlyBonusAmount = annualBonusAmount / 4
+
+          // Calculate commission bonus using quarterly bonus amount
           const calculatedAmount = calculateCommissionBonus(
             attainment,
             quota,
-            bonusAmount,
+            quarterlyBonusAmount,
           )
 
           // Calculate attainment percentage
@@ -251,7 +254,7 @@ export function CommissionImportPanel() {
             quarter: quarter,
             employeeId: employee.id,
             employeeName: employee.deelEmployee?.name || email,
-            bonusAmount,
+            bonusAmount: quarterlyBonusAmount,
             calculatedAmount,
             attainmentPercentage,
           })
