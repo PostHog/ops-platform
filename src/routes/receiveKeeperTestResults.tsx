@@ -179,10 +179,10 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
               ratings: KeeperTestRating[],
             ): { flag: string; mention: boolean } => {
               // Flag logic:
-              // Red circle + mention: Any STRONG_NO or NO on 80 day check-in
+              // Red circle + mention: Any STRONG_NO or (NO on 80 day check-in)
               // Yellow circle: Any NO
-              // Green circle: All responses are YES (not STRONG_YES)
-              // Star: All responses are STRONG_YES (top performers)
+              // Green circle: All responses are YES
+              // Star: Any STRONG_YES
               const hasStrongNo = ratings.some(
                 (rating) => rating === 'STRONG_NO',
               )
