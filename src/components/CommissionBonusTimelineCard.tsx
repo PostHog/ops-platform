@@ -78,18 +78,6 @@ export function CommissionBonusTimelineCard({
                       </p>
                     </TooltipContent>
                   </Tooltip>
-                  {bonus.calculatedAmountLocal &&
-                    bonus.localCurrency &&
-                    bonus.localCurrency !== 'USD' && (
-                      <>
-                        {' '}
-                        ·{' '}
-                        {formatCurrency(
-                          bonus.calculatedAmountLocal,
-                          bonus.localCurrency,
-                        )}
-                      </>
-                    )}
                 </span>
               </div>
             </div>
