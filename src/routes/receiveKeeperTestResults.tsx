@@ -175,10 +175,36 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
               'Keeper test',
             ].includes(title)
           ) {
-            // Flag logic:
-            // Green: All responses are STRONG_YES
-            // Yellow: All responses are YES or STRONG_YES (but at least one is YES)
-            // Red: At least one response is NO or STRONG_NO
+            const getFlag = (
+              ratings: KeeperTestRating[],
+            ): { flag: string; mention: boolean } => {
+              // Flag logic:
+              // Red circle + mention: Any STRONG_NO or NO on 80 day check-in
+              // Yellow circle: Any NO
+              // Green circle: All responses are YES (not STRONG_YES)
+              // Star: All responses are STRONG_YES (top performers)
+              const hasStrongNo = ratings.some(
+                (rating) => rating === 'STRONG_NO',
+              )
+              const hasNo = ratings.some((rating) => rating === 'NO')
+              const allYes = ratings.every((rating) => rating === 'YES')
+              const hasStrongYes = ratings.some(
+                (rating) => rating === 'STRONG_YES',
+              )
+
+              if (hasStrongNo || (hasNo && title === '80 Day check-in')) {
+                return { flag: ':red_circle:', mention: true }
+              } else if (hasNo) {
+                return { flag: ':large_yellow_circle:', mention: false }
+              } else if (allYes) {
+                return { flag: ':large_green_circle:', mention: false }
+              } else if (hasStrongYes) {
+                return { flag: ':star:', mention: false }
+              } else {
+                return { flag: ':max-error:', mention: false }
+              }
+            }
+
             const ratings = [
               createdFeedback.wouldYouTryToKeepThem,
               createdFeedback.driverOrPassenger,
@@ -186,26 +212,8 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
               createdFeedback.optimisticByDefault,
             ]
 
-            const hasNegative = ratings.some(
-              (rating) => rating === 'NO' || rating === 'STRONG_NO',
-            )
-            const allStrongYes = ratings.every(
-              (rating) => rating === 'STRONG_YES',
-            )
-            const allPositive = ratings.every(
-              (rating) => rating === 'YES' || rating === 'STRONG_YES',
-            )
+            const { flag, mention } = getFlag(ratings)
 
-            let flag: string
-            if (hasNegative) {
-              flag = ':red_circle:'
-            } else if (allStrongYes) {
-              flag = ':large_green_circle:'
-            } else if (allPositive) {
-              flag = ':large_yellow_circle:'
-            } else {
-              flag = ':red_circle:'
-            }
             const res = await fetch('https://slack.com/api/chat.postMessage', {
               method: 'POST',
               headers: {
@@ -215,7 +223,7 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
               body: JSON.stringify({
                 channel: process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
                 text:
-                  `${flag} ${managerName} has submitted keeper test feedback for ${employeeEmail}\n\nSummary:\n\n` +
+                  `${flag} ${mention ? `<!subteam^S07D08WD9U7|exec-folks> <!subteam^S07E3K2FNGG|people-ops-folks>` : ''} ${managerName} has submitted keeper test feedback for ${employeeEmail}\n\nSummary:\n\n` +
                   feedback,
               }),
             })
