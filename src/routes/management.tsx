@@ -34,14 +34,14 @@ import {
 import { renderToStaticMarkup } from 'react-dom/server'
 import { fetchDeelEmployees } from './syncDeelEmployees'
 import type { KeeperTestJobPayload } from './runScheduledJobs'
-import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { createAdminFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
 })
 
-const getUsers = createAuthenticatedFn({
+const getUsers = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.user.findMany({
@@ -51,7 +51,7 @@ const getUsers = createAuthenticatedFn({
   })
 })
 
-const updateUserRole = createAuthenticatedFn({
+const updateUserRole = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; role: string }) => d)
@@ -66,7 +66,7 @@ const updateUserRole = createAuthenticatedFn({
     })
   })
 
-const startReviewCycle = createAuthenticatedFn({
+const startReviewCycle = createAdminFn({
   method: 'POST',
 }).handler(async () => {
   return await prisma.employee.updateMany({
@@ -76,7 +76,7 @@ const startReviewCycle = createAuthenticatedFn({
   })
 })
 
-const populateInitialEmployeeSalaries = createAuthenticatedFn({
+const populateInitialEmployeeSalaries = createAdminFn({
   method: 'POST',
 }).handler(async () => {
   const employees = await prisma.deelEmployee.findMany({
@@ -413,7 +413,7 @@ function RouteComponent() {
   )
 }
 
-export const scheduleKeeperTests = createAuthenticatedFn({
+export const scheduleKeeperTests = createAdminFn({
   method: 'POST',
 }).handler(async () => {
   const employees = await prisma.employee.findMany({

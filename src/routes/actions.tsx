@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
-import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { createAdminFn } from '@/lib/auth-middleware'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
@@ -69,7 +69,7 @@ type Salary = Prisma.SalaryGetPayload<{
   }
 }>
 
-const getUpdatedSalaries = createAuthenticatedFn({
+const getUpdatedSalaries = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.salary.findMany({
@@ -108,7 +108,7 @@ const getUpdatedSalaries = createAuthenticatedFn({
   })
 })
 
-const updateCommunicated = createAuthenticatedFn({
+const updateCommunicated = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; communicated: boolean }) => d)

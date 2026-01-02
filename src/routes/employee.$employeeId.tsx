@@ -78,7 +78,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import prisma from '@/db'
-import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
+import { createAdminFn, createUserFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
@@ -98,6 +98,38 @@ import {
 import dayjs from 'dayjs'
 import MarkdownComponent from '@/lib/MarkdownComponent'
 
+async function isManagerOfEmployee(
+  userEmail: string,
+  employeeId: string,
+): Promise<boolean> {
+  // Get user's DeelEmployee ID
+  const userEmployee = await prisma.employee.findUnique({
+    where: { email: userEmail },
+    include: { deelEmployee: { select: { id: true } } },
+  })
+  const userDeelEmployeeId = userEmployee?.deelEmployee?.id
+  if (!userDeelEmployeeId) return false
+
+  // Recursively get all report employee IDs
+  const reportIds = new Set<string>()
+  const getReportIds = async (managerDeelEmployeeId: string): Promise<void> => {
+    const directReports = await prisma.deelEmployee.findMany({
+      where: { managerId: managerDeelEmployeeId },
+      include: { employee: { select: { id: true } } },
+    })
+
+    for (const report of directReports) {
+      if (report.employee?.id) {
+        reportIds.add(report.employee.id)
+        await getReportIds(report.id)
+      }
+    }
+  }
+
+  await getReportIds(userDeelEmployeeId)
+  return reportIds.has(employeeId)
+}
+
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
   loader: async ({ params }) =>
@@ -110,22 +142,34 @@ const getEmployeeById = createUserFn({
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    return await prisma.employee.findUnique({
+    const isManager =
+      !isAdmin &&
+      (await isManagerOfEmployee(context.user.email, data.employeeId))
+
+    const employee = await prisma.employee.findUnique({
       where: {
         id: data.employeeId,
-        ...(!isAdmin
-          ? {
-              email: context.user.email,
-            }
-          : {}),
+        ...(!isAdmin && !isManager ? { email: context.user.email } : {}),
       },
       select: {
         id: true,
         email: true,
+        // Admin-only fields
         ...(isAdmin ? { priority: true, reviewed: true } : {}),
-        ...(isAdmin
+        // Keeper tests: available to admin and managers
+        // Managers only see tests from the last 12 months
+        ...(isAdmin || isManager
           ? {
               keeperTestFeedback: {
+                ...(isManager
+                  ? {
+                      where: {
+                        timestamp: {
+                          gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 12 months ago
+                        },
+                      },
+                    }
+                  : {}),
                 orderBy: {
                   timestamp: 'desc',
                 },
@@ -137,6 +181,11 @@ const getEmployeeById = createUserFn({
                   },
                 },
               },
+            }
+          : {}),
+        // Performance programs: admin only
+        ...(isAdmin
+          ? {
               performancePrograms: {
                 include: {
                   checklistItems: {
@@ -196,44 +245,48 @@ const getEmployeeById = createUserFn({
           },
           ...(isAdmin
             ? {}
-            : {
-                select: {
-                  id: true,
-                  timestamp: true,
-                  country: true,
-                  area: true,
-                  locationFactor: true,
-                  level: true,
-                  step: true,
-                  bonusPercentage: true,
-                  bonusAmount: true,
-                  benchmark: true,
-                  benchmarkFactor: true,
-                  totalSalary: true,
-                  changePercentage: true,
-                  changeAmount: true,
-                  exchangeRate: true,
-                  localCurrency: true,
-                  totalSalaryLocal: true,
-                  amountTakenInOptions: true,
-                  actualSalary: true,
-                  actualSalaryLocal: true,
-                },
-                where: {
-                  OR: [
-                    {
-                      communicated: true,
-                    },
-                    {
-                      timestamp: {
-                        lte: new Date(
-                          new Date().setDate(new Date().getDate() - 30),
-                        ),
+            : isManager
+              ? {
+                  take: 0, // Return empty for managers
+                }
+              : {
+                  select: {
+                    id: true,
+                    timestamp: true,
+                    country: true,
+                    area: true,
+                    locationFactor: true,
+                    level: true,
+                    step: true,
+                    bonusPercentage: true,
+                    bonusAmount: true,
+                    benchmark: true,
+                    benchmarkFactor: true,
+                    totalSalary: true,
+                    changePercentage: true,
+                    changeAmount: true,
+                    exchangeRate: true,
+                    localCurrency: true,
+                    totalSalaryLocal: true,
+                    amountTakenInOptions: true,
+                    actualSalary: true,
+                    actualSalaryLocal: true,
+                  },
+                  where: {
+                    OR: [
+                      {
+                        communicated: true,
                       },
-                    },
-                  ],
-                },
-              }),
+                      {
+                        timestamp: {
+                          lte: new Date(
+                            new Date().setDate(new Date().getDate() - 30),
+                          ),
+                        },
+                      },
+                    ],
+                  },
+                }),
         },
         deelEmployee: {
           include: {
@@ -242,6 +295,12 @@ const getEmployeeById = createUserFn({
         },
       },
     })
+
+    if (!isAdmin && !isManager && employee?.email !== context.user.email) {
+      throw new Error('Unauthorized')
+    }
+
+    return employee
   })
 
 type Employee = Prisma.EmployeeGetPayload<{
@@ -309,7 +368,7 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
-export const getReferenceEmployees = createAuthenticatedFn({
+export const getReferenceEmployees = createAdminFn({
   method: 'GET',
 })
   .inputValidator(
@@ -383,7 +442,7 @@ export const getReferenceEmployees = createAuthenticatedFn({
       .sort((a, b) => a.step * a.level - b.step * b.level)
   })
 
-export const getDeelEmployees = createAuthenticatedFn({
+export const getDeelEmployees = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.deelEmployee.findMany({
@@ -398,7 +457,7 @@ export const getDeelEmployees = createAuthenticatedFn({
   })
 })
 
-export const updateSalary = createAuthenticatedFn({
+export const updateSalary = createAdminFn({
   method: 'POST',
 })
   .inputValidator(
@@ -426,7 +485,7 @@ export const updateSalary = createAuthenticatedFn({
     return salary
   })
 
-export const deleteSalary = createAuthenticatedFn({
+export const deleteSalary = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string }) => d)
@@ -452,7 +511,7 @@ export const deleteSalary = createAuthenticatedFn({
     return { success: true }
   })
 
-export const createPerformanceProgram = createAuthenticatedFn({
+export const createPerformanceProgram = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { employeeId: string }) => d)
@@ -553,7 +612,7 @@ export const createPerformanceProgram = createAuthenticatedFn({
     return program
   })
 
-export const updateChecklistItem = createAuthenticatedFn({
+export const updateChecklistItem = createAdminFn({
   method: 'POST',
 })
   .inputValidator(
@@ -614,7 +673,7 @@ export const updateChecklistItem = createAuthenticatedFn({
     return updated
   })
 
-export const addProgramFeedback = createAuthenticatedFn({
+export const addProgramFeedback = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { programId: string; feedback: string }) => d)
@@ -652,7 +711,7 @@ export const addProgramFeedback = createAuthenticatedFn({
     return feedback
   })
 
-export const resolvePerformanceProgram = createAuthenticatedFn({
+export const resolvePerformanceProgram = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { programId: string }) => d)
@@ -726,7 +785,7 @@ export const resolvePerformanceProgram = createAuthenticatedFn({
     return updated
   })
 
-export const getProofFileUploadUrl = createAuthenticatedFn({
+export const getProofFileUploadUrl = createAdminFn({
   method: 'POST',
 })
   .inputValidator(
@@ -819,7 +878,7 @@ export const getProofFileUploadUrl = createAuthenticatedFn({
     }
   })
 
-export const createProofFileRecord = createAuthenticatedFn({
+export const createProofFileRecord = createAdminFn({
   method: 'POST',
 })
   .inputValidator(
@@ -857,7 +916,7 @@ export const createProofFileRecord = createAuthenticatedFn({
     return proofFile
   })
 
-export const getProofFileUrl = createAuthenticatedFn({
+export const getProofFileUrl = createAdminFn({
   method: 'GET',
 })
   .inputValidator((d: { proofFileId: string }) => d)
@@ -881,7 +940,7 @@ export const getProofFileUrl = createAuthenticatedFn({
     return { url, fileName: proofFile.fileName }
   })
 
-export const deleteProofFile = createAuthenticatedFn({
+export const deleteProofFile = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { proofFileId: string }) => d)
@@ -1023,10 +1082,12 @@ function EmployeeOverview() {
   const { data: deelEmployeesAndProposedHiresData } = useQuery({
     queryKey: ['deelEmployeesAndProposedHires'],
     queryFn: () => getDeelEmployeesAndProposedHires(),
-    enabled: user?.role === ROLES.ADMIN,
   })
   const deelEmployees = deelEmployeesAndProposedHiresData?.employees
   const proposedHires = deelEmployeesAndProposedHiresData?.proposedHires || []
+  const managerDeelEmployeeId =
+    deelEmployeesAndProposedHiresData?.managerDeelEmployeeId
+  const hasReports = deelEmployeesAndProposedHiresData?.hasReports
 
   // Build hierarchy tree from flat list
   const managerHierarchy = useMemo(() => {
@@ -1124,7 +1185,22 @@ function EmployeeOverview() {
       }
     }
 
-    // Find top-level managers (Cofounders or employees without managers)
+    // For non-admins, start from manager's DeelEmployee
+    if (user?.role !== ROLES.ADMIN && managerDeelEmployeeId) {
+      const managerEmployee = deelEmployees.find(
+        (e) => e.id === managerDeelEmployeeId,
+      )
+      if (managerEmployee) {
+        return buildTree(managerEmployee)
+      }
+      // Fallback: if manager not found in filtered list, return first employee
+      if (deelEmployees.length > 0) {
+        return buildTree(deelEmployees[0])
+      }
+      return null
+    }
+
+    // For admins, find top-level managers (Cofounders or employees without managers)
     const topLevelManagers = deelEmployees.filter(
       (e) => e.title === 'Cofounder' || !e.managerId,
     )
@@ -1144,7 +1220,7 @@ function EmployeeOverview() {
 
     // Return single node or array of nodes
     return trees.length === 1 ? trees[0] : trees
-  }, [deelEmployees, proposedHires])
+  }, [deelEmployees, proposedHires, user?.role, managerDeelEmployeeId])
 
   // Flatten hierarchy to get all employees for search
   const allHierarchyEmployees = useMemo(() => {
@@ -1158,10 +1234,44 @@ function EmployeeOverview() {
     return nodes.flatMap(flatten).filter((n) => n.employeeId)
   }, [managerHierarchy])
 
+  // Get all employee IDs in the manager hierarchy (for filtering in team mode)
+  const managerHierarchyEmployeeIds = useMemo(() => {
+    // Use the already computed allHierarchyEmployees to get employee IDs
+    return new Set(
+      allHierarchyEmployees.map((n) => n.employeeId).filter(Boolean),
+    )
+  }, [allHierarchyEmployees])
+
   const [searchOpen, setSearchOpen] = useState(false)
   const [managerTreeViewMode, setManagerTreeViewMode] = useLocalStorage<
     'manager' | 'team'
   >('manager-tree.viewMode', 'manager')
+
+  // Filter employees to only those in manager's hierarchy when in team mode for non-admin users
+  const filteredDeelEmployees = useMemo(() => {
+    if (!deelEmployees) return null
+    // For admins, show all employees
+    if (user?.role === ROLES.ADMIN) return deelEmployees
+    // For team mode, filter to only employees in the manager's hierarchy
+    if (managerTreeViewMode === 'team') {
+      return deelEmployees.filter((emp) => {
+        // Include the manager themselves
+        if (emp.id === managerDeelEmployeeId) return true
+        // Include only employees that are in the manager hierarchy
+        return emp.employee?.id
+          ? managerHierarchyEmployeeIds.has(emp.employee.id)
+          : false
+      })
+    }
+    // For manager mode, return all (already filtered by manager hierarchy)
+    return deelEmployees
+  }, [
+    deelEmployees,
+    user?.role,
+    managerTreeViewMode,
+    managerDeelEmployeeId,
+    managerHierarchyEmployeeIds,
+  ])
 
   // Combine reference employees with current employee (using form values if available)
   const combinedReferenceEmployees = useMemo(() => {
@@ -1591,11 +1701,14 @@ function EmployeeOverview() {
     monthsSinceStart >= 10 &&
     [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
 
+  const showEmployeeTree =
+    managerHierarchy && (user?.role === ROLES.ADMIN || hasReports)
+
   return (
     <div className="flex h-[calc(100vh-2.5rem)] flex-col items-center justify-center gap-5 overflow-hidden pt-4">
       <div className="flex h-full w-full gap-5 2xl:max-w-[2000px]">
         {/* Sidebar with hierarchy */}
-        {employee.deelEmployee && managerHierarchy && (
+        {showEmployeeTree && (
           <div className="hidden w-96 flex-shrink-0 border-r px-4 lg:block">
             <div className="mb-2 flex items-center justify-between">
               <Select
@@ -1730,7 +1843,7 @@ function EmployeeOverview() {
                 currentEmployeeId={employee.id}
                 expandAll={expandAll}
                 expandAllCounter={expandAllCounter}
-                deelEmployees={deelEmployees}
+                deelEmployees={filteredDeelEmployees || deelEmployees}
                 proposedHires={proposedHires}
                 viewMode={managerTreeViewMode}
                 onViewModeChange={(mode: 'manager' | 'team') =>
@@ -1743,7 +1856,7 @@ function EmployeeOverview() {
         <div
           className={cn(
             'flex w-full min-w-0 flex-1 flex-col gap-5 overflow-y-auto',
-            managerHierarchy ? 'pr-4 pl-4 lg:pl-0' : 'px-4',
+            showEmployeeTree ? 'pr-4 pl-4 lg:pl-0' : 'px-4',
           )}
         >
           {user?.role === ROLES.ADMIN ? (
@@ -1840,7 +1953,9 @@ function EmployeeOverview() {
             </div>
           ) : null}
 
-          {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
+          {'keeperTestFeedback' in employee &&
+          employee.keeperTestFeedback &&
+          viewMode === 'table' ? (
             <>
               <div className="mt-2 flex flex-row items-center justify-between gap-2">
                 <span className="text-md font-bold">Feedback</span>

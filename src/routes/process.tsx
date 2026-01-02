@@ -5,10 +5,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import MarkdownComponent from '@/lib/MarkdownComponent'
-import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { createAdminFn } from '@/lib/auth-middleware'
 import prisma from '@/db'
 
-const getProcessDocument = createAuthenticatedFn({
+const getProcessDocument = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   const document = await prisma.processDocument.findUnique({
@@ -17,7 +17,7 @@ const getProcessDocument = createAuthenticatedFn({
   return document?.content || ''
 })
 
-const saveProcessDocument = createAuthenticatedFn({
+const saveProcessDocument = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { content: string }) => d)

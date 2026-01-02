@@ -68,7 +68,7 @@ const orgChartCheckMiddleware = createMiddleware({
 })
 
 // only admins will be able to access this function
-export const createAuthenticatedFn = createServerFn().middleware([
+export const createAdminFn = createServerFn().middleware([
   authMiddleware,
   adminCheckMiddleware,
 ])

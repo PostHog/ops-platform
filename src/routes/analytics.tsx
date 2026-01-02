@@ -17,14 +17,14 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import OrgChartPanel from '@/components/OrgChartPanel'
 import prisma from '@/db'
-import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { createAdminFn } from '@/lib/auth-middleware'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { getReferenceEmployees } from './employee.$employeeId'
 
-const getEmployees = createAuthenticatedFn({
+const getEmployees = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   const deelEmployees = await prisma.deelEmployee.findMany({
