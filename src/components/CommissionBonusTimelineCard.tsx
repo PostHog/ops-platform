@@ -32,42 +32,52 @@ export function CommissionBonusTimelineCard({
               {/* commission bonus amount */}
               <div className="flex items-center gap-2 text-xl">
                 <DollarSign className="h-5 w-5 text-gray-600" />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-help font-bold text-gray-700">
-                      {formatCurrency(bonus.calculatedAmount)}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      Quota: {formatCurrency(bonus.quota)}
-                      <br />
-                      Attainment: {formatCurrency(bonus.attainment)} (
-                      {attainmentPercentage.toFixed(1)}%)
-                      <br />
-                      Bonus Amount: {formatCurrency(bonus.bonusAmount)}
-                      {bonus.calculatedAmountLocal &&
-                        bonus.localCurrency &&
-                        bonus.localCurrency !== 'USD' && (
-                          <>
-                            <br />
-                            Local:{' '}
-                            {formatCurrency(
-                              bonus.calculatedAmountLocal,
-                              bonus.localCurrency,
-                            )}
-                          </>
+                {bonus.calculatedAmountLocal !== null &&
+                bonus.calculatedAmountLocal !== undefined &&
+                bonus.localCurrency ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help font-bold text-gray-700">
+                        {formatCurrency(bonus.calculatedAmount)}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Local:{' '}
+                        {formatCurrency(
+                          bonus.calculatedAmountLocal,
+                          bonus.localCurrency,
                         )}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <span className="font-bold text-gray-700">
+                    {formatCurrency(bonus.calculatedAmount)}
+                  </span>
+                )}
               </div>
               <div className="text-sm leading-none">
                 <span className="font-semibold">
                   Commission Bonus ({bonus.quarter})
                 </span>
                 <span className="ml-1 text-gray-600">
-                  · {attainmentPercentage.toFixed(1)}% attainment
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help">
+                        {attainmentPercentage.toFixed(1)}% attainment
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Quota: {formatCurrency(bonus.quota)}
+                        <br />
+                        Attainment: {formatCurrency(bonus.attainment)}
+                        <br />
+                        Bonus Amount: {formatCurrency(bonus.bonusAmount)}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                   {bonus.calculatedAmountLocal &&
                     bonus.localCurrency &&
                     bonus.localCurrency !== 'USD' && (
