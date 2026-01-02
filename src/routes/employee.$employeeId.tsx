@@ -289,11 +289,16 @@ const getEmployeeById = createUserFn({
                   },
                 }),
         },
-        commissionBonuses: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-        },
+        // Commission bonuses: visible to admin and employees (their own), but not to managers
+        ...(isAdmin || !isManager
+          ? {
+              commissionBonuses: {
+                orderBy: {
+                  createdAt: 'desc',
+                },
+              },
+            }
+          : {}),
         deelEmployee: {
           include: {
             topLevelManager: true,
