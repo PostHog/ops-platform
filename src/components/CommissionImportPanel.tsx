@@ -394,7 +394,6 @@ export function CommissionImportPanel() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Email</TableHead>
-                    <TableHead>Name</TableHead>
                     <TableHead>Quota</TableHead>
                     <TableHead>Attainment</TableHead>
                     <TableHead>Attainment %</TableHead>
@@ -407,7 +406,6 @@ export function CommissionImportPanel() {
                   {previewData.map((row, index) => (
                     <TableRow key={index}>
                       <TableCell>{row.email}</TableCell>
-                      <TableCell>{row.employeeName || '-'}</TableCell>
                       <TableCell>
                         {row.quota > 0
                           ? new Intl.NumberFormat('en-US', {
