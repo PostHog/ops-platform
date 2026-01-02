@@ -93,19 +93,6 @@ export function CommissionBonusTimelineCard({
                 </span>
               </div>
             </div>
-            {/* status badges */}
-            <div className="flex items-center gap-2">
-              {bonus.communicated && (
-                <span className="rounded-md bg-green-50 px-1 py-0.5 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">
-                  communicated
-                </span>
-              )}
-              {bonus.synced && (
-                <span className="rounded-md bg-blue-50 px-1 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-600/20 ring-inset">
-                  synced
-                </span>
-              )}
-            </div>
           </div>
         </div>
       </div>
