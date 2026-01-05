@@ -49,15 +49,12 @@ export const Route = createFileRoute('/syncCommissionBonuses')({
               bonusAmount: bonus.bonusAmount,
               calculatedAmount: bonus.calculatedAmount,
               calculatedAmountLocal: bonus.calculatedAmountLocal ?? undefined,
-              localCurrency:
-                bonus.localCurrency && bonus.localCurrency !== 'USD'
-                  ? bonus.localCurrency
-                  : undefined,
+              localCurrency: bonus.localCurrency,
             })
 
             const emailResult = await sendEmail({
               to: bonus.employee.email,
-              subject: `Commission Bonus Confirmation - ${bonus.quarter}`,
+              subject: `${bonus.quarter} Commission confirmation - ${employeeName}`,
               text: emailText,
             })
 
