@@ -1,4 +1,4 @@
-import { DollarSign } from 'lucide-react'
+import { Receipt } from 'lucide-react'
 import type { Prisma } from '@prisma/client'
 import { formatCurrency } from '@/lib/utils'
 import {
@@ -24,14 +24,14 @@ export function CommissionBonusTimelineCard({
   return (
     <TooltipProvider>
       <div
-        className={`w-full border bg-white border-t-0${lastTableItem ? 'rounded-b-md' : ''}`}
+        className={`w-full border bg-white border-t-0 ${lastTableItem ? 'rounded-b-md' : ''}`}
       >
         <div className="ml-8 flex flex-col gap-y-2 border-l-[3px] border-gray-200 px-4 py-2">
           <div className="flex justify-between gap-x-4">
             <div className="flex items-center gap-x-4">
               {/* attainment percentage */}
               <div className="flex items-center gap-2 text-xl">
-                <DollarSign className="h-5 w-5 text-gray-600" />
+                <Receipt className="h-5 w-5 text-gray-600" />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="cursor-help font-bold text-gray-700">
