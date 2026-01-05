@@ -54,6 +54,9 @@ export const fetchDeelEmployees = async () => {
         workEmail: employee.emails.find(
           (email: { type: string; value: string }) => email.type === 'work',
         )?.value,
+        personalEmail: employee.emails.find(
+          (email: { type: string; value: string }) => email.type === 'home',
+        )?.value,
         team:
           employee[
             'urn:ietf:params:scim:schemas:extension:2.0:User'
@@ -129,6 +132,7 @@ export const Route = createFileRoute('/syncDeelEmployees')({
             title: emp.title,
             team: emp.team,
             workEmail: emp.workEmail,
+            personalEmail: emp.personalEmail,
             managerId: null,
             topLevelManagerId: null,
             startDate: emp.startDate,
