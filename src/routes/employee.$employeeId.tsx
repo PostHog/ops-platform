@@ -30,6 +30,7 @@ import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
 import { FeedbackCard } from '@/components/FeedbackCard'
 import { PerformanceProgramTimelineCard } from '@/components/PerformanceProgramTimelineCard'
 import { CommissionBonusTimelineCard } from '@/components/CommissionBonusTimelineCard'
+import { AshbyInterviewScoreTimelineCard } from '@/components/AshbyInterviewScoreTimelineCard'
 import { SalaryWithMismatchIndicator } from '@/components/SalaryWithMismatchIndicator'
 import {
   bonusPercentage,
@@ -299,6 +300,29 @@ const getEmployeeById = createUserFn({
               },
             }
           : {}),
+        // Interview scores: visible to admin and managers, but not to employees themselves
+        ...(isAdmin || isManager
+          ? {
+              ashbyInterviewScoresReceived: {
+                include: {
+                  interviewer: {
+                    select: {
+                      id: true,
+                      email: true,
+                      deelEmployee: {
+                        select: {
+                          name: true,
+                        },
+                      },
+                    },
+                  },
+                },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+              },
+            }
+          : {}),
         deelEmployee: {
           include: {
             topLevelManager: true,
@@ -377,6 +401,24 @@ type Employee = Prisma.EmployeeGetPayload<{
       }
     }
     commissionBonuses: {
+      orderBy: {
+        createdAt: 'desc'
+      }
+    }
+    ashbyInterviewScoresReceived: {
+      include: {
+        interviewer: {
+          select: {
+            id: true
+            email: true
+            deelEmployee: {
+              select: {
+                name: true
+              }
+            }
+          }
+        }
+      }
       orderBy: {
         createdAt: 'desc'
       }
@@ -1407,11 +1449,23 @@ function EmployeeOverview() {
       data: bonus,
     }))
 
+    const interviewScoreItems = (
+      'ashbyInterviewScoresReceived' in employee &&
+      employee.ashbyInterviewScoresReceived
+        ? employee.ashbyInterviewScoresReceived
+        : []
+    ).map((score) => ({
+      type: 'ashby-interview-score' as const,
+      timestamp: score.createdAt,
+      data: score,
+    }))
+
     const allItems = [
       ...salaryItems,
       ...feedbackItems,
       ...performanceProgramItems,
       ...commissionBonusItems,
+      ...interviewScoreItems,
     ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 
     // Group items by month/year
@@ -1444,6 +1498,9 @@ function EmployeeOverview() {
     employee.keeperTestFeedback,
     employee.performancePrograms,
     'commissionBonuses' in employee ? employee.commissionBonuses : [],
+    'ashbyInterviewScoresReceived' in employee
+      ? employee.ashbyInterviewScoresReceived
+      : [],
   ])
 
   const columns: Array<ColumnDef<Salary>> = useMemo(() => {
@@ -2343,6 +2400,14 @@ function EmployeeOverview() {
                               <CommissionBonusTimelineCard
                                 key={`commission-bonus-${item.data.id}`}
                                 bonus={item.data}
+                                lastTableItem={lastTableItem}
+                              />
+                            )
+                          } else if (item.type === 'ashby-interview-score') {
+                            return (
+                              <AshbyInterviewScoreTimelineCard
+                                key={`ashby-interview-score-${item.data.id}`}
+                                score={item.data}
                                 lastTableItem={lastTableItem}
                               />
                             )
