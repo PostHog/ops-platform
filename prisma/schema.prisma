@@ -343,6 +343,7 @@ model AshbyInterviewScore {
   interviewer   Employee @relation("Interviewer", fields: [interviewerId], references: [id])
   rating        Int // Rating between 1 and 4
   feedback      String // Interview feedback/notes
+  interviewName String? // Name of the interview (e.g., "Technical Interview", "Culture Fit")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

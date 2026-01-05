@@ -139,7 +139,9 @@ export function AshbyInterviewScoreTimelineCard({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span>
-                    Interview Score: {score.rating}/4 ({ratingLabel})
+                    {score.interviewName
+                      ? `${score.interviewName}: ${score.rating}/4 (${ratingLabel})`
+                      : `Interview Score: ${score.rating}/4 (${ratingLabel})`}
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
