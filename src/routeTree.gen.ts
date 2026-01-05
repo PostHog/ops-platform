@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SyncSalaryUpdatesRouteImport } from './routes/syncSalaryUpdates'
 import { Route as SyncDeelEmployeesRouteImport } from './routes/syncDeelEmployees'
+import { Route as SyncAshbyInterviewScoresRouteImport } from './routes/syncAshbyInterviewScores'
 import { Route as ScheduleCheckInsRouteImport } from './routes/scheduleCheckIns'
 import { Route as SalaryDeviationCheckerRouteImport } from './routes/salaryDeviationChecker'
 import { Route as SalarySyncStatusRouteImport } from './routes/salary-sync-status'
@@ -41,6 +42,12 @@ const SyncDeelEmployeesRoute = SyncDeelEmployeesRouteImport.update({
   path: '/syncDeelEmployees',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SyncAshbyInterviewScoresRoute =
+  SyncAshbyInterviewScoresRouteImport.update({
+    id: '/syncAshbyInterviewScores',
+    path: '/syncAshbyInterviewScores',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ScheduleCheckInsRoute = ScheduleCheckInsRouteImport.update({
   id: '/scheduleCheckIns',
   path: '/scheduleCheckIns',
@@ -157,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/salary-sync-status': typeof SalarySyncStatusRoute
   '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
+  '/syncAshbyInterviewScores': typeof SyncAshbyInterviewScoresRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
@@ -180,6 +188,7 @@ export interface FileRoutesByTo {
   '/salary-sync-status': typeof SalarySyncStatusRoute
   '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
+  '/syncAshbyInterviewScores': typeof SyncAshbyInterviewScoresRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
@@ -204,6 +213,7 @@ export interface FileRoutesById {
   '/salary-sync-status': typeof SalarySyncStatusRoute
   '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
+  '/syncAshbyInterviewScores': typeof SyncAshbyInterviewScoresRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
     | '/salary-sync-status'
     | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
+    | '/syncAshbyInterviewScores'
     | '/syncDeelEmployees'
     | '/syncSalaryUpdates'
     | '/employee/$employeeId'
@@ -252,6 +263,7 @@ export interface FileRouteTypes {
     | '/salary-sync-status'
     | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
+    | '/syncAshbyInterviewScores'
     | '/syncDeelEmployees'
     | '/syncSalaryUpdates'
     | '/employee/$employeeId'
@@ -275,6 +287,7 @@ export interface FileRouteTypes {
     | '/salary-sync-status'
     | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
+    | '/syncAshbyInterviewScores'
     | '/syncDeelEmployees'
     | '/syncSalaryUpdates'
     | '/employee/$employeeId'
@@ -299,6 +312,7 @@ export interface RootRouteChildren {
   SalarySyncStatusRoute: typeof SalarySyncStatusRoute
   SalaryDeviationCheckerRoute: typeof SalaryDeviationCheckerRoute
   ScheduleCheckInsRoute: typeof ScheduleCheckInsRoute
+  SyncAshbyInterviewScoresRoute: typeof SyncAshbyInterviewScoresRoute
   SyncDeelEmployeesRoute: typeof SyncDeelEmployeesRoute
   SyncSalaryUpdatesRoute: typeof SyncSalaryUpdatesRoute
   EmployeeEmployeeIdRoute: typeof EmployeeEmployeeIdRoute
@@ -319,6 +333,13 @@ declare module '@tanstack/react-router' {
       path: '/syncDeelEmployees'
       fullPath: '/syncDeelEmployees'
       preLoaderRoute: typeof SyncDeelEmployeesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/syncAshbyInterviewScores': {
+      id: '/syncAshbyInterviewScores'
+      path: '/syncAshbyInterviewScores'
+      fullPath: '/syncAshbyInterviewScores'
+      preLoaderRoute: typeof SyncAshbyInterviewScoresRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/scheduleCheckIns': {
@@ -475,6 +496,7 @@ const rootRouteChildren: RootRouteChildren = {
   SalarySyncStatusRoute: SalarySyncStatusRoute,
   SalaryDeviationCheckerRoute: SalaryDeviationCheckerRoute,
   ScheduleCheckInsRoute: ScheduleCheckInsRoute,
+  SyncAshbyInterviewScoresRoute: SyncAshbyInterviewScoresRoute,
   SyncDeelEmployeesRoute: SyncDeelEmployeesRoute,
   SyncSalaryUpdatesRoute: SyncSalaryUpdatesRoute,
   EmployeeEmployeeIdRoute: EmployeeEmployeeIdRoute,
