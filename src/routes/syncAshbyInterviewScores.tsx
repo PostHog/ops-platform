@@ -49,22 +49,30 @@ type AshbyFeedbackSuccessResponse = {
 
 type AshbyFeedbackResponse = AshbyErrorResponse | AshbyFeedbackSuccessResponse
 
-// Search for candidate by email
-async function searchCandidateByEmail(
-  email: string,
-): Promise<AshbyCandidateSearchSuccessResponse> {
+function getAuthHeader(): string {
   if (!process.env.ASHBY_API_KEY) {
     throw new Error('ASHBY_API_KEY environment variable is not set')
   }
+  return `Basic ${Buffer.from(`${process.env.ASHBY_API_KEY}:`).toString('base64')}`
+}
 
-  // Basic auth: username is API key, password is empty
-  const authHeader = `Basic ${Buffer.from(`${process.env.ASHBY_API_KEY}:`).toString('base64')}`
+function handleAshbyError(data: AshbyErrorResponse): never {
+  const errorMessage =
+    data.errors.join(', ') || data.errorInfo.code || 'Unknown error'
+  const requestId = data.errorInfo.requestId
+  throw new Error(
+    `Ashby API error: ${errorMessage}${requestId ? ` (requestId: ${requestId})` : ''}`,
+  )
+}
 
+async function searchCandidateByEmail(
+  email: string,
+): Promise<AshbyCandidateSearchSuccessResponse> {
   const response = await fetch('https://api.ashbyhq.com/candidate.search', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: authHeader,
+      Authorization: getAuthHeader(),
     },
     body: JSON.stringify({ email }),
   })
@@ -77,42 +85,22 @@ async function searchCandidateByEmail(
   }
 
   const data = (await response.json()) as AshbyCandidateSearchResponse
-
   if (data.success === false) {
-    // TypeScript knows this is AshbyErrorResponse when success is false
-    const errorResponse = data as AshbyErrorResponse
-    const errorMessage =
-      errorResponse.errors.join(', ') ||
-      errorResponse.errorInfo.code ||
-      'Unknown error'
-    const requestId = errorResponse.errorInfo.requestId
-    throw new Error(
-      `Ashby API error: ${errorMessage}${requestId ? ` (requestId: ${requestId})` : ''}`,
-    )
+    handleAshbyError(data)
   }
-
-  // After checking success, TypeScript knows data is the success type
   return data as AshbyCandidateSearchSuccessResponse
 }
 
-// Get application feedback
 async function getApplicationFeedback(
   applicationId: string,
 ): Promise<AshbyFeedbackSuccessResponse> {
-  if (!process.env.ASHBY_API_KEY) {
-    throw new Error('ASHBY_API_KEY environment variable is not set')
-  }
-
-  // Basic auth: username is API key, password is empty
-  const authHeader = `Basic ${Buffer.from(`${process.env.ASHBY_API_KEY}:`).toString('base64')}`
-
   const response = await fetch(
     'https://api.ashbyhq.com/applicationFeedback.list',
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: authHeader,
+        Authorization: getAuthHeader(),
       },
       body: JSON.stringify({ applicationId }),
     },
@@ -124,21 +112,9 @@ async function getApplicationFeedback(
   }
 
   const data = (await response.json()) as AshbyFeedbackResponse
-
   if (data.success === false) {
-    // TypeScript knows this is AshbyErrorResponse when success is false
-    const errorResponse = data as AshbyErrorResponse
-    const errorMessage =
-      errorResponse.errors.join(', ') ||
-      errorResponse.errorInfo.code ||
-      'Unknown error'
-    const requestId = errorResponse.errorInfo.requestId
-    throw new Error(
-      `Ashby API error: ${errorMessage}${requestId ? ` (requestId: ${requestId})` : ''}`,
-    )
+    handleAshbyError(data)
   }
-
-  // After checking success, TypeScript knows data is the success type
   return data as AshbyFeedbackSuccessResponse
 }
 
@@ -164,7 +140,6 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
             include: {
               employee: true,
             },
-            take: 1,
           })
 
           logs.push(
@@ -182,16 +157,11 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
             }
 
             try {
-              // Search for candidate in Ashby
               const candidateResponse = await searchCandidateByEmail(
                 deelEmployee.personalEmail,
               )
 
-              // After the function returns, we know it's the success type (errors throw)
-              if (
-                !candidateResponse.results ||
-                candidateResponse.results.length === 0
-              ) {
+              if (!candidateResponse.results?.length) {
                 logs.push(
                   `No candidate found for ${deelEmployee.personalEmail} (${deelEmployee.name})`,
                 )
@@ -199,39 +169,27 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
               }
 
               const candidate = candidateResponse.results[0]
-
-              if (
-                !candidate.applicationIds ||
-                candidate.applicationIds.length === 0
-              ) {
+              if (!candidate.applicationIds?.length) {
                 logs.push(
                   `No applications found for candidate ${deelEmployee.personalEmail}`,
                 )
                 continue
               }
 
-              // Process all applications for this candidate
               for (const applicationId of candidate.applicationIds) {
                 try {
-                  // Fetch feedback for this application
                   const feedbackResponse =
                     await getApplicationFeedback(applicationId)
 
-                  // After the function returns, we know it's the success type (errors throw)
-                  if (
-                    !feedbackResponse.results ||
-                    feedbackResponse.results.length === 0
-                  ) {
+                  if (!feedbackResponse.results?.length) {
                     logs.push(
                       `No feedback found for application ${applicationId}`,
                     )
                     continue
                   }
 
-                  // Process each feedback item
                   for (const feedback of feedbackResponse.results) {
                     try {
-                      // Extract and validate rating
                       const ratingString =
                         feedback.submittedValues.overall_recommendation
                       if (!ratingString) {
@@ -241,13 +199,16 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
                         continue
                       }
 
-                      const rating = parseInt(ratingString)
+                      const rating = parseInt(ratingString, 10)
+                      if (isNaN(rating) || rating < 1 || rating > 4) {
+                        errors.push(
+                          `Invalid rating ${ratingString} for feedback ${feedback.id}`,
+                        )
+                        continue
+                      }
 
-                      // Extract feedback text (use empty string if missing)
                       const feedbackText =
                         feedback.submittedValues.feedback || ''
-
-                      // Find interviewer by email
                       const interviewer = await prisma.employee.findUnique({
                         where: { email: feedback.submittedByUser.email },
                       })
@@ -259,14 +220,12 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
                         continue
                       }
 
-                      // Check if this interview score already exists
-                      // (to avoid duplicates if sync is run multiple times)
                       const existing =
                         await prisma.ashbyInterviewScore.findFirst({
                           where: {
                             employeeId: deelEmployee.employee.id,
                             interviewerId: interviewer.id,
-                            rating: rating,
+                            rating,
                             feedback: feedbackText,
                           },
                         })
@@ -276,46 +235,44 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
                         continue
                       }
 
-                      // Create interview score record
                       await prisma.ashbyInterviewScore.create({
                         data: {
                           employeeId: deelEmployee.employee.id,
                           interviewerId: interviewer.id,
-                          rating: rating,
+                          rating,
                           feedback: feedbackText,
                         },
                       })
 
                       scoresCreated++
                     } catch (error) {
-                      const errorMessage =
-                        error instanceof Error ? error.message : 'Unknown error'
                       errors.push(
-                        `Error processing feedback ${feedback.id}: ${errorMessage}`,
+                        `Error processing feedback ${feedback.id}: ${
+                          error instanceof Error
+                            ? error.message
+                            : 'Unknown error'
+                        }`,
                       )
                     }
                   }
 
-                  // Small delay to avoid rate limiting
                   await new Promise((resolve) => setTimeout(resolve, 100))
                 } catch (error) {
-                  const errorMessage =
-                    error instanceof Error ? error.message : 'Unknown error'
                   errors.push(
-                    `Error fetching feedback for application ${applicationId}: ${errorMessage}`,
+                    `Error fetching feedback for application ${applicationId}: ${
+                      error instanceof Error ? error.message : 'Unknown error'
+                    }`,
                   )
                 }
               }
 
               processedCount++
-
-              // Small delay between employees to avoid rate limiting
               await new Promise((resolve) => setTimeout(resolve, 200))
             } catch (error) {
-              const errorMessage =
-                error instanceof Error ? error.message : 'Unknown error'
               errors.push(
-                `Error processing employee ${deelEmployee.personalEmail}: ${errorMessage}`,
+                `Error processing employee ${deelEmployee.personalEmail}: ${
+                  error instanceof Error ? error.message : 'Unknown error'
+                }`,
               )
             }
           }
@@ -327,25 +284,18 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
               scoresCreated,
               scoresSkipped,
               errors: errors.length,
-              logs: logs.slice(0, 50), // Limit logs to first 50
-              errorMessages: errors.slice(0, 50), // Limit errors to first 50
+              logs: logs.slice(0, 50),
+              errorMessages: errors.slice(0, 50),
             }),
-            {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' },
-            },
           )
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error'
           return new Response(
             JSON.stringify({
               success: false,
-              error: errorMessage,
+              error: error instanceof Error ? error.message : 'Unknown error',
             }),
             {
               status: 500,
-              headers: { 'Content-Type': 'application/json' },
             },
           )
         }
