@@ -209,6 +209,15 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
 
                       const feedbackText =
                         feedback.submittedValues.feedback || ''
+                      const submittedAt = new Date(feedback.submittedAt)
+
+                      if (isNaN(submittedAt.getTime())) {
+                        errors.push(
+                          `Invalid submittedAt date for feedback ${feedback.id}: ${feedback.submittedAt}`,
+                        )
+                        continue
+                      }
+
                       const interviewer = await prisma.employee.findUnique({
                         where: { email: feedback.submittedByUser.email },
                       })
@@ -241,6 +250,7 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
                           interviewerId: interviewer.id,
                           rating,
                           feedback: feedbackText,
+                          createdAt: submittedAt,
                         },
                       })
 
