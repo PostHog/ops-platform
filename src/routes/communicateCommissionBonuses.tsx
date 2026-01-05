@@ -3,7 +3,7 @@ import prisma from '@/db'
 import { sendEmail } from '@/lib/email-service'
 import { generateCommissionBonusEmail } from '@/lib/email-templates'
 
-export const Route = createFileRoute('/syncCommissionBonuses')({
+export const Route = createFileRoute('/communicateCommissionBonuses')({
   server: {
     handlers: {
       POST: async ({ request }) => {
