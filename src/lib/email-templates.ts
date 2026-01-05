@@ -27,23 +27,21 @@ export function generateCommissionBonusEmail(
     localCurrency,
   } = data
 
-  const localAmountLine =
-    calculatedAmountLocal && localCurrency && localCurrency !== 'USD'
-      ? `Local Amount: ${formatCurrency(calculatedAmountLocal, localCurrency)}\n`
-      : ''
-
-  return `Commission Bonus Confirmation - ${quarter}
-
+  return `
 Hey ${employeeName},
 
-Just confirming your commission bonus for ${quarter}:
+Confirming your commission for ${quarter} will be ${formatCurrency(calculatedAmount)}
+
+You can see the breakdown here:
 
 Quota: ${formatCurrency(quota)}
 Attainment: ${formatCurrency(attainment)} (${attainmentPercentage.toFixed(1)}%)
-Quarterly Bonus Amount: ${formatCurrency(bonusAmount)}
-Calculated Bonus: ${formatCurrency(calculatedAmount)}
-${localAmountLine}This will be processed according to our standard payment schedule.
+OTE amount: ${formatCurrency(bonusAmount)}
+OTE payout: ${formatCurrency(calculatedAmount)}
+Local amount: ${formatCurrency(calculatedAmountLocal, localCurrency)}
 
-Let us know if you have any questions!
+Cheers,
+
+PS we will optimise for getting this into your payroll for this month so any ongoing small tweaks might not make it in and will be resolved next quarter.
 `.trim()
 }
