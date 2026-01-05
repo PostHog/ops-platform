@@ -36,6 +36,8 @@ import { fetchDeelEmployees } from './syncDeelEmployees'
 import type { KeeperTestJobPayload } from './runScheduledJobs'
 import { createAdminFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
+import { CommissionImportPanel } from '@/components/CommissionImportPanel'
+import { z } from 'zod'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
@@ -408,6 +410,12 @@ function RouteComponent() {
           </Button>
           <KeeperTestManagement />
         </div>
+        <div className="flex justify-between py-4">
+          <div className="text-lg font-bold">Commission Bonuses</div>
+        </div>
+        <div className="flex flex-col gap-2 overflow-hidden">
+          <CommissionImportPanel />
+        </div>
       </div>
     </div>
   )
@@ -518,3 +526,112 @@ function KeeperTestManagement() {
     </Button>
   )
 }
+
+const importCommissionBonusesSchema = z.object({
+  bonuses: z.array(
+    z.object({
+      employeeId: z.string(),
+      quarter: z.string().regex(/^\d{4}-Q[1-4]$/),
+      quota: z.number().positive(),
+      attainment: z.number().nonnegative(),
+      bonusAmount: z.number().nonnegative(),
+      calculatedAmount: z.number().nonnegative(),
+    }),
+  ),
+})
+
+export const importCommissionBonuses = createAdminFn({
+  method: 'POST',
+})
+  .inputValidator(importCommissionBonusesSchema)
+  .handler(async ({ data }) => {
+    const errors: string[] = []
+    const successIds: string[] = []
+
+    for (const bonus of data.bonuses) {
+      try {
+        // Check if employee exists
+        const employee = await prisma.employee.findUnique({
+          where: { id: bonus.employeeId },
+          include: {
+            salaries: {
+              orderBy: { timestamp: 'desc' },
+              take: 1,
+            },
+          },
+        })
+
+        if (!employee) {
+          throw new Error(`Employee not found: ${bonus.employeeId}`)
+        }
+
+        // Check for duplicate (unique constraint on employeeId + quarter)
+        const existing = await prisma.commissionBonus.findUnique({
+          where: {
+            employeeId_quarter: {
+              employeeId: bonus.employeeId,
+              quarter: bonus.quarter,
+            },
+          },
+        })
+
+        if (existing) {
+          throw new Error(
+            `Commission bonus already exists for this employee and quarter: ${bonus.quarter}`,
+          )
+        }
+
+        // Get exchange rate and local currency from latest salary
+        const latestSalary = employee.salaries[0]
+        const exchangeRate = latestSalary?.exchangeRate ?? 1
+        const localCurrency = latestSalary?.localCurrency ?? 'USD'
+        const calculatedAmountLocal = bonus.calculatedAmount * exchangeRate
+
+        // Note: bonus.bonusAmount is already the quarterly amount (annual / 4) from the import panel
+        // Create commission bonus
+        const created = await prisma.commissionBonus.create({
+          data: {
+            employeeId: bonus.employeeId,
+            quarter: bonus.quarter,
+            quota: bonus.quota,
+            attainment: bonus.attainment,
+            bonusAmount: bonus.bonusAmount, // This is already quarterly (annual / 4)
+            calculatedAmount: bonus.calculatedAmount,
+            exchangeRate: exchangeRate,
+            localCurrency: localCurrency,
+            calculatedAmountLocal: calculatedAmountLocal,
+            communicated: false,
+            synced: false,
+          },
+        })
+
+        successIds.push(created.id)
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error'
+        errors.push(
+          `Error importing bonus for employee ${bonus.employeeId} (${bonus.quarter}): ${errorMessage}`,
+        )
+      }
+    }
+
+    return {
+      successCount: successIds.length,
+      errorCount: errors.length,
+      errors,
+    }
+  })
+
+// Get employees for matching during import
+export const getEmployeesForImport = createAdminFn({
+  method: 'GET',
+}).handler(async () => {
+  return await prisma.employee.findMany({
+    include: {
+      salaries: {
+        orderBy: { timestamp: 'desc' },
+        take: 1,
+      },
+    },
+  })
+})

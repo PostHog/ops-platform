@@ -30,6 +30,7 @@ model Employee {
   salaryDeviationStatus        SalaryDeviationStatus?
   salaryDeviationCheckedAt     DateTime               @default(now())
   performancePrograms          PerformanceProgram[]
+  commissionBonuses            CommissionBonus[]
 }
 
 enum SalaryDeviationStatus {
@@ -310,4 +311,24 @@ model PerformanceProgramFeedback {
   givenBy       User               @relation("FeedbackGivenBy", fields: [givenByUserId], references: [id])
   files         File[]
   createdAt     DateTime           @default(now())
+}
+
+model CommissionBonus {
+  id                    String   @id @default(cuid())
+  employeeId            String
+  employee              Employee @relation(fields: [employeeId], references: [id])
+  quarter               String // Format: "2025-Q4"
+  quota                 Float // Sales quota for the quarter
+  attainment            Float // Actual attainment amount
+  bonusAmount           Float // bonusAmount from employee's latest salary record
+  calculatedAmount      Float // (attainment / quota) × bonusAmount
+  exchangeRate          Float // Exchange rate from employee's latest salary
+  localCurrency         String // Local currency from employee's latest salary
+  calculatedAmountLocal Float // calculatedAmount × exchangeRate
+  communicated          Boolean  @default(false)
+  synced                Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([employeeId, quarter]) // Prevent duplicate bonuses per employee per quarter
 }
