@@ -32,6 +32,7 @@ type AshbyFeedbackSuccessResponse = {
   results: Array<{
     id: string
     applicationId: string
+    interviewId?: string
     submittedValues: {
       overall_recommendation: string
       feedback?: string
@@ -46,6 +47,25 @@ type AshbyFeedbackSuccessResponse = {
   moreDataAvailable: boolean
   syncToken: string
 }
+
+type AshbyInterviewInfoSuccessResponse = {
+  success: true
+  results: {
+    id: string
+    title: string
+    externalTitle: string
+    isArchived: boolean
+    isDebrief: boolean
+    instructionsHtml: any
+    instructionsPlain: any
+    jobId: string
+    feedbackFormDefinitionId: string
+  }
+}
+
+type AshbyInterviewInfoResponse =
+  | AshbyErrorResponse
+  | AshbyInterviewInfoSuccessResponse
 
 type AshbyFeedbackResponse = AshbyErrorResponse | AshbyFeedbackSuccessResponse
 
@@ -116,6 +136,32 @@ async function getApplicationFeedback(
     handleAshbyError(data)
   }
   return data as AshbyFeedbackSuccessResponse
+}
+
+async function getInterviewInfo(
+  interviewId: string,
+): Promise<AshbyInterviewInfoSuccessResponse> {
+  const response = await fetch('https://api.ashbyhq.com/interview.info', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: getAuthHeader(),
+    },
+    body: JSON.stringify({ id: interviewId }),
+  })
+
+  if (response.status !== 200) {
+    const errorText = await response.text().catch(() => response.statusText)
+    throw new Error(
+      `Failed to fetch interview info: ${response.status} ${errorText}`,
+    )
+  }
+
+  const data = (await response.json()) as AshbyInterviewInfoResponse
+  if (!data.success) {
+    handleAshbyError(data as AshbyErrorResponse)
+  }
+  return data as AshbyInterviewInfoSuccessResponse
 }
 
 export const Route = createFileRoute('/syncAshbyInterviewScores')({
@@ -229,6 +275,29 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
                         continue
                       }
 
+                      // Fetch interview name if interviewId is available
+                      let interviewName: string | null = null
+                      if (feedback.interviewId) {
+                        try {
+                          const interviewInfo = await getInterviewInfo(
+                            feedback.interviewId,
+                          )
+                          interviewName =
+                            interviewInfo.results.externalTitle ||
+                            interviewInfo.results.title ||
+                            null
+                        } catch (error) {
+                          // Log error but continue processing
+                          logs.push(
+                            `Failed to fetch interview info for interviewId ${feedback.interviewId}: ${
+                              error instanceof Error
+                                ? error.message
+                                : 'Unknown error'
+                            }`,
+                          )
+                        }
+                      }
+
                       const existing =
                         await prisma.ashbyInterviewScore.findFirst({
                           where: {
@@ -250,6 +319,7 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
                           interviewerId: interviewer.id,
                           rating,
                           feedback: feedbackText,
+                          interviewName,
                           createdAt: submittedAt,
                         },
                       })
