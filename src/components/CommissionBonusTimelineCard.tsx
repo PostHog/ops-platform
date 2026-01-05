@@ -24,7 +24,7 @@ export function CommissionBonusTimelineCard({
   return (
     <TooltipProvider>
       <div
-        className={`w-full border bg-white border-t-0 ${lastTableItem ? 'rounded-b-md' : ''}`}
+        className={`w-full border border-t-0 bg-white ${lastTableItem ? 'rounded-b-md' : ''}`}
       >
         <div className="ml-8 flex flex-col gap-y-2 border-l-[3px] border-gray-200 px-4 py-2">
           <div className="flex justify-between gap-x-4">
