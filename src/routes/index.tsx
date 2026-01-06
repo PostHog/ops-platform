@@ -36,8 +36,14 @@ function RouteComponent() {
       } else if (!isLoading && !myEmployeeId && error instanceof Error) {
         router.navigate({ to: '/error', search: { message: error.message } })
       }
+    } else if (!user && !isRefetching) {
+      router.navigate({ to: '/login' })
     }
-  }, [user, myEmployeeId, isLoading, error])
+  }, [user, myEmployeeId, isLoading, error, isRefetching])
 
-  return <div>Redirecting...</div>
+  return (
+    <div className="flex h-screen items-center justify-center">
+      Redirecting...
+    </div>
+  )
 }
