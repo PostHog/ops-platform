@@ -10,8 +10,8 @@ Download and activate services:
 flox activate
 flox services start
 npx prisma db push
-pnpm import-historical
 pnpm install
+pnpm seed-demo
 pnpm dev
 ```
 
