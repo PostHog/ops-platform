@@ -177,39 +177,43 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
         const errors: string[] = []
 
         try {
-          // Get all DeelEmployees with personalEmail and linked Employee
-          const deelEmployees = await prisma.deelEmployee.findMany({
+          // Get all Employees with linked DeelEmployee that has personalEmail
+          // Only process employees that haven't been imported yet
+          const employees = await prisma.employee.findMany({
             where: {
-              personalEmail: { not: null },
-              employee: { isNot: null },
+              ashbyInterviewScoresImported: false,
+              deelEmployee: {
+                personalEmail: { not: null },
+              },
             },
             include: {
-              employee: true,
+              deelEmployee: true,
             },
+            take: 5,
           })
 
-          logs.push(
-            `Found ${deelEmployees.length} employees with personalEmail`,
-          )
+          logs.push(`Processing ${employees.length} employees`)
 
           let processedCount = 0
           let scoresCreated = 0
           let scoresSkipped = 0
 
           // Process each employee
-          for (const deelEmployee of deelEmployees) {
-            if (!deelEmployee.personalEmail || !deelEmployee.employee) {
+          for (const employee of employees) {
+            if (!employee.deelEmployee?.personalEmail) {
               continue
             }
 
+            const deelEmployee = employee.deelEmployee
+
             try {
               const candidateResponse = await searchCandidateByEmail(
-                deelEmployee.personalEmail,
+                deelEmployee.personalEmail!,
               )
 
               if (!candidateResponse.results?.length) {
                 logs.push(
-                  `No candidate found for ${deelEmployee.personalEmail} (${deelEmployee.name})`,
+                  `No candidate found for ${deelEmployee.personalEmail}`,
                 )
                 continue
               }
@@ -301,7 +305,7 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
                       const existing =
                         await prisma.ashbyInterviewScore.findFirst({
                           where: {
-                            employeeId: deelEmployee.employee.id,
+                            employeeId: employee.id,
                             interviewerId: interviewer.id,
                             rating,
                             feedback: feedbackText,
@@ -315,7 +319,7 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
 
                       await prisma.ashbyInterviewScore.create({
                         data: {
-                          employeeId: deelEmployee.employee.id,
+                          employeeId: employee.id,
                           interviewerId: interviewer.id,
                           rating,
                           feedback: feedbackText,
@@ -345,6 +349,12 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
                   )
                 }
               }
+
+              // Mark employee as imported after processing all applications
+              await prisma.employee.update({
+                where: { id: employee.id },
+                data: { ashbyInterviewScoresImported: true },
+              })
 
               processedCount++
               await new Promise((resolve) => setTimeout(resolve, 200))

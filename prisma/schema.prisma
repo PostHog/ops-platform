@@ -33,6 +33,7 @@ model Employee {
   commissionBonuses            CommissionBonus[]
   ashbyInterviewScoresReceived AshbyInterviewScore[]  @relation("InterviewedEmployee")
   ashbyInterviewScoresGiven    AshbyInterviewScore[]  @relation("Interviewer")
+  ashbyInterviewScoresImported Boolean                @default(false)
 }
 
 enum SalaryDeviationStatus {
