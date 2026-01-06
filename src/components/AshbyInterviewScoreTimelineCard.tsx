@@ -124,7 +124,7 @@ export function AshbyInterviewScoreTimelineCard({
   return (
     <TooltipProvider>
       <div
-        className={`border border-t-0 border-gray-200${lastTableItem ? 'rounded-b-md' : ''}`}
+        className={`border border-t-0 border-gray-200 ${lastTableItem ? 'rounded-b-md' : ''}`}
       >
         <div className="ml-8 flex flex-col gap-3 border-l-[3px] border-gray-200 px-4 py-2">
           <div>
