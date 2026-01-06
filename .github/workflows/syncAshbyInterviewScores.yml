@@ -1,0 +1,23 @@
+name: Sync Ashby Interview Scores
+permissions: {}
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+
+jobs:
+  syncAshbyInterviewScores:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call syncAshbyInterviewScores endpoint
+        id: syncAshbyInterviewScores
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: '${{ vars.BASE_URL }}/syncAshbyInterviewScores'
+          method: 'POST'
+          customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
+          timeout: 30000
+      - name: Show Response
+        run: |
+          echo ${{ steps.syncAshbyInterviewScores.outputs.status }}
+          echo ${{ steps.syncAshbyInterviewScores.outputs.response }}
