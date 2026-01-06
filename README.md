@@ -2,16 +2,14 @@ Welcome to PostHog Ops!
 
 # Getting Started
 
-First, request the `.env` and `historicalImporter.ts` files from a friend and put them in the project root.
-
 Download and activate services:
 
 ```bash
 flox activate
 flox services start
 npx prisma db push
-pnpm import-historical
 pnpm install
+pnpm seed-demo
 pnpm dev
 ```
 
