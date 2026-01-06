@@ -6,6 +6,7 @@ import {
   KeeperTestRecommendation,
   SalaryDeviationStatus,
 } from '@prisma/client'
+import { sfBenchmark } from '../src/lib/utils'
 
 const prisma = new PrismaClient()
 
@@ -160,23 +161,7 @@ async function generateDeelEmployees(
   console.log(`Generating DeelEmployees for ${employees.length} employees...`)
 
   const deelEmployees = []
-  const titles = [
-    'Software Engineer',
-    'Senior Software Engineer',
-    'Staff Engineer',
-    'Product Manager',
-    'Senior Product Manager',
-    'Designer',
-    'Senior Designer',
-    'Sales Representative',
-    'Account Executive',
-    'Marketing Manager',
-    'Customer Success Manager',
-    'Operations Manager',
-    'Finance Manager',
-    'People Operations',
-    'Legal Counsel',
-  ]
+  const titles = Object.keys(sfBenchmark)
 
   // First, create all DeelEmployees without manager relationships
   for (const employee of employees) {
@@ -407,18 +392,7 @@ async function generateProposedHires(
   console.log('Generating proposed hires...')
 
   const numProposedHires = faker.number.int({ min: 5, max: 15 })
-  const proposedHireTitles = [
-    'Senior Software Engineer',
-    'Staff Engineer',
-    'Product Manager',
-    'Senior Product Manager',
-    'Designer',
-    'Senior Designer',
-    'Sales Representative',
-    'Account Executive',
-    'Marketing Manager',
-    'Customer Success Manager',
-  ]
+  const proposedHireTitles = Object.keys(sfBenchmark)
 
   // Get employees that can be managers (those with DeelEmployees)
   const managerCandidates = await prisma.employee.findMany({
