@@ -1053,7 +1053,7 @@ function EmployeeOverview() {
   const [filterByTitle, setFilterByTitle] = useState(true)
   const [viewMode, setViewMode] = useLocalStorage<'table' | 'card'>(
     'preferredEmployeeView',
-    'table',
+    'card',
   )
   const [expandAll, setExpandAll] = useState<boolean | null>(null)
   const [expandAllCounter, setExpandAllCounter] = useState(0)
