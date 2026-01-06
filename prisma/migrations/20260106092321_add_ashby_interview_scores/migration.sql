@@ -1,3 +1,6 @@
+-- AlterTable
+ALTER TABLE "Employee" ADD COLUMN     "ashbyInterviewScoresImported" BOOLEAN NOT NULL DEFAULT false;
+
 -- CreateTable
 CREATE TABLE "AshbyInterviewScore" (
     "id" TEXT NOT NULL,
@@ -5,6 +8,7 @@ CREATE TABLE "AshbyInterviewScore" (
     "interviewerId" TEXT NOT NULL,
     "rating" INTEGER NOT NULL,
     "feedback" TEXT NOT NULL,
+    "interviewName" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
