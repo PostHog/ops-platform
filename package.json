@@ -13,6 +13,7 @@
     "prettier:fix": "prettier --write .",
     "prettier:check": "prettier --check .",
     "import-historical": "tsx historicalImporter.ts",
+    "seed-demo": "tsx scripts/generateDemoData.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
