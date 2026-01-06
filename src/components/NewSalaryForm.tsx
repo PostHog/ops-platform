@@ -268,7 +268,6 @@ export function NewSalaryForm({
   const level = useStore(form.store, (state) => state.values.level)
   const step = useStore(form.store, (state) => state.values.step)
   const benchmark = useStore(form.store, (state) => state.values.benchmark)
-  const canSubmit = useStore(form.store, (state) => state.canSubmit)
   const changePercentage = useStore(
     form.store,
     (state) => state.values.changePercentage,
