@@ -2,8 +2,6 @@ Welcome to PostHog Ops!
 
 # Getting Started
 
-First, request the `.env` and `historicalImporter.ts` files from a friend and put them in the project root.
-
 Download and activate services:
 
 ```bash
