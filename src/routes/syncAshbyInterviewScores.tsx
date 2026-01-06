@@ -213,6 +213,12 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
                   employee: employee.email,
                   status: 'no_candidate',
                 })
+
+                await prisma.employee.update({
+                  where: { id: employee.id },
+                  data: { ashbyInterviewScoresImported: true },
+                })
+
                 continue
               }
 
