@@ -168,12 +168,17 @@ async function generateDeelEmployees(
   // First, create all DeelEmployees without manager relationships
   for (const employee of employees) {
     const startDate = generatePastDate(faker.number.int({ min: 30, max: 1000 }))
+    const team = faker.helpers.arrayElement(VALID_TEAMS)
+    // All exec employees should have title "Cofounder" to connect to root-node
+    const title =
+      team === 'Exec' ? 'Cofounder' : faker.helpers.arrayElement(titles)
+
     const deelEmployee = await prisma.deelEmployee.create({
       data: {
         id: faker.string.uuid(),
         name: faker.person.fullName(),
-        title: faker.helpers.arrayElement(titles),
-        team: faker.helpers.arrayElement(VALID_TEAMS),
+        title,
+        team,
         workEmail: employee.email,
         personalEmail: faker.datatype.boolean(0.8)
           ? faker.internet.email().toLowerCase()
