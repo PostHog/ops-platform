@@ -304,6 +304,15 @@ const getEmployeeById = createUserFn({
         ...(isAdmin || isManager
           ? {
               ashbyInterviewScoresReceived: {
+                ...(isManager
+                  ? {
+                      where: {
+                        createdAt: {
+                          gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 12 months ago
+                        },
+                      },
+                    }
+                  : {}),
                 include: {
                   interviewer: {
                     select: {
