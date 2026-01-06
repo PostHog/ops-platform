@@ -6,7 +6,13 @@ import {
   KeeperTestRecommendation,
   SalaryDeviationStatus,
 } from '@prisma/client'
-import { sfBenchmark } from '../src/lib/utils'
+import {
+  sfBenchmark,
+  locationFactor,
+  getCountries,
+  getAreasByCountry,
+  currencyData,
+} from '../src/lib/utils'
 
 const prisma = new PrismaClient()
 
@@ -223,34 +229,7 @@ async function generateSalaries(
 ) {
   console.log(`Generating salary history for ${employees.length} employees...`)
 
-  const countries = [
-    'United States',
-    'United Kingdom',
-    'Germany',
-    'Canada',
-    'Australia',
-    'Netherlands',
-    'Spain',
-  ]
-  const areas = [
-    'San Francisco',
-    'New York',
-    'London',
-    'Berlin',
-    'Toronto',
-    'Sydney',
-    'Amsterdam',
-    'Barcelona',
-  ]
-  const currencies: Record<string, string> = {
-    'United States': 'USD',
-    'United Kingdom': 'GBP',
-    Germany: 'EUR',
-    Canada: 'CAD',
-    Australia: 'AUD',
-    Netherlands: 'EUR',
-    Spain: 'EUR',
-  }
+  const countries = getCountries()
 
   const benchmarks = ['L5', 'L6', 'L7', 'L8', 'L9']
 
@@ -273,12 +252,18 @@ async function generateSalaries(
       fractionDigits: 2,
     })
     const country = faker.helpers.arrayElement(countries)
-    const area = faker.helpers.arrayElement(areas)
-    const localCurrency = currencies[country] || 'USD'
-    const exchangeRate =
-      localCurrency === 'USD'
-        ? 1
-        : faker.number.float({ min: 0.7, max: 1.5, fractionDigits: 4 })
+    const areasForCountry = getAreasByCountry(country)
+    const area = faker.helpers.arrayElement(areasForCountry)
+
+    // Find the location factor entry to get currency
+    const locationEntry = locationFactor.find(
+      (loc) => loc.country === country && loc.area === area,
+    )
+    const localCurrency = locationEntry?.currency || 'USD'
+    const locationFactorValue = locationEntry?.locationFactor || 1
+
+    // Get exchange rate from currencyData
+    const exchangeRate = currencyData[localCurrency] || 1
 
     for (let i = 0; i < numSalaries; i++) {
       // First salary is the base, subsequent ones have increases
@@ -299,11 +284,7 @@ async function generateSalaries(
 
       const level = faker.number.float({ min: 3, max: 9, fractionDigits: 1 })
       const step = faker.number.float({ min: 0, max: 1, fractionDigits: 2 })
-      const locationFactor = faker.number.float({
-        min: 0.8,
-        max: 1.5,
-        fractionDigits: 4,
-      })
+      // Use the locationFactor from the location entry
       const benchmark = faker.helpers.arrayElement(benchmarks)
       const benchmarkFactor = faker.number.float({
         min: 0.8,
@@ -349,7 +330,7 @@ async function generateSalaries(
           timestamp,
           country,
           area,
-          locationFactor,
+          locationFactor: locationFactorValue,
           level,
           step,
           benchmark,
