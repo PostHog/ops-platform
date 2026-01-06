@@ -84,18 +84,13 @@ function generatePastDate(daysAgo: number): Date {
   return faker.date.past({ refDate: date })
 }
 
-// Teams that are not "Blitzscale" (as per business rules)
 const VALID_TEAMS = [
+  'Exec',
   'Engineering',
   'Product',
-  'Design',
   'Sales',
-  'Marketing',
-  'Customer Success',
   'Operations',
-  'Finance',
   'People',
-  'Legal',
 ]
 
 const INTERVIEW_NAMES = [
@@ -192,30 +187,65 @@ async function generateDeelEmployees(
   }
 
   // Now set up manager hierarchies
-  // Create a hierarchy: ~20% top-level managers, rest are reports
-  const topLevelManagers = faker.helpers.arrayElements(
-    deelEmployees,
-    Math.ceil(deelEmployees.length * 0.2),
-  )
-  const reports = deelEmployees.filter((de) => !topLevelManagers.includes(de))
+  // Structure: Exec team -> Team leads -> Regular employees
 
-  // Assign reports to managers
-  for (const report of reports) {
-    const manager = faker.helpers.arrayElement(topLevelManagers)
-    // Top-level manager is the manager itself (since managers are top-level)
-    const topLevelManager = manager
+  // Step 1: Identify exec employees (they are top-level)
+  const execEmployees = deelEmployees.filter((de) => de.team === 'Exec')
+
+  // Step 2: For each non-exec team, identify team leads (first employee in each team)
+  const teamLeads: typeof deelEmployees = []
+  const regularEmployees: typeof deelEmployees = []
+
+  for (const team of VALID_TEAMS) {
+    if (team === 'Exec') continue
+
+    const teamMembers = deelEmployees.filter((de) => de.team === team)
+    if (teamMembers.length > 0) {
+      // First employee in each team is the team lead
+      teamLeads.push(teamMembers[0])
+      regularEmployees.push(...teamMembers.slice(1))
+    }
+  }
+
+  // Step 3: Assign team leads to report to exec employees
+  for (const teamLead of teamLeads) {
+    if (execEmployees.length === 0) break
+
+    const execManager = faker.helpers.arrayElement(execEmployees)
+    await prisma.deelEmployee.update({
+      where: { id: teamLead.id },
+      data: {
+        managerId: execManager.id,
+        topLevelManagerId: execManager.id,
+      },
+    })
+
+    // Update the team lead object
+    teamLead.managerId = execManager.id
+    teamLead.topLevelManagerId = execManager.id
+  }
+
+  // Step 4: Assign regular employees to report to their team leads
+  for (const employee of regularEmployees) {
+    const teamLead = teamLeads.find((tl) => tl.team === employee.team)
+    if (!teamLead) continue
+
+    const topLevelManager = teamLead.topLevelManagerId
+      ? deelEmployees.find((de) => de.id === teamLead.topLevelManagerId) ||
+        teamLead
+      : teamLead
 
     await prisma.deelEmployee.update({
-      where: { id: report.id },
+      where: { id: employee.id },
       data: {
-        managerId: manager.id,
+        managerId: teamLead.id,
         topLevelManagerId: topLevelManager.id,
       },
     })
 
-    // Update the report object
-    report.managerId = manager.id
-    report.topLevelManagerId = topLevelManager.id
+    // Update the employee object
+    employee.managerId = teamLead.id
+    employee.topLevelManagerId = topLevelManager.id
   }
 
   console.log(
