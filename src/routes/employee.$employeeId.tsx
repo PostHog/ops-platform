@@ -4,7 +4,6 @@ import { useAtom } from 'jotai'
 import {
   AlertCircle,
   ArrowLeft,
-  Trash2,
   ChevronsLeftRight,
   ChevronsRightLeft,
   Search,
@@ -31,18 +30,7 @@ import { FeedbackCard } from '@/components/FeedbackCard'
 import { PerformanceProgramTimelineCard } from '@/components/PerformanceProgramTimelineCard'
 import { CommissionBonusTimelineCard } from '@/components/CommissionBonusTimelineCard'
 import { AshbyInterviewScoreTimelineCard } from '@/components/AshbyInterviewScoreTimelineCard'
-import { SalaryWithMismatchIndicator } from '@/components/SalaryWithMismatchIndicator'
-import {
-  bonusPercentage,
-  formatCurrency,
-  locationFactor,
-  sfBenchmark,
-  cn,
-  ratingToText,
-  driverRatingToText,
-  proactiveRatingToText,
-  optimisticRatingToText,
-} from '@/lib/utils'
+import { bonusPercentage, locationFactor, sfBenchmark, cn } from '@/lib/utils'
 import {
   Table,
   TableBody,
@@ -98,7 +86,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import dayjs from 'dayjs'
-import MarkdownComponent from '@/lib/MarkdownComponent'
 
 async function isManagerOfEmployee(
   userEmail: string,
@@ -1043,27 +1030,11 @@ function EmployeeOverview() {
   )
   const [showOverrideMode, setShowOverrideMode] = useState(false)
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
-  const [showDetailedColumns, setShowDetailedColumns] =
-    useLocalStorage<boolean>(
-      'employee.overview.table.showDetailedColumns',
-      false,
-    )
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByLevel, setFilterByLevel] = useState(true)
   const [filterByTitle, setFilterByTitle] = useState(true)
-  const [viewMode, setViewMode] = useLocalStorage<'table' | 'card'>(
-    'preferredEmployeeView',
-    'card',
-  )
   const [expandAll, setExpandAll] = useState<boolean | null>(null)
   const [expandAllCounter, setExpandAllCounter] = useState(0)
-
-  // Hide inline form when switching to timeline view
-  useEffect(() => {
-    if (viewMode === 'card') {
-      setShowNewSalaryForm(false)
-    }
-  }, [viewMode])
 
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
@@ -1512,242 +1483,6 @@ function EmployeeOverview() {
       : [],
   ])
 
-  const columns: Array<ColumnDef<Salary>> = useMemo(() => {
-    const baseColumns: Array<ColumnDef<Salary>> = [
-      {
-        accessorKey: 'timestamp',
-        header: 'Last Change (date)',
-        cell: ({ row }) => {
-          const date = new Date(row.original.timestamp)
-          return (
-            <div>
-              {months[date.getMonth()]} {date.getFullYear()}
-            </div>
-          )
-        },
-      },
-      {
-        accessorKey: 'country',
-        header: 'Country',
-        cell: ({ row }) => <div>{row.original.country}</div>,
-      },
-      {
-        accessorKey: 'area',
-        header: 'Area',
-        cell: ({ row }) => <div>{row.original.area}</div>,
-      },
-      {
-        accessorKey: 'benchmark',
-        header: 'Benchmark',
-        cell: ({ row }) => <div>{row.original.benchmark}</div>,
-      },
-      {
-        accessorKey: 'locationFactor',
-        header: () => <div className="text-right">Location</div>,
-        cell: ({ row }) => (
-          <div className="text-right">{row.original.locationFactor}</div>
-        ),
-      },
-      {
-        accessorKey: 'level',
-        header: () => <div className="text-right">Level</div>,
-        cell: ({ row }) => (
-          <div className="text-right">{row.original.level}</div>
-        ),
-      },
-      {
-        accessorKey: 'step',
-        header: () => <div className="text-right">Step</div>,
-        cell: ({ row }) => (
-          <div className="text-right">{row.original.step}</div>
-        ),
-      },
-      ...(showBonusPercentage
-        ? ([
-            {
-              accessorKey: 'bonusPercentage',
-              header: () => <div className="text-right">Bonus (%)</div>,
-              cell: ({ row }) => (
-                <div className="text-right">
-                  {(row.original.bonusPercentage * 100).toFixed(2)}%
-                </div>
-              ),
-            },
-          ] as ColumnDef<Salary>[])
-        : []),
-      {
-        accessorKey: 'totalSalary',
-        header: () => <div className="text-right">Total Salary ($)</div>,
-        cell: ({ row }) => {
-          const salary = row.original
-          return (
-            <SalaryWithMismatchIndicator
-              totalSalary={salary.totalSalary}
-              benchmarkFactor={salary.benchmarkFactor}
-              locationFactor={salary.locationFactor}
-              level={salary.level}
-              step={salary.step}
-              align="right"
-              totalSalaryLocal={salary.totalSalaryLocal}
-              actualSalaryLocal={salary.actualSalaryLocal}
-              localCurrency={salary.localCurrency}
-            />
-          )
-        },
-      },
-      {
-        accessorKey: 'changeAmount',
-        header: () => <div className="text-right">Change ($)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {formatCurrency(row.original.changeAmount)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'changePercentage',
-        header: () => <div className="text-right">Change (%)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {(row.original.changePercentage * 100).toFixed(2)}%
-          </div>
-        ),
-      },
-      ...(user?.role === ROLES.ADMIN
-        ? ([
-            {
-              accessorKey: 'notes',
-              header: 'Notes',
-              cell: ({ row }) => (
-                <div className="min-w-[200px] whitespace-pre-line">
-                  {row.original.notes}
-                </div>
-              ),
-            },
-          ] as Array<ColumnDef<Salary>>)
-        : []),
-      {
-        id: 'actions',
-        header: () => (
-          <button
-            onClick={() => setShowDetailedColumns(!showDetailedColumns)}
-            className="flex w-full items-center justify-center text-gray-400 hover:text-gray-600"
-          >
-            <span className="text-xs">{showDetailedColumns ? '▶' : '◀'}</span>
-          </button>
-        ),
-        cell: ({ row }) => {
-          if (user?.role !== ROLES.ADMIN) return null
-          const salary = row.original
-          const hoursSinceCreation =
-            (Date.now() - salary.timestamp.getTime()) / (1000 * 60 * 60)
-          const isDeletable = hoursSinceCreation <= 24
-          return (
-            <div className="flex items-center justify-center">
-              {isDeletable && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleDeleteSalary(salary.id)}
-                  className="h-6 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          )
-        },
-      },
-    ]
-
-    const detailedColumns: Array<ColumnDef<Salary>> = [
-      {
-        accessorKey: 'exchangeRate',
-        header: () => <div className="text-right">Exchange Rate</div>,
-        cell: ({ row }) => (
-          <div className="text-right">{row.original.exchangeRate}</div>
-        ),
-      },
-      {
-        accessorKey: 'totalSalaryLocal',
-        header: () => <div className="text-right">Total Salary (local)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: row.original.localCurrency,
-            }).format(row.original.totalSalaryLocal)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'amountTakenInOptions',
-        header: () => (
-          <div className="text-right">Amount Taken In Options ($)</div>
-        ),
-        cell: ({ row }) => (
-          <div className="text-right">
-            {formatCurrency(row.original.amountTakenInOptions)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'actualSalary',
-        header: () => <div className="text-right">Actual Salary ($)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {formatCurrency(row.original.actualSalary)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'actualSalaryLocal',
-        header: () => <div className="text-right">Actual Salary (local)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: row.original.localCurrency,
-            }).format(row.original.actualSalaryLocal)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'equityRefreshPercentage',
-        header: () => <div className="text-right">Equity refresh (%)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {(row.original.equityRefreshPercentage * 100).toFixed(2)}%
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'equityRefreshAmount',
-        header: () => <div className="text-right">Equity refresh ($)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {formatCurrency(row.original.equityRefreshAmount)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'employmentCountry',
-        header: 'Employment Country',
-        cell: ({ row }) => <div>{row.original.employmentCountry}</div>,
-      },
-      {
-        accessorKey: 'employmentArea',
-        header: () => 'Employment Area',
-        cell: ({ row }) => <div>{row.original.employmentArea}</div>,
-      },
-    ]
-
-    return showDetailedColumns
-      ? [...baseColumns, ...detailedColumns]
-      : [...baseColumns]
-  }, [showDetailedColumns, user?.role, employee.salaries, showBonusPercentage])
-
   const handleMoveToNextEmployee = () => {
     const currentIndex = reviewQueue.indexOf(employee.id)
     const nextEmployee = reviewQueue[currentIndex + 1] ?? null
@@ -1769,15 +1504,6 @@ function EmployeeOverview() {
       router.navigate({ to: '/employees' })
     }
   }
-
-  const table = useReactTable({
-    data: employee.salaries,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    filterFns: {
-      fuzzy: () => true,
-    },
-  })
 
   const benchmarkUpdated =
     employee.salaries[0] &&
@@ -1987,24 +1713,6 @@ function EmployeeOverview() {
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <div className="flex gap-1 rounded-md border">
-                <Button
-                  type="button"
-                  variant={viewMode === 'table' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('table')}
-                >
-                  Table view
-                </Button>
-                <Button
-                  type="button"
-                  variant={viewMode === 'card' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('card')}
-                >
-                  Timeline view
-                </Button>
-              </div>
               {reviewQueue.length > 0 ? (
                 <Button
                   variant="outline"
@@ -2047,80 +1755,7 @@ function EmployeeOverview() {
             </div>
           ) : null}
 
-          {'keeperTestFeedback' in employee &&
-          employee.keeperTestFeedback &&
-          viewMode === 'table' ? (
-            <>
-              <div className="mt-2 flex flex-row items-center justify-between gap-2">
-                <span className="text-md font-bold">Feedback</span>
-              </div>
-
-              <div className="w-full">
-                <div className="mb-4 max-h-[300px] overflow-y-auto rounded-lg border bg-gray-50 p-4">
-                  {employee.keeperTestFeedback.map(
-                    ({
-                      id,
-                      title,
-                      manager,
-                      wouldYouTryToKeepThem,
-                      whatMakesThemValuable,
-                      driverOrPassenger,
-                      proactiveToday,
-                      optimisticByDefault,
-                      areasToWatch,
-                      recommendation,
-                      sharedWithTeamMember,
-                      timestamp,
-                    }) => {
-                      const isManagerFeedback = title === 'Manager feedback'
-                      return (
-                        <div
-                          key={id}
-                          className="mb-4 rounded-lg border bg-gray-50 p-4"
-                        >
-                          <span className="w-full list-disc text-right text-sm text-gray-500">
-                            {new Date(timestamp).toLocaleDateString()}
-                          </span>
-                          {isManagerFeedback ? (
-                            <MarkdownComponent>
-                              {`### ${title} feedback from ${manager.deelEmployee?.name ?? manager.email}:\n` +
-                                `- **Given the above, how would you rate your manager?** ${wouldYouTryToKeepThem}\n` +
-                                `- **Why have you given this answer?** ${whatMakesThemValuable}`}
-                            </MarkdownComponent>
-                          ) : (
-                            <MarkdownComponent>
-                              {`### ${title} feedback from ${manager.deelEmployee?.name ?? manager.email}:\n` +
-                                `- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${ratingToText(wouldYouTryToKeepThem)}\n` +
-                                `- **What makes them so valuable to your team and PostHog?** ${whatMakesThemValuable}\n` +
-                                `- **Are they a driver or a passenger?** ${driverRatingToText(driverOrPassenger)}\n` +
-                                `- **Do they get things done proactively, today?** ${proactiveRatingToText(proactiveToday)}\n` +
-                                `- **Are they optimistic by default?** ${optimisticRatingToText(optimisticByDefault)}\n` +
-                                `- **Areas to watch:** ${areasToWatch}\n` +
-                                (recommendation
-                                  ? `- **Recommendation**: ${recommendation}\n`
-                                  : '') +
-                                `- **Have you shared this feedback with your team member?** ${sharedWithTeamMember ? 'Yes' : 'No, but I will do right now!'}`}
-                            </MarkdownComponent>
-                          )}
-                        </div>
-                      )
-                    },
-                  )}
-
-                  {employee.keeperTestFeedback.length === 0 && (
-                    <div className="text-center text-sm text-gray-500">
-                      No feedback yet.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          ) : null}
-
           <div className="mt-2 flex flex-row items-center justify-between gap-2">
-            {viewMode === 'table' && (
-              <span className="text-md font-bold">Salary history</span>
-            )}
             <div className="flex gap-2">
               {showNewSalaryForm ? (
                 <Button
@@ -2215,9 +1850,7 @@ function EmployeeOverview() {
               )
             })()}
 
-          {showNewSalaryForm &&
-          showReferenceEmployees &&
-          viewMode === 'card' ? (
+          {showNewSalaryForm && showReferenceEmployees ? (
             <ReferenceEmployeesTable
               referenceEmployees={combinedReferenceEmployees}
               currentEmployee={employee}
@@ -2231,224 +1864,128 @@ function EmployeeOverview() {
           ) : null}
 
           <div className="w-full flex-grow">
-            {viewMode === 'table' ? (
-              <div className="overflow-hidden rounded-md border">
-                <Table className="text-xs">
-                  <TableHeader>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <TableRow key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => {
-                          return (
-                            <TableHead key={header.id}>
-                              {header.isPlaceholder
-                                ? null
-                                : flexRender(
-                                    header.column.columnDef.header,
-                                    header.getContext(),
-                                  )}
-                            </TableHead>
-                          )
-                        })}
-                      </TableRow>
-                    ))}
-                  </TableHeader>
-                  <TableBody>
-                    {showNewSalaryForm && (
-                      <NewSalaryForm
-                        employeeId={employee.id}
-                        showOverride={showOverrideMode}
-                        setShowOverride={setShowOverrideMode}
-                        latestSalary={employee.salaries[0]}
-                        showDetailedColumns={showDetailedColumns}
-                        totalAmountInStockOptions={employee.salaries.reduce(
-                          (acc, salary) => acc + salary.amountTakenInOptions,
-                          0,
-                        )}
-                        onSuccess={() => {
-                          setShowNewSalaryForm(false)
-                          router.invalidate()
-                        }}
-                        onCancel={() => setShowNewSalaryForm(false)}
-                        benchmarkUpdated={benchmarkUpdated}
-                        setLevel={setLevel}
-                        setStep={setStep}
-                        setBenchmark={setBenchmark}
-                        showBonusPercentage={showBonusPercentage}
-                        displayMode="inline"
-                        eligibleForEquityRefresh={eligibleForEquityRefresh}
-                      />
-                    )}
-                    {table.getRowModel().rows?.length ? (
-                      table.getRowModel().rows.map((row) => (
-                        <TableRow
-                          key={row.id}
-                          data-state={row.getIsSelected() && 'selected'}
-                        >
-                          {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id}>
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext(),
-                              )}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={columns.length}
-                          className="h-24 text-center"
-                        >
-                          No results.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="mb-8">
-                {showNewSalaryForm && (
-                  <NewSalaryForm
-                    employeeId={employee.id}
-                    showOverride={showOverrideMode}
-                    setShowOverride={setShowOverrideMode}
-                    latestSalary={employee.salaries[0]}
-                    showDetailedColumns={showDetailedColumns}
-                    totalAmountInStockOptions={employee.salaries.reduce(
-                      (acc, salary) => acc + salary.amountTakenInOptions,
-                      0,
-                    )}
-                    onSuccess={() => {
-                      setShowNewSalaryForm(false)
-                      router.invalidate()
-                    }}
-                    onCancel={() => setShowNewSalaryForm(false)}
-                    benchmarkUpdated={benchmarkUpdated}
-                    setLevel={setLevel}
-                    setStep={setStep}
-                    setBenchmark={setBenchmark}
-                    showBonusPercentage={showBonusPercentage}
-                    displayMode="card"
-                    eligibleForEquityRefresh={eligibleForEquityRefresh}
-                  />
-                )}
-                {timelineByMonth.length > 0 ? (
-                  timelineByMonth.map((monthGroup, monthGroupIndex) => (
-                    <div key={`${monthGroup.year}-${monthGroup.month}`}>
-                      <div
-                        className={`flex items-center border border-gray-200 px-4 py-2 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
-                      >
-                        <h3 className="text-lg font-bold">
-                          {months[monthGroup.month]} {monthGroup.year}
-                        </h3>
-                        <span className="mx-2">·</span>
-                        <p className="text-sm text-gray-500">
-                          {(() => {
-                            const now = new Date()
-                            const diffMonths =
-                              (now.getFullYear() - monthGroup.year) * 12 +
-                              (now.getMonth() - monthGroup.month)
+            <div className="mb-8">
+              {showNewSalaryForm && (
+                <NewSalaryForm
+                  employeeId={employee.id}
+                  showOverride={showOverrideMode}
+                  setShowOverride={setShowOverrideMode}
+                  latestSalary={employee.salaries[0]}
+                  totalAmountInStockOptions={employee.salaries.reduce(
+                    (acc, salary) => acc + salary.amountTakenInOptions,
+                    0,
+                  )}
+                  onSuccess={() => {
+                    setShowNewSalaryForm(false)
+                    router.invalidate()
+                  }}
+                  onCancel={() => setShowNewSalaryForm(false)}
+                  benchmarkUpdated={benchmarkUpdated}
+                  setLevel={setLevel}
+                  setStep={setStep}
+                  setBenchmark={setBenchmark}
+                  showBonusPercentage={showBonusPercentage}
+                  eligibleForEquityRefresh={eligibleForEquityRefresh}
+                />
+              )}
+              {timelineByMonth.length > 0 ? (
+                timelineByMonth.map((monthGroup, monthGroupIndex) => (
+                  <div key={`${monthGroup.year}-${monthGroup.month}`}>
+                    <div
+                      className={`flex items-center border border-gray-200 px-4 py-2 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
+                    >
+                      <h3 className="text-lg font-bold">
+                        {months[monthGroup.month]} {monthGroup.year}
+                      </h3>
+                      <span className="mx-2">·</span>
+                      <p className="text-sm text-gray-500">
+                        {(() => {
+                          const now = new Date()
+                          const diffMonths =
+                            (now.getFullYear() - monthGroup.year) * 12 +
+                            (now.getMonth() - monthGroup.month)
 
-                            if (diffMonths === 0) return 'this month'
-                            if (diffMonths === 1) return '1 month ago'
-                            if (diffMonths < 12)
-                              return `${diffMonths} months ago`
+                          if (diffMonths === 0) return 'this month'
+                          if (diffMonths === 1) return '1 month ago'
+                          if (diffMonths < 12) return `${diffMonths} months ago`
 
-                            const years = Math.floor(diffMonths / 12)
-                            const remainingMonths = diffMonths % 12
-                            if (remainingMonths === 0) {
-                              return years === 1
-                                ? '1 year ago'
-                                : `${years} years ago`
-                            }
-                            return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} ago`
-                          })()}
-                        </p>
-                      </div>
-                      <div className="w-full">
-                        {monthGroup.items.map((item, itemIndex) => {
-                          const isLastMonth =
-                            monthGroupIndex === timelineByMonth.length - 1
-                          const isLastItemInMonth =
-                            itemIndex === monthGroup.items.length - 1
-                          const lastTableItem = isLastMonth && isLastItemInMonth
-
-                          if (item.type === 'salary') {
-                            return (
-                              <SalaryHistoryCard
-                                key={`salary-${item.data.id}`}
-                                salary={item.data}
-                                isAdmin={user?.role === ROLES.ADMIN}
-                                onDelete={handleDeleteSalary}
-                                lastTableItem={lastTableItem}
-                              />
-                            )
-                          } else if (item.type === 'feedback') {
-                            return (
-                              <FeedbackCard
-                                key={`feedback-${item.data.id}`}
-                                feedback={item.data}
-                                lastTableItem={lastTableItem}
-                              />
-                            )
-                          } else if (item.type === 'performance-program') {
-                            return (
-                              <PerformanceProgramTimelineCard
-                                key={`perf-program-${item.data.program.id}-${item.data.event}-${item.data.checklistItem?.id || item.data.feedback?.id || ''}`}
-                                event={item.data.event}
-                                program={item.data.program}
-                                checklistItem={item.data.checklistItem}
-                                feedback={item.data.feedback}
-                                lastTableItem={lastTableItem}
-                              />
-                            )
-                          } else if (item.type === 'commission-bonus') {
-                            return (
-                              <CommissionBonusTimelineCard
-                                key={`commission-bonus-${item.data.id}`}
-                                bonus={item.data}
-                                lastTableItem={lastTableItem}
-                              />
-                            )
-                          } else if (item.type === 'ashby-interview-score') {
-                            return (
-                              <AshbyInterviewScoreTimelineCard
-                                key={`ashby-interview-score-${item.data.id}`}
-                                score={item.data}
-                                lastTableItem={lastTableItem}
-                              />
-                            )
+                          const years = Math.floor(diffMonths / 12)
+                          const remainingMonths = diffMonths % 12
+                          if (remainingMonths === 0) {
+                            return years === 1
+                              ? '1 year ago'
+                              : `${years} years ago`
                           }
-                          return null
-                        })}
-                      </div>
+                          return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} ago`
+                        })()}
+                      </p>
                     </div>
-                  ))
-                ) : (
-                  <div className="py-12 text-center text-gray-500">
-                    No history available.
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                    <div className="w-full">
+                      {monthGroup.items.map((item, itemIndex) => {
+                        const isLastMonth =
+                          monthGroupIndex === timelineByMonth.length - 1
+                        const isLastItemInMonth =
+                          itemIndex === monthGroup.items.length - 1
+                        const lastTableItem = isLastMonth && isLastItemInMonth
 
-          {showNewSalaryForm &&
-          showReferenceEmployees &&
-          viewMode === 'table' ? (
-            <ReferenceEmployeesTable
-              referenceEmployees={combinedReferenceEmployees}
-              currentEmployee={employee}
-              filterByLevel={filterByLevel}
-              setFilterByLevel={setFilterByLevel}
-              filterByExec={filterByExec}
-              setFilterByExec={setFilterByExec}
-              filterByTitle={filterByTitle}
-              setFilterByTitle={setFilterByTitle}
-            />
-          ) : null}
+                        if (item.type === 'salary') {
+                          return (
+                            <SalaryHistoryCard
+                              key={`salary-${item.data.id}`}
+                              salary={item.data}
+                              isAdmin={user?.role === ROLES.ADMIN}
+                              onDelete={handleDeleteSalary}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        } else if (item.type === 'feedback') {
+                          return (
+                            <FeedbackCard
+                              key={`feedback-${item.data.id}`}
+                              feedback={item.data}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        } else if (item.type === 'performance-program') {
+                          return (
+                            <PerformanceProgramTimelineCard
+                              key={`perf-program-${item.data.program.id}-${item.data.event}-${item.data.checklistItem?.id || item.data.feedback?.id || ''}`}
+                              event={item.data.event}
+                              program={item.data.program}
+                              checklistItem={item.data.checklistItem}
+                              feedback={item.data.feedback}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        } else if (item.type === 'commission-bonus') {
+                          return (
+                            <CommissionBonusTimelineCard
+                              key={`commission-bonus-${item.data.id}`}
+                              bonus={item.data}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        } else if (item.type === 'ashby-interview-score') {
+                          return (
+                            <AshbyInterviewScoreTimelineCard
+                              key={`ashby-interview-score-${item.data.id}`}
+                              score={item.data}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        }
+                        return null
+                      })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-12 text-center text-gray-500">
+                  No history available.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
