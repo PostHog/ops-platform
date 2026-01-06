@@ -164,6 +164,14 @@ async function getInterviewInfo(
   return data as AshbyInterviewInfoSuccessResponse
 }
 
+type ValidatedFeedback = {
+  rating: number
+  feedbackText: string
+  submittedAt: Date
+  interviewerId: string
+  interviewName: string | null
+}
+
 export const Route = createFileRoute('/syncAshbyInterviewScores')({
   server: {
     handlers: {
@@ -173,12 +181,7 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
           return new Response('Unauthorized', { status: 401 })
         }
 
-        const logs: string[] = []
-        const errors: string[] = []
-
         try {
-          // Get all Employees with linked DeelEmployee that has personalEmail
-          // Only process employees that haven't been imported yet
           const employees = await prisma.employee.findMany({
             where: {
               ashbyInterviewScoresImported: false,
@@ -192,190 +195,142 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
             take: 5,
           })
 
-          logs.push(`Processing ${employees.length} employees`)
+          const results = []
 
-          let processedCount = 0
-          let scoresCreated = 0
-          let scoresSkipped = 0
-
-          // Process each employee
           for (const employee of employees) {
             if (!employee.deelEmployee?.personalEmail) {
               continue
             }
 
-            const deelEmployee = employee.deelEmployee
-
             try {
+              // 2. Fetch from ashby api: application, feedback, interviewName
               const candidateResponse = await searchCandidateByEmail(
-                deelEmployee.personalEmail!,
+                employee.deelEmployee.personalEmail,
               )
 
               if (!candidateResponse.results?.length) {
-                logs.push(
-                  `No candidate found for ${deelEmployee.personalEmail}`,
-                )
+                results.push({
+                  employee: employee.email,
+                  status: 'no_candidate',
+                })
                 continue
               }
 
               const candidate = candidateResponse.results[0]
               if (!candidate.applicationIds?.length) {
-                logs.push(
-                  `No applications found for candidate ${deelEmployee.personalEmail}`,
-                )
+                results.push({
+                  employee: employee.email,
+                  status: 'no_applications',
+                })
                 continue
               }
 
+              const validatedFeedbackItems: ValidatedFeedback[] = []
+
+              // Fetch and validate all feedback for all applications
               for (const applicationId of candidate.applicationIds) {
-                try {
-                  const feedbackResponse =
-                    await getApplicationFeedback(applicationId)
+                const feedbackResponse =
+                  await getApplicationFeedback(applicationId)
 
-                  if (!feedbackResponse.results?.length) {
-                    logs.push(
-                      `No feedback found for application ${applicationId}`,
+                if (!feedbackResponse.results?.length) {
+                  continue
+                }
+
+                for (const feedback of feedbackResponse.results) {
+                  // 3. Validate all data
+                  const ratingString =
+                    feedback.submittedValues.overall_recommendation
+                  if (!ratingString) {
+                    throw new Error(
+                      `Missing rating for feedback ${feedback.id} in application ${applicationId}`,
                     )
-                    continue
                   }
 
-                  for (const feedback of feedbackResponse.results) {
-                    try {
-                      const ratingString =
-                        feedback.submittedValues.overall_recommendation
-                      if (!ratingString) {
-                        errors.push(
-                          `Missing rating for feedback ${feedback.id} in application ${applicationId}`,
-                        )
-                        continue
-                      }
-
-                      const rating = parseInt(ratingString, 10)
-                      if (isNaN(rating) || rating < 1 || rating > 4) {
-                        errors.push(
-                          `Invalid rating ${ratingString} for feedback ${feedback.id}`,
-                        )
-                        continue
-                      }
-
-                      const feedbackText =
-                        feedback.submittedValues.feedback || ''
-                      const submittedAt = new Date(feedback.submittedAt)
-
-                      if (isNaN(submittedAt.getTime())) {
-                        errors.push(
-                          `Invalid submittedAt date for feedback ${feedback.id}: ${feedback.submittedAt}`,
-                        )
-                        continue
-                      }
-
-                      const interviewer = await prisma.employee.findUnique({
-                        where: { email: feedback.submittedByUser.email },
-                      })
-
-                      if (!interviewer) {
-                        errors.push(
-                          `Interviewer not found: ${feedback.submittedByUser.email} (for feedback ${feedback.id})`,
-                        )
-                        continue
-                      }
-
-                      // Fetch interview name if interviewId is available
-                      let interviewName: string | null = null
-                      if (feedback.interviewId) {
-                        try {
-                          const interviewInfo = await getInterviewInfo(
-                            feedback.interviewId,
-                          )
-                          interviewName =
-                            interviewInfo.results.externalTitle ||
-                            interviewInfo.results.title ||
-                            null
-                        } catch (error) {
-                          // Log error but continue processing
-                          logs.push(
-                            `Failed to fetch interview info for interviewId ${feedback.interviewId}: ${
-                              error instanceof Error
-                                ? error.message
-                                : 'Unknown error'
-                            }`,
-                          )
-                        }
-                      }
-
-                      const existing =
-                        await prisma.ashbyInterviewScore.findFirst({
-                          where: {
-                            employeeId: employee.id,
-                            interviewerId: interviewer.id,
-                            rating,
-                            feedback: feedbackText,
-                          },
-                        })
-
-                      if (existing) {
-                        scoresSkipped++
-                        continue
-                      }
-
-                      await prisma.ashbyInterviewScore.create({
-                        data: {
-                          employeeId: employee.id,
-                          interviewerId: interviewer.id,
-                          rating,
-                          feedback: feedbackText,
-                          interviewName,
-                          createdAt: submittedAt,
-                        },
-                      })
-
-                      scoresCreated++
-                    } catch (error) {
-                      errors.push(
-                        `Error processing feedback ${feedback.id}: ${
-                          error instanceof Error
-                            ? error.message
-                            : 'Unknown error'
-                        }`,
-                      )
-                    }
+                  const rating = parseInt(ratingString, 10)
+                  if (isNaN(rating) || rating < 1 || rating > 4) {
+                    throw new Error(
+                      `Invalid rating ${ratingString} for feedback ${feedback.id}`,
+                    )
                   }
 
-                  await new Promise((resolve) => setTimeout(resolve, 100))
-                } catch (error) {
-                  errors.push(
-                    `Error fetching feedback for application ${applicationId}: ${
-                      error instanceof Error ? error.message : 'Unknown error'
-                    }`,
-                  )
+                  const feedbackText = feedback.submittedValues.feedback || ''
+                  const submittedAt = new Date(feedback.submittedAt)
+
+                  if (isNaN(submittedAt.getTime())) {
+                    throw new Error(
+                      `Invalid submittedAt date for feedback ${feedback.id}: ${feedback.submittedAt}`,
+                    )
+                  }
+
+                  const interviewer = await prisma.employee.findUnique({
+                    where: { email: feedback.submittedByUser.email },
+                  })
+
+                  if (!interviewer) {
+                    throw new Error(
+                      `Interviewer not found: ${feedback.submittedByUser.email} (for feedback ${feedback.id})`,
+                    )
+                  }
+
+                  // Fetch interview name if interviewId is available
+                  let interviewName: string | null = null
+                  if (feedback.interviewId) {
+                    const interviewInfo = await getInterviewInfo(
+                      feedback.interviewId,
+                    )
+                    interviewName =
+                      interviewInfo.results.externalTitle ||
+                      interviewInfo.results.title ||
+                      null
+                  }
+
+                  validatedFeedbackItems.push({
+                    rating,
+                    feedbackText,
+                    submittedAt,
+                    interviewerId: interviewer.id,
+                    interviewName,
+                  })
                 }
               }
 
-              // Mark employee as imported after processing all applications
+              // 4. If all valid save interviewscores and set ashbyimported to true
+              for (const item of validatedFeedbackItems) {
+                await prisma.ashbyInterviewScore.create({
+                  data: {
+                    employeeId: employee.id,
+                    interviewerId: item.interviewerId,
+                    rating: item.rating,
+                    feedback: item.feedbackText,
+                    interviewName: item.interviewName,
+                    createdAt: item.submittedAt,
+                  },
+                })
+              }
+
               await prisma.employee.update({
                 where: { id: employee.id },
                 data: { ashbyInterviewScoresImported: true },
               })
 
-              processedCount++
-              await new Promise((resolve) => setTimeout(resolve, 200))
+              results.push({
+                employee: employee.email,
+                status: 'success',
+                scoresCreated: validatedFeedbackItems.length,
+              })
             } catch (error) {
-              errors.push(
-                `Error processing employee ${deelEmployee.personalEmail}: ${
-                  error instanceof Error ? error.message : 'Unknown error'
-                }`,
-              )
+              results.push({
+                employee: employee.email,
+                status: 'error',
+                error: error instanceof Error ? error.message : 'Unknown error',
+              })
             }
           }
 
           return new Response(
             JSON.stringify({
               success: true,
-              processed: processedCount,
-              scoresCreated,
-              scoresSkipped,
-              errors: errors.length,
-              logs: logs.slice(0, 50),
-              errorMessages: errors.slice(0, 50),
+              results,
             }),
           )
         } catch (error) {
