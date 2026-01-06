@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import prisma from '@/db'
-import type { KeeperTestRating } from '@prisma/client'
+import type { KeeperTestRating, KeeperTestRecommendation } from '@prisma/client'
 import {
   ratingToText,
   driverRatingToText,
@@ -177,16 +177,19 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
           ) {
             const getFlag = (
               ratings: KeeperTestRating[],
+              recommendation: KeeperTestRecommendation | null,
             ): { flag: string; mention: boolean } => {
               // Flag logic:
               // Red circle + mention: Any STRONG_NO or (NO on 80 day check-in)
               // Yellow circle: Any NO
               // Green circle: All responses are YES
               // Star: Any STRONG_YES
-              const hasStrongNo = ratings.some(
-                (rating) => rating === 'STRONG_NO',
-              )
-              const hasNo = ratings.some((rating) => rating === 'NO')
+              const hasStrongNo =
+                ratings.some((rating) => rating === 'STRONG_NO') ||
+                recommendation === 'NOT_A_FIT_NEEDS_ESCALATING'
+              const hasNo =
+                ratings.some((rating) => rating === 'NO') ||
+                recommendation === 'AVERAGE_HIRE_NEED_TO_SEE_IMPROVEMENTS'
               const allYes = ratings.every((rating) => rating === 'YES')
               const hasStrongYes = ratings.some(
                 (rating) => rating === 'STRONG_YES',
@@ -212,7 +215,10 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
               createdFeedback.optimisticByDefault,
             ]
 
-            const { flag, mention } = getFlag(ratings)
+            const { flag, mention } = getFlag(
+              ratings,
+              createdFeedback.recommendation,
+            )
 
             const res = await fetch('https://slack.com/api/chat.postMessage', {
               method: 'POST',
