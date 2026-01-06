@@ -12,6 +12,7 @@ import {
   getCountries,
   getAreasByCountry,
   currencyData,
+  SALARY_LEVEL_OPTIONS,
 } from '../src/lib/utils'
 
 const prisma = new PrismaClient()
@@ -230,8 +231,7 @@ async function generateSalaries(
   console.log(`Generating salary history for ${employees.length} employees...`)
 
   const countries = getCountries()
-
-  const benchmarks = ['L5', 'L6', 'L7', 'L8', 'L9']
+  const benchmarks = Object.keys(sfBenchmark)
 
   let totalSalaries = 0
 
@@ -282,7 +282,7 @@ async function generateSalaries(
           ? startDate
           : faker.date.between({ from: startDate, to: new Date() })
 
-      const level = faker.number.float({ min: 3, max: 9, fractionDigits: 1 })
+      const level = faker.helpers.arrayElement(SALARY_LEVEL_OPTIONS).value
       const step = faker.number.float({ min: 0, max: 1, fractionDigits: 2 })
       // Use the locationFactor from the location entry
       const benchmark = faker.helpers.arrayElement(benchmarks)
