@@ -38,6 +38,7 @@ import { createAdminFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
 import { CommissionImportPanel } from '@/components/CommissionImportPanel'
 import { z } from 'zod'
+import { impersonateUser } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
@@ -285,6 +286,36 @@ function RouteComponent() {
               </SelectItem>
             </SelectContent>
           </Select>
+        )
+      },
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => {
+        const handleImpersonate = async () => {
+          try {
+            await impersonateUser({
+              userId: row.original.id,
+            })
+            window.location.href = '/'
+          } catch (error) {
+            createToast(
+              `Failed to impersonate user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              { timeout: 5000 },
+            )
+          }
+        }
+
+        return (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleImpersonate}
+            className="h-6 text-xs"
+          >
+            Impersonate
+          </Button>
         )
       },
     },

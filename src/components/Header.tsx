@@ -1,6 +1,6 @@
 import { Link, useRouter } from '@tanstack/react-router'
 import { Button } from './ui/button'
-import { signOut, useSession } from '@/lib/auth-client'
+import { signOut, useSession, stopImpersonating } from '@/lib/auth-client'
 import { createInternalFn } from '@/lib/auth-middleware'
 import prisma from '@/db'
 import { useQuery } from '@tanstack/react-query'
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 import { ChevronDownIcon } from 'lucide-react'
+import { createToast } from 'vercel-toast'
 
 export const getMyEmployeeId = createInternalFn({
   method: 'GET',
@@ -44,6 +45,20 @@ export default function Header() {
     signOut()
     router.navigate({ to: '/login' })
   }
+
+  const handleStopImpersonating = async () => {
+    try {
+      await stopImpersonating()
+      window.location.href = '/'
+    } catch (error) {
+      createToast(
+        `Failed to stop impersonating: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { timeout: 5000 },
+      )
+    }
+  }
+
+  const isImpersonating = !!session?.session?.impersonatedBy
 
   if (!user) return null
 
@@ -125,16 +140,32 @@ export default function Header() {
         ) : null}
       </nav>
       <div className="flex flex-row items-center gap-2">
-        {session ? (
+        {session && (
           <>
-            <span className="text-sm text-gray-500">
-              Logged in as {session?.user.name}
+            <span
+              className={
+                isImpersonating
+                  ? 'text-sm font-semibold text-orange-600'
+                  : 'text-sm text-gray-500'
+              }
+            >
+              {isImpersonating ? 'Impersonating: ' : 'Logged in as '}
+              {session.user.name}
             </span>
+            {isImpersonating && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleStopImpersonating}
+              >
+                Stop Impersonating
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={handleSignOut}>
               Sign out
             </Button>
           </>
-        ) : null}
+        )}
       </div>
     </header>
   )
