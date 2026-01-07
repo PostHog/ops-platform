@@ -113,7 +113,7 @@ async function getManagedEmployeeIds(
   return managedEmployeeIds
 }
 
-type ManagerInfo = {
+export type ManagerInfo = {
   managerDeelEmployeeId: string | null
   managedEmployeeIds: Array<string>
 }

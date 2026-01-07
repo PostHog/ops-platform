@@ -87,38 +87,6 @@ import {
 } from '@/components/ui/select'
 import dayjs from 'dayjs'
 
-async function isManagerOfEmployee(
-  userEmail: string,
-  employeeId: string,
-): Promise<boolean> {
-  // Get user's DeelEmployee ID
-  const userEmployee = await prisma.employee.findUnique({
-    where: { email: userEmail },
-    include: { deelEmployee: { select: { id: true } } },
-  })
-  const userDeelEmployeeId = userEmployee?.deelEmployee?.id
-  if (!userDeelEmployeeId) return false
-
-  // Recursively get all report employee IDs
-  const reportIds = new Set<string>()
-  const getReportIds = async (managerDeelEmployeeId: string): Promise<void> => {
-    const directReports = await prisma.deelEmployee.findMany({
-      where: { managerId: managerDeelEmployeeId },
-      include: { employee: { select: { id: true } } },
-    })
-
-    for (const report of directReports) {
-      if (report.employee?.id) {
-        reportIds.add(report.employee.id)
-        await getReportIds(report.id)
-      }
-    }
-  }
-
-  await getReportIds(userDeelEmployeeId)
-  return reportIds.has(employeeId)
-}
-
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
   loader: async ({ params }) =>
@@ -131,9 +99,8 @@ const getEmployeeById = createInternalFn({
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    const isManager =
-      !isAdmin &&
-      (await isManagerOfEmployee(context.user.email, data.employeeId))
+    const { managedEmployeeIds } = context.managerInfo
+    const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
 
     const employee = await prisma.employee.findUnique({
       where: {
@@ -565,11 +532,18 @@ export const deleteSalary = createAdminFn({
     return { success: true }
   })
 
-export const createPerformanceProgram = createAdminFn({
+export const createPerformanceProgram = createInternalFn({
   method: 'POST',
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+    const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
+
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
+    }
     const existingProgram = await prisma.performanceProgram.findFirst({
       where: {
         employeeId: data.employeeId,
@@ -765,14 +739,13 @@ export const addProgramFeedback = createAdminFn({
     return feedback
   })
 
-export const resolvePerformanceProgram = createAdminFn({
+export const resolvePerformanceProgram = createInternalFn({
   method: 'POST',
 })
   .inputValidator((d: { programId: string }) => d)
   .handler(async ({ data, context }) => {
-    if (context.user.role !== ROLES.ADMIN) {
-      throw new Error('Unauthorized')
-    }
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
 
     const program = await prisma.performanceProgram.findUnique({
       where: { id: data.programId },
@@ -783,6 +756,13 @@ export const resolvePerformanceProgram = createAdminFn({
 
     if (!program) {
       throw new Error('Performance program not found')
+    }
+
+    // Check authorization: admins can resolve any program, managers can only resolve programs for their reports
+    const isManager =
+      !isAdmin && managedEmployeeIds.includes(program.employeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
     }
 
     if (program.status !== 'ACTIVE') {
