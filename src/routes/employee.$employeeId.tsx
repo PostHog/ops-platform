@@ -1123,7 +1123,6 @@ function EmployeeOverview() {
 
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
-  console.log('employee', employee)
   const [reviewQueue, setReviewQueue] = useAtom(reviewQueueAtom)
   const createProgram = useServerFn(createPerformanceProgram)
   const [level, setLevel] = useState(employee.salaries[0]?.level ?? 1)
