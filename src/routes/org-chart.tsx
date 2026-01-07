@@ -19,7 +19,7 @@ import { nodeTypes } from '@/lib/org-chart/nodes'
 import useExpandCollapse from '@/lib/org-chart/useExpandCollapse'
 import OrgChartPanel from '@/components/OrgChartPanel'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
-import { createUserFn } from '@/lib/auth-middleware'
+import { createInternalFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
 import { useLocalStorage } from 'usehooks-ts'
 import { orgChartAutozoomingEnabledAtom } from '@/atoms'
@@ -101,14 +101,14 @@ export type OrgChartNode = Node<
   } & ProposedHireFields
 >
 
-export const getDeelEmployeesAndProposedHires = createUserFn({
+export const getDeelEmployeesAndProposedHires = createInternalFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   const isAdmin = context.user.role === ROLES.ADMIN
 
-  if (!context.user.email.endsWith('@posthog.com')) {
-    throw new Error('Unauthorized')
-  }
+  const { managedEmployeeIds, managerDeelEmployeeId } = context.managerInfo
+
+  const isManager = managedEmployeeIds.length > 0
 
   const employees = await prisma.deelEmployee.findMany({
     include: {
@@ -116,11 +116,18 @@ export const getDeelEmployeesAndProposedHires = createUserFn({
         select: {
           id: true,
           email: true,
-          ...(isAdmin
+          ...(isAdmin || isManager
             ? {
                 performancePrograms: {
                   where: {
                     status: PerformanceProgramStatus.ACTIVE,
+                    ...(isManager && managedEmployeeIds
+                      ? {
+                          employeeId: {
+                            in: Array.from(managedEmployeeIds),
+                          },
+                        }
+                      : {}),
                   },
                   select: {
                     id: true,
@@ -162,15 +169,7 @@ export const getDeelEmployeesAndProposedHires = createUserFn({
     },
   })
 
-  const managerDeelEmployeeId = employees.find(
-    (employee) => employee.workEmail === context.user.email,
-  )?.id
-
-  const hasReports = employees.some(
-    (employee) => employee.managerId === managerDeelEmployeeId,
-  )
-
-  return { employees, proposedHires, managerDeelEmployeeId, hasReports }
+  return { employees, proposedHires, managerDeelEmployeeId }
 })
 
 export const Route = createFileRoute('/org-chart')({

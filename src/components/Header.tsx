@@ -1,7 +1,7 @@
 import { Link, useRouter } from '@tanstack/react-router'
 import { Button } from './ui/button'
 import { signOut, useSession } from '@/lib/auth-client'
-import { createUserFn } from '@/lib/auth-middleware'
+import { createInternalFn } from '@/lib/auth-middleware'
 import prisma from '@/db'
 import { useQuery } from '@tanstack/react-query'
 import { ROLES } from '@/lib/consts'
@@ -13,7 +13,7 @@ import {
 } from './ui/dropdown-menu'
 import { ChevronDownIcon } from 'lucide-react'
 
-export const getMyEmployeeId = createUserFn({
+export const getMyEmployeeId = createInternalFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   const user = context.user

@@ -68,7 +68,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import prisma from '@/db'
-import { createAdminFn, createUserFn } from '@/lib/auth-middleware'
+import { createAdminFn, createInternalFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
@@ -125,7 +125,7 @@ export const Route = createFileRoute('/employee/$employeeId')({
     await getEmployeeById({ data: { employeeId: params.employeeId } }),
 })
 
-const getEmployeeById = createUserFn({
+const getEmployeeById = createInternalFn({
   method: 'GET',
 })
   .inputValidator((d: { employeeId: string }) => d)
@@ -172,8 +172,8 @@ const getEmployeeById = createUserFn({
               },
             }
           : {}),
-        // Performance programs: admin only
-        ...(isAdmin
+        // Performance programs: admin and managers (not visible to employees viewing their own profile)
+        ...(isAdmin || isManager
           ? {
               performancePrograms: {
                 include: {
@@ -496,7 +496,7 @@ export const getReferenceEmployees = createAdminFn({
       .sort((a, b) => a.step * a.level - b.step * b.level)
   })
 
-export const getDeelEmployees = createAdminFn({
+export const getDeelEmployees = createInternalFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.deelEmployee.findMany({
@@ -1038,6 +1038,7 @@ function EmployeeOverview() {
 
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
+  console.log('employee', employee)
   const [reviewQueue, setReviewQueue] = useAtom(reviewQueueAtom)
   const createProgram = useServerFn(createPerformanceProgram)
   const [level, setLevel] = useState(employee.salaries[0]?.level ?? 1)
@@ -1125,7 +1126,6 @@ function EmployeeOverview() {
   const proposedHires = deelEmployeesAndProposedHiresData?.proposedHires || []
   const managerDeelEmployeeId =
     deelEmployeesAndProposedHiresData?.managerDeelEmployeeId
-  const hasReports = deelEmployeesAndProposedHiresData?.hasReports
 
   // Build hierarchy tree from flat list
   const managerHierarchy = useMemo(() => {
@@ -1521,8 +1521,10 @@ function EmployeeOverview() {
     monthsSinceStart >= 10 &&
     [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
 
+  const isManager =
+    deelEmployeesAndProposedHiresData?.managerDeelEmployeeId?.length ?? 0 > 0
   const showEmployeeTree =
-    managerHierarchy && (user?.role === ROLES.ADMIN || hasReports)
+    managerHierarchy && (user?.role === ROLES.ADMIN || isManager)
 
   return (
     <div className="flex h-[calc(100vh-2.5rem)] flex-col items-center justify-center gap-5 overflow-hidden pt-4">
@@ -1722,7 +1724,8 @@ function EmployeeOverview() {
                   Move to next employee
                 </Button>
               ) : null}
-              {user?.role === ROLES.ADMIN ? (
+              {'performancePrograms' in employee &&
+              employee.performancePrograms !== undefined ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -1739,7 +1742,8 @@ function EmployeeOverview() {
             </div>
           </div>
 
-          {user?.role === ROLES.ADMIN ? (
+          {'performancePrograms' in employee &&
+          employee.performancePrograms !== undefined ? (
             <div className="w-full">
               <PerformanceProgramPanel
                 employeeId={employee.id}
