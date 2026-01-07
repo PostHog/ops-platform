@@ -49,7 +49,6 @@ export default function Header() {
   const handleStopImpersonating = async () => {
     try {
       await stopImpersonating()
-      createToast('Stopped impersonating', { timeout: 3000 })
       window.location.href = '/'
     } catch (error) {
       createToast(
