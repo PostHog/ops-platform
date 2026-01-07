@@ -68,7 +68,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import prisma from '@/db'
-import { createAdminFn, createUserFn } from '@/lib/auth-middleware'
+import { createAdminFn, createInternalFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
@@ -87,53 +87,20 @@ import {
 } from '@/components/ui/select'
 import dayjs from 'dayjs'
 
-async function isManagerOfEmployee(
-  userEmail: string,
-  employeeId: string,
-): Promise<boolean> {
-  // Get user's DeelEmployee ID
-  const userEmployee = await prisma.employee.findUnique({
-    where: { email: userEmail },
-    include: { deelEmployee: { select: { id: true } } },
-  })
-  const userDeelEmployeeId = userEmployee?.deelEmployee?.id
-  if (!userDeelEmployeeId) return false
-
-  // Recursively get all report employee IDs
-  const reportIds = new Set<string>()
-  const getReportIds = async (managerDeelEmployeeId: string): Promise<void> => {
-    const directReports = await prisma.deelEmployee.findMany({
-      where: { managerId: managerDeelEmployeeId },
-      include: { employee: { select: { id: true } } },
-    })
-
-    for (const report of directReports) {
-      if (report.employee?.id) {
-        reportIds.add(report.employee.id)
-        await getReportIds(report.id)
-      }
-    }
-  }
-
-  await getReportIds(userDeelEmployeeId)
-  return reportIds.has(employeeId)
-}
-
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
   loader: async ({ params }) =>
     await getEmployeeById({ data: { employeeId: params.employeeId } }),
 })
 
-const getEmployeeById = createUserFn({
+const getEmployeeById = createInternalFn({
   method: 'GET',
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    const isManager =
-      !isAdmin &&
-      (await isManagerOfEmployee(context.user.email, data.employeeId))
+    const { managedEmployeeIds } = context.managerInfo
+    const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
 
     const employee = await prisma.employee.findUnique({
       where: {
@@ -172,10 +139,19 @@ const getEmployeeById = createUserFn({
               },
             }
           : {}),
-        // Performance programs: admin only
-        ...(isAdmin
+        // Performance programs: admin and managers (not visible to employees viewing their own profile)
+        ...(isAdmin || isManager
           ? {
               performancePrograms: {
+                ...(isManager
+                  ? {
+                      where: {
+                        employeeId: {
+                          in: context.managerInfo.managedEmployeeIds,
+                        },
+                      },
+                    }
+                  : {}),
                 include: {
                   checklistItems: {
                     include: {
@@ -496,7 +472,7 @@ export const getReferenceEmployees = createAdminFn({
       .sort((a, b) => a.step * a.level - b.step * b.level)
   })
 
-export const getDeelEmployees = createAdminFn({
+export const getDeelEmployees = createInternalFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.deelEmployee.findMany({
@@ -565,11 +541,18 @@ export const deleteSalary = createAdminFn({
     return { success: true }
   })
 
-export const createPerformanceProgram = createAdminFn({
+export const createPerformanceProgram = createInternalFn({
   method: 'POST',
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+    const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
+
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
+    }
     const existingProgram = await prisma.performanceProgram.findFirst({
       where: {
         employeeId: data.employeeId,
@@ -666,7 +649,7 @@ export const createPerformanceProgram = createAdminFn({
     return program
   })
 
-export const updateChecklistItem = createAdminFn({
+export const updateChecklistItem = createInternalFn({
   method: 'POST',
 })
   .inputValidator(
@@ -679,9 +662,8 @@ export const updateChecklistItem = createAdminFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    if (context.user.role !== ROLES.ADMIN) {
-      throw new Error('Unauthorized')
-    }
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
 
     const checklistItem =
       await prisma.performanceProgramChecklistItem.findUnique({
@@ -693,6 +675,13 @@ export const updateChecklistItem = createAdminFn({
 
     if (!checklistItem) {
       throw new Error('Checklist item not found')
+    }
+
+    // Check authorization: admins can update any checklist item, managers can only update items for their reports
+    const isManager =
+      !isAdmin && managedEmployeeIds.includes(checklistItem.program.employeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
     }
 
     const updated = await prisma.performanceProgramChecklistItem.update({
@@ -727,14 +716,13 @@ export const updateChecklistItem = createAdminFn({
     return updated
   })
 
-export const addProgramFeedback = createAdminFn({
+export const addProgramFeedback = createInternalFn({
   method: 'POST',
 })
   .inputValidator((d: { programId: string; feedback: string }) => d)
   .handler(async ({ data, context }) => {
-    if (context.user.role !== ROLES.ADMIN) {
-      throw new Error('Unauthorized')
-    }
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
 
     const program = await prisma.performanceProgram.findUnique({
       where: { id: data.programId },
@@ -742,6 +730,13 @@ export const addProgramFeedback = createAdminFn({
 
     if (!program) {
       throw new Error('Performance program not found')
+    }
+
+    // Check authorization: admins can add feedback to any program, managers can only add feedback to programs for their reports
+    const isManager =
+      !isAdmin && managedEmployeeIds.includes(program.employeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
     }
 
     const feedback = await prisma.performanceProgramFeedback.create({
@@ -765,14 +760,13 @@ export const addProgramFeedback = createAdminFn({
     return feedback
   })
 
-export const resolvePerformanceProgram = createAdminFn({
+export const resolvePerformanceProgram = createInternalFn({
   method: 'POST',
 })
   .inputValidator((d: { programId: string }) => d)
   .handler(async ({ data, context }) => {
-    if (context.user.role !== ROLES.ADMIN) {
-      throw new Error('Unauthorized')
-    }
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
 
     const program = await prisma.performanceProgram.findUnique({
       where: { id: data.programId },
@@ -783,6 +777,13 @@ export const resolvePerformanceProgram = createAdminFn({
 
     if (!program) {
       throw new Error('Performance program not found')
+    }
+
+    // Check authorization: admins can resolve any program, managers can only resolve programs for their reports
+    const isManager =
+      !isAdmin && managedEmployeeIds.includes(program.employeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
     }
 
     if (program.status !== 'ACTIVE') {
@@ -839,7 +840,7 @@ export const resolvePerformanceProgram = createAdminFn({
     return updated
   })
 
-export const getProofFileUploadUrl = createAdminFn({
+export const getProofFileUploadUrl = createInternalFn({
   method: 'POST',
 })
   .inputValidator(
@@ -852,9 +853,8 @@ export const getProofFileUploadUrl = createAdminFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    if (context.user.role !== ROLES.ADMIN) {
-      throw new Error('Unauthorized')
-    }
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
 
     if (!data.checklistItemId && !data.programId) {
       throw new Error('Either checklistItemId or programId must be provided')
@@ -881,6 +881,7 @@ export const getProofFileUploadUrl = createAdminFn({
 
     let programId: string
     let fileKey: string
+    let programEmployeeId: string
 
     if (data.checklistItemId) {
       const checklistItem =
@@ -896,6 +897,7 @@ export const getProofFileUploadUrl = createAdminFn({
       }
 
       programId = checklistItem.programId
+      programEmployeeId = checklistItem.program.employeeId
 
       // Generate file key for checklist item
       const { generateFileKey } = await import('@/lib/s3')
@@ -911,11 +913,18 @@ export const getProofFileUploadUrl = createAdminFn({
       }
 
       programId = data.programId!
+      programEmployeeId = program.employeeId
 
       // Generate file key for feedback
       const sanitizedFileName = data.fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
       const timestamp = Date.now()
       fileKey = `performance-programs/${programId}/feedback/${timestamp}-${sanitizedFileName}`
+    }
+
+    // Check authorization: admins can upload files for any program, managers can only upload files for programs for their reports
+    const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
     }
 
     // Generate presigned upload URL
@@ -932,7 +941,7 @@ export const getProofFileUploadUrl = createAdminFn({
     }
   })
 
-export const createProofFileRecord = createAdminFn({
+export const createProofFileRecord = createInternalFn({
   method: 'POST',
 })
   .inputValidator(
@@ -946,12 +955,40 @@ export const createProofFileRecord = createAdminFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    if (context.user.role !== ROLES.ADMIN) {
-      throw new Error('Unauthorized')
-    }
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
 
     if (!data.checklistItemId && !data.feedbackId) {
       throw new Error('Either checklistItemId or feedbackId must be provided')
+    }
+
+    // Get the program to check authorization
+    let programEmployeeId: string
+    if (data.checklistItemId) {
+      const checklistItem =
+        await prisma.performanceProgramChecklistItem.findUnique({
+          where: { id: data.checklistItemId },
+          include: { program: true },
+        })
+      if (!checklistItem) {
+        throw new Error('Checklist item not found')
+      }
+      programEmployeeId = checklistItem.program.employeeId
+    } else {
+      const feedback = await prisma.performanceProgramFeedback.findUnique({
+        where: { id: data.feedbackId! },
+        include: { program: true },
+      })
+      if (!feedback) {
+        throw new Error('Feedback not found')
+      }
+      programEmployeeId = feedback.program.employeeId
+    }
+
+    // Check authorization: admins can create file records for any program, managers can only create records for programs for their reports
+    const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
     }
 
     // Create database record
@@ -970,21 +1007,45 @@ export const createProofFileRecord = createAdminFn({
     return proofFile
   })
 
-export const getProofFileUrl = createAdminFn({
+export const getProofFileUrl = createInternalFn({
   method: 'GET',
 })
   .inputValidator((d: { proofFileId: string }) => d)
   .handler(async ({ data, context }) => {
-    if (context.user.role !== ROLES.ADMIN) {
-      throw new Error('Unauthorized')
-    }
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
 
     const proofFile = await prisma.file.findUnique({
       where: { id: data.proofFileId },
+      include: {
+        checklistItem: {
+          include: { program: true },
+        },
+        feedback: {
+          include: { program: true },
+        },
+      },
     })
 
     if (!proofFile) {
       throw new Error('Proof file not found')
+    }
+
+    // Get the program employee ID
+    const programEmployeeId = proofFile.checklistItem
+      ? proofFile.checklistItem.program.employeeId
+      : proofFile.feedback
+        ? proofFile.feedback.program.employeeId
+        : null
+
+    if (!programEmployeeId) {
+      throw new Error('Unable to determine program employee')
+    }
+
+    // Check authorization: admins can get file URLs for any program, managers can only get URLs for programs for their reports
+    const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
     }
 
     // Generate presigned download URL
@@ -994,21 +1055,45 @@ export const getProofFileUrl = createAdminFn({
     return { url, fileName: proofFile.fileName }
   })
 
-export const deleteProofFile = createAdminFn({
+export const deleteProofFile = createInternalFn({
   method: 'POST',
 })
   .inputValidator((d: { proofFileId: string }) => d)
   .handler(async ({ data, context }) => {
-    if (context.user.role !== ROLES.ADMIN) {
-      throw new Error('Unauthorized')
-    }
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
 
     const proofFile = await prisma.file.findUnique({
       where: { id: data.proofFileId },
+      include: {
+        checklistItem: {
+          include: { program: true },
+        },
+        feedback: {
+          include: { program: true },
+        },
+      },
     })
 
     if (!proofFile) {
       throw new Error('Proof file not found')
+    }
+
+    // Get the program employee ID
+    const programEmployeeId = proofFile.checklistItem
+      ? proofFile.checklistItem.program.employeeId
+      : proofFile.feedback
+        ? proofFile.feedback.program.employeeId
+        : null
+
+    if (!programEmployeeId) {
+      throw new Error('Unable to determine program employee')
+    }
+
+    // Check authorization: admins can delete files for any program, managers can only delete files for programs for their reports
+    const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
     }
 
     // Delete from database (cascade will handle relations)
@@ -1125,7 +1210,6 @@ function EmployeeOverview() {
   const proposedHires = deelEmployeesAndProposedHiresData?.proposedHires || []
   const managerDeelEmployeeId =
     deelEmployeesAndProposedHiresData?.managerDeelEmployeeId
-  const hasReports = deelEmployeesAndProposedHiresData?.hasReports
 
   // Build hierarchy tree from flat list
   const managerHierarchy = useMemo(() => {
@@ -1521,8 +1605,10 @@ function EmployeeOverview() {
     monthsSinceStart >= 10 &&
     [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
 
+  const isManager =
+    (deelEmployeesAndProposedHiresData?.managedEmployeeIds?.length ?? 0) > 0
   const showEmployeeTree =
-    managerHierarchy && (user?.role === ROLES.ADMIN || hasReports)
+    managerHierarchy && (user?.role === ROLES.ADMIN || isManager)
 
   return (
     <div className="flex h-[calc(100vh-2.5rem)] flex-col items-center justify-center gap-5 overflow-hidden pt-4">
@@ -1722,7 +1808,8 @@ function EmployeeOverview() {
                   Move to next employee
                 </Button>
               ) : null}
-              {user?.role === ROLES.ADMIN ? (
+              {'performancePrograms' in employee &&
+              employee.performancePrograms !== undefined ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -1739,7 +1826,8 @@ function EmployeeOverview() {
             </div>
           </div>
 
-          {user?.role === ROLES.ADMIN ? (
+          {'performancePrograms' in employee &&
+          employee.performancePrograms !== undefined ? (
             <div className="w-full">
               <PerformanceProgramPanel
                 employeeId={employee.id}
