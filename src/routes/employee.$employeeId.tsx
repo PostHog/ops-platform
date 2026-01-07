@@ -1605,11 +1605,10 @@ function EmployeeOverview() {
     monthsSinceStart >= 10 &&
     [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
 
+  const isManager =
+    (deelEmployeesAndProposedHiresData?.managedEmployeeIds?.length ?? 0) > 0
   const showEmployeeTree =
-    managerHierarchy &&
-    ((user?.role === ROLES.ADMIN ||
-      deelEmployeesAndProposedHiresData?.managerDeelEmployeeId?.length) ??
-      0 > 0)
+    managerHierarchy && (user?.role === ROLES.ADMIN || isManager)
 
   return (
     <div className="flex h-[calc(100vh-2.5rem)] flex-col items-center justify-center gap-5 overflow-hidden pt-4">

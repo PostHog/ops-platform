@@ -169,7 +169,7 @@ export const getDeelEmployeesAndProposedHires = createInternalFn({
     },
   })
 
-  return { employees, proposedHires, managerDeelEmployeeId }
+  return { employees, proposedHires, managerDeelEmployeeId, managedEmployeeIds }
 })
 
 export const Route = createFileRoute('/org-chart')({
