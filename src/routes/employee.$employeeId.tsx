@@ -166,8 +166,12 @@ const getEmployeeById = createInternalFn({
                       assignedTo: {
                         select: {
                           id: true,
-                          name: true,
-                          workEmail: true,
+                          email: true,
+                          deelEmployee: {
+                            select: {
+                              name: true,
+                            },
+                          },
                         },
                       },
                     },
@@ -576,7 +580,28 @@ export const createPerformanceProgram = createInternalFn({
       },
     })
 
-    const managerId = employee?.deelEmployee?.managerId || null
+    if (!employee?.deelEmployee?.managerId) {
+      throw new Error('Manager not found')
+    }
+
+    const managerEmployee = await prisma.deelEmployee.findUnique({
+      where: {
+        id: employee?.deelEmployee?.managerId,
+      },
+      include: {
+        employee: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    })
+
+    const managerId = managerEmployee?.employee?.id
+
+    if (!managerId) {
+      throw new Error('Manager employee not found')
+    }
 
     // Create program with initial checklist items
     const now = new Date()
@@ -593,12 +618,12 @@ export const createPerformanceProgram = createInternalFn({
           create: [
             {
               type: 'SLACK_FEEDBACK_MEETING',
-              assignedToDeelEmployeeId: managerId,
+              assignedToEmployeeId: managerId,
               dueDate: slackDueDate,
             },
             {
               type: 'EMAIL_FEEDBACK_MEETING',
-              assignedToDeelEmployeeId: managerId,
+              assignedToEmployeeId: managerId,
               dueDate: emailDueDate,
             },
           ],
@@ -618,8 +643,12 @@ export const createPerformanceProgram = createInternalFn({
             assignedTo: {
               select: {
                 id: true,
-                name: true,
-                workEmail: true,
+                email: true,
+                deelEmployee: {
+                  select: {
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -657,7 +686,7 @@ export const updateChecklistItem = createInternalFn({
       checklistItemId: string
       completed: boolean
       notes?: string
-      assignedToDeelEmployeeId?: string | null
+      assignedToEmployeeId?: string | null
       dueDate?: string | null
     }) => d,
   )
@@ -691,7 +720,7 @@ export const updateChecklistItem = createInternalFn({
         completedAt: data.completed ? new Date() : null,
         completedByUserId: data.completed ? context.user.id : null,
         notes: data.notes,
-        assignedToDeelEmployeeId: data.assignedToDeelEmployeeId,
+        assignedToEmployeeId: data.assignedToEmployeeId,
         dueDate: data.dueDate ? new Date(data.dueDate) : null,
       },
       include: {
@@ -706,8 +735,12 @@ export const updateChecklistItem = createInternalFn({
         assignedTo: {
           select: {
             id: true,
-            name: true,
-            workEmail: true,
+            email: true,
+            deelEmployee: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },

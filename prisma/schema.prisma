@@ -14,26 +14,27 @@ datasource db {
 }
 
 model Employee {
-  id                           String                 @id @default(cuid())
+  id                           String                            @id @default(cuid())
   priority                     Priority
   reviewed                     Boolean
-  email                        String                 @unique
+  email                        String                            @unique
   salaries                     Salary[]
   deelEmployee                 DeelEmployee?
-  keeperTestFeedback           KeeperTestFeedback[]   @relation("employee")
+  keeperTestFeedback           KeeperTestFeedback[]              @relation("employee")
   checkIn30DaysScheduled       Boolean
   checkIn60DaysScheduled       Boolean
   checkIn80DaysScheduled       Boolean
-  proposedHires                ProposedHire[]         @relation("manager")
+  proposedHires                ProposedHire[]                    @relation("manager")
   proposedHiresAsTalentPartner ProposedHire[]
-  keeperTestFeedbackSubmitted  KeeperTestFeedback[]   @relation("manager")
+  keeperTestFeedbackSubmitted  KeeperTestFeedback[]              @relation("manager")
   salaryDeviationStatus        SalaryDeviationStatus?
-  salaryDeviationCheckedAt     DateTime               @default(now())
+  salaryDeviationCheckedAt     DateTime                          @default(now())
   performancePrograms          PerformanceProgram[]
   commissionBonuses            CommissionBonus[]
-  ashbyInterviewScoresReceived AshbyInterviewScore[]  @relation("InterviewedEmployee")
-  ashbyInterviewScoresGiven    AshbyInterviewScore[]  @relation("Interviewer")
-  ashbyInterviewScoresImported Boolean                @default(false)
+  ashbyInterviewScoresReceived AshbyInterviewScore[]             @relation("InterviewedEmployee")
+  ashbyInterviewScoresGiven    AshbyInterviewScore[]             @relation("Interviewer")
+  ashbyInterviewScoresImported Boolean                           @default(false)
+  checklistItemsAssigned       PerformanceProgramChecklistItem[] @relation("ChecklistItemAssignedTo")
 }
 
 enum SalaryDeviationStatus {
@@ -42,21 +43,20 @@ enum SalaryDeviationStatus {
 }
 
 model DeelEmployee {
-  id                     String                            @id
-  name                   String
-  title                  String
-  team                   String
-  workEmail              String?                           @unique
-  personalEmail          String?
-  managerId              String?
-  manager                DeelEmployee?                     @relation("manager", fields: [managerId], references: [id])
-  directReports          DeelEmployee[]                    @relation("manager")
-  topLevelManagerId      String?
-  topLevelManager        DeelEmployee?                     @relation("topLevelManager", fields: [topLevelManagerId], references: [id])
-  topLevelDirectReports  DeelEmployee[]                    @relation("topLevelManager")
-  employee               Employee?                         @relation(fields: [workEmail], references: [email])
-  checklistItemsAssigned PerformanceProgramChecklistItem[] @relation("ChecklistItemAssignedTo")
-  startDate              DateTime
+  id                    String         @id
+  name                  String
+  title                 String
+  team                  String
+  workEmail             String?        @unique
+  personalEmail         String?
+  managerId             String?
+  manager               DeelEmployee?  @relation("manager", fields: [managerId], references: [id])
+  directReports         DeelEmployee[] @relation("manager")
+  topLevelManagerId     String?
+  topLevelManager       DeelEmployee?  @relation("topLevelManager", fields: [topLevelManagerId], references: [id])
+  topLevelDirectReports DeelEmployee[] @relation("topLevelManager")
+  employee              Employee?      @relation(fields: [workEmail], references: [email])
+  startDate             DateTime
 }
 
 enum Priority {
@@ -273,21 +273,21 @@ model PerformanceProgram {
 }
 
 model PerformanceProgramChecklistItem {
-  id                       String             @id @default(cuid())
-  programId                String
-  program                  PerformanceProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
-  type                     ChecklistItemType
-  completed                Boolean            @default(false)
-  completedAt              DateTime?
-  completedByUserId        String?
-  completedBy              User?              @relation("ChecklistItemCompletedBy", fields: [completedByUserId], references: [id])
-  assignedToDeelEmployeeId String?
-  assignedTo               DeelEmployee?      @relation("ChecklistItemAssignedTo", fields: [assignedToDeelEmployeeId], references: [id])
-  dueDate                  DateTime?
-  files                    File[]
-  notes                    String?
-  createdAt                DateTime           @default(now())
-  updatedAt                DateTime           @default(now()) @updatedAt
+  id                   String             @id @default(cuid())
+  programId            String
+  program              PerformanceProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  type                 ChecklistItemType
+  completed            Boolean            @default(false)
+  completedAt          DateTime?
+  completedByUserId    String?
+  completedBy          User?              @relation("ChecklistItemCompletedBy", fields: [completedByUserId], references: [id])
+  assignedToEmployeeId String?
+  assignedTo           Employee?          @relation("ChecklistItemAssignedTo", fields: [assignedToEmployeeId], references: [id])
+  dueDate              DateTime?
+  files                File[]
+  notes                String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @default(now()) @updatedAt
 }
 
 model File {
