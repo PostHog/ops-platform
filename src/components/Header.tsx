@@ -81,6 +81,9 @@ export default function Header() {
                 <Link to="/actions">Pay review actions</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/commissionActions">Commission actions</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/process">Process</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>

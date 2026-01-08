@@ -1,0 +1,356 @@
+import { createFileRoute } from '@tanstack/react-router'
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  useReactTable,
+} from '@tanstack/react-table'
+import { InfoIcon } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { download, generateCsv, mkConfig } from 'export-to-csv'
+import { customFilterFns, months } from './employees'
+import type { Prisma } from '@prisma/client'
+import type { ColumnDef, ColumnFiltersState, Row } from '@tanstack/react-table'
+import prisma from '@/db'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import { createAdminFn } from '@/lib/auth-middleware'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { TableFilters } from '@/components/TableFilters'
+
+type CommissionBonus = Prisma.CommissionBonusGetPayload<{
+  include: {
+    employee: {
+      include: {
+        deelEmployee: true
+      }
+    }
+  }
+}>
+
+const getCommissionBonuses = createAdminFn({
+  method: 'GET',
+}).handler(async () => {
+  return await prisma.commissionBonus.findMany({
+    where: {
+      OR: [
+        {
+          communicated: false,
+        },
+        {
+          synced: false,
+        },
+        {
+          createdAt: {
+            gte: new Date(new Date().setDate(new Date().getDate() - 90)), // Last 90 days
+          },
+        },
+      ],
+    },
+    include: {
+      employee: {
+        include: {
+          deelEmployee: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  })
+})
+
+export const Route = createFileRoute('/commissionActions')({
+  component: App,
+  loader: async () => await getCommissionBonuses(),
+})
+
+function App() {
+  const bonuses: Array<CommissionBonus> = Route.useLoaderData()
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+
+  const columns: Array<ColumnDef<CommissionBonus>> = useMemo(
+    () => [
+      {
+        accessorKey: 'name',
+        header: 'Name',
+        filterFn: (row: Row<CommissionBonus>, _: string, filterValue: string) =>
+          (row.original.employee.deelEmployee?.name &&
+            customFilterFns.containsText(
+              row.original.employee.deelEmployee?.name,
+              _,
+              filterValue,
+            )) ||
+          customFilterFns.containsText(
+            row.original.employee.email,
+            _,
+            filterValue,
+          ),
+        cell: ({ row }) => (
+          <div>
+            {row.original.employee.deelEmployee?.name ||
+              row.original.employee.email}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'quarter',
+        header: 'Quarter',
+        filterFn: (row: Row<CommissionBonus>, _: string, filterValue: string) =>
+          customFilterFns.containsText(row.original.quarter, _, filterValue),
+        cell: ({ row }) => <div>{row.original.quarter}</div>,
+      },
+      {
+        accessorKey: 'quota',
+        header: 'Quota',
+        meta: {
+          filterVariant: 'range',
+        },
+        cell: ({ row }) => (
+          <div>
+            {new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: row.original.localCurrency,
+            }).format(row.original.quota)}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'attainment',
+        header: 'Attainment',
+        meta: {
+          filterVariant: 'range',
+        },
+        cell: ({ row }) => (
+          <div>
+            {new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: row.original.localCurrency,
+            }).format(row.original.attainment)}
+          </div>
+        ),
+      },
+      {
+        id: 'attainmentPercentage',
+        header: 'Attainment %',
+        cell: ({ row }) => {
+          const percentage =
+            (row.original.attainment / row.original.quota) * 100
+          return <div>{percentage.toFixed(2)}%</div>
+        },
+      },
+      {
+        accessorKey: 'calculatedAmountLocal',
+        header: 'Bonus Amount (local)',
+        meta: {
+          filterVariant: 'range',
+        },
+        cell: ({ row }) => (
+          <div>
+            {new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: row.original.localCurrency,
+            }).format(row.original.calculatedAmountLocal)}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'localCurrency',
+        header: 'Currency',
+        cell: ({ row }) => <div>{row.original.localCurrency}</div>,
+      },
+      {
+        accessorKey: 'communicated',
+        header: 'Communicated',
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'Yes', value: true },
+            { label: 'No', value: false },
+          ],
+        },
+        filterFn: (
+          row: Row<CommissionBonus>,
+          _: string,
+          filterValue: boolean[],
+        ) => {
+          return filterValue.includes(row.original.communicated)
+        },
+        cell: ({ row }) => (
+          <div>
+            <span>{row.original.communicated ? 'Yes' : 'No'}</span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'synced',
+        header: () => (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-row items-center gap-1">
+                  <span>Synced</span>
+                  <InfoIcon className="h-4 w-4 cursor-help text-gray-600" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  Whether the commission bonus has been automatically synced to
+                  the payroll provider.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ),
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'Yes', value: true },
+            { label: 'No', value: false },
+          ],
+        },
+        filterFn: (
+          row: Row<CommissionBonus>,
+          _: string,
+          filterValue: boolean[],
+        ) => {
+          return filterValue.includes(row.original.synced)
+        },
+        cell: ({ row }) => (
+          <div>
+            <span>{row.original.synced ? 'Yes' : 'No'}</span>
+          </div>
+        ),
+      },
+    ],
+    [],
+  )
+
+  const handleExportAsCSV = () => {
+    const csvConfig = mkConfig({
+      useKeysAsHeaders: true,
+      filename: `commission bonuses ${months[new Date().getMonth()]} ${new Date().getFullYear()}`,
+    })
+
+    const csv = generateCsv(csvConfig)(
+      table.getFilteredRowModel().rows.map((row) => {
+        const bonus = row.original
+        const attainmentPercentage = (bonus.attainment / bonus.quota) * 100
+        return {
+          name: bonus.employee.deelEmployee?.name || bonus.employee.email,
+          quarter: bonus.quarter,
+          quota: bonus.quota,
+          attainment: bonus.attainment,
+          attainmentPercentage: `${attainmentPercentage.toFixed(2)}%`,
+          bonusAmount: new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: bonus.localCurrency,
+          }).format(bonus.calculatedAmountLocal),
+          currency: bonus.localCurrency,
+          communicated: bonus.communicated ? 'Yes' : 'No',
+          synced: bonus.synced ? 'Yes' : 'No',
+        }
+      }),
+    )
+
+    download(csvConfig)(csv)
+  }
+
+  const table = useReactTable({
+    data: bonuses,
+    columns,
+    onColumnFiltersChange: setColumnFilters,
+    state: {
+      columnFilters,
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getRowId: (row) => row.id,
+    filterFns: {
+      fuzzy: () => true,
+    },
+  })
+
+  return (
+    <div className="flex w-full justify-center px-4 pb-4">
+      <div className="max-w-full flex-grow 2xl:max-w-[80%]">
+        <div className="flex justify-between py-4">
+          <div>
+            <TableFilters table={table} />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              className="ml-auto"
+              onClick={handleExportAsCSV}
+            >
+              Export visible as CSV
+            </Button>
+          </div>
+        </div>
+        <div className="overflow-hidden rounded-md border">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    )
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </div>
+  )
+}
