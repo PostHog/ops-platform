@@ -5,6 +5,7 @@ import {
   getFilteredRowModel,
   useReactTable,
 } from '@tanstack/react-table'
+import { useServerFn } from '@tanstack/react-start'
 import { InfoIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
@@ -29,6 +30,57 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { TableFilters } from '@/components/TableFilters'
+import { fetchDeelEmployee } from './syncDeelEmployees'
+
+const getQuarterEndDate = (quarter: string): string => {
+  // Format: "2025-Q4"
+  const [year, quarterNum] = quarter.split('-Q')
+  const yearNum = parseInt(year, 10)
+  const qNum = parseInt(quarterNum, 10)
+
+  const quarterEnds: [number, number][] = [
+    [3, 31], // Q1 - March
+    [6, 30], // Q2 - June
+    [9, 30], // Q3 - September
+    [12, 31], // Q4 - December
+  ]
+
+  if (qNum < 1 || qNum > 4) {
+    throw new Error(`Invalid quarter: ${quarter}`)
+  }
+
+  const [month, day] = quarterEnds[qNum - 1]
+  return `${yearNum}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+const generateDeelCSV = (rows: Array<Record<string, string>>): string => {
+  if (rows.length === 0) {
+    return ''
+  }
+
+  const headers = Object.keys(rows[0])
+  const csvRows = [
+    headers.join(','),
+    ...rows.map((row) =>
+      headers
+        .map((header) => {
+          const value = row[header] || ''
+          // Escape commas, quotes, and newlines in values
+          if (
+            value.includes(',') ||
+            value.includes('"') ||
+            value.includes('\n')
+          ) {
+            return `"${value.replace(/"/g, '""')}"`
+          }
+          return value
+        })
+        .join(','),
+    ),
+  ]
+
+  return csvRows.join('\n')
+}
 
 type CommissionBonus = Prisma.CommissionBonusGetPayload<{
   include: {
@@ -72,6 +124,84 @@ const getCommissionBonuses = createAdminFn({
   })
 })
 
+const exportCommissionBonusesForDeel = createAdminFn({
+  method: 'POST',
+}).handler(async () => {
+  const bonuses = await prisma.commissionBonus.findMany({
+    where: {
+      synced: false,
+      communicated: true,
+    },
+    include: {
+      employee: {
+        include: {
+          deelEmployee: true,
+        },
+      },
+    },
+  })
+
+  const errors: string[] = []
+  const csvRows: Array<Record<string, string>> = []
+
+  for (const bonus of bonuses) {
+    try {
+      if (!bonus.employee.deelEmployee) {
+        throw new Error(`No deel employee found`)
+      }
+
+      const deelEmployee = await fetchDeelEmployee(
+        bonus.employee.deelEmployee.id,
+      )
+
+      const activeEmployment = deelEmployee.employments?.find(
+        (x: any) => x.hiring_status === 'active',
+      )
+
+      if (!activeEmployment) {
+        throw new Error(`No active employment found`)
+      }
+
+      const contractId = activeEmployment.id
+      const quarterEndDate = getQuarterEndDate(bonus.quarter)
+      const employeeName =
+        bonus.employee.deelEmployee.name || bonus.employee.email
+
+      csvRows.push({
+        oid: contractId,
+        name: employeeName,
+        email: bonus.employee.email,
+        adjustmentCategoryName: 'Commission',
+        amount: bonus.calculatedAmountLocal.toFixed(2),
+        vendorName: '',
+        title: `${bonus.quarter} Commission Bonus`,
+        description: `${bonus.quarter} Commission Bonus - ${((bonus.attainment / bonus.quota) * 100).toFixed(2)}% attainment`,
+        dateOfExpense: quarterEndDate,
+        countryOfExpense: '',
+        receiptFile: '',
+      })
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      errors.push(
+        `Error processing bonus ${bonus.id} (${bonus.employee.email}): ${errorMessage}`,
+      )
+    }
+  }
+
+  if (errors.length > 0) {
+    console.log(errors)
+  }
+
+  if (csvRows.length === 0) {
+    return { csv: '', errors }
+  }
+
+  const csv = generateDeelCSV(csvRows)
+
+  return { csv, errors }
+})
+
 export const Route = createFileRoute('/commissionActions')({
   component: App,
   loader: async () => await getCommissionBonuses(),
@@ -80,6 +210,10 @@ export const Route = createFileRoute('/commissionActions')({
 function App() {
   const bonuses: Array<CommissionBonus> = Route.useLoaderData()
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [isExportingDeel, setIsExportingDeel] = useState(false)
+  const exportCommissionBonusesForDeelFn = useServerFn(
+    exportCommissionBonusesForDeel,
+  )
 
   const columns: Array<ColumnDef<CommissionBonus>> = useMemo(
     () => [
@@ -268,6 +402,39 @@ function App() {
     download(csvConfig)(csv)
   }
 
+  const handleExportForDeel = async () => {
+    setIsExportingDeel(true)
+    try {
+      const result = await exportCommissionBonusesForDeelFn()
+      if (result.csv) {
+        const blob = new Blob([result.csv], { type: 'text/csv' })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `commission-bonuses-deel-${new Date().toISOString().split('T')[0]}.csv`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+      } else {
+        alert(
+          'No bonuses to export. Make sure there are bonuses that are communicated but not synced.',
+        )
+      }
+      if (result.errors && result.errors.length > 0) {
+        console.error('Errors during export:', result.errors)
+        alert(
+          `Export completed with ${result.errors.length} errors. Check console for details.`,
+        )
+      }
+    } catch (error) {
+      console.error('Error exporting for Deel:', error)
+      alert('Failed to export CSV for Deel import')
+    } finally {
+      setIsExportingDeel(false)
+    }
+  }
+
   const table = useReactTable({
     data: bonuses,
     columns,
@@ -297,6 +464,13 @@ function App() {
               onClick={handleExportAsCSV}
             >
               Export visible as CSV
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleExportForDeel}
+              disabled={isExportingDeel}
+            >
+              {isExportingDeel ? 'Exporting...' : 'Export for Deel Import'}
             </Button>
           </div>
         </div>
