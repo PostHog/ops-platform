@@ -1,0 +1,23 @@
+name: Notify overdue performance program checklist items
+permissions: {}
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+
+jobs:
+  notifyOverduePerformanceProgramChecklistItems:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call notifyOverduePerformanceProgramChecklistItems endpoint
+        id: notifyOverduePerformanceProgramChecklistItems
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: '${{ vars.BASE_URL }}/notifyOverduePerformanceProgramChecklistItems'
+          method: 'POST'
+          customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
+          timeout: 30000
+      - name: Show Response
+        run: |
+          echo ${{ steps.notifyOverduePerformanceProgramChecklistItems.outputs.status }}
+          echo ${{ steps.notifyOverduePerformanceProgramChecklistItems.outputs.response }}
