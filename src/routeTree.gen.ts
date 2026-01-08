@@ -27,6 +27,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ErrorRouteImport } from './routes/error'
 import { Route as EmployeesRouteImport } from './routes/employees'
 import { Route as CommunicateCommissionBonusesRouteImport } from './routes/communicateCommissionBonuses'
+import { Route as CommissionActionsRouteImport } from './routes/commissionActions'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as IndexRouteImport } from './routes/index'
@@ -127,6 +128,11 @@ const CommunicateCommissionBonusesRoute =
     path: '/communicateCommissionBonuses',
     getParentRoute: () => rootRouteImport,
   } as any)
+const CommissionActionsRoute = CommissionActionsRouteImport.update({
+  id: '/commissionActions',
+  path: '/commissionActions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/analytics': typeof AnalyticsRoute
+  '/commissionActions': typeof CommissionActionsRoute
   '/communicateCommissionBonuses': typeof CommunicateCommissionBonusesRoute
   '/employees': typeof EmployeesRoute
   '/error': typeof ErrorRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/analytics': typeof AnalyticsRoute
+  '/commissionActions': typeof CommissionActionsRoute
   '/communicateCommissionBonuses': typeof CommunicateCommissionBonusesRoute
   '/employees': typeof EmployeesRoute
   '/error': typeof ErrorRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/analytics': typeof AnalyticsRoute
+  '/commissionActions': typeof CommissionActionsRoute
   '/communicateCommissionBonuses': typeof CommunicateCommissionBonusesRoute
   '/employees': typeof EmployeesRoute
   '/error': typeof ErrorRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/'
     | '/actions'
     | '/analytics'
+    | '/commissionActions'
     | '/communicateCommissionBonuses'
     | '/employees'
     | '/error'
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/'
     | '/actions'
     | '/analytics'
+    | '/commissionActions'
     | '/communicateCommissionBonuses'
     | '/employees'
     | '/error'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/'
     | '/actions'
     | '/analytics'
+    | '/commissionActions'
     | '/communicateCommissionBonuses'
     | '/employees'
     | '/error'
@@ -311,6 +323,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActionsRoute: typeof ActionsRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  CommissionActionsRoute: typeof CommissionActionsRoute
   CommunicateCommissionBonusesRoute: typeof CommunicateCommissionBonusesRoute
   EmployeesRoute: typeof EmployeesRoute
   ErrorRoute: typeof ErrorRoute
@@ -461,6 +474,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommunicateCommissionBonusesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/commissionActions': {
+      id: '/commissionActions'
+      path: '/commissionActions'
+      fullPath: '/commissionActions'
+      preLoaderRoute: typeof CommissionActionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analytics': {
       id: '/analytics'
       path: '/analytics'
@@ -503,6 +523,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActionsRoute: ActionsRoute,
   AnalyticsRoute: AnalyticsRoute,
+  CommissionActionsRoute: CommissionActionsRoute,
   CommunicateCommissionBonusesRoute: CommunicateCommissionBonusesRoute,
   EmployeesRoute: EmployeesRoute,
   ErrorRoute: ErrorRoute,
