@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button'
 import { createAdminFn } from '@/lib/auth-middleware'
 import { TableFilters } from '@/components/TableFilters'
 import { fetchDeelEmployee } from './syncDeelEmployees'
+import { createToast } from 'vercel-toast'
 
 const getQuarterEndDate = (quarter: string): string => {
   // Format: "2025-Q4"
@@ -347,7 +348,6 @@ function App() {
           }).format(bonus.calculatedAmountLocal),
           currency: bonus.localCurrency,
           communicated: bonus.communicated ? 'Yes' : 'No',
-          synced: bonus.synced ? 'Yes' : 'No',
         }
       }),
     )
@@ -370,7 +370,7 @@ function App() {
         document.body.removeChild(a)
         window.URL.revokeObjectURL(url)
       } else {
-        alert(
+        createToast(
           'No bonuses to export. Make sure there are bonuses that are communicated but not synced.',
         )
       }
@@ -423,7 +423,7 @@ function App() {
               onClick={handleExportForDeel}
               disabled={isExportingDeel}
             >
-              {isExportingDeel ? 'Exporting...' : 'Export for Deel Import'}
+              {isExportingDeel ? 'Exporting...' : 'Export all for Deel Import'}
             </Button>
           </div>
         </div>
