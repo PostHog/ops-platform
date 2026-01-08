@@ -16,12 +16,12 @@ import { useServerFn } from '@tanstack/react-start'
 import { useQuery } from '@tanstack/react-query'
 import {
   updateChecklistItem,
-  getDeelEmployees,
   getProofFileUploadUrl,
   createProofFileRecord,
   getProofFileUrl,
   deleteProofFile,
 } from '@/routes/employee.$employeeId'
+import { getDeelEmployeesAndProposedHires } from '@/routes/org-chart'
 import type { Prisma } from '@prisma/client'
 
 type ChecklistItem = Prisma.PerformanceProgramChecklistItemGetPayload<{
@@ -37,8 +37,12 @@ type ChecklistItem = Prisma.PerformanceProgramChecklistItemGetPayload<{
     assignedTo: {
       select: {
         id: true
-        name: true
-        workEmail: true
+        email: true
+        deelEmployee: {
+          select: {
+            name: true
+          }
+        }
       }
     }
   }
@@ -58,14 +62,14 @@ export function PerformanceProgramChecklistItem({
   const [isUpdating, setIsUpdating] = useState(false)
 
   const updateItem = useServerFn(updateChecklistItem)
-  const getDeelEmployeesFn = useServerFn(getDeelEmployees)
+  const getDeelEmployeesFn = useServerFn(getDeelEmployeesAndProposedHires)
   const getUploadUrl = useServerFn(getProofFileUploadUrl)
   const createFileRecord = useServerFn(createProofFileRecord)
   const getFileUrl = useServerFn(getProofFileUrl)
   const deleteFileFn = useServerFn(deleteProofFile)
 
-  const { data: deelEmployees } = useQuery({
-    queryKey: ['deelEmployees'],
+  const { data: deelEmployeesData } = useQuery({
+    queryKey: ['deelEmployeesAndProposedHires'],
     queryFn: () => getDeelEmployeesFn(),
   })
 
@@ -81,7 +85,7 @@ export function PerformanceProgramChecklistItem({
           checklistItemId: item.id,
           completed: checked,
           notes: notes || undefined,
-          assignedToDeelEmployeeId: item.assignedTo?.id || null,
+          assignedToEmployeeId: item.assignedTo?.id || null,
         },
       })
       createToast(
@@ -103,7 +107,7 @@ export function PerformanceProgramChecklistItem({
     }
   }
 
-  const handleAssignDeelEmployee = async (deelEmployeeId: string) => {
+  const handleAssignEmployee = async (employeeId: string) => {
     setIsUpdating(true)
     try {
       await updateItem({
@@ -111,13 +115,12 @@ export function PerformanceProgramChecklistItem({
           checklistItemId: item.id,
           completed: item.completed,
           notes: notes || undefined,
-          assignedToDeelEmployeeId:
-            deelEmployeeId === 'unassign' ? null : deelEmployeeId,
+          assignedToEmployeeId: employeeId === 'unassign' ? null : employeeId,
           dueDate: item.dueDate ? new Date(item.dueDate).toISOString() : null,
         },
       })
       createToast(
-        deelEmployeeId === 'unassign'
+        employeeId === 'unassign'
           ? 'Assignment removed'
           : 'Checklist item assigned',
         { timeout: 3000 },
@@ -188,7 +191,7 @@ export function PerformanceProgramChecklistItem({
             checklistItemId: item.id,
             completed: true,
             notes: notes || undefined,
-            assignedToDeelEmployeeId: item.assignedTo?.id || null,
+            assignedToEmployeeId: item.assignedTo?.id || null,
             dueDate: item.dueDate ? new Date(item.dueDate).toISOString() : null,
           },
         })
@@ -327,7 +330,7 @@ export function PerformanceProgramChecklistItem({
                     checklistItemId: item.id,
                     completed: item.completed,
                     notes: notes || undefined,
-                    assignedToDeelEmployeeId: item.assignedTo?.id || null,
+                    assignedToEmployeeId: item.assignedTo?.id || null,
                     dueDate: item.dueDate
                       ? new Date(item.dueDate).toISOString()
                       : null,
@@ -360,7 +363,7 @@ export function PerformanceProgramChecklistItem({
           </Label>
           <Select
             value={item.assignedTo?.id || 'unassign'}
-            onValueChange={handleAssignDeelEmployee}
+            onValueChange={handleAssignEmployee}
             disabled={isUpdating}
           >
             <SelectTrigger
@@ -369,17 +372,20 @@ export function PerformanceProgramChecklistItem({
             >
               <SelectValue placeholder="Assign to...">
                 {item.assignedTo
-                  ? item.assignedTo.name || item.assignedTo.workEmail
+                  ? item.assignedTo.deelEmployee?.name || item.assignedTo.email
                   : 'Assign to...'}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="unassign">Unassign</SelectItem>
-              {deelEmployees?.map((deelEmployee) => (
-                <SelectItem key={deelEmployee.id} value={deelEmployee.id}>
-                  {deelEmployee.name || deelEmployee.workEmail}
-                </SelectItem>
-              ))}
+              {deelEmployeesData?.employees
+                ?.filter((de) => de.employee)
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((de) => (
+                  <SelectItem key={de.employee!.id} value={de.employee!.id}>
+                    {de.name || de.employee!.email}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
