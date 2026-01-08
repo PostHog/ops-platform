@@ -273,21 +273,23 @@ model PerformanceProgram {
 }
 
 model PerformanceProgramChecklistItem {
-  id                   String             @id @default(cuid())
-  programId            String
-  program              PerformanceProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
-  type                 ChecklistItemType
-  completed            Boolean            @default(false)
-  completedAt          DateTime?
-  completedByUserId    String?
-  completedBy          User?              @relation("ChecklistItemCompletedBy", fields: [completedByUserId], references: [id])
-  assignedToEmployeeId String?
-  assignedTo           Employee?          @relation("ChecklistItemAssignedTo", fields: [assignedToEmployeeId], references: [id])
-  dueDate              DateTime?
-  files                File[]
-  notes                String?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @default(now()) @updatedAt
+  id                     String             @id @default(cuid())
+  programId              String
+  program                PerformanceProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  type                   ChecklistItemType
+  completed              Boolean            @default(false)
+  completedAt            DateTime?
+  completedByUserId      String?
+  completedBy            User?              @relation("ChecklistItemCompletedBy", fields: [completedByUserId], references: [id])
+  assignedToEmployeeId   String?
+  assignedTo             Employee?          @relation("ChecklistItemAssignedTo", fields: [assignedToEmployeeId], references: [id])
+  dueDate                DateTime?
+  files                  File[]
+  notes                  String?
+  lastNotificationSentAt DateTime?
+  slackThreadId          String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @default(now()) @updatedAt
 }
 
 model File {

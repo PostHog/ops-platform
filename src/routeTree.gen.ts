@@ -21,6 +21,7 @@ import { Route as ProposedHiresRouteImport } from './routes/proposed-hires'
 import { Route as ProcessRouteImport } from './routes/process'
 import { Route as OrgTreeRouteImport } from './routes/org-tree'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
+import { Route as NotifyOverduePerformanceProgramChecklistItemsRouteImport } from './routes/notifyOverduePerformanceProgramChecklistItems'
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ErrorRouteImport } from './routes/error'
@@ -94,6 +95,12 @@ const OrgChartRoute = OrgChartRouteImport.update({
   path: '/org-chart',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotifyOverduePerformanceProgramChecklistItemsRoute =
+  NotifyOverduePerformanceProgramChecklistItemsRouteImport.update({
+    id: '/notifyOverduePerformanceProgramChecklistItems',
+    path: '/notifyOverduePerformanceProgramChecklistItems',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ManagementRoute = ManagementRouteImport.update({
   id: '/management',
   path: '/management',
@@ -155,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
+  '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   '/org-chart': typeof OrgChartRoute
   '/org-tree': typeof OrgTreeRoute
   '/process': typeof ProcessRoute
@@ -179,6 +187,7 @@ export interface FileRoutesByTo {
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
+  '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   '/org-chart': typeof OrgChartRoute
   '/org-tree': typeof OrgTreeRoute
   '/process': typeof ProcessRoute
@@ -204,6 +213,7 @@ export interface FileRoutesById {
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
+  '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   '/org-chart': typeof OrgChartRoute
   '/org-tree': typeof OrgTreeRoute
   '/process': typeof ProcessRoute
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/error'
     | '/login'
     | '/management'
+    | '/notifyOverduePerformanceProgramChecklistItems'
     | '/org-chart'
     | '/org-tree'
     | '/process'
@@ -254,6 +265,7 @@ export interface FileRouteTypes {
     | '/error'
     | '/login'
     | '/management'
+    | '/notifyOverduePerformanceProgramChecklistItems'
     | '/org-chart'
     | '/org-tree'
     | '/process'
@@ -278,6 +290,7 @@ export interface FileRouteTypes {
     | '/error'
     | '/login'
     | '/management'
+    | '/notifyOverduePerformanceProgramChecklistItems'
     | '/org-chart'
     | '/org-tree'
     | '/process'
@@ -303,6 +316,7 @@ export interface RootRouteChildren {
   ErrorRoute: typeof ErrorRoute
   LoginRoute: typeof LoginRoute
   ManagementRoute: typeof ManagementRoute
+  NotifyOverduePerformanceProgramChecklistItemsRoute: typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   OrgChartRoute: typeof OrgChartRoute
   OrgTreeRoute: typeof OrgTreeRoute
   ProcessRoute: typeof ProcessRoute
@@ -405,6 +419,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgChartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notifyOverduePerformanceProgramChecklistItems': {
+      id: '/notifyOverduePerformanceProgramChecklistItems'
+      path: '/notifyOverduePerformanceProgramChecklistItems'
+      fullPath: '/notifyOverduePerformanceProgramChecklistItems'
+      preLoaderRoute: typeof NotifyOverduePerformanceProgramChecklistItemsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/management': {
       id: '/management'
       path: '/management'
@@ -487,6 +508,8 @@ const rootRouteChildren: RootRouteChildren = {
   ErrorRoute: ErrorRoute,
   LoginRoute: LoginRoute,
   ManagementRoute: ManagementRoute,
+  NotifyOverduePerformanceProgramChecklistItemsRoute:
+    NotifyOverduePerformanceProgramChecklistItemsRoute,
   OrgChartRoute: OrgChartRoute,
   OrgTreeRoute: OrgTreeRoute,
   ProcessRoute: ProcessRoute,

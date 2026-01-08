@@ -250,6 +250,10 @@ export function PerformanceProgramChecklistItem({
       ? 'Slack Feedback Meeting'
       : 'Email Feedback Meeting'
 
+  // Check if item is overdue
+  const isOverdue =
+    !item.completed && item.dueDate && new Date(item.dueDate) < new Date()
+
   return (
     <div
       className={`flex items-center gap-3 rounded border px-3 py-2 transition-colors ${
@@ -274,8 +278,15 @@ export function PerformanceProgramChecklistItem({
             {itemTypeLabel}
           </div>
           {item.dueDate && (
-            <div className="text-xs text-gray-500">
-              Due {new Date(item.dueDate).toLocaleDateString()}
+            <div
+              className={`flex items-center gap-1 text-xs ${
+                isOverdue ? 'text-orange-600' : 'text-gray-500'
+              }`}
+            >
+              <span>
+                {isOverdue ? 'Overdue' : 'Due'}{' '}
+                {new Date(item.dueDate).toLocaleDateString()}
+              </span>
             </div>
           )}
           {item.completed && item.completedAt && (
