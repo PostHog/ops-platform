@@ -121,6 +121,12 @@ const exportCommissionBonusesForDeel = createAdminFn({
       employee: {
         include: {
           deelEmployee: true,
+          salaries: {
+            orderBy: {
+              timestamp: 'desc',
+            },
+            take: 1,
+          },
         },
       },
     },
@@ -137,6 +143,19 @@ const exportCommissionBonusesForDeel = createAdminFn({
 
       if (!bonus.employee.deelEmployee.personalEmail) {
         throw new Error(`No personal email found`)
+      }
+
+      // Filter out UK and US employees based on latest salary
+      const latestSalary = bonus.employee.salaries[0]
+      if (latestSalary) {
+        const employmentCountry =
+          latestSalary.employmentCountry || latestSalary.country
+        if (
+          employmentCountry === 'United Kingdom' ||
+          employmentCountry === 'United States'
+        ) {
+          continue // Skip this bonus
+        }
       }
 
       const deelEmployee = await fetchDeelEmployee(
@@ -371,13 +390,19 @@ function App() {
       }
       if (result.errors && result.errors.length > 0) {
         console.error('Errors during export:', result.errors)
-        alert(
-          `Export completed with ${result.errors.length} errors. Check console for details.`,
+        const errorMessages = result.errors.join('\n')
+        createToast(
+          `Export completed with ${result.errors.length} error(s):\n${errorMessages}`,
+          {
+            timeout: 10000,
+          },
         )
       }
     } catch (error) {
       console.error('Error exporting for Deel:', error)
-      alert('Failed to export CSV for Deel import')
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      createToast(`Failed to export CSV for Deel import: ${errorMessage}`)
     } finally {
       setIsExportingDeel(false)
     }

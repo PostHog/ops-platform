@@ -322,6 +322,7 @@ export function CommissionImportPanel() {
           timeout: 5000,
         },
       )
+      console.log(result)
 
       // Reset form
       setFile(null)
