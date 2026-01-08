@@ -6,7 +6,6 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useServerFn } from '@tanstack/react-start'
-import { InfoIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
 import { customFilterFns, months } from './employees'
@@ -23,12 +22,6 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { createAdminFn } from '@/lib/auth-middleware'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { TableFilters } from '@/components/TableFilters'
 import { fetchDeelEmployee } from './syncDeelEmployees'
 
@@ -325,46 +318,6 @@ function App() {
         cell: ({ row }) => (
           <div>
             <span>{row.original.communicated ? 'Yes' : 'No'}</span>
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'synced',
-        header: () => (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex flex-row items-center gap-1">
-                  <span>Synced</span>
-                  <InfoIcon className="h-4 w-4 cursor-help text-gray-600" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  Whether the commission bonus has been automatically synced to
-                  the payroll provider.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ),
-        meta: {
-          filterVariant: 'select',
-          filterOptions: [
-            { label: 'Yes', value: true },
-            { label: 'No', value: false },
-          ],
-        },
-        filterFn: (
-          row: Row<CommissionBonus>,
-          _: string,
-          filterValue: boolean[],
-        ) => {
-          return filterValue.includes(row.original.synced)
-        },
-        cell: ({ row }) => (
-          <div>
-            <span>{row.original.synced ? 'Yes' : 'No'}</span>
           </div>
         ),
       },
