@@ -113,8 +113,6 @@ const exportCommissionBonusesForDeel = createAdminFn({
 }).handler(async () => {
   const bonuses = await prisma.commissionBonus.findMany({
     where: {
-      synced: false,
-      communicated: true,
       createdAt: {
         gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
       },
@@ -137,6 +135,10 @@ const exportCommissionBonusesForDeel = createAdminFn({
         throw new Error(`No deel employee found`)
       }
 
+      if (!bonus.employee.deelEmployee.personalEmail) {
+        throw new Error(`No personal email found`)
+      }
+
       const deelEmployee = await fetchDeelEmployee(
         bonus.employee.deelEmployee.id,
       )
@@ -157,7 +159,7 @@ const exportCommissionBonusesForDeel = createAdminFn({
       csvRows.push({
         oid: contractId,
         name: employeeName,
-        email: bonus.employee.email,
+        email: bonus.employee.deelEmployee.personalEmail,
         adjustmentCategoryName: 'Commission',
         amount: bonus.calculatedAmountLocal.toFixed(2),
         vendorName: '',
