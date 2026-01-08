@@ -91,19 +91,9 @@ const getCommissionBonuses = createAdminFn({
 }).handler(async () => {
   return await prisma.commissionBonus.findMany({
     where: {
-      OR: [
-        {
-          communicated: false,
-        },
-        {
-          synced: false,
-        },
-        {
-          createdAt: {
-            gte: new Date(new Date().setDate(new Date().getDate() - 90)), // Last 90 days
-          },
-        },
-      ],
+      createdAt: {
+        gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
+      },
     },
     include: {
       employee: {
@@ -125,6 +115,9 @@ const exportCommissionBonusesForDeel = createAdminFn({
     where: {
       synced: false,
       communicated: true,
+      createdAt: {
+        gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
+      },
     },
     include: {
       employee: {
