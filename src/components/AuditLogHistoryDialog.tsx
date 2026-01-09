@@ -55,11 +55,11 @@ export function AuditLogHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[80vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="flex max-h-[80vh] w-full max-w-5xl flex-col overflow-hidden sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="mt-4">
+        <div className="mt-4 flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="py-8 text-center text-gray-500">Loading...</div>
           ) : !auditLogs || auditLogs.length === 0 ? (
@@ -67,43 +67,47 @@ export function AuditLogHistoryDialog({
               No history available.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead>Changed by</TableHead>
-                  <TableHead>Old value</TableHead>
-                  <TableHead>New value</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {auditLogs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="text-sm">
-                      {formatTimestamp(log.timestamp)}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      <div>
-                        <div className="font-medium">{log.actor.name}</div>
-                        <div className="text-xs text-gray-500">
-                          {log.actor.email}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {log.oldValue ?? (
-                        <span className="text-gray-400 italic">None</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {log.newValue ?? (
-                        <span className="text-gray-400 italic">None</span>
-                      )}
-                    </TableCell>
+            <div className="overflow-x-hidden [&_[data-slot=table-container]]:overflow-x-hidden">
+              <Table className="w-full table-fixed">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[140px]">Timestamp</TableHead>
+                    <TableHead className="w-[220px]">Changed by</TableHead>
+                    <TableHead>Old value</TableHead>
+                    <TableHead>New value</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {auditLogs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {formatTimestamp(log.timestamp)}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <div>
+                          <div className="truncate font-medium">
+                            {log.actor.name}
+                          </div>
+                          <div className="truncate text-xs text-gray-500">
+                            {log.actor.email}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm break-words whitespace-normal">
+                        {log.oldValue ?? (
+                          <span className="text-gray-400 italic">None</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm break-words whitespace-normal">
+                        {log.newValue ?? (
+                          <span className="text-gray-400 italic">None</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </div>
       </DialogContent>
