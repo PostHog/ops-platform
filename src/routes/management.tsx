@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -39,6 +40,8 @@ import { ROLES } from '@/lib/consts'
 import { CommissionImportPanel } from '@/components/CommissionImportPanel'
 import { z } from 'zod'
 import { impersonateUser } from '@/lib/auth-client'
+import { createAuditLogEntry } from '@/lib/audit-log'
+import { AuditLogHistoryDialog } from '@/components/AuditLogHistoryDialog'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
@@ -58,8 +61,15 @@ const updateUserRole = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; role: string }) => d)
-  .handler(async ({ data }) => {
-    return await prisma.user.update({
+  .handler(async ({ data, context }) => {
+    // Get current user role
+    const currentUser = await prisma.user.findUnique({
+      where: { id: data.id },
+      select: { role: true, email: true },
+    })
+
+    // Update user role
+    const updatedUser = await prisma.user.update({
       where: {
         id: data.id,
       },
@@ -67,6 +77,22 @@ const updateUserRole = createAdminFn({
         role: data.role,
       },
     })
+
+    // Create audit log entry
+    await createAuditLogEntry({
+      actorUserId: context.user.id,
+      entityType: 'USER_ROLE',
+      entityId: data.id,
+      fieldName: 'role',
+      oldValue: currentUser?.role ?? null,
+      newValue: data.role,
+      metadata: {
+        userEmail: updatedUser.email,
+        userName: updatedUser.name,
+      },
+    })
+
+    return updatedUser
   })
 
 const startReviewCycle = createAdminFn({
@@ -240,6 +266,9 @@ const populateInitialEmployeeSalaries = createAdminFn({
 
 function RouteComponent() {
   const router = useRouter()
+  const [historyDialogOpen, setHistoryDialogOpen] = useState<string | null>(
+    null,
+  )
   const { data: users, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: () => getUsers(),
@@ -269,23 +298,42 @@ function RouteComponent() {
         }
 
         return (
-          <Select
-            value={row.original.role ?? 'error'}
-            onValueChange={handleRoleChange}
-          >
-            <SelectTrigger className="h-6 w-[240px] px-1 py-0 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ROLES.ADMIN}>Admin (full access)</SelectItem>
-              <SelectItem value={ROLES.ORG_CHART}>
-                Org Chart (access the org chart and proposed hires)
-              </SelectItem>
-              <SelectItem value={ROLES.USER}>
-                User (view own feedback + salary)
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select
+              value={row.original.role ?? 'error'}
+              onValueChange={handleRoleChange}
+            >
+              <SelectTrigger className="h-6 w-[240px] px-1 py-0 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ROLES.ADMIN}>Admin (full access)</SelectItem>
+                <SelectItem value={ROLES.ORG_CHART}>
+                  Org Chart (access the org chart and proposed hires)
+                </SelectItem>
+                <SelectItem value={ROLES.USER}>
+                  User (view own feedback + salary)
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setHistoryDialogOpen(row.original.id)}
+              className="h-6 text-xs"
+            >
+              View history
+            </Button>
+            <AuditLogHistoryDialog
+              entityType="USER_ROLE"
+              entityId={row.original.id}
+              title={`Role history for ${row.original.name}`}
+              open={historyDialogOpen === row.original.id}
+              onOpenChange={(open: boolean) =>
+                setHistoryDialogOpen(open ? row.original.id : null)
+              }
+            />
+          </div>
         )
       },
     },

@@ -29,12 +29,29 @@ import { cn } from '@/lib/utils'
 import { createToast } from 'vercel-toast'
 import prisma from '@/db'
 import { useRouter } from '@tanstack/react-router'
+import { createAuditLogEntry } from '@/lib/audit-log'
+import { AuditLogHistoryDialog } from './AuditLogHistoryDialog'
 
 const updateDeelManager = createOrgChartFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; managerId: string }) => d)
-  .handler(async ({ data: { id, managerId } }) => {
+  .handler(async ({ data: { id, managerId }, context }) => {
+    // Get current manager and employee details
+    const currentEmployee = await prisma.deelEmployee.findUnique({
+      where: { id },
+      include: {
+        employee: { select: { email: true } },
+        manager: { select: { id: true, name: true, workEmail: true } },
+      },
+    })
+
+    // Get new manager details
+    const newManager = await prisma.deelEmployee.findUnique({
+      where: { id: managerId },
+      select: { name: true },
+    })
+
     const response = await fetch(
       `https://api.letsdeel.com/rest/v2/hris/worker_relations/profile/${id}/parent`,
       {
@@ -58,9 +75,30 @@ const updateDeelManager = createOrgChartFn({
       )
     }
 
-    await prisma.deelEmployee.update({
+    // Update in database
+    const updatedEmployee = await prisma.deelEmployee.update({
       where: { id },
       data: { managerId },
+      include: {
+        employee: { select: { email: true } },
+        manager: { select: { id: true, name: true, workEmail: true } },
+      },
+    })
+
+    // Create audit log entry
+    await createAuditLogEntry({
+      actorUserId: context.user.id,
+      entityType: 'MANAGER',
+      entityId: id,
+      fieldName: 'managerId',
+      oldValue: currentEmployee?.manager?.name ?? null,
+      newValue: newManager?.name ?? null,
+      metadata: {
+        employeeEmail: updatedEmployee.employee?.email,
+        oldManagerId: currentEmployee?.managerId,
+        newManagerId: managerId,
+        newManagerEmail: updatedEmployee.manager?.workEmail,
+      },
     })
 
     return 'OK'
@@ -91,6 +129,7 @@ export function ManagerEditPanel({
   employee: DeelEmployee
 }) {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState<string | null>(employee.managerId)
   const router = useRouter()
@@ -174,15 +213,35 @@ export function ManagerEditPanel({
             </Popover>
           </div>
         </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <Button type="submit" onClick={handleSubmit}>
-            Save changes
+        <DialogFooter className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setDialogOpen(false)
+              setHistoryDialogOpen(true)
+            }}
+            className="text-xs"
+          >
+            View history
           </Button>
+          <div className="flex gap-2">
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" onClick={handleSubmit}>
+              Save changes
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
+      <AuditLogHistoryDialog
+        entityType="MANAGER"
+        entityId={employee.id}
+        title={`Manager history for ${employee.name}`}
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+      />
     </Dialog>
   )
 }

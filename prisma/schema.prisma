@@ -177,6 +177,7 @@ model User {
   checklistItemsCompleted    PerformanceProgramChecklistItem[] @relation("ChecklistItemCompletedBy")
   filesUploaded              File[]                            @relation("FileUploadedBy")
   feedbackGiven              PerformanceProgramFeedback[]      @relation("FeedbackGivenBy")
+  auditLogsCreated           AuditLog[]                        @relation("AuditLogActor")
 
   @@unique([email])
   @@map("user")
@@ -352,4 +353,28 @@ model AshbyInterviewScore {
 
   @@index([employeeId])
   @@index([interviewerId])
+}
+
+enum AuditLogEntityType {
+  USER_ROLE
+  MANAGER
+  TEAM
+}
+
+model AuditLog {
+  id          String             @id @default(cuid())
+  timestamp   DateTime           @default(now())
+  actorUserId String // User who made the change
+  actor       User               @relation("AuditLogActor", fields: [actorUserId], references: [id])
+  entityType  AuditLogEntityType // What type of entity was changed
+  entityId    String // ID of the entity being changed (User.id or DeelEmployee.id)
+  fieldName   String // Field that changed (role, managerId, team)
+  oldValue    String? // Previous value (nullable for new assignments)
+  newValue    String? // New value (nullable for deletions)
+  metadata    Json? // Additional context (employee email, user email, etc.)
+  createdAt   DateTime           @default(now())
+
+  @@index([entityType, entityId]) // For querying changes to a specific entity
+  @@index([actorUserId]) // For querying changes by actor
+  @@index([timestamp]) // For time-based queries
 }
