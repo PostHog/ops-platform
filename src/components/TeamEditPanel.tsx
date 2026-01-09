@@ -103,9 +103,10 @@ const updateDeelTeam = createOrgChartFn({
         )
       }
 
-      if (team.parent) {
-        await setTeam(team.parent, false)
-      }
+      // This was previously used to set multiple departments onto a user, but that doesn't seem to be supported by Deel anymore - so commenting out for now
+      // if (team.parent) {
+      //   await setTeam(team.parent, false)
+      // }
     }
 
     await setTeam(team, true)
