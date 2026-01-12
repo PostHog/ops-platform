@@ -200,7 +200,7 @@ function TreeNode({
         {hasChildren ? (
           <button
             onClick={handleExpandClick}
-            className="flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center rounded px-2 py-1.5 hover:bg-gray-200"
+            className="flex h-8 w-6 flex-shrink-0 cursor-pointer items-center justify-center rounded px-2 py-1.5 hover:bg-gray-200"
             aria-label={isExpanded ? 'Collapse' : 'Expand'}
           >
             {isExpanded ? (
@@ -210,7 +210,7 @@ function TreeNode({
             )}
           </button>
         ) : (
-          <div className="h-6 w-6 flex-shrink-0 px-2 py-1.5" />
+          <div className="h-8 w-6 flex-shrink-0" />
         )}
         <div
           className={cn(
