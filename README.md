@@ -13,6 +13,9 @@
   - reference employees with similar step/level
   - automatic updates in deel and bamboohr
 - probation check-ins for the first 30/60/80 days & keeper tests before pay reviews
+- org chart with a manager and team view mode
+  - proposed hires
+  - future starters
 
 # Getting Started
 
