@@ -1,4 +1,18 @@
-Welcome to PostHog Ops!
+# ops-platform
+
+<img width="1466" height="1321" alt="2026-01-12 at 22 47 33" src="https://github.com/user-attachments/assets/a5e599b4-69fd-46cb-9b32-d6feff86fb28" />
+
+# features
+
+- employee view
+  - salary updates
+  - ashby interview scores
+  - keeper test scores
+  - commission bonus payouts
+- pay review queues
+  - reference employees with similar step/level
+  - automatic updates in deel and bamboohr
+- probation check-ins for the first 30/60/80 days & keeper tests before pay reviews
 
 # Getting Started
 
