@@ -190,7 +190,7 @@ function TreeNode({
     <div ref={nodeRef}>
       <div
         className={cn(
-          'flex items-center gap-1 rounded px-2 py-1.5 text-sm',
+          'flex items-center gap-1 rounded text-sm',
           !isTeamNode && canClick && 'hover:bg-gray-100',
           isCurrentEmployee && 'bg-blue-50 font-semibold',
           isTeamNode && 'font-medium text-gray-700',
@@ -200,7 +200,7 @@ function TreeNode({
         {hasChildren ? (
           <button
             onClick={handleExpandClick}
-            className="flex h-4 w-4 flex-shrink-0 cursor-pointer items-center justify-center rounded p-0.5 hover:bg-gray-200"
+            className="flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center rounded px-2 py-1.5 hover:bg-gray-200"
             aria-label={isExpanded ? 'Collapse' : 'Expand'}
           >
             {isExpanded ? (
@@ -210,11 +210,11 @@ function TreeNode({
             )}
           </button>
         ) : (
-          <div className="h-4 w-4 flex-shrink-0" />
+          <div className="h-6 w-6 flex-shrink-0 px-2 py-1.5" />
         )}
         <div
           className={cn(
-            'flex min-w-0 flex-1 flex-col gap-1',
+            'flex min-w-0 flex-1 flex-col gap-1 py-1.5 pr-2',
             canClick && 'cursor-pointer',
           )}
           onClick={handleEmployeeClick}
