@@ -86,6 +86,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+
+dayjs.extend(relativeTime)
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -1829,6 +1832,13 @@ function EmployeeOverview() {
                 {typeof employee.reviewed === 'boolean' ? (
                   <span>Reviewed: {employee.reviewed ? 'Yes' : 'No'}</span>
                 ) : null}
+                {employee.deelEmployee?.startDate && (
+                  <span>
+                    Start Date:{' '}
+                    {dayjs(employee.deelEmployee.startDate).format('M/D/YYYY')}{' '}
+                    ({dayjs(employee.deelEmployee.startDate).fromNow()})
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex justify-end gap-2">
