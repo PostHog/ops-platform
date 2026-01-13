@@ -13,6 +13,8 @@ import {
   validateQuarterFormat,
   validateQuota,
   validateAttainment,
+  calculateQuarterBreakdown,
+  type QuarterBreakdown,
 } from '@/lib/commission-calculator'
 import {
   importCommissionBonuses,
@@ -27,6 +29,20 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
+/**
+ * Format months for display (e.g., 0.5 → "½ mo", 1 → "1 mo", 2.5 → "2½ mo")
+ */
+function formatMonths(months: number): string {
+  if (months === 0.5) return '½ mo'
+  if (months === 1) return '1 mo'
+  if (months === 1.5) return '1½ mo'
+  if (months === 2) return '2 mo'
+  if (months === 2.5) return '2½ mo'
+  if (months === 3) return '3 mo'
+  // Fallback for unexpected values
+  return `${months} mo`
+}
+
 type ImportRow = {
   email: string
   quota: number
@@ -36,6 +52,7 @@ type ImportRow = {
   bonusAmount?: number
   calculatedAmount?: number
   attainmentPercentage?: number
+  quarterBreakdown?: QuarterBreakdown
   error?: string
 }
 
@@ -236,11 +253,19 @@ export function CommissionImportPanel() {
           // Convert annual bonus to quarterly bonus
           const quarterlyBonusAmount = annualBonusAmount / 4
 
+          // Calculate quarter breakdown (not employed, ramp-up, post ramp-up)
+          const startDate = employee.deelEmployee?.startDate
+            ? new Date(employee.deelEmployee.startDate)
+            : null
+          const quarterBreakdown = calculateQuarterBreakdown(startDate, quarter)
+
           // Calculate commission bonus using quarterly bonus amount
+          // Pro-rated: ramp-up portion gets 100% OTE, post ramp-up gets attainment%
           const calculatedAmount = calculateCommissionBonus(
             attainment,
             quota,
             quarterlyBonusAmount,
+            quarterBreakdown,
           )
 
           // Calculate attainment percentage
@@ -255,6 +280,7 @@ export function CommissionImportPanel() {
             bonusAmount: quarterlyBonusAmount,
             calculatedAmount,
             attainmentPercentage,
+            quarterBreakdown,
           })
         } catch (error) {
           const errorMessage =
@@ -398,6 +424,7 @@ export function CommissionImportPanel() {
                     <TableHead>Attainment %</TableHead>
                     <TableHead>Bonus Amount</TableHead>
                     <TableHead>Calculated Bonus</TableHead>
+                    <TableHead>Quarter Breakdown</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -441,6 +468,40 @@ export function CommissionImportPanel() {
                               currency: 'USD',
                             }).format(row.calculatedAmount)
                           : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {row.quarterBreakdown ? (
+                          <div className="space-y-0.5 text-xs">
+                            {row.quarterBreakdown.notEmployedMonths > 0 && (
+                              <div className="text-muted-foreground">
+                                {formatMonths(
+                                  row.quarterBreakdown.notEmployedMonths,
+                                )}{' '}
+                                not employed
+                              </div>
+                            )}
+                            {row.quarterBreakdown.rampUpMonths > 0 && (
+                              <div className="text-blue-600">
+                                {formatMonths(
+                                  row.quarterBreakdown.rampUpMonths,
+                                )}{' '}
+                                ramp-up (100% OTE)
+                              </div>
+                            )}
+                            {row.quarterBreakdown.postRampUpMonths > 0 && (
+                              <div className="text-green-600">
+                                {formatMonths(
+                                  row.quarterBreakdown.postRampUpMonths,
+                                )}{' '}
+                                post ramp-up
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            -
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell>
                         {row.error ? (
