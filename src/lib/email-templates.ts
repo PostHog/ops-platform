@@ -58,8 +58,7 @@ export function generateCommissionBonusEmail(
 <p>Hi ${employeeName},</p>
 <p>Just confirming that you are due ${rampUpMonths} months of fixed commission so <strong>${localAmountText}</strong>.</p>
 ${nextQuarterHtml}
-<p>Any questions just let me know.</p>
-<p>Cheers,</p>
+<p>Any questions just let us know.</p>
 `.trim()
   }
 
