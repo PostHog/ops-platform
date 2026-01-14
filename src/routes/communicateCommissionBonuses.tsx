@@ -76,7 +76,7 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
               }
             }
 
-            const emailText = generateCommissionBonusEmail({
+            const emailHtml = generateCommissionBonusEmail({
               employeeName,
               quarter: bonus.quarter,
               quota: bonus.quota,
@@ -93,7 +93,7 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
             const emailResult = await sendEmail({
               to: bonus.employee.email,
               subject: `${bonus.quarter} Commission confirmation - ${employeeName}`,
-              text: emailText,
+              html: emailHtml,
             })
 
             if (emailResult.success) {

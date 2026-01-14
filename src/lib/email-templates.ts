@@ -1,4 +1,5 @@
 import { formatCurrency } from '@/lib/utils'
+import type { QuarterBreakdown } from '@/lib/commission-calculator'
 
 export interface CommissionBonusEmailData {
   employeeName: string
@@ -10,6 +11,8 @@ export interface CommissionBonusEmailData {
   calculatedAmount: number
   calculatedAmountLocal?: number
   localCurrency?: string
+  quarterBreakdown?: QuarterBreakdown
+  nextQuarterRampUpAmount?: number
 }
 
 export function generateCommissionBonusEmail(
@@ -25,23 +28,54 @@ export function generateCommissionBonusEmail(
     calculatedAmount,
     calculatedAmountLocal,
     localCurrency,
+    quarterBreakdown,
+    nextQuarterRampUpAmount,
   } = data
 
+  // Check if this is a ramp-up only quarter (no post-ramp-up portion)
+  const isRampUpOnly =
+    quarterBreakdown &&
+    quarterBreakdown.rampUpMonths > 0 &&
+    quarterBreakdown.postRampUpMonths === 0
+
+  if (isRampUpOnly) {
+    // Email for employees only getting fixed OTE this quarter
+    const rampUpMonths = quarterBreakdown.rampUpMonths
+    const localAmountText = calculatedAmountLocal
+      ? formatCurrency(calculatedAmountLocal, localCurrency)
+      : formatCurrency(calculatedAmount)
+
+    let nextQuarterHtml = ''
+    if (nextQuarterRampUpAmount && nextQuarterRampUpAmount > 0) {
+      const nextQuarterLocalAmount = formatCurrency(
+        nextQuarterRampUpAmount,
+        localCurrency,
+      )
+      nextQuarterHtml = `<p>You will get another ${nextQuarterLocalAmount} next quarter as well as your quota'd performance attainment.</p>`
+    }
+
+    return `
+<p>Hi ${employeeName},</p>
+<p>Just confirming that you are due ${rampUpMonths} months of fixed commission so <strong>${localAmountText}</strong>.</p>
+${nextQuarterHtml}
+<p>Any questions just let me know.</p>
+<p>Cheers,</p>
+`.trim()
+  }
+
+  // Standard email with full breakdown
   return `
-Hey ${employeeName},
-
-Confirming your commission for ${quarter} will be ${formatCurrency(calculatedAmount)}
-
-You can see the breakdown here:
-
-Quota: ${formatCurrency(quota)}
-Attainment: ${formatCurrency(attainment)} (${attainmentPercentage.toFixed(1)}%)
-OTE amount: ${formatCurrency(bonusAmount)}
-OTE payout: ${formatCurrency(calculatedAmount)}
-Local amount: ${formatCurrency(calculatedAmountLocal, localCurrency)}
-
-Cheers,
-
-PS we will optimise for getting this into your payroll for this month so any ongoing small tweaks might not make it in and will be resolved next quarter.
+<p>Hey ${employeeName},</p>
+<p>Confirming your commission for ${quarter} will be <strong>${formatCurrency(calculatedAmount)}</strong></p>
+<p>You can see the breakdown here:</p>
+<ul>
+  <li>Quota: ${formatCurrency(quota)}</li>
+  <li>Attainment: ${formatCurrency(attainment)} (${attainmentPercentage.toFixed(1)}%)</li>
+  <li>OTE amount: ${formatCurrency(bonusAmount)}</li>
+  <li>OTE payout: ${formatCurrency(calculatedAmount)}</li>
+  <li>Local amount: ${formatCurrency(calculatedAmountLocal, localCurrency)}</li>
+</ul>
+<p>Cheers,</p>
+<p><em>PS we will optimise for getting this into your payroll for this month so any ongoing small tweaks might not make it in and will be resolved next quarter.</em></p>
 `.trim()
 }
