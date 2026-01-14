@@ -29,20 +29,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-/**
- * Format months for display (e.g., 0.5 → "½ mo", 1 → "1 mo", 2.5 → "2½ mo")
- */
-function formatMonths(months: number): string {
-  if (months === 0.5) return '½ mo'
-  if (months === 1) return '1 mo'
-  if (months === 1.5) return '1½ mo'
-  if (months === 2) return '2 mo'
-  if (months === 2.5) return '2½ mo'
-  if (months === 3) return '3 mo'
-  // Fallback for unexpected values
-  return `${months} mo`
-}
-
 type ImportRow = {
   email: string
   quota: number
@@ -474,26 +460,20 @@ export function CommissionImportPanel() {
                           <div className="space-y-0.5 text-xs">
                             {row.quarterBreakdown.notEmployedMonths > 0 && (
                               <div className="text-muted-foreground">
-                                {formatMonths(
-                                  row.quarterBreakdown.notEmployedMonths,
-                                )}{' '}
-                                not employed
+                                {row.quarterBreakdown.notEmployedMonths} not
+                                employed
                               </div>
                             )}
                             {row.quarterBreakdown.rampUpMonths > 0 && (
                               <div className="text-blue-600">
-                                {formatMonths(
-                                  row.quarterBreakdown.rampUpMonths,
-                                )}{' '}
-                                ramp-up (100% OTE)
+                                {row.quarterBreakdown.rampUpMonths} ramp-up
+                                (100% OTE)
                               </div>
                             )}
                             {row.quarterBreakdown.postRampUpMonths > 0 && (
                               <div className="text-green-600">
-                                {formatMonths(
-                                  row.quarterBreakdown.postRampUpMonths,
-                                )}{' '}
-                                post ramp-up
+                                {row.quarterBreakdown.postRampUpMonths} post
+                                ramp-up
                               </div>
                             )}
                           </div>
