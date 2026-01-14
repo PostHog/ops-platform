@@ -13,6 +13,7 @@ export interface CommissionBonusEmailData {
   localCurrency?: string
   quarterBreakdown?: QuarterBreakdown
   nextQuarterRampUpAmount?: number
+  notes?: string
 }
 
 export function generateCommissionBonusEmail(
@@ -30,6 +31,7 @@ export function generateCommissionBonusEmail(
     localCurrency,
     quarterBreakdown,
     nextQuarterRampUpAmount,
+    notes,
   } = data
 
   // Check if this is a ramp-up only quarter (no post-ramp-up portion)
@@ -63,6 +65,8 @@ ${nextQuarterHtml}
   }
 
   // Standard email with full breakdown
+  const notesHtml = notes ? `<p><em>${notes}</em></p>` : ''
+
   return `
 <p>Hey ${employeeName},</p>
 <p>Confirming your commission for ${quarter} will be <strong>${formatCurrency(calculatedAmountLocal, localCurrency)}</strong></p>
@@ -74,6 +78,7 @@ ${nextQuarterHtml}
   <li>OTE payout: ${formatCurrency(calculatedAmount)}</li>
   <li>Local amount: ${formatCurrency(calculatedAmountLocal, localCurrency)}</li>
 </ul>
+${notesHtml}
 <p>Please let us know any errors within 48 hours, so we can make these ahead of payroll changes. We will always default to getting you paid out on time and fixing any issues after that.</p>
 <p>Cheers,</p>
 <p><em>PS we will optimise for getting this into your payroll for this month so any ongoing small tweaks might not make it in and will be resolved next quarter.</em></p>

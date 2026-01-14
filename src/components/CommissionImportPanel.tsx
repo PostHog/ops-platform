@@ -39,6 +39,7 @@ type ImportRow = {
   calculatedAmount?: number
   attainmentPercentage?: number
   quarterBreakdown?: QuarterBreakdown
+  notes?: string
   error?: string
 }
 
@@ -257,6 +258,9 @@ export function CommissionImportPanel() {
           // Calculate attainment percentage
           const attainmentPercentage = (attainment / quota) * 100
 
+          // Extract notes (optional)
+          const notes: string = row.notes || ''
+
           processedRows.push({
             email: normalizedEmail,
             quota,
@@ -267,6 +271,7 @@ export function CommissionImportPanel() {
             calculatedAmount,
             attainmentPercentage,
             quarterBreakdown,
+            notes: notes.trim(),
           })
         } catch (error) {
           const errorMessage =
@@ -324,6 +329,7 @@ export function CommissionImportPanel() {
             attainment: row.attainment,
             bonusAmount: row.bonusAmount!,
             calculatedAmount: row.calculatedAmount!,
+            notes: row.notes,
           })),
         },
       })
@@ -384,7 +390,7 @@ export function CommissionImportPanel() {
             onChange={handleFileChange}
           />
           <p className="text-muted-foreground text-sm">
-            Expected columns: email, quota, attainment.
+            Expected columns: email, quota, attainment, notes (optional).
           </p>
         </div>
 
@@ -411,6 +417,7 @@ export function CommissionImportPanel() {
                     <TableHead>Bonus Amount</TableHead>
                     <TableHead>Calculated Bonus</TableHead>
                     <TableHead>Quarter Breakdown</TableHead>
+                    <TableHead>Notes</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -477,6 +484,17 @@ export function CommissionImportPanel() {
                               </div>
                             )}
                           </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            -
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {row.notes ? (
+                          <span className="text-muted-foreground max-w-[200px] truncate text-xs">
+                            {row.notes}
+                          </span>
                         ) : (
                           <span className="text-muted-foreground text-xs">
                             -

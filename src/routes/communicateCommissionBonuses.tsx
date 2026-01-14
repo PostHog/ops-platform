@@ -88,6 +88,7 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
               localCurrency: bonus.localCurrency,
               quarterBreakdown,
               nextQuarterRampUpAmount,
+              notes: bonus.notes ?? undefined,
             })
 
             const emailResult = await sendEmail({
