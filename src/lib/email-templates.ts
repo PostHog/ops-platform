@@ -14,6 +14,7 @@ export interface CommissionBonusEmailData {
   quarterBreakdown?: QuarterBreakdown
   nextQuarterRampUpAmount?: number
   notes?: string
+  sheet?: string
 }
 
 export function generateCommissionBonusEmail(
@@ -32,6 +33,7 @@ export function generateCommissionBonusEmail(
     quarterBreakdown,
     nextQuarterRampUpAmount,
     notes,
+    sheet,
   } = data
 
   // Check if this is a ramp-up only quarter (no post-ramp-up portion)
@@ -66,11 +68,14 @@ ${nextQuarterHtml}
 
   // Standard email with full breakdown
   const notesHtml = notes ? `<p>${notes}</p>` : ''
+  const sheetHtml = sheet
+    ? `<p>You can see a list of your accounts in <a href="${sheet}" target="_blank">this sheet</a>.</p> `
+    : ''
 
   return `
 <p>Hey ${employeeName},</p>
 <p>Confirming your commission for ${quarter} will be <strong>${formatCurrency(calculatedAmountLocal, localCurrency)}</strong></p>
-<p>You can see the breakdown here:</p>
+<p>${sheetHtml}Here is the breakdown:</p>
 <ul>
   <li>Quota: ${formatCurrency(quota)}</li>
   <li>Attainment: ${formatCurrency(attainment)} (${attainmentPercentage.toFixed(1)}%)</li>

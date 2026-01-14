@@ -332,6 +332,7 @@ model CommissionBonus {
   localCurrency         String // Local currency from employee's latest salary
   calculatedAmountLocal Float // calculatedAmount × exchangeRate
   notes                 String?
+  sheet                 String?
   communicated          Boolean  @default(false)
   synced                Boolean  @default(false)
   createdAt             DateTime @default(now())

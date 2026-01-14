@@ -40,6 +40,7 @@ type ImportRow = {
   attainmentPercentage?: number
   quarterBreakdown?: QuarterBreakdown
   notes?: string
+  sheet?: string
   error?: string
 }
 
@@ -137,15 +138,9 @@ export function CommissionImportPanel() {
         throw new Error('File is empty')
       }
 
-      const hasEmail =
-        'email' in firstRow ||
-        'employee email' in firstRow ||
-        'work email' in firstRow
-      const hasQuota = 'quota' in firstRow || 'sales quota' in firstRow
-      const hasAttainment =
-        'attainment' in firstRow ||
-        'sales attainment' in firstRow ||
-        'actual attainment' in firstRow
+      const hasEmail = 'email' in firstRow
+      const hasQuota = 'quota' in firstRow
+      const hasAttainment = 'attainment' in firstRow
 
       if (!hasEmail || !hasQuota || !hasAttainment) {
         throw new Error(
@@ -164,21 +159,16 @@ export function CommissionImportPanel() {
         const row = rows[i]
         const rowNumber = i + 2 // +2 because 1-indexed and header row
 
+        const email = row.email || ''
+
+        // Skip rows without email entirely
+        if (!email || typeof email !== 'string' || !email.trim()) {
+          continue
+        }
+
+        const normalizedEmail = email.trim().toLowerCase()
+
         try {
-          // Extract email (try multiple column names)
-          const email =
-            row.email ||
-            row['employee email'] ||
-            row['work email'] ||
-            row['e-mail'] ||
-            ''
-
-          if (!email || typeof email !== 'string') {
-            throw new Error('Email is required')
-          }
-
-          const normalizedEmail = email.trim().toLowerCase()
-
           // Find employee
           const employee = employees.find(
             (emp: { email: string }) =>
@@ -190,8 +180,7 @@ export function CommissionImportPanel() {
           }
 
           // Extract quota
-          const quotaStr =
-            row.quota || row['sales quota'] || row['quota amount'] || ''
+          const quotaStr = row.quota || ''
           const quota = parseFloat(String(quotaStr).replace(/[,$]/g, ''))
 
           if (isNaN(quota)) {
@@ -203,11 +192,7 @@ export function CommissionImportPanel() {
           }
 
           // Extract attainment
-          const attainmentStr =
-            row.attainment ||
-            row['sales attainment'] ||
-            row['actual attainment'] ||
-            ''
+          const attainmentStr = row.attainment || ''
           const attainment = parseFloat(
             String(attainmentStr).replace(/[,$]/g, ''),
           )
@@ -258,8 +243,9 @@ export function CommissionImportPanel() {
           // Calculate attainment percentage
           const attainmentPercentage = (attainment / quota) * 100
 
-          // Extract notes (optional)
+          // Extract notes and sheet (optional)
           const notes: string = row.notes || ''
+          const sheet: string = row.sheet || ''
 
           processedRows.push({
             email: normalizedEmail,
@@ -272,14 +258,14 @@ export function CommissionImportPanel() {
             attainmentPercentage,
             quarterBreakdown,
             notes: notes.trim(),
+            sheet: sheet.trim(),
           })
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error'
           errors.push(`Row ${rowNumber}: ${errorMessage}`)
           processedRows.push({
-            email:
-              row.email || row['employee email'] || row['work email'] || '',
+            email: normalizedEmail,
             quota: 0,
             attainment: 0,
             quarter: quarter,
@@ -330,6 +316,7 @@ export function CommissionImportPanel() {
             bonusAmount: row.bonusAmount!,
             calculatedAmount: row.calculatedAmount!,
             notes: row.notes,
+            sheet: row.sheet,
           })),
         },
       })
@@ -390,7 +377,7 @@ export function CommissionImportPanel() {
             onChange={handleFileChange}
           />
           <p className="text-muted-foreground text-sm">
-            Expected columns: email, quota, attainment, notes (optional).
+            Expected columns: email, quota, attainment. Optional: notes, sheet.
           </p>
         </div>
 
@@ -417,8 +404,9 @@ export function CommissionImportPanel() {
                     <TableHead>Bonus Amount</TableHead>
                     <TableHead>Calculated Bonus</TableHead>
                     <TableHead>Quarter Breakdown</TableHead>
-                    <TableHead>Notes</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead>Sheet</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -491,6 +479,17 @@ export function CommissionImportPanel() {
                         )}
                       </TableCell>
                       <TableCell>
+                        {row.error ? (
+                          <span className="text-destructive text-xs">
+                            {row.error}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-green-600">
+                            ✓ Valid
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {row.notes ? (
                           <span className="text-muted-foreground max-w-[200px] truncate text-xs">
                             {row.notes}
@@ -502,13 +501,13 @@ export function CommissionImportPanel() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {row.error ? (
-                          <span className="text-destructive text-xs">
-                            {row.error}
+                        {row.sheet ? (
+                          <span className="text-muted-foreground max-w-[200px] truncate text-xs">
+                            {row.sheet}
                           </span>
                         ) : (
-                          <span className="text-xs text-green-600">
-                            ✓ Valid
+                          <span className="text-muted-foreground text-xs">
+                            -
                           </span>
                         )}
                       </TableCell>

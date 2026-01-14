@@ -89,6 +89,7 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
               quarterBreakdown,
               nextQuarterRampUpAmount,
               notes: bonus.notes ?? undefined,
+              sheet: bonus.sheet ?? undefined,
             })
 
             const emailResult = await sendEmail({

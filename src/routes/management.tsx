@@ -616,6 +616,7 @@ const importCommissionBonusesSchema = z.object({
       bonusAmount: z.number().nonnegative(),
       calculatedAmount: z.number().nonnegative(),
       notes: z.string().optional(),
+      sheet: z.string().optional(),
     }),
   ),
 })
@@ -681,6 +682,7 @@ export const importCommissionBonuses = createAdminFn({
             localCurrency: localCurrency,
             calculatedAmountLocal: calculatedAmountLocal,
             notes: bonus.notes,
+            sheet: bonus.sheet,
             communicated: false,
             synced: false,
           },
