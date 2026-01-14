@@ -75,6 +75,7 @@ ${nextQuarterHtml}
   <li>OTE payout: ${formatCurrency(calculatedAmount)}</li>
   <li>Local amount: ${formatCurrency(calculatedAmountLocal, localCurrency)}</li>
 </ul>
+<p>Please let us know any errors within 48 hours so we can make these ahead of payroll changes, we will always default to getting you paid out on time and fix any issues after that.</p>
 <p>Cheers,</p>
 <p><em>PS we will optimise for getting this into your payroll for this month so any ongoing small tweaks might not make it in and will be resolved next quarter.</em></p>
 `.trim()
