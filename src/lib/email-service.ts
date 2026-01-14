@@ -13,7 +13,7 @@ export async function sendEmail({
   to,
   subject,
   text,
-  from = 'Ops platform <onboarding@resend.dev>', // Default Resend sender, should be configured with verified domain
+  from = 'Ops platform <commission-confirmation@ops.posthog.dev>', // Default Resend sender, should be configured with verified domain
 }: SendEmailOptions): Promise<{ success: boolean; error?: string }> {
   try {
     const result = await resend.emails.send({
