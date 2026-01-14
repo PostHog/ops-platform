@@ -2,6 +2,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import prisma from '@/db'
 import { sendEmail } from '@/lib/email-service'
 import { generateCommissionBonusEmail } from '@/lib/email-templates'
+import {
+  calculateQuarterBreakdown,
+  getNextQuarter,
+} from '@/lib/commission-calculator'
 
 export const Route = createFileRoute('/communicateCommissionBonuses')({
   server: {
@@ -22,6 +26,7 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
                 deelEmployee: {
                   select: {
                     name: true,
+                    startDate: true,
                   },
                 },
               },
@@ -40,6 +45,37 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
               bonus.employee.deelEmployee?.name ||
               bonus.employee.email.split('@')[0]
 
+            // Calculate quarter breakdown for ramp-up info
+            const startDate = bonus.employee.deelEmployee?.startDate
+              ? new Date(bonus.employee.deelEmployee.startDate)
+              : null
+            const quarterBreakdown = calculateQuarterBreakdown(
+              startDate,
+              bonus.quarter,
+            )
+
+            // Calculate next quarter ramp-up amount if applicable
+            let nextQuarterRampUpAmount: number | undefined
+            if (
+              quarterBreakdown.rampUpMonths > 0 &&
+              quarterBreakdown.postRampUpMonths === 0
+            ) {
+              // Check if there's ramp-up in the next quarter too
+              const nextQuarter = getNextQuarter(bonus.quarter)
+              const nextQuarterBreakdown = calculateQuarterBreakdown(
+                startDate,
+                nextQuarter,
+              )
+              if (nextQuarterBreakdown.rampUpMonths > 0) {
+                // Calculate the ramp-up amount for next quarter in local currency
+                const monthlyBonus = bonus.bonusAmount / 3
+                nextQuarterRampUpAmount =
+                  nextQuarterBreakdown.rampUpMonths *
+                  monthlyBonus *
+                  bonus.exchangeRate
+              }
+            }
+
             const emailText = generateCommissionBonusEmail({
               employeeName,
               quarter: bonus.quarter,
@@ -50,6 +86,8 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
               calculatedAmount: bonus.calculatedAmount,
               calculatedAmountLocal: bonus.calculatedAmountLocal ?? undefined,
               localCurrency: bonus.localCurrency,
+              quarterBreakdown,
+              nextQuarterRampUpAmount,
             })
 
             const emailResult = await sendEmail({

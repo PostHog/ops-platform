@@ -273,6 +273,23 @@ export function getPreviousQuarter(): string {
 }
 
 /**
+ * Get the next quarter from a given quarter in "YYYY-QN" format
+ * @param quarter - Quarter in "YYYY-QN" format
+ * @returns Next quarter in "YYYY-QN" format
+ */
+export function getNextQuarter(quarter: string): string {
+  const [yearStr, quarterStr] = quarter.split('-Q')
+  const year = parseInt(yearStr, 10)
+  const q = parseInt(quarterStr, 10)
+
+  if (q === 4) {
+    return `${year + 1}-Q1`
+  } else {
+    return `${year}-Q${q + 1}`
+  }
+}
+
+/**
  * Validate quarter format (YYYY-QN where N is 1-4)
  */
 export function validateQuarterFormat(quarter: string): boolean {
