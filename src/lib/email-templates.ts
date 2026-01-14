@@ -65,7 +65,7 @@ ${nextQuarterHtml}
   }
 
   // Standard email with full breakdown
-  const notesHtml = notes ? `<p><em>${notes}</em></p>` : ''
+  const notesHtml = notes ? `<p>${notes}</p>` : ''
 
   return `
 <p>Hey ${employeeName},</p>
@@ -80,7 +80,6 @@ ${nextQuarterHtml}
 </ul>
 ${notesHtml}
 <p>Please let us know any errors within 48 hours, so we can make these ahead of payroll changes. We will always default to getting you paid out on time and fixing any issues after that.</p>
-<p>Cheers,</p>
 <p><em>PS we will optimise for getting this into your payroll for this month so any ongoing small tweaks might not make it in and will be resolved next quarter.</em></p>
 `.trim()
 }
