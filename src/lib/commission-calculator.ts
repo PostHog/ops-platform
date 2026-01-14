@@ -14,10 +14,9 @@ export type QuarterBreakdown = {
  * Calculate quarterly commission bonus with pro-rated ramp-up
  *
  * Rules:
- * - First 3 months commission is paid at 100% fixed
- * - If you start before the 15th of a month, you get 100% for the full month
- * - If you start on/after the 15th, you get 100% for half the month (from 15th onward)
- * - Ramp-up is exactly 3 months from the effective start date
+ * - First 3 months commission is paid at 100% fixed OTE
+ * - If you start before the 15th of a month, you get 100% for that month and two subsequent months
+ * - If you start on/after the 15th, ramp-up starts from the next month (3 full months)
  */
 export function calculateCommissionBonus(
   attainment: number,
@@ -50,9 +49,9 @@ export function calculateCommissionBonus(
  *
  * Rules:
  * - If start date is before the 15th → effective start is the 1st of that month
- * - If start date is on/after the 15th → effective start is the 15th of that month
+ * - If start date is on/after the 15th → effective start is the 1st of the next month
  *
- * @returns Date representing the effective start (either 1st or 15th of the month)
+ * @returns Date representing the effective start (always the 1st of a month)
  */
 export function getEffectiveStartDate(startDate: Date): Date {
   const day = startDate.getDate()
@@ -63,8 +62,8 @@ export function getEffectiveStartDate(startDate: Date): Date {
     // Started before 15th - effective start is 1st of the month
     return new Date(year, month, 1)
   } else {
-    // Started on/after 15th - effective start is 15th of the month
-    return new Date(year, month, 15)
+    // Started on/after 15th - effective start is 1st of the next month
+    return new Date(year, month + 1, 1)
   }
 }
 
@@ -110,20 +109,24 @@ export function getQuarterEndDate(quarter: string): Date {
  * Calculate the breakdown of a quarter into not-employed, ramp-up, and post-ramp-up months
  *
  * Rules:
- * - First 3 months commission is paid at 100% fixed
- * - If you start before the 15th of a month, you get 100% for the full month
- * - If you start on/after the 15th, you get 100% for half the month (from 15th onward)
- * - Ramp-up is exactly 3 months from the effective start date
+ * - First 3 months commission is paid at 100% fixed OTE
+ * - If you start before the 15th of a month, you get 100% for that month and two subsequent months
+ * - If you start on/after the 15th, ramp-up starts from the next month (3 full months)
  *
- * Example: Start Oct 17th
- * - Effective start: Oct 15th
- * - Ramp-up end: Jan 15th (3 months later)
- * - Q4: Oct 0.5 + Nov 1.0 + Dec 1.0 = 2.5 months ramp-up, 0.5 months not employed
- * - Q1: Jan 0.5 ramp-up + Jan 0.5 post + Feb 1.0 post + Mar 1.0 post
+ * Example: Start Jan 13th (before 15th)
+ * - Effective start: Jan 1st
+ * - Ramp-up: Jan, Feb, Mar (3 months)
+ * - Q1: 3 months ramp-up
+ *
+ * Example: Start Jan 17th (on/after 15th)
+ * - Effective start: Feb 1st
+ * - Ramp-up: Feb, Mar, Apr (3 months)
+ * - Q1: 1 month not employed (Jan), 2 months ramp-up (Feb, Mar)
+ * - Q2: 1 month ramp-up (Apr), 2 months post ramp-up (May, Jun)
  *
  * @param startDate - Employee's start date
  * @param quarter - Quarter in "YYYY-QN" format
- * @returns QuarterBreakdown with month counts for each portion (can be fractional)
+ * @returns QuarterBreakdown with month counts for each portion (always whole months)
  */
 export function calculateQuarterBreakdown(
   startDate: Date | null | undefined,
@@ -142,14 +145,12 @@ export function calculateQuarterBreakdown(
   const quarterYear = parseInt(yearStr, 10)
   const quarterNum = parseInt(quarterStr, 10)
 
-  // Get the effective start date (1st or 15th of the month)
+  // Get the effective start date (always 1st of a month)
   const effectiveStart = getEffectiveStartDate(startDate)
-  const startedOn15th = effectiveStart.getDate() === 15
 
   // Calculate ramp-up end date (exactly 3 months from effective start)
   const rampUpEnd = new Date(effectiveStart)
   rampUpEnd.setMonth(rampUpEnd.getMonth() + 3)
-  const rampUpEndsOn15th = rampUpEnd.getDate() === 15
 
   // Get the first month in this quarter (0-indexed)
   const quarterStartMonth = (quarterNum - 1) * 3 // 0, 3, 6, or 9
@@ -161,76 +162,21 @@ export function calculateQuarterBreakdown(
   // Process each month in the quarter
   for (let i = 0; i < 3; i++) {
     const month = quarterStartMonth + i
-    const monthYear = quarterYear
 
-    // Create month boundaries for comparison
-    const monthStartIndex = monthYear * 12 + month
+    // Create month boundaries for comparison (year * 12 + month gives unique index)
+    const monthIndex = quarterYear * 12 + month
     const effectiveStartIndex =
       effectiveStart.getFullYear() * 12 + effectiveStart.getMonth()
     const rampUpEndIndex = rampUpEnd.getFullYear() * 12 + rampUpEnd.getMonth()
 
-    // Is this the month where employment starts?
-    const isStartMonth = monthStartIndex === effectiveStartIndex
-
-    // Is this the month where ramp-up ends?
-    const isEndMonth = monthStartIndex === rampUpEndIndex
-
-    // Is this month before employment started?
-    const isBeforeStart = monthStartIndex < effectiveStartIndex
-
-    // Is this month after ramp-up ended?
-    const isAfterRampUp = monthStartIndex > rampUpEndIndex
-
-    // Is this month during ramp-up (not start or end month)?
-    const isDuringRampUp =
-      monthStartIndex > effectiveStartIndex && monthStartIndex < rampUpEndIndex
-
-    if (isBeforeStart) {
-      // Entire month is before employment
+    if (monthIndex < effectiveStartIndex) {
+      // Month is before employment started
       notEmployedMonths += 1
-    } else if (isStartMonth && isEndMonth) {
-      // Ramp-up both starts and ends in this month (edge case)
-      if (startedOn15th && rampUpEndsOn15th) {
-        // Started 15th, ends 15th - impossible in same month
-        notEmployedMonths += 0.5
-        rampUpMonths += 0.5
-      } else if (startedOn15th) {
-        // Started 15th, ends 1st of this month - also impossible
-        notEmployedMonths += 0.5
-        rampUpMonths += 0.5
-      } else if (rampUpEndsOn15th) {
-        // Started 1st, ends 15th
-        rampUpMonths += 0.5
-        postRampUpMonths += 0.5
-      } else {
-        // Started 1st, ends 1st - full month is post ramp-up
-        postRampUpMonths += 1
-      }
-    } else if (isStartMonth) {
-      // Employment starts in this month
-      if (startedOn15th) {
-        // First half not employed, second half ramp-up
-        notEmployedMonths += 0.5
-        rampUpMonths += 0.5
-      } else {
-        // Full month is ramp-up
-        rampUpMonths += 1
-      }
-    } else if (isEndMonth) {
-      // Ramp-up ends in this month
-      if (rampUpEndsOn15th) {
-        // First half ramp-up, second half post
-        rampUpMonths += 0.5
-        postRampUpMonths += 0.5
-      } else {
-        // Ramp-up ends on 1st - full month is post ramp-up
-        postRampUpMonths += 1
-      }
-    } else if (isDuringRampUp) {
-      // Full month is ramp-up
+    } else if (monthIndex < rampUpEndIndex) {
+      // Month is during ramp-up period
       rampUpMonths += 1
-    } else if (isAfterRampUp) {
-      // Full month is post ramp-up
+    } else {
+      // Month is after ramp-up ended
       postRampUpMonths += 1
     }
   }
