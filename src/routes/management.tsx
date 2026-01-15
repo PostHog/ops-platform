@@ -38,6 +38,7 @@ import type { KeeperTestJobPayload } from './runScheduledJobs'
 import { createAdminFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
 import { CommissionImportPanel } from '@/components/CommissionImportPanel'
+import { getQuarterStartDate } from '@/lib/commission-calculator'
 import { z } from 'zod'
 import { impersonateUser } from '@/lib/auth-client'
 import { createAuditLogEntry } from '@/lib/audit-log'
@@ -615,6 +616,9 @@ const importCommissionBonusesSchema = z.object({
       attainment: z.number().nonnegative(),
       bonusAmount: z.number().nonnegative(),
       calculatedAmount: z.number().nonnegative(),
+      notes: z.string().optional(),
+      sheet: z.string().optional(),
+      amountHeld: z.number().nonnegative().optional(),
     }),
   ),
 })
@@ -635,7 +639,6 @@ export const importCommissionBonuses = createAdminFn({
           include: {
             salaries: {
               orderBy: { timestamp: 'desc' },
-              take: 1,
             },
           },
         })
@@ -660,10 +663,20 @@ export const importCommissionBonuses = createAdminFn({
           )
         }
 
-        // Get exchange rate and local currency from latest salary
-        const latestSalary = employee.salaries[0]
-        const exchangeRate = latestSalary?.exchangeRate ?? 1
-        const localCurrency = latestSalary?.localCurrency ?? 'USD'
+        // Get exchange rate and local currency from salary at quarter start
+        // Use end of first day to include salaries created on quarter start day
+        const quarterStartDate = getQuarterStartDate(bonus.quarter)
+        const quarterStartEndOfDay = new Date(quarterStartDate)
+        quarterStartEndOfDay.setHours(23, 59, 59, 999)
+        let salaryAtQuarterStart = employee.salaries.find(
+          (s) => s.timestamp <= quarterStartEndOfDay,
+        )
+        // Fallback to oldest salary if none found before quarter start
+        if (!salaryAtQuarterStart && employee.salaries.length > 0) {
+          salaryAtQuarterStart = employee.salaries[employee.salaries.length - 1]
+        }
+        const exchangeRate = salaryAtQuarterStart?.exchangeRate ?? 1
+        const localCurrency = salaryAtQuarterStart?.localCurrency ?? 'USD'
         const calculatedAmountLocal = bonus.calculatedAmount * exchangeRate
 
         // Note: bonus.bonusAmount is already the quarterly amount (annual / 4) from the import panel
@@ -676,9 +689,12 @@ export const importCommissionBonuses = createAdminFn({
             attainment: bonus.attainment,
             bonusAmount: bonus.bonusAmount, // This is already quarterly (annual / 4)
             calculatedAmount: bonus.calculatedAmount,
+            amountHeld: bonus.amountHeld ?? 0,
             exchangeRate: exchangeRate,
             localCurrency: localCurrency,
             calculatedAmountLocal: calculatedAmountLocal,
+            notes: bonus.notes,
+            sheet: bonus.sheet,
             communicated: false,
             synced: false,
           },
@@ -709,7 +725,11 @@ export const getEmployeesForImport = createAdminFn({
     include: {
       salaries: {
         orderBy: { timestamp: 'desc' },
-        take: 1,
+      },
+      deelEmployee: {
+        select: {
+          startDate: true,
+        },
       },
     },
   })

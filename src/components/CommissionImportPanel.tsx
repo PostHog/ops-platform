@@ -13,6 +13,9 @@ import {
   validateQuarterFormat,
   validateQuota,
   validateAttainment,
+  calculateQuarterBreakdown,
+  getQuarterStartDate,
+  type QuarterBreakdown,
 } from '@/lib/commission-calculator'
 import {
   importCommissionBonuses,
@@ -36,6 +39,10 @@ type ImportRow = {
   bonusAmount?: number
   calculatedAmount?: number
   attainmentPercentage?: number
+  quarterBreakdown?: QuarterBreakdown
+  notes?: string
+  sheet?: string
+  amountHeld?: number
   error?: string
 }
 
@@ -133,15 +140,9 @@ export function CommissionImportPanel() {
         throw new Error('File is empty')
       }
 
-      const hasEmail =
-        'email' in firstRow ||
-        'employee email' in firstRow ||
-        'work email' in firstRow
-      const hasQuota = 'quota' in firstRow || 'sales quota' in firstRow
-      const hasAttainment =
-        'attainment' in firstRow ||
-        'sales attainment' in firstRow ||
-        'actual attainment' in firstRow
+      const hasEmail = 'email' in firstRow
+      const hasQuota = 'quota' in firstRow
+      const hasAttainment = 'attainment' in firstRow
 
       if (!hasEmail || !hasQuota || !hasAttainment) {
         throw new Error(
@@ -160,21 +161,16 @@ export function CommissionImportPanel() {
         const row = rows[i]
         const rowNumber = i + 2 // +2 because 1-indexed and header row
 
+        const email = row.email || ''
+
+        // Skip rows without email entirely
+        if (!email || typeof email !== 'string' || !email.trim()) {
+          continue
+        }
+
+        const normalizedEmail = email.trim().toLowerCase()
+
         try {
-          // Extract email (try multiple column names)
-          const email =
-            row.email ||
-            row['employee email'] ||
-            row['work email'] ||
-            row['e-mail'] ||
-            ''
-
-          if (!email || typeof email !== 'string') {
-            throw new Error('Email is required')
-          }
-
-          const normalizedEmail = email.trim().toLowerCase()
-
           // Find employee
           const employee = employees.find(
             (emp: { email: string }) =>
@@ -186,8 +182,7 @@ export function CommissionImportPanel() {
           }
 
           // Extract quota
-          const quotaStr =
-            row.quota || row['sales quota'] || row['quota amount'] || ''
+          const quotaStr = row.quota || ''
           const quota = parseFloat(String(quotaStr).replace(/[,$]/g, ''))
 
           if (isNaN(quota)) {
@@ -199,11 +194,7 @@ export function CommissionImportPanel() {
           }
 
           // Extract attainment
-          const attainmentStr =
-            row.attainment ||
-            row['sales attainment'] ||
-            row['actual attainment'] ||
-            ''
+          const attainmentStr = row.attainment || ''
           const attainment = parseFloat(
             String(attainmentStr).replace(/[,$]/g, ''),
           )
@@ -223,28 +214,67 @@ export function CommissionImportPanel() {
             )
           }
 
-          // Get latest salary bonus amount (annual) and divide by 4 for quarterly
-          const latestSalary = employee.salaries?.[0]
-          const annualBonusAmount = latestSalary?.bonusAmount || 0
+          // Get salary active at the start of the quarter
+          // Use end of first day to include salaries created on quarter start day
+          const quarterStartDate = getQuarterStartDate(quarter)
+          const quarterStartEndOfDay = new Date(quarterStartDate)
+          quarterStartEndOfDay.setHours(23, 59, 59, 999)
+          const quarterStartTimestamp = quarterStartEndOfDay.getTime()
+          let salaryAtQuarterStart = employee.salaries?.find(
+            (s: { timestamp: Date | string }) =>
+              new Date(s.timestamp).getTime() <= quarterStartTimestamp,
+          )
+
+          // Fallback to oldest salary if none found before quarter start
+          // (e.g., employee joined after quarter started)
+          if (!salaryAtQuarterStart && employee.salaries?.length > 0) {
+            salaryAtQuarterStart =
+              employee.salaries[employee.salaries.length - 1]
+          }
+
+          if (!salaryAtQuarterStart) {
+            throw new Error('No salary records found for this employee')
+          }
+
+          const annualBonusAmount = salaryAtQuarterStart.bonusAmount || 0
+          const salaryDate = new Date(salaryAtQuarterStart.timestamp)
+            .toISOString()
+            .split('T')[0]
 
           if (annualBonusAmount <= 0) {
             throw new Error(
-              'Employee has no bonus amount in their latest salary record',
+              `Salary from ${salaryDate} has no bonus amount (bonusAmount: ${salaryAtQuarterStart.bonusAmount})`,
             )
           }
 
           // Convert annual bonus to quarterly bonus
           const quarterlyBonusAmount = annualBonusAmount / 4
 
+          // Calculate quarter breakdown (not employed, ramp-up, post ramp-up)
+          const startDate = employee.deelEmployee?.startDate
+            ? new Date(employee.deelEmployee.startDate)
+            : null
+          const quarterBreakdown = calculateQuarterBreakdown(startDate, quarter)
+
           // Calculate commission bonus using quarterly bonus amount
+          // Pro-rated: ramp-up portion gets 100% OTE, post ramp-up gets attainment%
           const calculatedAmount = calculateCommissionBonus(
             attainment,
             quota,
             quarterlyBonusAmount,
+            quarterBreakdown,
           )
 
           // Calculate attainment percentage
           const attainmentPercentage = (attainment / quota) * 100
+
+          // Extract notes, sheet, and amountHeld (optional)
+          const notes: string = row.notes || ''
+          const sheet: string = row.sheet || ''
+          const amountHeldStr = row.amountheld || ''
+          const amountHeld = amountHeldStr
+            ? parseFloat(String(amountHeldStr).replace(/[,$]/g, ''))
+            : 0
 
           processedRows.push({
             email: normalizedEmail,
@@ -255,14 +285,17 @@ export function CommissionImportPanel() {
             bonusAmount: quarterlyBonusAmount,
             calculatedAmount,
             attainmentPercentage,
+            quarterBreakdown,
+            notes: notes.trim(),
+            sheet: sheet.trim(),
+            amountHeld: amountHeld,
           })
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error'
           errors.push(`Row ${rowNumber}: ${errorMessage}`)
           processedRows.push({
-            email:
-              row.email || row['employee email'] || row['work email'] || '',
+            email: normalizedEmail,
             quota: 0,
             attainment: 0,
             quarter: quarter,
@@ -312,6 +345,9 @@ export function CommissionImportPanel() {
             attainment: row.attainment,
             bonusAmount: row.bonusAmount!,
             calculatedAmount: row.calculatedAmount!,
+            notes: row.notes,
+            sheet: row.sheet,
+            amountHeld: row.amountHeld,
           })),
         },
       })
@@ -372,7 +408,8 @@ export function CommissionImportPanel() {
             onChange={handleFileChange}
           />
           <p className="text-muted-foreground text-sm">
-            Expected columns: email, quota, attainment.
+            Expected columns: email, quota, attainment. Optional: notes, sheet,
+            amountHeld.
           </p>
         </div>
 
@@ -398,7 +435,12 @@ export function CommissionImportPanel() {
                     <TableHead>Attainment %</TableHead>
                     <TableHead>Bonus Amount</TableHead>
                     <TableHead>Calculated Bonus</TableHead>
+                    <TableHead>Amount Held</TableHead>
+                    <TableHead>Net Payout</TableHead>
+                    <TableHead>Quarter Breakdown</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead>Sheet</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -443,6 +485,58 @@ export function CommissionImportPanel() {
                           : '-'}
                       </TableCell>
                       <TableCell>
+                        {row.amountHeld && row.amountHeld > 0 ? (
+                          new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                          }).format(row.amountHeld)
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {row.calculatedAmount ? (
+                          <span className="font-medium">
+                            {new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: 'USD',
+                            }).format(
+                              row.calculatedAmount - (row.amountHeld || 0),
+                            )}
+                          </span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {row.quarterBreakdown ? (
+                          <div className="space-y-0.5 text-xs">
+                            {row.quarterBreakdown.notEmployedMonths > 0 && (
+                              <div className="text-muted-foreground">
+                                {row.quarterBreakdown.notEmployedMonths} not
+                                employed
+                              </div>
+                            )}
+                            {row.quarterBreakdown.rampUpMonths > 0 && (
+                              <div className="text-blue-600">
+                                {row.quarterBreakdown.rampUpMonths} ramp-up
+                                (100% OTE)
+                              </div>
+                            )}
+                            {row.quarterBreakdown.postRampUpMonths > 0 && (
+                              <div className="text-green-600">
+                                {row.quarterBreakdown.postRampUpMonths} post
+                                ramp-up
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            -
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {row.error ? (
                           <span className="text-destructive text-xs">
                             {row.error}
@@ -450,6 +544,28 @@ export function CommissionImportPanel() {
                         ) : (
                           <span className="text-xs text-green-600">
                             ✓ Valid
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {row.notes ? (
+                          <span className="text-muted-foreground max-w-[200px] truncate text-xs">
+                            {row.notes}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            -
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {row.sheet ? (
+                          <span className="text-muted-foreground max-w-[200px] truncate text-xs">
+                            {row.sheet}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            -
                           </span>
                         )}
                       </TableCell>

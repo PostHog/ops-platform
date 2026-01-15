@@ -5,22 +5,22 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 export interface SendEmailOptions {
   to: string
   subject: string
-  text: string
+  html: string
   from?: string
 }
 
 export async function sendEmail({
   to,
   subject,
-  text,
-  from = 'Ops platform <onboarding@resend.dev>', // Default Resend sender, should be configured with verified domain
+  html,
+  from = 'Ops platform <commission-confirmation@ops.posthog.dev>',
 }: SendEmailOptions): Promise<{ success: boolean; error?: string }> {
   try {
     const result = await resend.emails.send({
       from,
       to,
       subject,
-      text,
+      html,
     })
 
     if (result.error) {
