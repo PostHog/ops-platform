@@ -362,7 +362,7 @@ export function NewSalaryForm({
               </Button>
               <Button
                 type="submit"
-                size="sm"
+                size="sms"
                 disabled={step < 0.85 || step > 1.2}
               >
                 Save
