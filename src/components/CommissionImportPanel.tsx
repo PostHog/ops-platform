@@ -14,6 +14,7 @@ import {
   validateQuota,
   validateAttainment,
   calculateQuarterBreakdown,
+  getQuarterStartDate,
   type QuarterBreakdown,
 } from '@/lib/commission-calculator'
 import {
@@ -213,13 +214,36 @@ export function CommissionImportPanel() {
             )
           }
 
-          // Get latest salary bonus amount (annual) and divide by 4 for quarterly
-          const latestSalary = employee.salaries?.[0]
-          const annualBonusAmount = latestSalary?.bonusAmount || 0
+          // Get salary active at the start of the quarter
+          // Use end of first day to include salaries created on quarter start day
+          const quarterStartDate = getQuarterStartDate(quarter)
+          const quarterStartEndOfDay = new Date(quarterStartDate)
+          quarterStartEndOfDay.setHours(23, 59, 59, 999)
+          const quarterStartTimestamp = quarterStartEndOfDay.getTime()
+          let salaryAtQuarterStart = employee.salaries?.find(
+            (s: { timestamp: Date | string }) =>
+              new Date(s.timestamp).getTime() <= quarterStartTimestamp,
+          )
+
+          // Fallback to oldest salary if none found before quarter start
+          // (e.g., employee joined after quarter started)
+          if (!salaryAtQuarterStart && employee.salaries?.length > 0) {
+            salaryAtQuarterStart =
+              employee.salaries[employee.salaries.length - 1]
+          }
+
+          if (!salaryAtQuarterStart) {
+            throw new Error('No salary records found for this employee')
+          }
+
+          const annualBonusAmount = salaryAtQuarterStart.bonusAmount || 0
+          const salaryDate = new Date(salaryAtQuarterStart.timestamp)
+            .toISOString()
+            .split('T')[0]
 
           if (annualBonusAmount <= 0) {
             throw new Error(
-              'Employee has no bonus amount in their latest salary record',
+              `Salary from ${salaryDate} has no bonus amount (bonusAmount: ${salaryAtQuarterStart.bonusAmount})`,
             )
           }
 
