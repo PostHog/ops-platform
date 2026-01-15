@@ -360,7 +360,11 @@ export function NewSalaryForm({
               >
                 Cancel
               </Button>
-              <Button type="submit" size="sm">
+              <Button
+                type="submit"
+                size="sm"
+                disabled={step < 0.85 || step > 1.2}
+              >
                 Save
               </Button>
             </div>
@@ -491,8 +495,8 @@ export function NewSalaryForm({
                   </label>
                   <Input
                     type="number"
-                    min="0"
-                    max="2"
+                    min="0.85"
+                    max="1.2"
                     step="0.001"
                     value={field.state.value}
                     onChange={(e) => {
