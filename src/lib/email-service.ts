@@ -7,6 +7,7 @@ export interface SendEmailOptions {
   subject: string
   html: string
   from?: string
+  cc?: string[]
 }
 
 export async function sendEmail({
@@ -14,6 +15,7 @@ export async function sendEmail({
   subject,
   html,
   from = 'Ops platform <commission-confirmation@ops.posthog.dev>',
+  cc,
 }: SendEmailOptions): Promise<{ success: boolean; error?: string }> {
   try {
     const result = await resend.emails.send({

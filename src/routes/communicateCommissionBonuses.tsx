@@ -8,6 +8,51 @@ import {
   getPreviousNQuarters,
 } from '@/lib/commission-calculator'
 
+/**
+ * Get the report chain (all managers up the hierarchy) for an employee
+ * Returns an array of work emails for all managers in the chain
+ * Excludes co-founders (people with no manager themselves)
+ */
+async function getReportChain(employeeEmail: string): Promise<string[]> {
+  const reportChain: string[] = []
+
+  // Start with the employee's deel record to get their manager
+  let currentEmployee = await prisma.deelEmployee.findUnique({
+    where: { workEmail: employeeEmail },
+    select: { managerId: true },
+  })
+
+  while (currentEmployee?.managerId) {
+    const manager = await prisma.deelEmployee.findUnique({
+      where: { id: currentEmployee.managerId },
+      select: { workEmail: true, managerId: true },
+    })
+
+    // Only include if this manager has a manager themselves (excludes co-founders)
+    if (manager?.workEmail && manager.managerId) {
+      reportChain.push(manager.workEmail)
+    }
+
+    currentEmployee = manager
+  }
+
+  return reportChain
+}
+
+/**
+ * Get CC recipients from environment variable COMMISSION_PAYOUT_CCS
+ * Expects a comma-separated list of email addresses
+ */
+function getCommissionPayoutCCs(): string[] {
+  const ccEnv = process.env.COMMISSION_PAYOUT_EMAIL_CCS
+  if (!ccEnv) return []
+
+  return ccEnv
+    .split(',')
+    .map((email) => email.trim())
+    .filter((email) => email.length > 0)
+}
+
 export const Route = createFileRoute('/communicateCommissionBonuses')({
   server: {
     handlers: {
@@ -16,6 +61,9 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
         if (token !== process.env.SYNC_ENDPOINT_KEY) {
           return new Response('Unauthorized', { status: 401 })
         }
+
+        // Get static CC list from env
+        const staticCCs = getCommissionPayoutCCs()
 
         const bonuses = await prisma.commissionBonus.findMany({
           where: {
@@ -125,10 +173,17 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
               trailing12MonthsPerformance,
             })
 
+            // Get the employee's report chain (all managers up the hierarchy)
+            const reportChain = await getReportChain(bonus.employee.email)
+
+            // Combine report chain with static CCs, removing duplicates
+            const allCCs = [...new Set([...reportChain, ...staticCCs])]
+
             const emailResult = await sendEmail({
               to: bonus.employee.email,
               subject: `${bonus.quarter} Commission confirmation - ${employeeName}`,
               html: emailHtml,
+              cc: allCCs,
             })
 
             if (emailResult.success) {
