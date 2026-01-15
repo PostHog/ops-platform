@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import {
   flexRender,
   getCoreRowModel,
@@ -25,6 +25,22 @@ import { createAdminFn } from '@/lib/auth-middleware'
 import { TableFilters } from '@/components/TableFilters'
 import { fetchDeelEmployee } from './syncDeelEmployees'
 import { createToast } from 'vercel-toast'
+import { MoreHorizontal, Pencil } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 const getQuarterEndDate = (quarter: string): string => {
   // Format: "2025-Q4"
@@ -107,6 +123,44 @@ const getCommissionBonuses = createAdminFn({
     },
   })
 })
+
+const updateCommissionBonusAttainment = createAdminFn({
+  method: 'POST',
+})
+  .inputValidator((data: { bonusId: string; attainment: number }) => data)
+  .handler(async ({ data }) => {
+    const { bonusId, attainment } = data
+
+    // Get the existing bonus to calculate derived values
+    const existingBonus = await prisma.commissionBonus.findUnique({
+      where: { id: bonusId },
+    })
+
+    if (!existingBonus) {
+      throw new Error('Commission bonus not found')
+    }
+
+    // Recalculate derived values
+    const calculatedAmount =
+      (attainment / existingBonus.quota) * existingBonus.bonusAmount
+    const calculatedAmountLocal = calculatedAmount * existingBonus.exchangeRate
+
+    return await prisma.commissionBonus.update({
+      where: { id: bonusId },
+      data: {
+        attainment,
+        calculatedAmount,
+        calculatedAmountLocal,
+      },
+      include: {
+        employee: {
+          include: {
+            deelEmployee: true,
+          },
+        },
+      },
+    })
+  })
 
 const exportCommissionBonusesForDeel = createAdminFn({
   method: 'POST',
@@ -217,11 +271,47 @@ export const Route = createFileRoute('/commissionActions')({
 
 function App() {
   const bonuses: Array<CommissionBonus> = Route.useLoaderData()
+  const router = useRouter()
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [isExportingDeel, setIsExportingDeel] = useState(false)
+  const [editingBonus, setEditingBonus] = useState<CommissionBonus | null>(null)
+  const [editAttainment, setEditAttainment] = useState('')
+  const [isUpdating, setIsUpdating] = useState(false)
   const exportCommissionBonusesForDeelFn = useServerFn(
     exportCommissionBonusesForDeel,
   )
+  const updateAttainmentFn = useServerFn(updateCommissionBonusAttainment)
+
+  const handleSaveAttainment = async () => {
+    if (!editingBonus) return
+
+    const newAttainment = parseFloat(editAttainment)
+    if (isNaN(newAttainment)) {
+      createToast('Please enter a valid number')
+      return
+    }
+
+    setIsUpdating(true)
+    try {
+      await updateAttainmentFn({
+        data: {
+          bonusId: editingBonus.id,
+          attainment: newAttainment,
+        },
+      })
+
+      setEditingBonus(null)
+      createToast('Attainment updated successfully')
+      router.invalidate()
+    } catch (error) {
+      console.error('Error updating attainment:', error)
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      createToast(`Failed to update attainment: ${errorMessage}`)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
 
   const columns: Array<ColumnDef<CommissionBonus>> = useMemo(
     () => [
@@ -334,6 +424,31 @@ function App() {
           <div>
             <span>{row.original.communicated ? 'Yes' : 'No'}</span>
           </div>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => {
+                  setEditingBonus(row.original)
+                  setEditAttainment(row.original.attainment.toString())
+                }}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Attainment
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ),
       },
     ],
@@ -498,6 +613,39 @@ function App() {
           </Table>
         </div>
       </div>
+
+      <Dialog
+        open={!!editingBonus}
+        onOpenChange={(open) => !open && setEditingBonus(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Attainment</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2 py-4">
+            <Label htmlFor="attainment">Attainment</Label>
+            <Input
+              id="attainment"
+              type="number"
+              step="0.01"
+              value={editAttainment}
+              onChange={(e) => setEditAttainment(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditingBonus(null)}
+              disabled={isUpdating}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveAttainment} disabled={isUpdating}>
+              {isUpdating ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
