@@ -23,6 +23,7 @@ export async function sendEmail({
       to,
       subject,
       html,
+      cc: cc && cc.length > 0 ? cc : undefined,
     })
 
     if (result.error) {
