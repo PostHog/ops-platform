@@ -1,6 +1,12 @@
 import { formatCurrency } from '@/lib/utils'
 import type { QuarterBreakdown } from '@/lib/commission-calculator'
 
+function getEmailSignature(): string {
+  const sender = process.env.COMMISSION_PAYOUT_EMAIL_SENDER
+  if (!sender) return ''
+  return `<p>Cheers,<br>${sender}</p>`
+}
+
 export interface CommissionBonusEmailData {
   employeeName: string
   quarter: string
@@ -72,6 +78,7 @@ export function generateCommissionBonusEmail(
 <p>Just confirming that you are due ${rampUpMonths > 1 ? `${rampUpMonths} months` : '1 month'} of fixed commission so <strong>${localAmountText}</strong>.</p>
 ${nextQuarterHtml}
 <p>Any questions just let us know.</p>
+${getEmailSignature()}
 `.trim()
   }
 
@@ -111,6 +118,7 @@ ${amountHeldHtml}  <li>Local amount: ${formatCurrency(netPayoutLocal, localCurre
 </ul>
 ${notesHtml}${trailing12MonthsHtml}
 <p>Please let us know any errors within 48 hours, so we can make these ahead of payroll changes. We will always default to getting you paid out on time and fixing any issues after that.</p>
-<p><em>PS we will optimise for getting this into your payroll for this month so any ongoing small tweaks might not make it in and will be resolved next quarter.</em></p>
+<p><em>PS we will optimize for getting this into your payroll for this month so any ongoing small tweaks might not make it in and will be resolved next quarter.</em></p>
+${getEmailSignature()}
 `.trim()
 }
