@@ -5,6 +5,7 @@ import { generateCommissionBonusEmail } from '@/lib/email-templates'
 import {
   calculateQuarterBreakdown,
   getNextQuarter,
+  getPreviousNQuarters,
 } from '@/lib/commission-calculator'
 
 export const Route = createFileRoute('/communicateCommissionBonuses')({
@@ -76,6 +77,35 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
               }
             }
 
+            // Calculate trailing 12-month performance (last 4 quarters including current)
+            let trailing12MonthsPerformance: number | undefined
+            const previous3Quarters = getPreviousNQuarters(bonus.quarter, 3)
+            const allQuarters = [bonus.quarter, ...previous3Quarters]
+
+            // Get all bonuses for this employee in the last 4 quarters
+            const historicalBonuses = await prisma.commissionBonus.findMany({
+              where: {
+                employeeId: bonus.employeeId,
+                quarter: { in: allQuarters },
+              },
+            })
+
+            // Only calculate if we have all 4 quarters of data
+            if (historicalBonuses.length === 4) {
+              const totalAttainment = historicalBonuses.reduce(
+                (sum, b) => sum + b.attainment,
+                0,
+              )
+              const totalQuota = historicalBonuses.reduce(
+                (sum, b) => sum + b.quota,
+                0,
+              )
+              if (totalQuota > 0) {
+                trailing12MonthsPerformance =
+                  (totalAttainment / totalQuota) * 100
+              }
+            }
+
             const emailHtml = generateCommissionBonusEmail({
               employeeName,
               quarter: bonus.quarter,
@@ -90,6 +120,7 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
               nextQuarterRampUpAmount,
               notes: bonus.notes ?? undefined,
               sheet: bonus.sheet ?? undefined,
+              trailing12MonthsPerformance,
             })
 
             const emailResult = await sendEmail({

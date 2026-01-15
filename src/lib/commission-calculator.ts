@@ -256,3 +256,38 @@ export function validateQuota(quota: number): boolean {
 export function validateAttainment(attainment: number): boolean {
   return attainment >= 0
 }
+
+/**
+ * Get the previous quarter from a given quarter in "YYYY-QN" format
+ * @param quarter - Quarter in "YYYY-QN" format
+ * @returns Previous quarter in "YYYY-QN" format
+ */
+export function getPreviousQuarterFrom(quarter: string): string {
+  const [yearStr, quarterStr] = quarter.split('-Q')
+  const year = parseInt(yearStr, 10)
+  const q = parseInt(quarterStr, 10)
+
+  if (q === 1) {
+    return `${year - 1}-Q4`
+  } else {
+    return `${year}-Q${q - 1}`
+  }
+}
+
+/**
+ * Get the previous N quarters from a given quarter (not including the given quarter)
+ * @param quarter - Quarter in "YYYY-QN" format
+ * @param count - Number of previous quarters to return
+ * @returns Array of quarters in "YYYY-QN" format, most recent first
+ */
+export function getPreviousNQuarters(quarter: string, count: number): string[] {
+  const quarters: string[] = []
+  let currentQuarter = quarter
+
+  for (let i = 0; i < count; i++) {
+    currentQuarter = getPreviousQuarterFrom(currentQuarter)
+    quarters.push(currentQuarter)
+  }
+
+  return quarters
+}

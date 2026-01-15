@@ -15,6 +15,8 @@ export interface CommissionBonusEmailData {
   nextQuarterRampUpAmount?: number
   notes?: string
   sheet?: string
+  /** Trailing 12-month performance percentage (if > 100%, show a congratulatory message) */
+  trailing12MonthsPerformance?: number
 }
 
 export function generateCommissionBonusEmail(
@@ -34,6 +36,7 @@ export function generateCommissionBonusEmail(
     nextQuarterRampUpAmount,
     notes,
     sheet,
+    trailing12MonthsPerformance,
   } = data
 
   // Check if this is a ramp-up only quarter (no post-ramp-up portion)
@@ -72,6 +75,12 @@ ${nextQuarterHtml}
     ? `<p>You can see a list of your accounts in <a href="${sheet}" target="_blank">this sheet</a>.</p> `
     : ''
 
+  // Add trailing 12-month performance message if > 100%
+  const trailing12MonthsHtml =
+    trailing12MonthsPerformance && trailing12MonthsPerformance > 100
+      ? `<p>Finally, I wanted to flag that over the last 12 months you've hit <strong>${trailing12MonthsPerformance.toFixed(0)}%</strong> quota performance! Awesome work!</p>`
+      : ''
+
   return `
 <p>Hey ${employeeName},</p>
 <p>Confirming your commission for ${quarter} will be <strong>${formatCurrency(calculatedAmountLocal, localCurrency)}</strong></p>
@@ -83,7 +92,7 @@ ${nextQuarterHtml}
   <li>OTE payout: ${formatCurrency(calculatedAmount)}</li>
   <li>Local amount: ${formatCurrency(calculatedAmountLocal, localCurrency)}</li>
 </ul>
-${notesHtml}
+${notesHtml}${trailing12MonthsHtml}
 <p>Please let us know any errors within 48 hours, so we can make these ahead of payroll changes. We will always default to getting you paid out on time and fixing any issues after that.</p>
 <p><em>PS we will optimise for getting this into your payroll for this month so any ongoing small tweaks might not make it in and will be resolved next quarter.</em></p>
 `.trim()
