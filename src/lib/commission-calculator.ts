@@ -68,13 +68,6 @@ export function getEffectiveStartDate(startDate: Date): Date {
 }
 
 /**
- * Get the quarter number (1-4) for a given year and month
- */
-export function getQuarterForMonth(month: number): number {
-  return Math.floor(month / 3) + 1
-}
-
-/**
  * Get the start date of a quarter
  * @param quarter - Quarter in "YYYY-QN" format
  * @returns Date representing the first day of the quarter
@@ -87,22 +80,6 @@ export function getQuarterStartDate(quarter: string): Date {
   // Q1: Jan 1, Q2: Apr 1, Q3: Jul 1, Q4: Oct 1
   const startMonth = (q - 1) * 3
   return new Date(year, startMonth, 1)
-}
-
-/**
- * Get the end date of a quarter (last day of the quarter)
- * @param quarter - Quarter in "YYYY-QN" format
- * @returns Date representing the last day of the quarter
- */
-export function getQuarterEndDate(quarter: string): Date {
-  const [yearStr, quarterStr] = quarter.split('-Q')
-  const year = parseInt(yearStr, 10)
-  const q = parseInt(quarterStr, 10)
-
-  // Q1: Mar 31, Q2: Jun 30, Q3: Sep 30, Q4: Dec 31
-  const endMonth = q * 3 // Month after the quarter ends (0-indexed)
-  // Setting day to 0 gives us the last day of the previous month
-  return new Date(year, endMonth, 0)
 }
 
 /**
