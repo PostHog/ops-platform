@@ -95,7 +95,7 @@ ${nextQuarterHtml}
 
   // Amount held line for breakdown
   const amountHeldHtml = hasAmountHeld
-    ? `  <li>Amount held: ${formatCurrency(amountHeld)} (${formatCurrency(amountHeld * (exchangeRate || 1), localCurrency)} local) - due to unpaid invoice</li>\n`
+    ? `  <li>Amount held: ${formatCurrency(amountHeld)}\n`
     : ''
 
   return `
