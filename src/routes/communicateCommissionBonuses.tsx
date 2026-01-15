@@ -120,6 +120,8 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
               nextQuarterRampUpAmount,
               notes: bonus.notes ?? undefined,
               sheet: bonus.sheet ?? undefined,
+              amountHeld: bonus.amountHeld ?? undefined,
+              exchangeRate: bonus.exchangeRate,
               trailing12MonthsPerformance,
             })
 

@@ -45,6 +45,12 @@ export function CommissionBonusTimelineCard({
                       Attainment: {formatCurrency(bonus.attainment)}
                       <br />
                       Bonus Amount: {formatCurrency(bonus.bonusAmount)}
+                      {bonus.amountHeld > 0 && (
+                        <>
+                          <br />
+                          Amount Held: {formatCurrency(bonus.amountHeld)}
+                        </>
+                      )}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -60,21 +66,36 @@ export function CommissionBonusTimelineCard({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="cursor-help">
-                          {formatCurrency(bonus.calculatedAmount)}
+                          {formatCurrency(
+                            bonus.calculatedAmount - (bonus.amountHeld || 0),
+                          )}
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>
+                          Calculated: {formatCurrency(bonus.calculatedAmount)}
+                          {bonus.amountHeld > 0 && (
+                            <>
+                              <br />
+                              Held: {formatCurrency(bonus.amountHeld)}
+                            </>
+                          )}
+                          <br />
                           Local:{' '}
                           {formatCurrency(
-                            bonus.calculatedAmountLocal,
+                            (bonus.calculatedAmountLocal || 0) -
+                              (bonus.amountHeld || 0) * bonus.exchangeRate,
                             bonus.localCurrency,
                           )}
                         </p>
                       </TooltipContent>
                     </Tooltip>
                   ) : (
-                    <span>{formatCurrency(bonus.calculatedAmount)}</span>
+                    <span>
+                      {formatCurrency(
+                        bonus.calculatedAmount - (bonus.amountHeld || 0),
+                      )}
+                    </span>
                   )}
                 </span>
               </div>

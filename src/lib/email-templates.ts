@@ -15,6 +15,10 @@ export interface CommissionBonusEmailData {
   nextQuarterRampUpAmount?: number
   notes?: string
   sheet?: string
+  /** Amount held back (e.g. due to unpaid customer invoices) */
+  amountHeld?: number
+  /** Exchange rate for local currency conversion */
+  exchangeRate?: number
   /** Trailing 12-month performance percentage (if > 100%, show a congratulatory message) */
   trailing12MonthsPerformance?: number
 }
@@ -36,6 +40,8 @@ export function generateCommissionBonusEmail(
     nextQuarterRampUpAmount,
     notes,
     sheet,
+    amountHeld,
+    exchangeRate,
     trailing12MonthsPerformance,
   } = data
 
@@ -81,16 +87,27 @@ ${nextQuarterHtml}
       ? `<p>Finally, I wanted to flag that over the last 12 months you've hit <strong>${trailing12MonthsPerformance.toFixed(0)}%</strong> quota performance! Awesome work!</p>`
       : ''
 
+  // Calculate net payout after deducting amount held
+  const hasAmountHeld = amountHeld && amountHeld > 0
+  const netPayoutLocal = hasAmountHeld
+    ? (calculatedAmountLocal || 0) - amountHeld * (exchangeRate || 1)
+    : calculatedAmountLocal
+
+  // Amount held line for breakdown
+  const amountHeldHtml = hasAmountHeld
+    ? `  <li>Amount held: ${formatCurrency(amountHeld)} (${formatCurrency(amountHeld * (exchangeRate || 1), localCurrency)} local) - due to unpaid invoice</li>\n`
+    : ''
+
   return `
 <p>Hey ${employeeName},</p>
-<p>Confirming your commission for ${quarter} will be <strong>${formatCurrency(calculatedAmountLocal, localCurrency)}</strong></p>
+<p>Confirming your commission for ${quarter} will be <strong>${formatCurrency(netPayoutLocal, localCurrency)}</strong></p>
 <p>${sheetHtml}Here is the breakdown:</p>
 <ul>
   <li>Quota: ${formatCurrency(quota)}</li>
   <li>Attainment: ${formatCurrency(attainment)} (${attainmentPercentage.toFixed(1)}%)</li>
   <li>OTE amount: ${formatCurrency(bonusAmount)}</li>
   <li>OTE payout: ${formatCurrency(calculatedAmount)}</li>
-  <li>Local amount: ${formatCurrency(calculatedAmountLocal, localCurrency)}</li>
+${amountHeldHtml}  <li>Local amount: ${formatCurrency(netPayoutLocal, localCurrency)}</li>
 </ul>
 ${notesHtml}${trailing12MonthsHtml}
 <p>Please let us know any errors within 48 hours, so we can make these ahead of payroll changes. We will always default to getting you paid out on time and fixing any issues after that.</p>

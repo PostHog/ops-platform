@@ -41,6 +41,7 @@ type ImportRow = {
   quarterBreakdown?: QuarterBreakdown
   notes?: string
   sheet?: string
+  amountHeld?: number
   error?: string
 }
 
@@ -243,9 +244,13 @@ export function CommissionImportPanel() {
           // Calculate attainment percentage
           const attainmentPercentage = (attainment / quota) * 100
 
-          // Extract notes and sheet (optional)
+          // Extract notes, sheet, and amountHeld (optional)
           const notes: string = row.notes || ''
           const sheet: string = row.sheet || ''
+          const amountHeldStr = row.amountheld || ''
+          const amountHeld = amountHeldStr
+            ? parseFloat(String(amountHeldStr).replace(/[,$]/g, ''))
+            : 0
 
           processedRows.push({
             email: normalizedEmail,
@@ -259,6 +264,7 @@ export function CommissionImportPanel() {
             quarterBreakdown,
             notes: notes.trim(),
             sheet: sheet.trim(),
+            amountHeld: amountHeld,
           })
         } catch (error) {
           const errorMessage =
@@ -317,6 +323,7 @@ export function CommissionImportPanel() {
             calculatedAmount: row.calculatedAmount!,
             notes: row.notes,
             sheet: row.sheet,
+            amountHeld: row.amountHeld,
           })),
         },
       })
@@ -377,7 +384,8 @@ export function CommissionImportPanel() {
             onChange={handleFileChange}
           />
           <p className="text-muted-foreground text-sm">
-            Expected columns: email, quota, attainment. Optional: notes, sheet.
+            Expected columns: email, quota, attainment. Optional: notes, sheet,
+            amountHeld.
           </p>
         </div>
 
@@ -403,6 +411,8 @@ export function CommissionImportPanel() {
                     <TableHead>Attainment %</TableHead>
                     <TableHead>Bonus Amount</TableHead>
                     <TableHead>Calculated Bonus</TableHead>
+                    <TableHead>Amount Held</TableHead>
+                    <TableHead>Net Payout</TableHead>
                     <TableHead>Quarter Breakdown</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Notes</TableHead>
@@ -449,6 +459,30 @@ export function CommissionImportPanel() {
                               currency: 'USD',
                             }).format(row.calculatedAmount)
                           : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {row.amountHeld && row.amountHeld > 0 ? (
+                          new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                          }).format(row.amountHeld)
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {row.calculatedAmount ? (
+                          <span className="font-medium">
+                            {new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: 'USD',
+                            }).format(
+                              row.calculatedAmount - (row.amountHeld || 0),
+                            )}
+                          </span>
+                        ) : (
+                          '-'
+                        )}
                       </TableCell>
                       <TableCell>
                         {row.quarterBreakdown ? (

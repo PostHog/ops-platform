@@ -617,6 +617,7 @@ const importCommissionBonusesSchema = z.object({
       calculatedAmount: z.number().nonnegative(),
       notes: z.string().optional(),
       sheet: z.string().optional(),
+      amountHeld: z.number().nonnegative().optional(),
     }),
   ),
 })
@@ -678,6 +679,7 @@ export const importCommissionBonuses = createAdminFn({
             attainment: bonus.attainment,
             bonusAmount: bonus.bonusAmount, // This is already quarterly (annual / 4)
             calculatedAmount: bonus.calculatedAmount,
+            amountHeld: bonus.amountHeld ?? 0,
             exchangeRate: exchangeRate,
             localCurrency: localCurrency,
             calculatedAmountLocal: calculatedAmountLocal,
