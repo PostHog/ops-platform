@@ -429,6 +429,7 @@ function App() {
       {
         id: 'actions',
         header: '',
+        enableColumnFilter: false,
         cell: ({ row }) => (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
