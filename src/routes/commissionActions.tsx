@@ -345,6 +345,17 @@ function App() {
         cell: ({ row }) => <div>{row.original.quarter}</div>,
       },
       {
+        accessorKey: 'commissionType',
+        header: 'Type',
+        filterFn: (row: Row<CommissionBonus>, _: string, filterValue: string) =>
+          customFilterFns.containsText(
+            row.original.commissionType || '',
+            _,
+            filterValue,
+          ),
+        cell: ({ row }) => <div>{row.original.commissionType || '-'}</div>,
+      },
+      {
         accessorKey: 'quota',
         header: 'Quota',
         meta: {
@@ -469,6 +480,7 @@ function App() {
         return {
           name: bonus.employee.deelEmployee?.name || bonus.employee.email,
           quarter: bonus.quarter,
+          commissionType: bonus.commissionType || '',
           quota: bonus.quota,
           attainment: bonus.attainment,
           attainmentPercentage: `${attainmentPercentage.toFixed(2)}%`,
