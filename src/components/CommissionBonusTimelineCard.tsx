@@ -2,6 +2,10 @@ import { Receipt } from 'lucide-react'
 import type { Prisma } from '@prisma/client'
 import { formatCurrency } from '@/lib/utils'
 import {
+  calculateAttainmentPercentage,
+  formatQuotaOrAttainment,
+} from '@/lib/commission-calculator'
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -19,7 +23,11 @@ export function CommissionBonusTimelineCard({
   bonus,
   lastTableItem = false,
 }: CommissionBonusTimelineCardProps) {
-  const attainmentPercentage = (bonus.attainment / bonus.quota) * 100
+  const attainmentPercentage = calculateAttainmentPercentage(
+    bonus.attainment,
+    bonus.quota,
+    bonus.commissionType,
+  )
 
   return (
     <TooltipProvider>
@@ -40,9 +48,17 @@ export function CommissionBonusTimelineCard({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      Quota: {formatCurrency(bonus.quota)}
+                      Quota:{' '}
+                      {formatQuotaOrAttainment(
+                        bonus.quota,
+                        bonus.commissionType,
+                      )}
                       <br />
-                      Attainment: {formatCurrency(bonus.attainment)}
+                      Attainment:{' '}
+                      {formatQuotaOrAttainment(
+                        bonus.attainment,
+                        bonus.commissionType,
+                      )}
                       <br />
                       Bonus Amount: {formatCurrency(bonus.bonusAmount)}
                       {bonus.amountHeld > 0 && (

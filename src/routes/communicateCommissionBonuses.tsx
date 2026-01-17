@@ -6,6 +6,8 @@ import {
   calculateQuarterBreakdown,
   getNextQuarter,
   getPreviousNQuarters,
+  calculateAttainmentPercentage,
+  isCSMCommissionType,
 } from '@/lib/commission-calculator'
 
 /**
@@ -89,7 +91,11 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
 
         for (const bonus of bonuses) {
           try {
-            const attainmentPercentage = (bonus.attainment / bonus.quota) * 100
+            const attainmentPercentage = calculateAttainmentPercentage(
+              bonus.attainment,
+              bonus.quota,
+              bonus.commissionType,
+            )
             const employeeName =
               bonus.employee.deelEmployee?.name ||
               bonus.employee.email.split('@')[0]
@@ -139,19 +145,44 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
             })
 
             // Only calculate if we have all 4 quarters of data
+            // Note: For mixed commission types, we use weighted average
             if (historicalBonuses.length === 4) {
-              const totalAttainment = historicalBonuses.reduce(
-                (sum, b) => sum + b.attainment,
-                0,
+              // For CSM, sum up the attainment percentages directly
+              // For others, calculate total attainment / total quota
+              const hasCSM = historicalBonuses.some((b) =>
+                isCSMCommissionType(b.commissionType),
               )
-              const totalQuota = historicalBonuses.reduce(
-                (sum, b) => sum + b.quota,
-                0,
+              const allCSM = historicalBonuses.every((b) =>
+                isCSMCommissionType(b.commissionType),
               )
-              if (totalQuota > 0) {
-                trailing12MonthsPerformance =
-                  (totalAttainment / totalQuota) * 100
+
+              if (allCSM) {
+                // All CSM - average the percentages
+                const totalPercentage = historicalBonuses.reduce((sum, b) => {
+                  const pct = calculateAttainmentPercentage(
+                    b.attainment,
+                    b.quota,
+                    b.commissionType,
+                  )
+                  return sum + pct
+                }, 0)
+                trailing12MonthsPerformance = totalPercentage / 4
+              } else if (!hasCSM) {
+                // All non-CSM - use traditional calculation
+                const totalAttainment = historicalBonuses.reduce(
+                  (sum, b) => sum + b.attainment,
+                  0,
+                )
+                const totalQuota = historicalBonuses.reduce(
+                  (sum, b) => sum + b.quota,
+                  0,
+                )
+                if (totalQuota > 0) {
+                  trailing12MonthsPerformance =
+                    (totalAttainment / totalQuota) * 100
+                }
               }
+              // For mixed, we skip the calculation (undefined)
             }
 
             const emailHtml = generateCommissionBonusEmail({
@@ -171,6 +202,7 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
               amountHeld: bonus.amountHeld ?? undefined,
               exchangeRate: bonus.exchangeRate,
               trailing12MonthsPerformance,
+              commissionType: bonus.commissionType,
             })
 
             // Get the employee's report chain (all managers up the hierarchy)

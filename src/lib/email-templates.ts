@@ -1,5 +1,8 @@
 import { formatCurrency } from '@/lib/utils'
-import type { QuarterBreakdown } from '@/lib/commission-calculator'
+import {
+  formatQuotaOrAttainment,
+  type QuarterBreakdown,
+} from '@/lib/commission-calculator'
 
 function getEmailSignature(): string {
   const sender = process.env.COMMISSION_PAYOUT_EMAIL_SENDER
@@ -27,6 +30,8 @@ export interface CommissionBonusEmailData {
   exchangeRate?: number
   /** Trailing 12-month performance percentage (if > 100%, show a congratulatory message) */
   trailing12MonthsPerformance?: number
+  /** Commission type (e.g. "Customer Success Manager (OTE)") */
+  commissionType?: string | null
 }
 
 export function generateCommissionBonusEmail(
@@ -49,6 +54,7 @@ export function generateCommissionBonusEmail(
     amountHeld,
     exchangeRate,
     trailing12MonthsPerformance,
+    commissionType,
   } = data
 
   // Check if this is a ramp-up only quarter (no post-ramp-up portion)
@@ -110,8 +116,8 @@ ${getEmailSignature()}
 <p>Confirming your commission for ${quarter} will be <strong>${formatCurrency(netPayoutLocal, localCurrency)}</strong></p>
 <p>${sheetHtml}Here is the breakdown:</p>
 <ul>
-  <li>Quota: ${formatCurrency(quota)}</li>
-  <li>Attainment: ${formatCurrency(attainment)} (${attainmentPercentage.toFixed(1)}%)</li>
+  <li>Quota: ${formatQuotaOrAttainment(quota, commissionType)}</li>
+  <li>Attainment: ${formatQuotaOrAttainment(attainment, commissionType)} (${attainmentPercentage.toFixed(1)}%)</li>
   <li>OTE amount: ${formatCurrency(bonusAmount)}</li>
   <li>OTE payout: ${formatCurrency(calculatedAmount)}</li>
 ${amountHeldHtml}  <li>Local amount: ${formatCurrency(netPayoutLocal, localCurrency)}</li>

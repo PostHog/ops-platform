@@ -15,6 +15,9 @@ import {
   validateAttainment,
   calculateQuarterBreakdown,
   getQuarterStartDate,
+  calculateAttainmentPercentage,
+  formatQuotaOrAttainment,
+  isCSMCommissionType,
   type QuarterBreakdown,
 } from '@/lib/commission-calculator'
 import {
@@ -267,10 +270,15 @@ export function CommissionImportPanel() {
             quota,
             quarterlyBonusAmount,
             quarterBreakdown,
+            commissionType,
           )
 
-          // Calculate attainment percentage
-          const attainmentPercentage = (attainment / quota) * 100
+          // Calculate attainment percentage based on commission type
+          const attainmentPercentage = calculateAttainmentPercentage(
+            attainment,
+            quota,
+            commissionType,
+          )
 
           // Extract notes, sheet, and amountHeld (optional)
           const notes: string = row.notes || ''
@@ -465,18 +473,21 @@ export function CommissionImportPanel() {
                       </TableCell>
                       <TableCell>
                         {row.quota > 0
-                          ? new Intl.NumberFormat('en-US', {
-                              style: 'currency',
-                              currency: 'USD',
-                            }).format(row.quota)
+                          ? formatQuotaOrAttainment(
+                              row.quota,
+                              row.commissionType,
+                              'USD',
+                            )
                           : '-'}
                       </TableCell>
                       <TableCell>
-                        {row.attainment > 0
-                          ? new Intl.NumberFormat('en-US', {
-                              style: 'currency',
-                              currency: 'USD',
-                            }).format(row.attainment)
+                        {row.attainment > 0 ||
+                        isCSMCommissionType(row.commissionType)
+                          ? formatQuotaOrAttainment(
+                              row.attainment,
+                              row.commissionType,
+                              'USD',
+                            )
                           : '-'}
                       </TableCell>
                       <TableCell>
