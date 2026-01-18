@@ -79,10 +79,12 @@ export function generateCommissionBonusEmail(
       nextQuarterHtml = `<p>You will get another ${nextQuarterLocalAmount} next quarter as well as your quota'd performance attainment.</p>`
     }
 
+    const rampUpNotesHtml = notes ? `<p>${notes}</p>` : ''
+
     return `
 <p>Hi ${employeeName},</p>
 <p>Just confirming that you are due ${rampUpMonths > 1 ? `${rampUpMonths} months` : '1 month'} of fixed commission so <strong>${localAmountText}</strong>.</p>
-${nextQuarterHtml}
+${nextQuarterHtml}${rampUpNotesHtml}
 <p>Any questions just let us know.</p>
 ${getEmailSignature()}
 `.trim()
