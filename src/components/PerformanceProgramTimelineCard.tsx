@@ -5,6 +5,7 @@ import {
   PencilLine,
   File as FileIcon,
 } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
 import type { Prisma } from '@prisma/client'
 import { useServerFn } from '@tanstack/react-start'
 import { getProofFileUrl } from '@/routes/employee.$employeeId'
@@ -156,13 +157,57 @@ export function PerformanceProgramTimelineCard({
             )}
           </h4>
         </div>
-        {notes && (
-          <div className="flex text-xs whitespace-pre-line text-gray-700 italic">
-            <PencilLine className="mr-2 h-4 w-4 shrink-0 text-gray-500" />
-            <span>{notes}</span>
-          </div>
-        )}
+        {notes && <ExpandableText text={notes} />}
         {files.length > 0 && <FileList files={files} />}
+      </div>
+    </div>
+  )
+}
+
+function ExpandableText({ text }: { text: string }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [isTruncated, setIsTruncated] = useState(false)
+  const textRef = useRef<HTMLParagraphElement>(null)
+
+  useEffect(() => {
+    if (textRef.current) {
+      const element = textRef.current
+      setIsTruncated(element.scrollHeight > element.clientHeight)
+    }
+  }, [text, isExpanded])
+
+  return (
+    <div className="flex max-w-4xl text-xs text-gray-700 italic">
+      <PencilLine className="mr-2 h-4 w-4 shrink-0 text-gray-500" />
+      <div>
+        <p
+          ref={textRef}
+          className={cn('whitespace-pre-line', !isExpanded && 'line-clamp-3')}
+        >
+          {text}
+        </p>
+        {isTruncated && !isExpanded && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsExpanded(true)
+            }}
+            className="mt-1 text-sm font-semibold text-gray-500 not-italic hover:text-blue-700"
+          >
+            show more
+          </button>
+        )}
+        {isExpanded && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsExpanded(false)
+            }}
+            className="mt-1 text-sm font-semibold text-gray-500 not-italic hover:text-blue-700"
+          >
+            show less
+          </button>
+        )}
       </div>
     </div>
   )
