@@ -11,18 +11,79 @@ export type QuarterBreakdown = {
 }
 
 /**
+ * Commission type constant for Customer Success Manager
+ */
+export const CSM_COMMISSION_TYPE = 'Customer Success Manager (OTE)'
+
+/**
+ * Check if a commission type is CSM (Customer Success Manager)
+ */
+export function isCSMCommissionType(
+  commissionType: string | null | undefined,
+): boolean {
+  return commissionType === CSM_COMMISSION_TYPE
+}
+
+/**
+ * Calculate the attainment percentage based on commission type
+ *
+ * For CSM (Customer Success Manager): (attainment - 1) / (quota - 1)
+ * For all other types: attainment / quota
+ */
+export function calculateAttainmentPercentage(
+  attainment: number,
+  quota: number,
+  commissionType?: string | null,
+): number {
+  if (isCSMCommissionType(commissionType)) {
+    // CSM uses percentage-based quota/attainment
+    // Formula: (attainment - 1) / (quota - 1)
+    const denominator = quota - 1
+    if (denominator === 0) return 0
+    return ((attainment - 1) / denominator) * 100
+  }
+  // Standard calculation: attainment / quota
+  if (quota === 0) return 0
+  return (attainment / quota) * 100
+}
+
+/**
+ * Format quota or attainment value based on commission type
+ * For CSM: returns percentage string (value is expected to be like 0.95 for 95%)
+ * For others: returns currency-formatted string
+ */
+export function formatQuotaOrAttainment(
+  value: number,
+  commissionType: string | null | undefined,
+  currency: string = 'USD',
+): string {
+  if (isCSMCommissionType(commissionType)) {
+    return `${(value * 100).toFixed(1)}%`
+  }
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+  }).format(value)
+}
+
+/**
  * Calculate quarterly commission bonus with pro-rated ramp-up
  *
  * Rules:
  * - First 3 months commission is paid at 100% fixed OTE
  * - If you start before the 15th of a month, you get 100% for that month and two subsequent months
  * - If you start on/after the 15th, ramp-up starts from the next month (3 full months)
+ *
+ * For CSM (Customer Success Manager):
+ * - Attainment percentage is calculated as (attainment - 1) / (quota - 1)
+ * - This is because CSM quota/attainment are expressed as percentages (e.g., 1.0 = 100%)
  */
 export function calculateCommissionBonus(
   attainment: number,
   quota: number,
   bonusAmount: number,
   breakdown: QuarterBreakdown,
+  commissionType?: string | null,
 ): number {
   if (quota <= 0) {
     throw new Error('Quota must be greater than 0')
@@ -31,7 +92,16 @@ export function calculateCommissionBonus(
     throw new Error('Attainment must be greater than or equal to 0')
   }
 
-  const attainmentPercentage = attainment / quota
+  let attainmentPercentage: number
+  if (isCSMCommissionType(commissionType)) {
+    // CSM: (attainment - 1) / (quota - 1)
+    const denominator = quota - 1
+    attainmentPercentage =
+      denominator === 0 ? 0 : (attainment - 1) / denominator
+  } else {
+    // Standard: attainment / quota
+    attainmentPercentage = attainment / quota
+  }
 
   // Pro-rated calculation (by months, each quarter has 3 months):
   // - Not employed months get nothing

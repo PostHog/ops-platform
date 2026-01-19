@@ -13,6 +13,11 @@ import type { Prisma } from '@prisma/client'
 import type { ColumnDef, ColumnFiltersState, Row } from '@tanstack/react-table'
 import prisma from '@/db'
 import {
+  calculateAttainmentPercentage,
+  formatQuotaOrAttainment,
+  isCSMCommissionType,
+} from '@/lib/commission-calculator'
+import {
   Table,
   TableBody,
   TableCell,
@@ -140,9 +145,19 @@ const updateCommissionBonusAttainment = createAdminFn({
       throw new Error('Commission bonus not found')
     }
 
-    // Recalculate derived values
-    const calculatedAmount =
-      (attainment / existingBonus.quota) * existingBonus.bonusAmount
+    // Recalculate derived values based on commission type
+    let attainmentPercentage: number
+    if (isCSMCommissionType(existingBonus.commissionType)) {
+      // CSM: (attainment - 1) / (quota - 1)
+      const denominator = existingBonus.quota - 1
+      attainmentPercentage =
+        denominator === 0 ? 0 : (attainment - 1) / denominator
+    } else {
+      // Standard: attainment / quota
+      attainmentPercentage = attainment / existingBonus.quota
+    }
+
+    const calculatedAmount = attainmentPercentage * existingBonus.bonusAmount
     const calculatedAmountLocal = calculatedAmount * existingBonus.exchangeRate
 
     return await prisma.commissionBonus.update({
@@ -229,6 +244,11 @@ const exportCommissionBonusesForDeel = createAdminFn({
       const employeeName =
         bonus.employee.deelEmployee.name || bonus.employee.email
 
+      const attainmentPct = calculateAttainmentPercentage(
+        bonus.attainment,
+        bonus.quota,
+        bonus.commissionType,
+      )
       csvRows.push({
         oid: contractId,
         name: employeeName,
@@ -237,7 +257,7 @@ const exportCommissionBonusesForDeel = createAdminFn({
         amount: bonus.calculatedAmountLocal.toFixed(2),
         vendorName: '',
         title: `${bonus.quarter} Commission Bonus`,
-        description: `${bonus.quarter} Commission Bonus - ${((bonus.attainment / bonus.quota) * 100).toFixed(2)}% attainment`,
+        description: `${bonus.quarter} Commission Bonus - ${attainmentPct.toFixed(2)}% attainment`,
         dateOfExpense: quarterEndDate,
         countryOfExpense: '',
         receiptFile: '',
@@ -345,6 +365,17 @@ function App() {
         cell: ({ row }) => <div>{row.original.quarter}</div>,
       },
       {
+        accessorKey: 'commissionType',
+        header: 'Type',
+        filterFn: (row: Row<CommissionBonus>, _: string, filterValue: string) =>
+          customFilterFns.containsText(
+            row.original.commissionType || '',
+            _,
+            filterValue,
+          ),
+        cell: ({ row }) => <div>{row.original.commissionType || '-'}</div>,
+      },
+      {
         accessorKey: 'quota',
         header: 'Quota',
         meta: {
@@ -352,10 +383,11 @@ function App() {
         },
         cell: ({ row }) => (
           <div>
-            {new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: row.original.localCurrency,
-            }).format(row.original.quota)}
+            {formatQuotaOrAttainment(
+              row.original.quota,
+              row.original.commissionType,
+              row.original.localCurrency,
+            )}
           </div>
         ),
       },
@@ -367,10 +399,11 @@ function App() {
         },
         cell: ({ row }) => (
           <div>
-            {new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: row.original.localCurrency,
-            }).format(row.original.attainment)}
+            {formatQuotaOrAttainment(
+              row.original.attainment,
+              row.original.commissionType,
+              row.original.localCurrency,
+            )}
           </div>
         ),
       },
@@ -378,8 +411,11 @@ function App() {
         id: 'attainmentPercentage',
         header: 'Attainment %',
         cell: ({ row }) => {
-          const percentage =
-            (row.original.attainment / row.original.quota) * 100
+          const percentage = calculateAttainmentPercentage(
+            row.original.attainment,
+            row.original.quota,
+            row.original.commissionType,
+          )
           return <div>{percentage.toFixed(2)}%</div>
         },
       },
@@ -465,13 +501,26 @@ function App() {
     const csv = generateCsv(csvConfig)(
       table.getFilteredRowModel().rows.map((row) => {
         const bonus = row.original
-        const attainmentPercentage = (bonus.attainment / bonus.quota) * 100
+        const attainmentPct = calculateAttainmentPercentage(
+          bonus.attainment,
+          bonus.quota,
+          bonus.commissionType,
+        )
         return {
           name: bonus.employee.deelEmployee?.name || bonus.employee.email,
           quarter: bonus.quarter,
-          quota: bonus.quota,
-          attainment: bonus.attainment,
-          attainmentPercentage: `${attainmentPercentage.toFixed(2)}%`,
+          commissionType: bonus.commissionType || '',
+          quota: formatQuotaOrAttainment(
+            bonus.quota,
+            bonus.commissionType,
+            bonus.localCurrency,
+          ),
+          attainment: formatQuotaOrAttainment(
+            bonus.attainment,
+            bonus.commissionType,
+            bonus.localCurrency,
+          ),
+          attainmentPercentage: `${attainmentPct.toFixed(2)}%`,
           bonusAmount: new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: bonus.localCurrency,

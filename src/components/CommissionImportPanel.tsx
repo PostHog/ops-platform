@@ -15,6 +15,9 @@ import {
   validateAttainment,
   calculateQuarterBreakdown,
   getQuarterStartDate,
+  calculateAttainmentPercentage,
+  formatQuotaOrAttainment,
+  isCSMCommissionType,
   type QuarterBreakdown,
 } from '@/lib/commission-calculator'
 import {
@@ -40,6 +43,7 @@ type ImportRow = {
   calculatedAmount?: number
   attainmentPercentage?: number
   quarterBreakdown?: QuarterBreakdown
+  commissionType?: string
   notes?: string
   sheet?: string
   amountHeld?: number
@@ -250,6 +254,9 @@ export function CommissionImportPanel() {
           // Convert annual bonus to quarterly bonus
           const quarterlyBonusAmount = annualBonusAmount / 4
 
+          // Get commission type from salary benchmark
+          const commissionType = salaryAtQuarterStart.benchmark || undefined
+
           // Calculate quarter breakdown (not employed, ramp-up, post ramp-up)
           const startDate = employee.deelEmployee?.startDate
             ? new Date(employee.deelEmployee.startDate)
@@ -263,10 +270,15 @@ export function CommissionImportPanel() {
             quota,
             quarterlyBonusAmount,
             quarterBreakdown,
+            commissionType,
           )
 
-          // Calculate attainment percentage
-          const attainmentPercentage = (attainment / quota) * 100
+          // Calculate attainment percentage based on commission type
+          const attainmentPercentage = calculateAttainmentPercentage(
+            attainment,
+            quota,
+            commissionType,
+          )
 
           // Extract notes, sheet, and amountHeld (optional)
           const notes: string = row.notes || ''
@@ -286,6 +298,7 @@ export function CommissionImportPanel() {
             calculatedAmount,
             attainmentPercentage,
             quarterBreakdown,
+            commissionType,
             notes: notes.trim(),
             sheet: sheet.trim(),
             amountHeld: amountHeld,
@@ -345,6 +358,7 @@ export function CommissionImportPanel() {
             attainment: row.attainment,
             bonusAmount: row.bonusAmount!,
             calculatedAmount: row.calculatedAmount!,
+            commissionType: row.commissionType,
             notes: row.notes,
             sheet: row.sheet,
             amountHeld: row.amountHeld,
@@ -430,6 +444,7 @@ export function CommissionImportPanel() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Email</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Quota</TableHead>
                     <TableHead>Attainment</TableHead>
                     <TableHead>Attainment %</TableHead>
@@ -448,19 +463,31 @@ export function CommissionImportPanel() {
                     <TableRow key={index}>
                       <TableCell>{row.email}</TableCell>
                       <TableCell>
+                        {row.commissionType ? (
+                          <span className="text-xs">{row.commissionType}</span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            -
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {row.quota > 0
-                          ? new Intl.NumberFormat('en-US', {
-                              style: 'currency',
-                              currency: 'USD',
-                            }).format(row.quota)
+                          ? formatQuotaOrAttainment(
+                              row.quota,
+                              row.commissionType,
+                              'USD',
+                            )
                           : '-'}
                       </TableCell>
                       <TableCell>
-                        {row.attainment > 0
-                          ? new Intl.NumberFormat('en-US', {
-                              style: 'currency',
-                              currency: 'USD',
-                            }).format(row.attainment)
+                        {row.attainment > 0 ||
+                        isCSMCommissionType(row.commissionType)
+                          ? formatQuotaOrAttainment(
+                              row.attainment,
+                              row.commissionType,
+                              'USD',
+                            )
                           : '-'}
                       </TableCell>
                       <TableCell>
