@@ -22,6 +22,7 @@ import { Route as ProcessRouteImport } from './routes/process'
 import { Route as OrgTreeRouteImport } from './routes/org-tree'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
 import { Route as NotifyOverduePerformanceProgramChecklistItemsRouteImport } from './routes/notifyOverduePerformanceProgramChecklistItems'
+import { Route as MissingCommissionsRouteImport } from './routes/missingCommissions'
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ErrorRouteImport } from './routes/error'
@@ -102,6 +103,11 @@ const NotifyOverduePerformanceProgramChecklistItemsRoute =
     path: '/notifyOverduePerformanceProgramChecklistItems',
     getParentRoute: () => rootRouteImport,
   } as any)
+const MissingCommissionsRoute = MissingCommissionsRouteImport.update({
+  id: '/missingCommissions',
+  path: '/missingCommissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ManagementRoute = ManagementRouteImport.update({
   id: '/management',
   path: '/management',
@@ -169,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
+  '/missingCommissions': typeof MissingCommissionsRoute
   '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   '/org-chart': typeof OrgChartRoute
   '/org-tree': typeof OrgTreeRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
+  '/missingCommissions': typeof MissingCommissionsRoute
   '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   '/org-chart': typeof OrgChartRoute
   '/org-tree': typeof OrgTreeRoute
@@ -222,6 +230,7 @@ export interface FileRoutesById {
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
+  '/missingCommissions': typeof MissingCommissionsRoute
   '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   '/org-chart': typeof OrgChartRoute
   '/org-tree': typeof OrgTreeRoute
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/error'
     | '/login'
     | '/management'
+    | '/missingCommissions'
     | '/notifyOverduePerformanceProgramChecklistItems'
     | '/org-chart'
     | '/org-tree'
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
     | '/error'
     | '/login'
     | '/management'
+    | '/missingCommissions'
     | '/notifyOverduePerformanceProgramChecklistItems'
     | '/org-chart'
     | '/org-tree'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/error'
     | '/login'
     | '/management'
+    | '/missingCommissions'
     | '/notifyOverduePerformanceProgramChecklistItems'
     | '/org-chart'
     | '/org-tree'
@@ -329,6 +341,7 @@ export interface RootRouteChildren {
   ErrorRoute: typeof ErrorRoute
   LoginRoute: typeof LoginRoute
   ManagementRoute: typeof ManagementRoute
+  MissingCommissionsRoute: typeof MissingCommissionsRoute
   NotifyOverduePerformanceProgramChecklistItemsRoute: typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   OrgChartRoute: typeof OrgChartRoute
   OrgTreeRoute: typeof OrgTreeRoute
@@ -439,6 +452,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotifyOverduePerformanceProgramChecklistItemsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/missingCommissions': {
+      id: '/missingCommissions'
+      path: '/missingCommissions'
+      fullPath: '/missingCommissions'
+      preLoaderRoute: typeof MissingCommissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/management': {
       id: '/management'
       path: '/management'
@@ -529,6 +549,7 @@ const rootRouteChildren: RootRouteChildren = {
   ErrorRoute: ErrorRoute,
   LoginRoute: LoginRoute,
   ManagementRoute: ManagementRoute,
+  MissingCommissionsRoute: MissingCommissionsRoute,
   NotifyOverduePerformanceProgramChecklistItemsRoute:
     NotifyOverduePerformanceProgramChecklistItemsRoute,
   OrgChartRoute: OrgChartRoute,
