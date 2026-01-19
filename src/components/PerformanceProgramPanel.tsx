@@ -303,113 +303,115 @@ export function PerformanceProgramPanel({
               rows={3}
               className="w-full resize-none text-sm"
             />
-            <div className="flex items-center justify-end gap-1.5">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={`h-8 shrink-0 gap-1.5 px-2 text-xs ${feedbackDate ? 'border-blue-500 text-blue-600' : ''}`}
-                  >
-                    <CalendarIcon className="h-4 w-4" />
-                    {feedbackDate
-                      ? feedbackDate.toLocaleDateString()
-                      : 'Backdate'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={feedbackDate}
-                    onSelect={setFeedbackDate}
-                    disabled={(date) => date > new Date()}
-                    initialFocus
-                  />
-                  {feedbackDate && (
-                    <div className="border-t p-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-full text-xs"
-                        onClick={() => setFeedbackDate(undefined)}
-                      >
-                        Clear date (use today)
-                      </Button>
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
-              <div className="relative shrink-0">
-                <input
-                  type="file"
-                  id="feedback-file-upload"
-                  className="hidden"
-                  accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) {
-                      handleFileUpload(file)
-                    }
-                    e.target.value = ''
-                  }}
-                  disabled={isUploadingFiles}
-                />
-                <Label
-                  htmlFor="feedback-file-upload"
-                  className="cursor-pointer"
-                >
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={isUploadingFiles}
-                    className="h-8 w-8 p-0"
-                    asChild
-                  >
-                    <span>
-                      <Upload className="h-4 w-4" />
-                    </span>
-                  </Button>
-                </Label>
-              </div>
-              <Button
-                onClick={handleAddFeedback}
-                disabled={
-                  !feedbackText.trim() ||
-                  isSubmittingFeedback ||
-                  isUploadingFiles
-                }
-                size="sm"
-                className="h-8 w-8 shrink-0 p-0"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-            {feedbackFiles.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1">
-                {feedbackFiles.map((file, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-1 rounded border bg-gray-50 px-1.5 py-0.5 text-xs"
-                  >
-                    <FileIcon className="h-3 w-3 text-gray-500" />
-                    <span className="max-w-[120px] truncate">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFeedbackFiles((prev) =>
-                          prev.filter((_, i) => i !== index),
-                        )
-                      }}
-                      className="text-gray-500 hover:text-gray-700"
+            <div className="flex items-center gap-1.5">
+              {feedbackFiles.length > 0 && (
+                <div className="flex flex-1 flex-wrap items-center gap-1">
+                  {feedbackFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs hover:border-gray-300"
                     >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
+                      <FileIcon className="h-3 w-3 text-gray-500" />
+                      <span className="text-gray-700">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFeedbackFiles((prev) =>
+                            prev.filter((_, i) => i !== index),
+                          )
+                        }}
+                        className="text-gray-500 opacity-0 transition-opacity group-hover:opacity-100 hover:text-gray-700"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="ml-auto flex items-center gap-1.5">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={`h-8 shrink-0 gap-1.5 px-2 text-xs ${feedbackDate ? 'border-blue-500 text-blue-600' : ''}`}
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                      {feedbackDate
+                        ? feedbackDate.toLocaleDateString()
+                        : 'Backdate'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={feedbackDate}
+                      onSelect={setFeedbackDate}
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                    />
+                    {feedbackDate && (
+                      <div className="border-t p-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-full text-xs"
+                          onClick={() => setFeedbackDate(undefined)}
+                        >
+                          Clear date (use today)
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+                <div className="relative shrink-0">
+                  <input
+                    type="file"
+                    id="feedback-file-upload"
+                    className="hidden"
+                    accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        handleFileUpload(file)
+                      }
+                      e.target.value = ''
+                    }}
+                    disabled={isUploadingFiles}
+                  />
+                  <Label
+                    htmlFor="feedback-file-upload"
+                    className="cursor-pointer"
+                  >
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isUploadingFiles}
+                      className="h-8 w-8 p-0"
+                      asChild
+                    >
+                      <span>
+                        <Upload className="h-4 w-4" />
+                      </span>
+                    </Button>
+                  </Label>
+                </div>
+                <Button
+                  onClick={handleAddFeedback}
+                  disabled={
+                    !feedbackText.trim() ||
+                    isSubmittingFeedback ||
+                    isUploadingFiles
+                  }
+                  size="sm"
+                  className="h-8 w-8 shrink-0 p-0"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
-            )}
+            </div>
           </div>
         )}
         <div className="space-y-2">
@@ -434,17 +436,15 @@ export function PerformanceProgramPanel({
                       {feedback.files.map((file) => (
                         <div
                           key={file.id}
-                          className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-2 py-1 text-sm hover:border-gray-300"
+                          className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs hover:border-gray-300"
                         >
-                          <FileIcon className="h-4 w-4 shrink-0 text-gray-500" />
-                          <span className="max-w-[120px] truncate">
-                            {file.fileName}
-                          </span>
+                          <FileIcon className="h-3 w-3 text-gray-500" />
+                          <span className="text-gray-700">{file.fileName}</span>
                           <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 px-1 text-xs"
+                              className="h-4 px-1 text-xs"
                               onClick={async () => {
                                 try {
                                   const { url } = await getFileUrl({
@@ -467,7 +467,7 @@ export function PerformanceProgramPanel({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                className="h-4 w-4 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
                                 onClick={async () => {
                                   if (
                                     !confirm(
