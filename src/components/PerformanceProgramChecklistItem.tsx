@@ -258,182 +258,191 @@ export function PerformanceProgramChecklistItem({
 
   return (
     <div
-      className={`flex items-center gap-3 rounded border px-3 py-2 transition-colors ${
+      className={`flex flex-col gap-2 rounded border px-3 py-2 transition-colors ${
         item.completed
           ? 'border-green-200 bg-green-50/50'
           : 'border-gray-200 bg-white'
       }`}
     >
-      <Checkbox
-        checked={item.completed}
-        onCheckedChange={handleToggleComplete}
-        disabled={isUpdating}
-        className="shrink-0"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <div
-            className={`text-sm font-medium ${
-              item.completed ? 'text-green-900' : 'text-gray-900'
-            }`}
-          >
-            {itemTypeLabel}
-          </div>
-          {item.dueDate && (
+      <div className="flex items-center gap-3">
+        <Checkbox
+          checked={item.completed}
+          onCheckedChange={handleToggleComplete}
+          disabled={isUpdating}
+          className="shrink-0"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
             <div
-              className={`flex items-center gap-1 text-xs ${
-                isOverdue ? 'text-orange-600' : 'text-gray-500'
+              className={`text-sm font-medium ${
+                item.completed ? 'text-green-900' : 'text-gray-900'
               }`}
             >
-              <span>
-                {isOverdue ? 'Overdue' : 'Due'}{' '}
-                {new Date(item.dueDate).toLocaleDateString()}
-              </span>
+              {itemTypeLabel}
             </div>
-          )}
-          {item.completed && item.completedAt && (
-            <div className="text-xs text-gray-500">
-              Completed {new Date(item.completedAt).toLocaleDateString()}
-            </div>
-          )}
-        </div>
-        {item.files.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1">
-            {item.files.map((file) => (
+            {item.dueDate && (
               <div
-                key={file.id}
-                className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs hover:border-gray-300"
+                className={`flex items-center gap-1 text-xs ${
+                  isOverdue ? 'text-orange-600' : 'text-gray-500'
+                }`}
               >
-                <FileIcon className="h-3 w-3 text-gray-500" />
-                <span className="text-gray-700">{file.fileName}</span>
-                <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 px-1 text-xs"
-                    onClick={() => handleDownloadFile(file.id)}
-                  >
-                    Download
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
-                    onClick={() => handleDeleteFile(file.id)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
+                <span>
+                  {isOverdue ? 'Overdue' : 'Due'}{' '}
+                  {new Date(item.dueDate).toLocaleDateString()}
+                </span>
               </div>
-            ))}
+            )}
+            {item.completed && item.completedAt && (
+              <div className="text-xs text-gray-500">
+                Completed {new Date(item.completedAt).toLocaleDateString()}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <Textarea
-          id={`notes-${item.id}`}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          onBlur={async () => {
-            if (notes !== (item.notes || '')) {
-              setIsUpdating(true)
-              try {
-                await updateItem({
-                  data: {
-                    checklistItemId: item.id,
-                    completed: item.completed,
-                    notes: notes || undefined,
-                    assignedToEmployeeId: item.assignedTo?.id || null,
-                    dueDate: item.dueDate
-                      ? new Date(item.dueDate).toISOString()
-                      : null,
-                  },
-                })
-                onUpdate()
-              } catch (error) {
-                createToast(
-                  error instanceof Error
-                    ? error.message
-                    : 'Failed to update notes',
-                  { timeout: 3000 },
-                )
-              } finally {
-                setIsUpdating(false)
-              }
-            }
-          }}
-          placeholder="Add notes (optional)..."
-          className="min-h-[24px] w-[200px] resize-none !text-xs"
-          rows={1}
-          disabled={item.completed}
-        />
-        <div className="flex items-center gap-2">
-          <Label
-            htmlFor={`assign-${item.id}`}
-            className="text-xs text-gray-600"
-          >
-            Assign:
-          </Label>
-          <Select
-            value={item.assignedTo?.id || 'unassign'}
-            onValueChange={handleAssignEmployee}
-            disabled={isUpdating}
-          >
-            <SelectTrigger
-              id={`assign-${item.id}`}
-              className="h-8 w-[180px] text-xs"
-            >
-              <SelectValue placeholder="Assign to...">
-                {item.assignedTo
-                  ? getFullName(
-                      item.assignedTo.deelEmployee?.firstName,
-                      item.assignedTo.deelEmployee?.lastName,
-                      item.assignedTo.email,
-                    )
-                  : 'Assign to...'}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="unassign">Unassign</SelectItem>
-              {deelEmployeesData?.employees
-                ?.filter((de) => de.employee)
-                .sort((a, b) =>
-                  getFullName(a.firstName, a.lastName).localeCompare(
-                    getFullName(b.firstName, b.lastName),
-                  ),
-                )
-                .map((de) => (
-                  <SelectItem key={de.employee!.id} value={de.employee!.id}>
-                    {getFullName(de.firstName, de.lastName, de.employee!.email)}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
+          {item.files.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {item.files.map((file) => (
+                <div
+                  key={file.id}
+                  className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs hover:border-gray-300"
+                >
+                  <FileIcon className="h-3 w-3 text-gray-500" />
+                  <span className="text-gray-700">{file.fileName}</span>
+                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 px-1 text-xs"
+                      onClick={() => handleDownloadFile(file.id)}
+                    >
+                      Download
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => handleDeleteFile(file.id)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="relative">
-          <input
-            type="file"
-            id={`file-upload-${item.id}`}
-            className="hidden"
-            accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
-            onChange={handleFileUpload}
-            disabled={isUploading}
-          />
-          <Label htmlFor={`file-upload-${item.id}`} className="cursor-pointer">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Label
+              htmlFor={`assign-${item.id}`}
+              className="text-xs text-gray-600"
+            >
+              Assign:
+            </Label>
+            <Select
+              value={item.assignedTo?.id || 'unassign'}
+              onValueChange={handleAssignEmployee}
+              disabled={isUpdating}
+            >
+              <SelectTrigger
+                id={`assign-${item.id}`}
+                className="h-8 w-[180px] text-xs"
+              >
+                <SelectValue placeholder="Assign to...">
+                  {item.assignedTo
+                    ? getFullName(
+                        item.assignedTo.deelEmployee?.firstName,
+                        item.assignedTo.deelEmployee?.lastName,
+                        item.assignedTo.email,
+                      )
+                    : 'Assign to...'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassign">Unassign</SelectItem>
+                {deelEmployeesData?.employees
+                  ?.filter((de) => de.employee)
+                  .sort((a, b) =>
+                    getFullName(a.firstName, a.lastName).localeCompare(
+                      getFullName(b.firstName, b.lastName),
+                    ),
+                  )
+                  .map((de) => (
+                    <SelectItem key={de.employee!.id} value={de.employee!.id}>
+                      {getFullName(
+                        de.firstName,
+                        de.lastName,
+                        de.employee!.email,
+                      )}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="relative">
+            <input
+              type="file"
+              id={`file-upload-${item.id}`}
+              className="hidden"
+              accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
+              onChange={handleFileUpload}
               disabled={isUploading}
-              asChild
+            />
+            <Label
+              htmlFor={`file-upload-${item.id}`}
+              className="cursor-pointer"
             >
-              <span>
-                <Upload className="h-3.5 w-3.5" />
-              </span>
-            </Button>
-          </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isUploading}
+                asChild
+              >
+                <span>
+                  <Upload className="h-3.5 w-3.5" />
+                </span>
+              </Button>
+            </Label>
+          </div>
         </div>
       </div>
+      <Textarea
+        id={`notes-${item.id}`}
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        onBlur={async () => {
+          if (notes !== (item.notes || '')) {
+            setIsUpdating(true)
+            try {
+              await updateItem({
+                data: {
+                  checklistItemId: item.id,
+                  completed: item.completed,
+                  notes: notes || undefined,
+                  assignedToEmployeeId: item.assignedTo?.id || null,
+                  dueDate: item.dueDate
+                    ? new Date(item.dueDate).toISOString()
+                    : null,
+                },
+              })
+              onUpdate()
+            } catch (error) {
+              createToast(
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to update notes',
+                { timeout: 3000 },
+              )
+            } finally {
+              setIsUpdating(false)
+            }
+          }
+        }}
+        placeholder="Add notes (optional)..."
+        className="w-full resize-none text-sm"
+        rows={3}
+        disabled={item.completed}
+      />
     </div>
   )
 }
