@@ -11,7 +11,7 @@ function getEmailSignature(): string {
 }
 
 export interface CommissionBonusEmailData {
-  employeeName: string
+  firstName: string
   quarter: string
   quota: number
   attainment: number
@@ -38,7 +38,7 @@ export function generateCommissionBonusEmail(
   data: CommissionBonusEmailData,
 ): string {
   const {
-    employeeName,
+    firstName,
     quarter,
     quota,
     attainment,
@@ -82,7 +82,7 @@ export function generateCommissionBonusEmail(
     const rampUpNotesHtml = notes ? `<p>${notes}</p>` : ''
 
     return `
-<p>Hi ${employeeName},</p>
+<p>Hi ${firstName},</p>
 <p>Just confirming that you are due ${rampUpMonths > 1 ? `${rampUpMonths} months` : '1 month'} of fixed commission so <strong>${localAmountText}</strong>.</p>
 ${nextQuarterHtml}${rampUpNotesHtml}
 <p>Any questions just let us know.</p>
@@ -114,7 +114,7 @@ ${getEmailSignature()}
     : ''
 
   return `
-<p>Hey ${employeeName},</p>
+<p>Hi ${firstName},</p>
 <p>Confirming your commission for ${quarter} will be <strong>${formatCurrency(netPayoutLocal, localCurrency)}</strong></p>
 <p>${sheetHtml}Here is the breakdown:</p>
 <ul>

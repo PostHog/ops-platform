@@ -62,38 +62,47 @@ export const fetchDeelEmployees = async () => {
             employee['urn:ietf:params:scim:schemas:extension:2.0:User']
               .hiringStatus,
           ),
-      ).map((employee: any) => ({
-        id: employee.id,
-        name:
-          (employee['urn:ietf:params:scim:schemas:extension:2.0:User']
-            ?.preferredFirstName || employee.name.givenName) +
-          ' ' +
-          (employee['urn:ietf:params:scim:schemas:extension:2.0:User']
-            ?.preferredLastName || employee.name.familyName),
-        title: employee.title,
-        workEmail: employee.emails.find(
-          (email: { type: string; value: string }) => email.type === 'work',
-        )?.value,
-        personalEmail: employee.emails.find(
-          (email: { type: string; value: string }) => email.type === 'home',
-        )?.value,
-        team:
-          employee[
-            'urn:ietf:params:scim:schemas:extension:2.0:User'
-          ].organizationalStructures.filter(
-            (structure: { name: string }) =>
-              !['S&M', 'R&D/Tech', 'G&A'].includes(structure.name),
-          )[0]?.name ?? '',
-        managerId:
-          employee['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']
-            .manager.value,
-        startDate: new Date(
-          employee['urn:ietf:params:scim:schemas:extension:2.0:User'].startDate,
-        ),
-        customFields:
-          employee['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']
-            .customFields,
-      })),
+      ).map((employee: any) => {
+        const firstName =
+          employee['urn:ietf:params:scim:schemas:extension:2.0:User']
+            ?.preferredFirstName || employee.name.givenName
+        const lastName =
+          employee['urn:ietf:params:scim:schemas:extension:2.0:User']
+            ?.preferredLastName || employee.name.familyName
+        return {
+          id: employee.id,
+          name: `${firstName} ${lastName}`,
+          firstName,
+          lastName,
+          title: employee.title,
+          workEmail: employee.emails.find(
+            (email: { type: string; value: string }) => email.type === 'work',
+          )?.value,
+          personalEmail: employee.emails.find(
+            (email: { type: string; value: string }) => email.type === 'home',
+          )?.value,
+          team:
+            employee[
+              'urn:ietf:params:scim:schemas:extension:2.0:User'
+            ].organizationalStructures.filter(
+              (structure: { name: string }) =>
+                !['S&M', 'R&D/Tech', 'G&A'].includes(structure.name),
+            )[0]?.name ?? '',
+          managerId:
+            employee[
+              'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
+            ].manager.value,
+          startDate: new Date(
+            employee[
+              'urn:ietf:params:scim:schemas:extension:2.0:User'
+            ].startDate,
+          ),
+          customFields:
+            employee[
+              'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'
+            ].customFields,
+        }
+      }),
     ]
     hasMore = data.totalResults > 100
     cursor += 100
@@ -149,6 +158,8 @@ export const Route = createFileRoute('/syncDeelEmployees')({
           data: deelEmployees.map((emp) => ({
             id: emp.id,
             name: emp.name,
+            firstName: emp.firstName,
+            lastName: emp.lastName,
             title: emp.title,
             team: emp.team,
             workEmail: emp.workEmail,

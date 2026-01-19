@@ -77,6 +77,8 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
                 deelEmployee: {
                   select: {
                     name: true,
+                    firstName: true,
+                    lastName: true,
                     startDate: true,
                   },
                 },
@@ -96,9 +98,8 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
               bonus.quota,
               bonus.commissionType,
             )
-            const employeeName =
-              bonus.employee.deelEmployee?.name ||
-              bonus.employee.email.split('@')[0]
+            const firstName = bonus.employee.deelEmployee?.firstName || ''
+            const lastName = bonus.employee.deelEmployee?.lastName
 
             // Calculate quarter breakdown for ramp-up info
             const startDate = bonus.employee.deelEmployee?.startDate
@@ -186,7 +187,7 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
             }
 
             const emailHtml = generateCommissionBonusEmail({
-              employeeName,
+              firstName,
               quarter: bonus.quarter,
               quota: bonus.quota,
               attainment: bonus.attainment,
@@ -213,7 +214,7 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
 
             const emailResult = await sendEmail({
               to: bonus.employee.email,
-              subject: `${bonus.quarter} Commission confirmation - ${employeeName}`,
+              subject: `${bonus.quarter} Commission confirmation - ${firstName}, ${lastName}`,
               html: emailHtml,
               cc: allCCs,
             })
