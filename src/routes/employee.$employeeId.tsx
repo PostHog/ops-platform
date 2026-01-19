@@ -260,8 +260,17 @@ const getEmployeeById = createInternalFn({
                   },
                 }),
         },
-        // Commission bonuses: visible to admin, managers, and employees (their own)
+        // Commission bonuses: visible to admin, managers (last 12 months), and employees (their own)
         commissionBonuses: {
+          ...(isManager && !isAdmin
+            ? {
+                where: {
+                  createdAt: {
+                    gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 12 months ago
+                  },
+                },
+              }
+            : {}),
           orderBy: {
             createdAt: 'desc',
           },
