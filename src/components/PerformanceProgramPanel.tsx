@@ -290,18 +290,20 @@ export function PerformanceProgramPanel({
       </div>
 
       <div className="rounded-lg border bg-white p-3">
-        <h4 className="mb-2 text-sm font-semibold">Feedback</h4>
+        <h4 className="mb-2 text-sm font-semibold">
+          Additional performance feedback
+        </h4>
         {program.status === 'ACTIVE' && (
           <div className="mb-2 space-y-1.5">
-            <div className="flex items-center gap-1.5">
-              <Textarea
-                id="feedback-input"
-                value={feedbackText}
-                onChange={(e) => setFeedbackText(e.target.value)}
-                placeholder="Enter feedback..."
-                rows={1}
-                className="min-h-[32px] flex-1 resize-none text-xs"
-              />
+            <Textarea
+              id="feedback-input"
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              placeholder="Enter feedback..."
+              rows={3}
+              className="w-full resize-none text-sm"
+            />
+            <div className="flex items-center justify-end gap-1.5">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -417,89 +419,93 @@ export function PerformanceProgramPanel({
             program.feedback.map((feedback) => (
               <div
                 key={feedback.id}
-                className="flex items-center gap-2 rounded border border-gray-200 bg-gray-50/50 px-3 py-2"
+                className="flex flex-col gap-2 rounded border border-gray-200 bg-gray-50/50 px-3 py-2"
               >
-                <MessageSquare className="h-4 w-4 shrink-0 text-gray-500" />
-                <span className="shrink-0 text-sm font-medium whitespace-nowrap">
-                  {feedback.givenBy.name || feedback.givenBy.email}
-                </span>
-                <span className="shrink-0 text-sm whitespace-nowrap text-gray-500">
-                  {new Date(feedback.createdAt).toLocaleDateString()}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-sm text-gray-700">
-                  {feedback.feedback}
-                </span>
-                {feedback.files && feedback.files.length > 0 && (
-                  <div className="flex shrink-0 items-center gap-1">
-                    {feedback.files.map((file) => (
-                      <div
-                        key={file.id}
-                        className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-2 py-1 text-sm hover:border-gray-300"
-                      >
-                        <FileIcon className="h-4 w-4 shrink-0 text-gray-500" />
-                        <span className="max-w-[120px] truncate">
-                          {file.fileName}
-                        </span>
-                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-1 text-xs"
-                            onClick={async () => {
-                              try {
-                                const { url } = await getFileUrl({
-                                  data: { proofFileId: file.id },
-                                })
-                                window.open(url, '_blank')
-                              } catch (error) {
-                                createToast(
-                                  error instanceof Error
-                                    ? error.message
-                                    : 'Failed to get file URL',
-                                  { timeout: 3000 },
-                                )
-                              }
-                            }}
-                          >
-                            Download
-                          </Button>
-                          {program.status === 'ACTIVE' && (
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 shrink-0 text-gray-500" />
+                  <span className="shrink-0 text-sm font-medium whitespace-nowrap">
+                    {feedback.givenBy.name || feedback.givenBy.email}
+                  </span>
+                  <span className="shrink-0 text-sm whitespace-nowrap text-gray-500">
+                    {new Date(feedback.createdAt).toLocaleDateString()}
+                  </span>
+                  {feedback.files && feedback.files.length > 0 && (
+                    <div className="ml-auto flex shrink-0 items-center gap-1">
+                      {feedback.files.map((file) => (
+                        <div
+                          key={file.id}
+                          className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-2 py-1 text-sm hover:border-gray-300"
+                        >
+                          <FileIcon className="h-4 w-4 shrink-0 text-gray-500" />
+                          <span className="max-w-[120px] truncate">
+                            {file.fileName}
+                          </span>
+                          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              className="h-6 px-1 text-xs"
                               onClick={async () => {
-                                if (
-                                  !confirm(
-                                    'Are you sure you want to remove this file? This action cannot be undone.',
-                                  )
-                                ) {
-                                  return
-                                }
                                 try {
-                                  await deleteFile({
+                                  const { url } = await getFileUrl({
                                     data: { proofFileId: file.id },
                                   })
-                                  createToast('File removed', { timeout: 3000 })
-                                  onUpdate()
+                                  window.open(url, '_blank')
                                 } catch (error) {
                                   createToast(
                                     error instanceof Error
                                       ? error.message
-                                      : 'Failed to remove file',
+                                      : 'Failed to get file URL',
                                     { timeout: 3000 },
                                   )
                                 }
                               }}
                             >
-                              <X className="h-3.5 w-3.5" />
+                              Download
                             </Button>
-                          )}
+                            {program.status === 'ACTIVE' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                onClick={async () => {
+                                  if (
+                                    !confirm(
+                                      'Are you sure you want to remove this file? This action cannot be undone.',
+                                    )
+                                  ) {
+                                    return
+                                  }
+                                  try {
+                                    await deleteFile({
+                                      data: { proofFileId: file.id },
+                                    })
+                                    createToast('File removed', {
+                                      timeout: 3000,
+                                    })
+                                    onUpdate()
+                                  } catch (error) {
+                                    createToast(
+                                      error instanceof Error
+                                        ? error.message
+                                        : 'Failed to remove file',
+                                      { timeout: 3000 },
+                                    )
+                                  }
+                                }}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm whitespace-pre-line text-gray-700">
+                  {feedback.feedback}
+                </p>
               </div>
             ))
           )}
