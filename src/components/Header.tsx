@@ -126,6 +126,9 @@ export default function Header() {
                 <Link to="/salary-sync-status">Salary sync status</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/missingCommissions">Missing commissions</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/analytics">Analytics</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
