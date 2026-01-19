@@ -1,8 +1,21 @@
 import { useState } from 'react'
-import { MessageSquare, Send, Upload, File as FileIcon, X } from 'lucide-react'
+import {
+  MessageSquare,
+  Send,
+  Upload,
+  File as FileIcon,
+  X,
+  CalendarIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { createToast } from 'vercel-toast'
 import { useServerFn } from '@tanstack/react-start'
 import {
@@ -75,6 +88,7 @@ export function PerformanceProgramPanel({
   onUpdate,
 }: PerformanceProgramPanelProps) {
   const [feedbackText, setFeedbackText] = useState('')
+  const [feedbackDate, setFeedbackDate] = useState<Date | undefined>(undefined)
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const [isResolving, setIsResolving] = useState(false)
   const [feedbackFiles, setFeedbackFiles] = useState<
@@ -147,6 +161,7 @@ export function PerformanceProgramPanel({
         data: {
           programId: program.id,
           feedback: feedbackText.trim(),
+          ...(feedbackDate && { createdAt: feedbackDate.toISOString() }),
         },
       })
 
@@ -169,6 +184,7 @@ export function PerformanceProgramPanel({
 
       createToast('Feedback added', { timeout: 3000 })
       setFeedbackText('')
+      setFeedbackDate(undefined)
       setFeedbackFiles([])
       onUpdate()
     } catch (error) {
@@ -286,6 +302,42 @@ export function PerformanceProgramPanel({
                 rows={1}
                 className="min-h-[32px] flex-1 resize-none text-xs"
               />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 shrink-0 gap-1.5 px-2 text-xs ${feedbackDate ? 'border-blue-500 text-blue-600' : ''}`}
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                    {feedbackDate
+                      ? feedbackDate.toLocaleDateString()
+                      : 'Backdate'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={feedbackDate}
+                    onSelect={setFeedbackDate}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                  />
+                  {feedbackDate && (
+                    <div className="border-t p-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-full text-xs"
+                        onClick={() => setFeedbackDate(undefined)}
+                      >
+                        Clear date (use today)
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
               <div className="relative shrink-0">
                 <input
                   type="file"

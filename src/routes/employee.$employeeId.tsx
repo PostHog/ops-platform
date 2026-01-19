@@ -777,7 +777,9 @@ export const updateChecklistItem = createInternalFn({
 export const addProgramFeedback = createInternalFn({
   method: 'POST',
 })
-  .inputValidator((d: { programId: string; feedback: string }) => d)
+  .inputValidator(
+    (d: { programId: string; feedback: string; createdAt?: string }) => d,
+  )
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
     const { managedEmployeeIds } = context.managerInfo
@@ -802,6 +804,7 @@ export const addProgramFeedback = createInternalFn({
         programId: data.programId,
         feedback: data.feedback,
         givenByUserId: context.user.id,
+        ...(data.createdAt && { createdAt: new Date(data.createdAt) }),
       },
       include: {
         givenBy: {
