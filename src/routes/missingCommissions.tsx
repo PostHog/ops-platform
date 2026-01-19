@@ -97,12 +97,16 @@ export const Route = createFileRoute('/missingCommissions')({
   loader: async () => await getEmployeesWithMissingCommissions(),
 })
 
-const previousQuarter = getPreviousQuarter()
-const quarters = [previousQuarter, ...getPreviousNQuarters(previousQuarter, 7)]
-
 function MissingCommissionsPage() {
   const employees: EmployeeWithSalaryAndCommission[] = Route.useLoaderData()
-  const [quarter, setQuarter] = useState(previousQuarter)
+  const [quarter, setQuarter] = useState(() => getPreviousQuarter())
+
+  // Compute quarters on every render to handle quarter boundary crossings
+  const previousQuarter = getPreviousQuarter()
+  const quarters = [
+    previousQuarter,
+    ...getPreviousNQuarters(previousQuarter, 7),
+  ]
   const eligibilityCutoff = useMemo(
     () => getCommissionEligibilityCutoff(quarter),
     [quarter],
