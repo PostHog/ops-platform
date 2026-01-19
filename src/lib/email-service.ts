@@ -24,6 +24,7 @@ export async function sendEmail({
       subject,
       html,
       cc: cc && cc.length > 0 ? cc : undefined,
+      replyTo: `${process.env.COMMISSION_PAYOUT_EMAIL_SENDER?.toLowerCase()}@posthog.com`,
     })
 
     if (result.error) {
