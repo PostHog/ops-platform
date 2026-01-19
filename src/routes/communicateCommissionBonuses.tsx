@@ -213,7 +213,7 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
 
             const emailResult = await sendEmail({
               to: bonus.employee.email,
-              subject: `${bonus.quarter} Commission confirmation - ${firstName}, ${lastName}`,
+              subject: `${bonus.quarter} Commission confirmation - ${firstName} ${lastName}`,
               html: emailHtml,
               cc: allCCs,
             })
