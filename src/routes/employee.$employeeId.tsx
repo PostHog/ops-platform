@@ -260,16 +260,21 @@ const getEmployeeById = createInternalFn({
                   },
                 }),
         },
-        // Commission bonuses: visible to admin and employees (their own), but not to managers
-        ...(isAdmin || !isManager
-          ? {
-              commissionBonuses: {
-                orderBy: {
-                  createdAt: 'desc',
+        // Commission bonuses: visible to admin, managers (last 12 months), and employees (their own)
+        commissionBonuses: {
+          ...(isManager && !isAdmin
+            ? {
+                where: {
+                  createdAt: {
+                    gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 12 months ago
+                  },
                 },
-              },
-            }
-          : {}),
+              }
+            : {}),
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         // Interview scores: visible to admin and managers, but not to employees themselves
         ...(isAdmin || isManager
           ? {
