@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from '@tanstack/react-router'
 import { useLocalStorage } from 'usehooks-ts'
-import { cn } from '@/lib/utils'
+import { cn, getFullName } from '@/lib/utils'
 import type { HierarchyNode } from '@/lib/types'
 import type { Prisma } from '@prisma/client'
 
@@ -364,7 +364,7 @@ const findTeamLead = (
 // Helper to create employee node
 const createEmployeeNode = (emp: DeelEmployee): HierarchyNode => ({
   id: emp.id,
-  name: emp.name,
+  name: getFullName(emp.firstName, emp.lastName),
   title: emp.title || '',
   team: emp.team || undefined,
   employeeId: emp.employee?.id,
@@ -610,7 +610,7 @@ const buildTeamHierarchy = (
           e.team !== 'Blitzscale' &&
           (!e.team || e.team === ''),
       )
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) => getFullName(a.firstName, a.lastName).localeCompare(getFullName(b.firstName, b.lastName)))
       .map((emp) => {
         addedEmployeeIds.add(emp.id)
         return buildEmployeeNode(emp.id, visited) || createEmployeeNode(emp)
@@ -652,7 +652,9 @@ const buildTeamHierarchy = (
     .sort((a, b) => {
       if (a.title === 'Cofounder' && b.title !== 'Cofounder') return -1
       if (a.title !== 'Cofounder' && b.title === 'Cofounder') return 1
-      return a.name.localeCompare(b.name)
+      return getFullName(a.firstName, a.lastName).localeCompare(
+        getFullName(b.firstName, b.lastName),
+      )
     })
     .map((emp) => {
       addedEmployeeIds.add(emp.id)

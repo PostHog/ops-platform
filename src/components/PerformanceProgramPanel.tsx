@@ -34,7 +34,8 @@ type PerformanceProgram = Prisma.PerformanceProgramGetPayload<{
             email: true
             deelEmployee: {
               select: {
-                name: true
+                firstName: true
+                lastName: true
               }
             }
           }

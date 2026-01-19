@@ -20,6 +20,7 @@ import useExpandCollapse from '@/lib/org-chart/useExpandCollapse'
 import OrgChartPanel from '@/components/OrgChartPanel'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
 import { createInternalFn } from '@/lib/auth-middleware'
+import { getFullName } from '@/lib/utils'
 import { ROLES } from '@/lib/consts'
 import { useLocalStorage } from 'usehooks-ts'
 import { orgChartAutozoomingEnabledAtom } from '@/atoms'
@@ -47,7 +48,8 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
     manager: {
       select: {
         id: true
-        name: true
+        firstName: true
+        lastName: true
       }
     }
   }
@@ -141,7 +143,8 @@ export const getDeelEmployeesAndProposedHires = createInternalFn({
       manager: {
         select: {
           id: true,
-          name: true,
+          firstName: true,
+          lastName: true,
         },
       },
     },
@@ -202,7 +205,7 @@ const getInitialNodes = (
     position: { x: 0, y: 0 },
     type: 'employeeNode',
     data: {
-      name: employee.name,
+      name: getFullName(employee.firstName, employee.lastName),
       title: employee.title,
       team: employee.team,
       manager: employee.managerId,

@@ -1,6 +1,6 @@
 import prisma from '@/db'
 import { createAdminFn } from '@/lib/auth-middleware'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, getFullName } from '@/lib/utils'
 import { type Prisma } from '@prisma/client'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -110,16 +110,24 @@ function RouteComponent() {
       {
         accessorKey: 'name',
         header: 'Name',
-        filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
-          (row.original.deelEmployee?.name &&
-            customFilterFns.containsText(
-              row.original.deelEmployee?.name,
-              _,
-              filterValue,
-            )) ||
-          customFilterFns.containsText(row.original.email, _, filterValue),
+        filterFn: (row: Row<Employee>, _: string, filterValue: string) => {
+          const fullName = getFullName(
+            row.original.deelEmployee?.firstName,
+            row.original.deelEmployee?.lastName,
+          )
+          return (
+            (fullName && customFilterFns.containsText(fullName, _, filterValue)) ||
+            customFilterFns.containsText(row.original.email, _, filterValue)
+          )
+        },
         cell: ({ row }) => (
-          <div>{row.original.deelEmployee?.name || row.original.email}</div>
+          <div>
+            {getFullName(
+              row.original.deelEmployee?.firstName,
+              row.original.deelEmployee?.lastName,
+              row.original.email,
+            )}
+          </div>
         ),
       },
       {

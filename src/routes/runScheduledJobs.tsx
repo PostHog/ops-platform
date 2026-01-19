@@ -1,18 +1,21 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { CyclotronJob } from '@prisma/client'
 import prisma from '@/db'
+import { getFullName } from '@/lib/utils'
 
 export type KeeperTestJobPayload = {
   title: string
   employee: {
     id: string
     email: string
-    name: string
+    firstName: string
+    lastName: string
   }
   manager: {
     id: string
     email: string
-    name: string
+    firstName: string
+    lastName: string
   }
   thread_id?: string
 }
@@ -517,7 +520,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                       blocks: getSlackMessageBody(
                         employee.email,
                         employee.id,
-                        manager.name,
+                        getFullName(manager.firstName, manager.lastName),
                         manager.id,
                         job.id,
                         title,
@@ -585,7 +588,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                       blocks: getManagerFeedbackSlackMessageBody(
                         manager.email,
                         employee.id,
-                        employee.name,
+                        getFullName(employee.firstName, employee.lastName),
                         manager.id,
                         job.id,
                         title,
@@ -693,7 +696,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                       body: JSON.stringify({
                         channel:
                           process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
-                        text: `${manager.name} hasn't submitted feedback for ${employee.name} within ${daysSinceCreation} days. Please follow up with them.`,
+                        text: `${getFullName(manager.firstName, manager.lastName)} hasn't submitted feedback for ${getFullName(employee.firstName, employee.lastName)} within ${daysSinceCreation} days. Please follow up with them.`,
                       }),
                     },
                   )
@@ -789,7 +792,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                       body: JSON.stringify({
                         channel:
                           process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
-                        text: `${manager.name} hasn't submitted feedback for ${employee.name} within ${daysSinceCreation} days. Please follow up with them.`,
+                        text: `${getFullName(manager.firstName, manager.lastName)} hasn't submitted feedback for ${getFullName(employee.firstName, employee.lastName)} within ${daysSinceCreation} days. Please follow up with them.`,
                       }),
                     },
                   )

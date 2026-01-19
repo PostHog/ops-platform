@@ -7,6 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { getFullName } from '@/lib/utils'
 
 type AshbyInterviewScore = Prisma.AshbyInterviewScoreGetPayload<{
   include: {
@@ -16,7 +17,8 @@ type AshbyInterviewScore = Prisma.AshbyInterviewScoreGetPayload<{
         email: true
         deelEmployee: {
           select: {
-            name: true
+            firstName: true
+            lastName: true
           }
         }
       }
@@ -116,8 +118,11 @@ export function AshbyInterviewScoreTimelineCard({
   score,
   lastTableItem = false,
 }: AshbyInterviewScoreTimelineCardProps) {
-  const interviewerName =
-    score.interviewer.deelEmployee?.name || score.interviewer.email
+  const interviewerName = getFullName(
+    score.interviewer.deelEmployee?.firstName,
+    score.interviewer.deelEmployee?.lastName,
+    score.interviewer.email,
+  )
   const ratingLabel = ratingLabels[score.rating] || `Rating ${score.rating}`
   const isPositive = isPositiveRating(score.rating)
 

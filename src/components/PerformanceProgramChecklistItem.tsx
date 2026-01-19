@@ -22,6 +22,7 @@ import {
   deleteProofFile,
 } from '@/routes/employee.$employeeId'
 import { getDeelEmployeesAndProposedHires } from '@/routes/org-chart'
+import { getFullName } from '@/lib/utils'
 import type { Prisma } from '@prisma/client'
 
 type ChecklistItem = Prisma.PerformanceProgramChecklistItemGetPayload<{
@@ -40,7 +41,8 @@ type ChecklistItem = Prisma.PerformanceProgramChecklistItemGetPayload<{
         email: true
         deelEmployee: {
           select: {
-            name: true
+            firstName: true
+            lastName: true
           }
         }
       }
@@ -383,7 +385,11 @@ export function PerformanceProgramChecklistItem({
             >
               <SelectValue placeholder="Assign to...">
                 {item.assignedTo
-                  ? item.assignedTo.deelEmployee?.name || item.assignedTo.email
+                  ? getFullName(
+                      item.assignedTo.deelEmployee?.firstName,
+                      item.assignedTo.deelEmployee?.lastName,
+                      item.assignedTo.email,
+                    )
                   : 'Assign to...'}
               </SelectValue>
             </SelectTrigger>
@@ -391,10 +397,14 @@ export function PerformanceProgramChecklistItem({
               <SelectItem value="unassign">Unassign</SelectItem>
               {deelEmployeesData?.employees
                 ?.filter((de) => de.employee)
-                .sort((a, b) => a.name.localeCompare(b.name))
+                .sort((a, b) =>
+                  getFullName(a.firstName, a.lastName).localeCompare(
+                    getFullName(b.firstName, b.lastName),
+                  ),
+                )
                 .map((de) => (
                   <SelectItem key={de.employee!.id} value={de.employee!.id}>
-                    {de.name || de.employee!.email}
+                    {getFullName(de.firstName, de.lastName, de.employee!.email)}
                   </SelectItem>
                 ))}
             </SelectContent>

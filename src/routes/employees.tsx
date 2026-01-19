@@ -48,7 +48,7 @@ import { PriorityBadge } from '@/components/PriorityBadge'
 import { StatusCell } from '@/components/StatusCell'
 import { ReviewerAvatar } from '@/components/ReviewerAvatar'
 import { TableFilters } from '@/components/TableFilters'
-import { SALARY_LEVEL_OPTIONS } from '@/lib/utils'
+import { SALARY_LEVEL_OPTIONS, getFullName } from '@/lib/utils'
 
 export const Route = createFileRoute('/employees')({
   component: App,
@@ -120,7 +120,7 @@ const getEmployees = createAdminFn({
     },
     orderBy: {
       deelEmployee: {
-        name: 'asc',
+        lastName: 'asc',
       },
     },
   })
@@ -189,22 +189,28 @@ function App() {
     {
       accessorKey: 'name',
       header: () => <span className="pl-2 font-bold">Employee</span>,
-      filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
-        (row.original.deelEmployee?.name &&
+      filterFn: (row: Row<Employee>, _: string, filterValue: string) => {
+        const fullName = getFullName(
+          row.original.deelEmployee?.firstName,
+          row.original.deelEmployee?.lastName,
+        )
+        return (
+          (fullName && customFilterFns.containsText(fullName, _, filterValue)) ||
+          customFilterFns.containsText(row.original.email, _, filterValue) ||
           customFilterFns.containsText(
-            row.original.deelEmployee?.name,
+            row.original.salaries?.[0]?.notes ?? '',
             _,
             filterValue,
-          )) ||
-        customFilterFns.containsText(row.original.email, _, filterValue) ||
-        customFilterFns.containsText(
-          row.original.salaries?.[0]?.notes ?? '',
-          _,
-          filterValue,
-        ),
+          )
+        )
+      },
       cell: ({ row }) => (
         <EmployeeNameCell
-          name={row.original.deelEmployee?.name || row.original.email}
+          name={getFullName(
+            row.original.deelEmployee?.firstName,
+            row.original.deelEmployee?.lastName,
+            row.original.email,
+          )}
           notes={row.original.salaries?.[0]?.notes}
         />
       ),
@@ -328,12 +334,18 @@ function App() {
       header: () => <span className="font-bold">Reviewer</span>,
       filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
         customFilterFns.containsText(
-          row.original.deelEmployee?.topLevelManager?.name ?? '',
+          getFullName(
+            row.original.deelEmployee?.topLevelManager?.firstName,
+            row.original.deelEmployee?.topLevelManager?.lastName,
+          ),
           _,
           filterValue,
         ),
       cell: ({ row }) => {
-        const reviewerName = row.original.deelEmployee?.topLevelManager?.name
+        const reviewerName = getFullName(
+          row.original.deelEmployee?.topLevelManager?.firstName,
+          row.original.deelEmployee?.topLevelManager?.lastName,
+        )
         if (!reviewerName) return null
         return <ReviewerAvatar name={reviewerName} />
       },

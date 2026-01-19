@@ -105,12 +105,14 @@ export const Route = createFileRoute('/scheduleCheckIns')({
                   employee: {
                     id: employee.id,
                     email: employee.email,
-                    name: employee.deelEmployee?.name,
+                    firstName: employee.deelEmployee?.firstName || '',
+                    lastName: employee.deelEmployee?.lastName || '',
                   },
                   manager: {
                     id: employee.deelEmployee?.manager?.id,
                     email: employee.deelEmployee?.manager?.workEmail,
-                    name: employee.deelEmployee?.manager?.name,
+                    firstName: employee.deelEmployee?.manager?.firstName || '',
+                    lastName: employee.deelEmployee?.manager?.lastName || '',
                   },
                 } satisfies KeeperTestJobPayload),
               }

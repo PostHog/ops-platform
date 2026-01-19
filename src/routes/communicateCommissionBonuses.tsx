@@ -76,7 +76,6 @@ export const Route = createFileRoute('/communicateCommissionBonuses')({
               include: {
                 deelEmployee: {
                   select: {
-                    name: true,
                     firstName: true,
                     lastName: true,
                     startDate: true,

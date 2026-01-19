@@ -13,6 +13,7 @@ import {
   driverRatingToText,
   proactiveRatingToText,
   optimisticRatingToText,
+  getFullName,
 } from '@/lib/utils'
 import {
   Tooltip,
@@ -26,7 +27,8 @@ interface FeedbackCardProps {
     manager: {
       email: string
       deelEmployee?: {
-        name: string
+        firstName: string
+        lastName: string
       } | null
     }
   }
@@ -139,7 +141,11 @@ export function FeedbackCard({
               <span className="font-normal text-gray-500">
                 {' '}
                 - submitted by{' '}
-                {feedback.manager.deelEmployee?.name || feedback.manager.email}
+                {getFullName(
+                  feedback.manager.deelEmployee?.firstName,
+                  feedback.manager.deelEmployee?.lastName,
+                  feedback.manager.email,
+                )}
               </span>
             </h4>
           </div>

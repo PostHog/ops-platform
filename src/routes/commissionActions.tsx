@@ -26,6 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { getFullName } from '@/lib/utils'
 import { createAdminFn } from '@/lib/auth-middleware'
 import { TableFilters } from '@/components/TableFilters'
 import { fetchDeelEmployee } from './syncDeelEmployees'
@@ -241,8 +242,11 @@ const exportCommissionBonusesForDeel = createAdminFn({
 
       const contractId = activeEmployment.id
       const quarterEndDate = getQuarterEndDate(bonus.quarter)
-      const employeeName =
-        bonus.employee.deelEmployee.name || bonus.employee.email
+      const employeeName = getFullName(
+        bonus.employee.deelEmployee.firstName,
+        bonus.employee.deelEmployee.lastName,
+        bonus.employee.email,
+      )
 
       const attainmentPct = calculateAttainmentPercentage(
         bonus.attainment,
@@ -338,22 +342,23 @@ function App() {
       {
         accessorKey: 'name',
         header: 'Name',
-        filterFn: (row: Row<CommissionBonus>, _: string, filterValue: string) =>
-          (row.original.employee.deelEmployee?.name &&
-            customFilterFns.containsText(
-              row.original.employee.deelEmployee?.name,
-              _,
-              filterValue,
-            )) ||
-          customFilterFns.containsText(
-            row.original.employee.email,
-            _,
-            filterValue,
-          ),
+        filterFn: (row: Row<CommissionBonus>, _: string, filterValue: string) => {
+          const fullName = getFullName(
+            row.original.employee.deelEmployee?.firstName,
+            row.original.employee.deelEmployee?.lastName,
+          )
+          return (
+            (fullName && customFilterFns.containsText(fullName, _, filterValue)) ||
+            customFilterFns.containsText(row.original.employee.email, _, filterValue)
+          )
+        },
         cell: ({ row }) => (
           <div>
-            {row.original.employee.deelEmployee?.name ||
-              row.original.employee.email}
+            {getFullName(
+              row.original.employee.deelEmployee?.firstName,
+              row.original.employee.deelEmployee?.lastName,
+              row.original.employee.email,
+            )}
           </div>
         ),
       },
@@ -507,7 +512,11 @@ function App() {
           bonus.commissionType,
         )
         return {
-          name: bonus.employee.deelEmployee?.name || bonus.employee.email,
+          name: getFullName(
+            bonus.employee.deelEmployee?.firstName,
+            bonus.employee.deelEmployee?.lastName,
+            bonus.employee.email,
+          ),
           quarter: bonus.quarter,
           commissionType: bonus.commissionType || '',
           quota: formatQuotaOrAttainment(

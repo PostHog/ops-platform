@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import prisma from '@/db'
+import { getFullName } from '@/lib/utils'
 
 export const Route = createFileRoute(
   '/notifyOverduePerformanceProgramChecklistItems',
@@ -45,9 +46,11 @@ export const Route = createFileRoute(
             }
 
             const assigneeEmail = item.assignedTo.email
-            const programEmployeeName =
-              item.program.employee.deelEmployee?.name ||
-              item.program.employee.email
+            const programEmployeeName = getFullName(
+              item.program.employee.deelEmployee?.firstName,
+              item.program.employee.deelEmployee?.lastName,
+              item.program.employee.email,
+            )
             const itemTypeLabel =
               item.type === 'SLACK_FEEDBACK_MEETING'
                 ? 'Slack Feedback Meeting'

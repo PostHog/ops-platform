@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/popover'
 import { useEffect, useState } from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, getFullName } from '@/lib/utils'
 import { createToast } from 'vercel-toast'
 import prisma from '@/db'
 import { useRouter } from '@tanstack/react-router'
@@ -42,14 +42,14 @@ const updateDeelManager = createOrgChartFn({
       where: { id },
       include: {
         employee: { select: { email: true } },
-        manager: { select: { id: true, name: true, workEmail: true } },
+        manager: { select: { id: true, firstName: true, lastName: true, workEmail: true } },
       },
     })
 
     // Get new manager details
     const newManager = await prisma.deelEmployee.findUnique({
       where: { id: managerId },
-      select: { name: true },
+      select: { firstName: true, lastName: true },
     })
 
     const response = await fetch(
@@ -81,7 +81,7 @@ const updateDeelManager = createOrgChartFn({
       data: { managerId },
       include: {
         employee: { select: { email: true } },
-        manager: { select: { id: true, name: true, workEmail: true } },
+        manager: { select: { id: true, firstName: true, lastName: true, workEmail: true } },
       },
     })
 
@@ -91,8 +91,8 @@ const updateDeelManager = createOrgChartFn({
       entityType: 'MANAGER',
       entityId: id,
       fieldName: 'managerId',
-      oldValue: currentEmployee?.manager?.name ?? null,
-      newValue: newManager?.name ?? null,
+      oldValue: getFullName(currentEmployee?.manager?.firstName, currentEmployee?.manager?.lastName),
+      newValue: getFullName(newManager?.firstName, newManager?.lastName),
       metadata: {
         employeeEmail: updatedEmployee.employee?.email,
         oldManagerId: currentEmployee?.managerId,
@@ -115,7 +115,8 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
     manager: {
       select: {
         id: true
-        name: true
+        firstName: true
+        lastName: true
       }
     }
   }
@@ -168,7 +169,10 @@ export function ManagerEditPanel({
                   className="w-full justify-between"
                 >
                   {value
-                    ? employees?.find((employee) => employee.id === value)?.name
+                    ? (() => {
+                        const emp = employees?.find((employee) => employee.id === value)
+                        return emp ? getFullName(emp.firstName, emp.lastName) : null
+                      })()
                     : 'Select manager...'}
                   <ChevronsUpDown className="opacity-50" />
                 </Button>
@@ -185,7 +189,7 @@ export function ManagerEditPanel({
                       {employees?.map((employee) => (
                         <CommandItem
                           key={employee.id}
-                          value={`${employee.id} - ${employee.name} - ${employee.workEmail}`}
+                          value={`${employee.id} - ${getFullName(employee.firstName, employee.lastName)} - ${employee.workEmail}`}
                           onSelect={(currentValue) => {
                             setValue(
                               currentValue === value
@@ -195,7 +199,7 @@ export function ManagerEditPanel({
                             setOpen(false)
                           }}
                         >
-                          {employee.name}
+                          {getFullName(employee.firstName, employee.lastName)}
                           <Check
                             className={cn(
                               'ml-auto',
@@ -238,7 +242,7 @@ export function ManagerEditPanel({
       <AuditLogHistoryDialog
         entityType="MANAGER"
         entityId={employee.id}
-        title={`Manager history for ${employee.name}`}
+        title={`Manager history for ${getFullName(employee.firstName, employee.lastName)}`}
         open={historyDialogOpen}
         onOpenChange={setHistoryDialogOpen}
       />
