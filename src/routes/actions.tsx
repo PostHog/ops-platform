@@ -236,8 +236,13 @@ function App() {
             row.original.employee.deelEmployee?.lastName,
           )
           return (
-            (fullName && customFilterFns.containsText(fullName, _, filterValue)) ||
-            customFilterFns.containsText(row.original.employee.email, _, filterValue)
+            (fullName &&
+              customFilterFns.containsText(fullName, _, filterValue)) ||
+            customFilterFns.containsText(
+              row.original.employee.email,
+              _,
+              filterValue,
+            )
           )
         },
         cell: ({ row }) => (
