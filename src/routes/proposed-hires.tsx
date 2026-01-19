@@ -24,6 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { customFilterFns } from './employees'
+import { getFullName } from '@/lib/utils'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
 import { useLocalStorage } from 'usehooks-ts'
@@ -106,7 +107,7 @@ function RouteComponent() {
       filterFn: (row: Row<ProposedHire>, _: string, filterValue: string) =>
         row.original.talentPartners.some((tp) =>
           customFilterFns.containsText(
-            tp.deelEmployee?.name ?? '',
+            getFullName(tp.deelEmployee?.firstName, tp.deelEmployee?.lastName),
             _,
             filterValue,
           ),
@@ -117,7 +118,13 @@ function RouteComponent() {
           <div>
             {partners.length > 0
               ? partners
-                  .map((tp) => tp.deelEmployee?.name ?? tp.email)
+                  .map((tp) =>
+                    getFullName(
+                      tp.deelEmployee?.firstName,
+                      tp.deelEmployee?.lastName,
+                      tp.email,
+                    ),
+                  )
                   .join(', ')
               : 'None'}
           </div>
@@ -125,8 +132,16 @@ function RouteComponent() {
       },
     },
     {
-      accessorKey: 'manager.deelEmployee.name',
+      accessorKey: 'manager.deelEmployee.firstName',
       header: 'Manager',
+      cell: ({ row }) => (
+        <div>
+          {getFullName(
+            row.original.manager?.deelEmployee?.firstName,
+            row.original.manager?.deelEmployee?.lastName,
+          )}
+        </div>
+      ),
     },
     {
       accessorKey: 'manager.deelEmployee.team',

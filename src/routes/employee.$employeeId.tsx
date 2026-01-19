@@ -30,7 +30,13 @@ import { FeedbackCard } from '@/components/FeedbackCard'
 import { PerformanceProgramTimelineCard } from '@/components/PerformanceProgramTimelineCard'
 import { CommissionBonusTimelineCard } from '@/components/CommissionBonusTimelineCard'
 import { AshbyInterviewScoreTimelineCard } from '@/components/AshbyInterviewScoreTimelineCard'
-import { bonusPercentage, locationFactor, sfBenchmark, cn } from '@/lib/utils'
+import {
+  bonusPercentage,
+  locationFactor,
+  sfBenchmark,
+  cn,
+  getFullName,
+} from '@/lib/utils'
 import {
   Table,
   TableBody,
@@ -172,7 +178,8 @@ const getEmployeeById = createInternalFn({
                           email: true,
                           deelEmployee: {
                             select: {
-                              name: true,
+                              firstName: true,
+                              lastName: true,
                             },
                           },
                         },
@@ -295,7 +302,8 @@ const getEmployeeById = createInternalFn({
                       email: true,
                       deelEmployee: {
                         select: {
-                          name: true,
+                          firstName: true,
+                          lastName: true,
                         },
                       },
                     },
@@ -397,7 +405,8 @@ type Employee = Prisma.EmployeeGetPayload<{
             email: true
             deelEmployee: {
               select: {
-                name: true
+                firstName: true
+                lastName: true
               }
             }
           }
@@ -455,7 +464,8 @@ export const getReferenceEmployees = createAdminFn({
         },
         deelEmployee: {
           select: {
-            name: true,
+            firstName: true,
+            lastName: true,
           },
         },
       },
@@ -473,7 +483,11 @@ export const getReferenceEmployees = createAdminFn({
       )
       .map((employee) => ({
         id: employee.id,
-        name: employee.deelEmployee?.name ?? employee.email,
+        name: getFullName(
+          employee.deelEmployee?.firstName,
+          employee.deelEmployee?.lastName,
+          employee.email,
+        ),
         level: employee.salaries[0]?.level,
         step: employee.salaries[0]?.step,
         locationFactor: employee.salaries[0]?.locationFactor ?? 1,
@@ -489,11 +503,12 @@ export const getDeelEmployees = createInternalFn({
 }).handler(async () => {
   return await prisma.deelEmployee.findMany({
     orderBy: {
-      name: 'asc',
+      lastName: 'asc',
     },
     select: {
       id: true,
-      name: true,
+      firstName: true,
+      lastName: true,
       workEmail: true,
     },
   })
@@ -654,7 +669,8 @@ export const createPerformanceProgram = createInternalFn({
                 email: true,
                 deelEmployee: {
                   select: {
-                    name: true,
+                    firstName: true,
+                    lastName: true,
                   },
                 },
               },
@@ -746,7 +762,8 @@ export const updateChecklistItem = createInternalFn({
             email: true,
             deelEmployee: {
               select: {
-                name: true,
+                firstName: true,
+                lastName: true,
               },
             },
           },
@@ -1287,7 +1304,7 @@ function EmployeeOverview() {
       if (visited.has(employee.id)) {
         return {
           id: employee.id,
-          name: employee.name,
+          name: getFullName(employee.firstName, employee.lastName),
           title: employee.title,
           team: employee.team,
           employeeId: employee.employee?.id,
@@ -1302,7 +1319,9 @@ function EmployeeOverview() {
 
       visited.add(employee.id)
       const directReports = (managerMap.get(employee.id) || []).sort((a, b) =>
-        a.name.localeCompare(b.name),
+        getFullName(a.firstName, a.lastName).localeCompare(
+          getFullName(b.firstName, b.lastName),
+        ),
       )
 
       // Add proposed hires for this manager
@@ -1335,7 +1354,7 @@ function EmployeeOverview() {
 
       return {
         id: employee.id,
-        name: employee.name,
+        name: getFullName(employee.firstName, employee.lastName),
         title: employee.title,
         team: employee.team,
         employeeId: employee.employee?.id,
@@ -1378,7 +1397,11 @@ function EmployeeOverview() {
 
     // Return array of top-level managers (sorted by name)
     const trees = topLevelManagers
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) =>
+        getFullName(a.firstName, a.lastName).localeCompare(
+          getFullName(b.firstName, b.lastName),
+        ),
+      )
       .map((manager) => buildTree(manager))
 
     // Return single node or array of nodes
@@ -1441,7 +1464,11 @@ function EmployeeOverview() {
     const refs = referenceEmployees ?? []
     const currentEmployeeRef: ReferenceEmployee = {
       id: employee.id,
-      name: employee.deelEmployee?.name ?? employee.email,
+      name: getFullName(
+        employee.deelEmployee?.firstName,
+        employee.deelEmployee?.lastName,
+        employee.email,
+      ),
       level: level,
       step: step,
       locationFactor: employee.salaries[0]?.locationFactor ?? 1,
@@ -1820,18 +1847,25 @@ function EmployeeOverview() {
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-col">
               <span className="text-xl font-bold">
-                {employee.deelEmployee?.name ||
-                  employee.email ||
-                  'Edit employee'}
+                {getFullName(
+                  employee.deelEmployee?.firstName,
+                  employee.deelEmployee?.lastName,
+                  employee.email,
+                ) || 'Edit employee'}
               </span>
               <div className="mt-1 flex gap-4 text-sm text-gray-600">
                 <span>Email: {employee.email}</span>
                 {employee.priority ? (
                   <span>Priority: {employee.priority}</span>
                 ) : null}
-                {employee.deelEmployee?.topLevelManager?.name && (
+                {(employee.deelEmployee?.topLevelManager?.firstName ||
+                  employee.deelEmployee?.topLevelManager?.lastName) && (
                   <span>
-                    Reviewer: {employee.deelEmployee.topLevelManager.name}
+                    Reviewer:{' '}
+                    {getFullName(
+                      employee.deelEmployee.topLevelManager.firstName,
+                      employee.deelEmployee.topLevelManager.lastName,
+                    )}
                   </span>
                 )}
                 {typeof employee.reviewed === 'boolean' ? (

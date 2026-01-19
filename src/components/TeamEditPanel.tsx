@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/popover'
 import { useEffect, useState } from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, getFullName } from '@/lib/utils'
 import { createToast } from 'vercel-toast'
 import prisma from '@/db'
 import { useRouter } from '@tanstack/react-router'
@@ -158,7 +158,8 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
     manager: {
       select: {
         id: true
-        name: true
+        firstName: true
+        lastName: true
       }
     }
   }
@@ -272,7 +273,7 @@ export function TeamEditPanel({ employee }: { employee: DeelEmployee }) {
       <AuditLogHistoryDialog
         entityType="TEAM"
         entityId={employee.id}
-        title={`Team history for ${employee.name}`}
+        title={`Team history for ${getFullName(employee.firstName, employee.lastName)}`}
         open={historyDialogOpen}
         onOpenChange={setHistoryDialogOpen}
       />

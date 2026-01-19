@@ -8,6 +8,7 @@ import {
   Check,
 } from 'lucide-react'
 import { ManagerHierarchyTree } from '@/components/ManagerHierarchyTree'
+import { getFullName } from '@/lib/utils'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import type { HierarchyNode } from '@/lib/types'
 import {
@@ -95,7 +96,7 @@ function OrgTree() {
       if (visited.has(employee.id)) {
         return {
           id: employee.id,
-          name: employee.name,
+          name: getFullName(employee.firstName, employee.lastName),
           title: employee.title,
           team: employee.team,
           employeeId: employee.employee?.id,
@@ -110,7 +111,9 @@ function OrgTree() {
 
       visited.add(employee.id)
       const directReports = (managerMap.get(employee.id) || []).sort((a, b) =>
-        a.name.localeCompare(b.name),
+        getFullName(a.firstName, a.lastName).localeCompare(
+          getFullName(b.firstName, b.lastName),
+        ),
       )
 
       // Add proposed hires for this manager
@@ -143,7 +146,7 @@ function OrgTree() {
 
       return {
         id: employee.id,
-        name: employee.name,
+        name: getFullName(employee.firstName, employee.lastName),
         title: employee.title,
         team: employee.team,
         employeeId: employee.employee?.id,
@@ -171,7 +174,11 @@ function OrgTree() {
 
     // Return array of top-level managers (sorted by name)
     const trees = topLevelManagers
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) =>
+        getFullName(a.firstName, a.lastName).localeCompare(
+          getFullName(b.firstName, b.lastName),
+        ),
+      )
       .map((manager) => buildTree(manager))
 
     // Return single node or array of nodes

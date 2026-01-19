@@ -44,7 +44,6 @@ enum SalaryDeviationStatus {
 
 model DeelEmployee {
   id                    String         @id
-  name                  String
   firstName             String         @default("")
   lastName              String         @default("")
   title                 String

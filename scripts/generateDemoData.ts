@@ -176,7 +176,8 @@ async function generateDeelEmployees(
     const deelEmployee = await prisma.deelEmployee.create({
       data: {
         id: faker.string.uuid(),
-        name: faker.person.fullName(),
+        firstName: faker.person.firstName(),
+        lastName: faker.person.lastName(),
         title,
         team,
         workEmail: employee.email,

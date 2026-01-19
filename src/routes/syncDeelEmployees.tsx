@@ -71,7 +71,6 @@ export const fetchDeelEmployees = async () => {
             ?.preferredLastName || employee.name.familyName
         return {
           id: employee.id,
-          name: `${firstName} ${lastName}`,
           firstName,
           lastName,
           title: employee.title,
@@ -157,7 +156,6 @@ export const Route = createFileRoute('/syncDeelEmployees')({
         await prisma.deelEmployee.createMany({
           data: deelEmployees.map((emp) => ({
             id: emp.id,
-            name: emp.name,
             firstName: emp.firstName,
             lastName: emp.lastName,
             title: emp.title,

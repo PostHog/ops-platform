@@ -6,6 +6,20 @@ export function cn(...inputs: Array<ClassValue>) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Get full name from firstName and lastName, with fallback to email
+ */
+export function getFullName(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+  fallback?: string,
+): string {
+  const first = firstName?.trim() || ''
+  const last = lastName?.trim() || ''
+  const fullName = [first, last].filter(Boolean).join(' ')
+  return fullName || fallback || ''
+}
+
 // Helper functions to convert KeeperTestRating enum values to display text
 export function ratingToText(rating: string): string {
   const map: Record<string, string> = {

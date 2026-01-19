@@ -8,6 +8,7 @@ import { TeamEditPanel } from './TeamEditPanel'
 import { ManagerEditPanel } from './ManagerEditPanel'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import { getFullName } from '@/lib/utils'
 
 dayjs.extend(relativeTime)
 
@@ -22,7 +23,8 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
     manager: {
       select: {
         id: true
-        name: true
+        firstName: true
+        lastName: true
       }
     }
   }
@@ -75,7 +77,9 @@ const EmployeePanel = ({
       >
         <div className="p-2">
           <h1 className="mb-4 text-lg font-bold">
-            {employee?.name || proposedHire?.title}
+            {employee
+              ? getFullName(employee.firstName, employee.lastName)
+              : proposedHire?.title}
           </h1>
           <div className="rounded-lg bg-gray-50 p-4">
             <div className="space-y-3">
@@ -121,7 +125,10 @@ const EmployeePanel = ({
                   <div className="flex justify-between">
                     <span className="font-medium text-gray-700">Manager:</span>
                     <span className="text-gray-900">
-                      {proposedHire.manager?.deelEmployee?.name || 'N/A'}
+                      {getFullName(
+                        proposedHire.manager?.deelEmployee?.firstName,
+                        proposedHire.manager?.deelEmployee?.lastName,
+                      ) || 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -136,7 +143,12 @@ const EmployeePanel = ({
                     </span>
                     <span className="text-gray-900">
                       {proposedHire.talentPartners
-                        .map((tp) => tp.deelEmployee?.name)
+                        .map((tp) =>
+                          getFullName(
+                            tp.deelEmployee?.firstName,
+                            tp.deelEmployee?.lastName,
+                          ),
+                        )
                         .filter(Boolean)
                         .join(', ') || 'None'}
                     </span>
@@ -175,7 +187,14 @@ const EmployeePanel = ({
                 <div className="flex flex-row items-center justify-between gap-2 px-2">
                   <span>Manager</span>
                   <div className="flex flex-row items-center gap-2">
-                    <span>{employee?.manager?.name ?? 'None'}</span>
+                    <span>
+                      {employee?.manager
+                        ? getFullName(
+                            employee.manager.firstName,
+                            employee.manager.lastName,
+                          )
+                        : 'None'}
+                    </span>
                     {employee ? (
                       <ManagerEditPanel
                         employees={employees}

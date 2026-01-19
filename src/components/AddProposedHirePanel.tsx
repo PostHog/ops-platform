@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from './ui/select'
 import { type Priority, type Prisma } from '@prisma/client'
+import { getFullName } from '@/lib/utils'
 import OrgChartPanel from './OrgChartPanel'
 import prisma from '@/db'
 import { useMemo, useState } from 'react'
@@ -373,7 +374,10 @@ function AddProposedHirePanel({
                                 htmlFor={`talent-partner-${employeeId}`}
                                 className="cursor-pointer text-sm font-normal"
                               >
-                                {employee.name}
+                                {getFullName(
+                                  employee.firstName,
+                                  employee.lastName,
+                                )}
                               </Label>
                             </div>
                           )

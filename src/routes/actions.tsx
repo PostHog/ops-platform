@@ -33,7 +33,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, getFullName } from '@/lib/utils'
 import { createAdminFn } from '@/lib/auth-middleware'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -127,8 +127,11 @@ export const Route = createFileRoute('/actions')({
 const defaultTemplate = `Hey {firstName}! I just wanted to let you know that we're giving you a raise of {changePercentage}%, which works out to a {changeAmountLocal} increase for a total salary of {salaryLocal}. Thanks for the hard work you do for PostHog, and let me know if you have any questions!`
 
 function processTemplate(template: string, salary: Salary): string {
-  const name = salary.employee.deelEmployee?.name || ''
-  const firstName = salary.employee.deelEmployee?.name?.split(' ')[0] || ''
+  const name = getFullName(
+    salary.employee.deelEmployee?.firstName,
+    salary.employee.deelEmployee?.lastName,
+  )
+  const firstName = salary.employee.deelEmployee?.firstName || ''
   const changePercentage = (salary.changePercentage * 100).toFixed(2)
   const changeAmount = formatCurrency(salary.changeAmount)
   const changeAmountLocal = new Intl.NumberFormat('en-US', {
@@ -141,7 +144,10 @@ function processTemplate(template: string, salary: Salary): string {
     currency: salary.localCurrency,
   }).format(salary.actualSalaryLocal)
   const localCurrency = salary.localCurrency
-  const reviewer = salary.employee.deelEmployee?.topLevelManager?.name || ''
+  const reviewer = getFullName(
+    salary.employee.deelEmployee?.topLevelManager?.firstName,
+    salary.employee.deelEmployee?.topLevelManager?.lastName,
+  )
   const step = salary.step
   const level = salary.level
   const benchmark = salary.benchmark
@@ -224,22 +230,28 @@ function App() {
       {
         accessorKey: 'name',
         header: 'Name',
-        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
-          (row.original.employee.deelEmployee?.name &&
+        filterFn: (row: Row<Salary>, _: string, filterValue: string) => {
+          const fullName = getFullName(
+            row.original.employee.deelEmployee?.firstName,
+            row.original.employee.deelEmployee?.lastName,
+          )
+          return (
+            (fullName &&
+              customFilterFns.containsText(fullName, _, filterValue)) ||
             customFilterFns.containsText(
-              row.original.employee.deelEmployee?.name,
+              row.original.employee.email,
               _,
               filterValue,
-            )) ||
-          customFilterFns.containsText(
-            row.original.employee.email,
-            _,
-            filterValue,
-          ),
+            )
+          )
+        },
         cell: ({ row }) => (
           <div>
-            {row.original.employee.deelEmployee?.name ||
-              row.original.employee.email}
+            {getFullName(
+              row.original.employee.deelEmployee?.firstName,
+              row.original.employee.deelEmployee?.lastName,
+              row.original.employee.email,
+            )}
           </div>
         ),
       },
@@ -297,12 +309,20 @@ function App() {
         header: 'Reviewer',
         filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
           customFilterFns.containsText(
-            row.original.employee.deelEmployee?.topLevelManager?.name ?? '',
+            getFullName(
+              row.original.employee.deelEmployee?.topLevelManager?.firstName,
+              row.original.employee.deelEmployee?.topLevelManager?.lastName,
+            ),
             _,
             filterValue,
           ),
         cell: ({ row }) => (
-          <div>{row.original.employee.deelEmployee?.topLevelManager?.name}</div>
+          <div>
+            {getFullName(
+              row.original.employee.deelEmployee?.topLevelManager?.firstName,
+              row.original.employee.deelEmployee?.topLevelManager?.lastName,
+            )}
+          </div>
         ),
       },
       {
@@ -421,7 +441,11 @@ function App() {
       table.getFilteredRowModel().rows.map((row) => {
         const salary = row.original
         return {
-          name: salary.employee.deelEmployee?.name,
+          name: getFullName(
+            salary.employee.deelEmployee?.firstName,
+            salary.employee.deelEmployee?.lastName,
+            salary.employee.email,
+          ),
           notes: salary.notes,
           salary: formatCurrency(salary.actualSalary),
           currency: salary.localCurrency,
@@ -430,7 +454,10 @@ function App() {
             currency: salary.localCurrency,
           }).format(salary.actualSalaryLocal),
           changePercentage: salary.changePercentage,
-          reviewer: salary.employee.deelEmployee?.topLevelManager?.name,
+          reviewer: getFullName(
+            salary.employee.deelEmployee?.topLevelManager?.firstName,
+            salary.employee.deelEmployee?.topLevelManager?.lastName,
+          ),
           communicated: salary.communicated ? 'Yes' : 'No',
         }
       }),
