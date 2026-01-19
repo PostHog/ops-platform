@@ -90,7 +90,10 @@ const OrgChartPanel = ({
                   : employee.employee?.id === selectedNode,
               )
               return selectedEmployee
-                ? getFullName(selectedEmployee.firstName, selectedEmployee.lastName)
+                ? getFullName(
+                    selectedEmployee.firstName,
+                    selectedEmployee.lastName,
+                  )
                 : 'Search employee...'
             })()}
             <ChevronsUpDown className="opacity-50" />

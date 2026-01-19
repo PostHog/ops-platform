@@ -610,7 +610,11 @@ const buildTeamHierarchy = (
           e.team !== 'Blitzscale' &&
           (!e.team || e.team === ''),
       )
-      .sort((a, b) => getFullName(a.firstName, a.lastName).localeCompare(getFullName(b.firstName, b.lastName)))
+      .sort((a, b) =>
+        getFullName(a.firstName, a.lastName).localeCompare(
+          getFullName(b.firstName, b.lastName),
+        ),
+      )
       .map((emp) => {
         addedEmployeeIds.add(emp.id)
         return buildEmployeeNode(emp.id, visited) || createEmployeeNode(emp)

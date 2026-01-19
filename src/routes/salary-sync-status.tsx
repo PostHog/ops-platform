@@ -116,7 +116,8 @@ function RouteComponent() {
             row.original.deelEmployee?.lastName,
           )
           return (
-            (fullName && customFilterFns.containsText(fullName, _, filterValue)) ||
+            (fullName &&
+              customFilterFns.containsText(fullName, _, filterValue)) ||
             customFilterFns.containsText(row.original.email, _, filterValue)
           )
         },

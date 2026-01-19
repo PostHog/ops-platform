@@ -118,13 +118,12 @@ function RouteComponent() {
           <div>
             {partners.length > 0
               ? partners
-                  .map(
-                    (tp) =>
-                      getFullName(
-                        tp.deelEmployee?.firstName,
-                        tp.deelEmployee?.lastName,
-                        tp.email,
-                      ),
+                  .map((tp) =>
+                    getFullName(
+                      tp.deelEmployee?.firstName,
+                      tp.deelEmployee?.lastName,
+                      tp.email,
+                    ),
                   )
                   .join(', ')
               : 'None'}

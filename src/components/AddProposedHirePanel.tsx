@@ -374,7 +374,10 @@ function AddProposedHirePanel({
                                 htmlFor={`talent-partner-${employeeId}`}
                                 className="cursor-pointer text-sm font-normal"
                               >
-                                {getFullName(employee.firstName, employee.lastName)}
+                                {getFullName(
+                                  employee.firstName,
+                                  employee.lastName,
+                                )}
                               </Label>
                             </div>
                           )

@@ -342,14 +342,23 @@ function App() {
       {
         accessorKey: 'name',
         header: 'Name',
-        filterFn: (row: Row<CommissionBonus>, _: string, filterValue: string) => {
+        filterFn: (
+          row: Row<CommissionBonus>,
+          _: string,
+          filterValue: string,
+        ) => {
           const fullName = getFullName(
             row.original.employee.deelEmployee?.firstName,
             row.original.employee.deelEmployee?.lastName,
           )
           return (
-            (fullName && customFilterFns.containsText(fullName, _, filterValue)) ||
-            customFilterFns.containsText(row.original.employee.email, _, filterValue)
+            (fullName &&
+              customFilterFns.containsText(fullName, _, filterValue)) ||
+            customFilterFns.containsText(
+              row.original.employee.email,
+              _,
+              filterValue,
+            )
           )
         },
         cell: ({ row }) => (

@@ -42,7 +42,14 @@ const updateDeelManager = createOrgChartFn({
       where: { id },
       include: {
         employee: { select: { email: true } },
-        manager: { select: { id: true, firstName: true, lastName: true, workEmail: true } },
+        manager: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            workEmail: true,
+          },
+        },
       },
     })
 
@@ -81,7 +88,14 @@ const updateDeelManager = createOrgChartFn({
       data: { managerId },
       include: {
         employee: { select: { email: true } },
-        manager: { select: { id: true, firstName: true, lastName: true, workEmail: true } },
+        manager: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            workEmail: true,
+          },
+        },
       },
     })
 
@@ -91,7 +105,10 @@ const updateDeelManager = createOrgChartFn({
       entityType: 'MANAGER',
       entityId: id,
       fieldName: 'managerId',
-      oldValue: getFullName(currentEmployee?.manager?.firstName, currentEmployee?.manager?.lastName),
+      oldValue: getFullName(
+        currentEmployee?.manager?.firstName,
+        currentEmployee?.manager?.lastName,
+      ),
       newValue: getFullName(newManager?.firstName, newManager?.lastName),
       metadata: {
         employeeEmail: updatedEmployee.employee?.email,
@@ -170,8 +187,12 @@ export function ManagerEditPanel({
                 >
                   {value
                     ? (() => {
-                        const emp = employees?.find((employee) => employee.id === value)
-                        return emp ? getFullName(emp.firstName, emp.lastName) : null
+                        const emp = employees?.find(
+                          (employee) => employee.id === value,
+                        )
+                        return emp
+                          ? getFullName(emp.firstName, emp.lastName)
+                          : null
                       })()
                     : 'Select manager...'}
                   <ChevronsUpDown className="opacity-50" />
