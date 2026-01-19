@@ -260,16 +260,12 @@ const getEmployeeById = createInternalFn({
                   },
                 }),
         },
-        // Commission bonuses: visible to admin and employees (their own), but not to managers
-        ...(isAdmin || !isManager
-          ? {
-              commissionBonuses: {
-                orderBy: {
-                  createdAt: 'desc',
-                },
-              },
-            }
-          : {}),
+        // Commission bonuses: visible to admin, managers, and employees (their own)
+        commissionBonuses: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         // Interview scores: visible to admin and managers, but not to employees themselves
         ...(isAdmin || isManager
           ? {
