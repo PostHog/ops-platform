@@ -10,12 +10,14 @@ export type KeeperTestJobPayload = {
     email: string
     firstName: string
     lastName: string
+    name?: string // TODO: Remove after 2026-01-27 when all jobs have been updated to use firstName/lastName
   }
   manager: {
     id: string
     email: string
     firstName: string
     lastName: string
+    name?: string // TODO: Remove after 2026-01-27 when all jobs have been updated to use firstName/lastName
   }
   thread_id?: string
 }
@@ -520,7 +522,11 @@ export const Route = createFileRoute('/runScheduledJobs')({
                       blocks: getSlackMessageBody(
                         employee.email,
                         employee.id,
-                        getFullName(manager.firstName, manager.lastName),
+                        getFullName(
+                          manager.firstName,
+                          manager.lastName,
+                          manager.name,
+                        ),
                         manager.id,
                         job.id,
                         title,
@@ -588,7 +594,11 @@ export const Route = createFileRoute('/runScheduledJobs')({
                       blocks: getManagerFeedbackSlackMessageBody(
                         manager.email,
                         employee.id,
-                        getFullName(employee.firstName, employee.lastName),
+                        getFullName(
+                          employee.firstName,
+                          employee.lastName,
+                          employee.name,
+                        ),
                         manager.id,
                         job.id,
                         title,
@@ -696,7 +706,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                       body: JSON.stringify({
                         channel:
                           process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
-                        text: `${getFullName(manager.firstName, manager.lastName)} hasn't submitted feedback for ${getFullName(employee.firstName, employee.lastName)} within ${daysSinceCreation} days. Please follow up with them.`,
+                        text: `${getFullName(manager.firstName, manager.lastName, manager.name)} hasn't submitted feedback for ${getFullName(employee.firstName, employee.lastName, employee.name)} within ${daysSinceCreation} days. Please follow up with them.`,
                       }),
                     },
                   )
@@ -792,7 +802,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                       body: JSON.stringify({
                         channel:
                           process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
-                        text: `${getFullName(manager.firstName, manager.lastName)} hasn't submitted feedback for ${getFullName(employee.firstName, employee.lastName)} within ${daysSinceCreation} days. Please follow up with them.`,
+                        text: `${getFullName(manager.firstName, manager.lastName, manager.name)} hasn't submitted feedback for ${getFullName(employee.firstName, employee.lastName, employee.name)} within ${daysSinceCreation} days. Please follow up with them.`,
                       }),
                     },
                   )
