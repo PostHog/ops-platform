@@ -1682,7 +1682,7 @@ function EmployeeOverview() {
     managerHierarchy && (user?.role === ROLES.ADMIN || isManager)
 
   return (
-    <div className="flex h-[calc(100vh-2.5rem)] flex-col items-center gap-5 overflow-hidden pt-4">
+    <div className="flex h-full flex-col items-center gap-5 overflow-hidden pt-4">
       <div className="flex h-full w-full gap-5 2xl:max-w-[2000px]">
         {/* Sidebar with hierarchy */}
         {showEmployeeTree && (
