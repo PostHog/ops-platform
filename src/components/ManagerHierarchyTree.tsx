@@ -9,6 +9,7 @@ import {
 import { useRouter } from '@tanstack/react-router'
 import { useLocalStorage } from 'usehooks-ts'
 import { cn, getFullName } from '@/lib/utils'
+import { useSensitiveDataHidden } from './SensitiveData'
 import type { HierarchyNode } from '@/lib/types'
 import type { Prisma } from '@prisma/client'
 
@@ -91,6 +92,7 @@ function TreeNode({
   )
   const nodeRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const isSensitiveHidden = useSensitiveDataHidden()
   const hasChildren = node.children.length > 0
   const isCurrentEmployee = node.employeeId === currentEmployeeId
   const isProposedHire =
@@ -258,7 +260,7 @@ function TreeNode({
               </span>
             </div>
           )}
-          {node.hasActivePerformanceProgram && (
+          {node.hasActivePerformanceProgram && !isSensitiveHidden && (
             <div className="flex items-center gap-1">
               <AlertTriangle className="h-3 w-3 text-orange-600" />
               <span className="text-xs font-medium text-orange-600">
@@ -297,7 +299,8 @@ function TreeNode({
                     <CalendarClock className="h-3 w-3" />
                   </div>
                 ) : null}
-                {node.childrenCount.performanceIssues > 0 ? (
+                {node.childrenCount.performanceIssues > 0 &&
+                !isSensitiveHidden ? (
                   <div className="flex items-center gap-1 text-orange-600">
                     <span>{node.childrenCount.performanceIssues}</span>
                     <AlertTriangle className="h-3 w-3" />

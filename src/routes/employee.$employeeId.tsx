@@ -82,6 +82,7 @@ import { ManagerHierarchyTree } from '@/components/ManagerHierarchyTree'
 import type { HierarchyNode } from '@/lib/types'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import { PerformanceProgramPanel } from '@/components/PerformanceProgramPanel'
+import { useSensitiveDataHidden } from '@/components/SensitiveData'
 import {
   Select,
   SelectContent,
@@ -1171,6 +1172,7 @@ export const deleteProofFile = createInternalFn({
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
+  const isSensitiveHidden = useSensitiveDataHidden()
   const [showNewSalaryForm, setShowNewSalaryForm] = useState(
     user?.role === ROLES.ADMIN,
   )
@@ -1858,7 +1860,7 @@ function EmployeeOverview() {
               </span>
               <div className="mt-1 flex gap-4 text-sm text-gray-600">
                 <span>Email: {employee.email}</span>
-                {employee.priority ? (
+                {employee.priority && !isSensitiveHidden ? (
                   <span>Priority: {employee.priority}</span>
                 ) : null}
                 {(employee.deelEmployee?.topLevelManager?.firstName ||
@@ -1871,7 +1873,8 @@ function EmployeeOverview() {
                     )}
                   </span>
                 )}
-                {typeof employee.reviewed === 'boolean' ? (
+                {typeof employee.reviewed === 'boolean' &&
+                !isSensitiveHidden ? (
                   <span>Reviewed: {employee.reviewed ? 'Yes' : 'No'}</span>
                 ) : null}
                 {employee.deelEmployee?.startDate && (
@@ -1911,7 +1914,8 @@ function EmployeeOverview() {
             </div>
           </div>
 
-          {'performancePrograms' in employee &&
+          {!isSensitiveHidden &&
+          'performancePrograms' in employee &&
           employee.performancePrograms !== undefined ? (
             <div className="w-full">
               <PerformanceProgramPanel
@@ -1954,7 +1958,7 @@ function EmployeeOverview() {
                     : 'Enable override mode'}
                 </Button>
               ) : null}
-              {user?.role === ROLES.ADMIN ? (
+              {user?.role === ROLES.ADMIN && !isSensitiveHidden ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -2038,7 +2042,7 @@ function EmployeeOverview() {
 
           <div className="w-full flex-grow">
             <div className="mb-8">
-              {showNewSalaryForm && (
+              {showNewSalaryForm && !isSensitiveHidden && (
                 <NewSalaryForm
                   employeeId={employee.id}
                   showOverride={showOverrideMode}
@@ -2061,7 +2065,11 @@ function EmployeeOverview() {
                   eligibleForEquityRefresh={eligibleForEquityRefresh}
                 />
               )}
-              {timelineByMonth.length > 0 ? (
+              {isSensitiveHidden ? (
+                <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 px-4 py-12 text-center text-sm text-gray-500">
+                  Timeline hidden (sensitive data mode enabled)
+                </div>
+              ) : timelineByMonth.length > 0 ? (
                 timelineByMonth.map((monthGroup, monthGroupIndex) => (
                   <div key={`${monthGroup.year}-${monthGroup.month}`}>
                     <div

@@ -11,8 +11,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import { ChevronDownIcon } from 'lucide-react'
+import { ChevronDownIcon, Settings } from 'lucide-react'
 import { createToast } from 'vercel-toast'
+import { useAtom } from 'jotai'
+import { hideSensitiveDataAtom } from '@/atoms'
+import { Switch } from './ui/switch'
 
 export const getMyEmployeeId = createInternalFn({
   method: 'GET',
@@ -40,6 +43,9 @@ export default function Header() {
     queryKey: ['myEmployeeId'],
     queryFn: getMyEmployeeId,
   })
+  const [hideSensitiveData, setHideSensitiveData] = useAtom(
+    hideSensitiveDataAtom,
+  )
 
   const handleSignOut = () => {
     signOut()
@@ -101,9 +107,16 @@ export default function Header() {
               <DropdownMenuItem asChild>
                 <Link to="/org-chart">Org chart</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/org-tree">Org tree</Link>
-              </DropdownMenuItem>
+              {myEmployeeId && (
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/employee/$employeeId"
+                    params={{ employeeId: myEmployeeId }}
+                  >
+                    Org tree
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link to="/proposed-hires">Proposed hires</Link>
               </DropdownMenuItem>
@@ -167,6 +180,25 @@ export default function Header() {
                 Stop Impersonating
               </Button>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  className="flex items-center justify-between"
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <span>Hide sensitive data</span>
+                  <Switch
+                    checked={hideSensitiveData}
+                    onCheckedChange={setHideSensitiveData}
+                  />
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="outline" size="sm" onClick={handleSignOut}>
               Sign out
             </Button>
