@@ -84,7 +84,7 @@ export function SalaryWithMismatchIndicator({
             </TooltipTrigger>
             <TooltipContent>
               <p>
-                Mismatch detected! Expected: {formatCurrency(expectedTotal!)},
+                Mismatch detected! Expected: {formatCurrency(expectedTotal)},
                 Actual: {formatCurrency(totalSalary)}
               </p>
             </TooltipContent>

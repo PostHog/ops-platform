@@ -53,7 +53,7 @@ interface PerformanceProgramTimelineCardProps {
       name: string | null
       email: string
     }
-    files?: File[]
+    files?: Array<File>
   }
   lastTableItem?: boolean
 }
@@ -213,7 +213,7 @@ function ExpandableText({ text }: { text: string }) {
   )
 }
 
-function FileList({ files }: { files: File[] }) {
+function FileList({ files }: { files: Array<File> }) {
   const getFileUrl = useServerFn(getProofFileUrl)
 
   const handleDownloadFile = async (fileId: string) => {
