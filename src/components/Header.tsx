@@ -101,9 +101,16 @@ export default function Header() {
               <DropdownMenuItem asChild>
                 <Link to="/org-chart">Org chart</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/org-tree">Org tree</Link>
-              </DropdownMenuItem>
+              {myEmployeeId && (
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/employee/$employeeId"
+                    params={{ employeeId: myEmployeeId }}
+                  >
+                    Org tree
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link to="/proposed-hires">Proposed hires</Link>
               </DropdownMenuItem>
