@@ -1860,7 +1860,7 @@ function EmployeeOverview() {
               </span>
               <div className="mt-1 flex gap-4 text-sm text-gray-600">
                 <span>Email: {employee.email}</span>
-                {employee.priority ? (
+                {employee.priority && !isSensitiveHidden ? (
                   <span>Priority: {employee.priority}</span>
                 ) : null}
                 {(employee.deelEmployee?.topLevelManager?.firstName ||
@@ -1873,7 +1873,8 @@ function EmployeeOverview() {
                     )}
                   </span>
                 )}
-                {typeof employee.reviewed === 'boolean' ? (
+                {typeof employee.reviewed === 'boolean' &&
+                !isSensitiveHidden ? (
                   <span>Reviewed: {employee.reviewed ? 'Yes' : 'No'}</span>
                 ) : null}
                 {employee.deelEmployee?.startDate && (
@@ -1957,7 +1958,7 @@ function EmployeeOverview() {
                     : 'Enable override mode'}
                 </Button>
               ) : null}
-              {user?.role === ROLES.ADMIN ? (
+              {user?.role === ROLES.ADMIN && !isSensitiveHidden ? (
                 <Button
                   type="button"
                   variant="outline"
