@@ -70,7 +70,9 @@ const getSalarySyncStatus = createAdminFn({
     },
     where: {
       salaries: { some: {} },
-      deelEmployee: { isNot: null },
+      deelEmployee: {
+        startDate: { lte: new Date() }, // Exclude employees who haven't started yet
+      },
     },
   })
 })
