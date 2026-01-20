@@ -71,8 +71,10 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
             }
 
             const getSalary = async () => {
-              // update the if condition once we moved US payroll over to bamboo
-              if (false) {
+              const country =
+                employee.salaries[0]?.employmentCountry ??
+                employee.salaries[0]?.country
+              if (country === 'United States') {
                 const bambooEmployee = await getBambooEmployees(employee.email)
                 const compTable = await getBambooCompTable(
                   bambooEmployee.employeeId,
