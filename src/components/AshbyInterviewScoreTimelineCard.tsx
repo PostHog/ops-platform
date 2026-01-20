@@ -94,7 +94,7 @@ function OptionalField({
             e.stopPropagation()
             setIsExpanded(true)
           }}
-          className="mt-1 font-semibold text-gray-500 not-italic hover:text-blue-700"
+          className="mt-1 text-sm font-semibold text-gray-500 not-italic hover:text-blue-700"
         >
           show more
         </button>
@@ -105,7 +105,7 @@ function OptionalField({
             e.stopPropagation()
             setIsExpanded(false)
           }}
-          className="mt-1 font-semibold text-gray-500 not-italic hover:text-blue-700"
+          className="mt-1 text-sm font-semibold text-gray-500 not-italic hover:text-blue-700"
         >
           show less
         </button>

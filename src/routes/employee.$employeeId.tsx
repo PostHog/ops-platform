@@ -777,7 +777,9 @@ export const updateChecklistItem = createInternalFn({
 export const addProgramFeedback = createInternalFn({
   method: 'POST',
 })
-  .inputValidator((d: { programId: string; feedback: string }) => d)
+  .inputValidator(
+    (d: { programId: string; feedback: string; createdAt?: string }) => d,
+  )
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
     const { managedEmployeeIds } = context.managerInfo
@@ -802,6 +804,7 @@ export const addProgramFeedback = createInternalFn({
         programId: data.programId,
         feedback: data.feedback,
         givenByUserId: context.user.id,
+        ...(data.createdAt && { createdAt: new Date(data.createdAt) }),
       },
       include: {
         givenBy: {
@@ -1679,7 +1682,7 @@ function EmployeeOverview() {
     managerHierarchy && (user?.role === ROLES.ADMIN || isManager)
 
   return (
-    <div className="flex h-[calc(100vh-2.5rem)] flex-col items-center justify-center gap-5 overflow-hidden pt-4">
+    <div className="flex h-[calc(100vh-2.5rem)] flex-col items-center gap-5 overflow-hidden pt-4">
       <div className="flex h-full w-full gap-5 2xl:max-w-[2000px]">
         {/* Sidebar with hierarchy */}
         {showEmployeeTree && (
