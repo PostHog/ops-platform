@@ -94,7 +94,6 @@ import {
 } from '@/components/ui/select'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import MarkdownComponent from '@/lib/MarkdownComponent'
 import StockOptionsCalculator from '@/components/StockOptionsCalculator'
 
 dayjs.extend(relativeTime)
@@ -1855,29 +1854,8 @@ function EmployeeOverview() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to overview
               </Button>
-              {employee.cartaOptionGrants &&
-                employee.cartaOptionGrants.length > 0 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                      setShowStockOptionsCalculator(!showStockOptionsCalculator)
-                    }
-                    className="-mr-2"
-                  >
-                    {showStockOptionsCalculator
-                      ? 'Hide stock options calculator'
-                      : 'Show stock options calculator'}
-                  </Button>
-                )}
             </div>
           ) : null}
-
-          {employee.cartaOptionGrants &&
-            employee.cartaOptionGrants.length > 0 &&
-            showStockOptionsCalculator && (
-              <StockOptionsCalculator optionGrants={employee.cartaOptionGrants} />
-            )}
 
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-col">
@@ -1997,8 +1975,30 @@ function EmployeeOverview() {
                   {showNewSalaryForm ? 'Cancel' : 'Add New Salary'}
                 </Button>
               ) : null}
+              {employee.cartaOptionGrants &&
+                employee.cartaOptionGrants.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setShowStockOptionsCalculator(!showStockOptionsCalculator)
+                    }
+                  >
+                    {showStockOptionsCalculator
+                      ? 'Hide stock options calculator'
+                      : 'Show stock options calculator'}
+                  </Button>
+                )}
             </div>
           </div>
+
+          {employee.cartaOptionGrants &&
+            employee.cartaOptionGrants.length > 0 &&
+            showStockOptionsCalculator && (
+              <StockOptionsCalculator
+                optionGrants={employee.cartaOptionGrants}
+              />
+            )}
 
           {employee.salaries[0] &&
             (() => {
