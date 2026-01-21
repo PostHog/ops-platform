@@ -1,26 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import prisma from '@/db'
 import { getBambooCompTable, getBambooEmployees } from './syncSalaryUpdates'
-
-const fetchDeelEmployee = async (id: string) => {
-  const response = await fetch(
-    `https://api.letsdeel.com/rest/v2/people/${id}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${process.env.DEEL_API_KEY}`,
-      },
-    },
-  )
-
-  if (response.status !== 200) {
-    throw new Error(`Failed to fetch employee: ${response.statusText}`)
-  }
-
-  const data = await response.json()
-
-  return data.data
-}
+import { fetchDeelEmployee } from './syncDeelEmployees'
 
 export const Route = createFileRoute('/salaryDeviationChecker')({
   server: {
@@ -73,9 +54,12 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
 
             const { payment: compensation_details } =
               deelEmployee.employments.filter((x: any) =>
-                ['active', 'onboarding', 'onboarding_overdue'].includes(
-                  x.hiring_status,
-                ),
+                [
+                  'active',
+                  'onboarding',
+                  'onboarding_overdue',
+                  'invited',
+                ].includes(x.hiring_status),
               )[0]
 
             const getDeelAnnualSalary = (compensation_details: {
@@ -90,8 +74,10 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
             }
 
             const getSalary = async () => {
-              // update the if condition once we moved US payroll over to bamboo
-              if (false) {
+              const country =
+                employee.salaries[0]?.employmentCountry ??
+                employee.salaries[0]?.country
+              if (country === 'United States') {
                 const bambooEmployee = await getBambooEmployees(employee.email)
                 const compTable = await getBambooCompTable(
                   bambooEmployee.employeeId,

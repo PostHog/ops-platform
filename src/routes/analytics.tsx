@@ -17,14 +17,14 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import OrgChartPanel from '@/components/OrgChartPanel'
 import prisma from '@/db'
-import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { createAdminFn } from '@/lib/auth-middleware'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { getReferenceEmployees } from './employee.$employeeId'
 
-const getEmployees = createAuthenticatedFn({
+const getEmployees = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   const deelEmployees = await prisma.deelEmployee.findMany({
@@ -97,7 +97,7 @@ function RouteComponent() {
   })
 
   return (
-    <div className="flex w-screen justify-center px-4">
+    <div className="flex justify-center px-4 pb-4">
       <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="mt-6 flex flex-row items-center justify-between">
           <div>

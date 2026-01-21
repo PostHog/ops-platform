@@ -7,3 +7,4 @@ const authClient = createAuthClient({
 })
 
 export const { signIn, signUp, useSession, signOut, getSession } = authClient
+export const { impersonateUser, stopImpersonating } = authClient.admin

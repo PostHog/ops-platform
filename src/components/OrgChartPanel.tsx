@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Check, ChevronsUpDown, SettingsIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, getFullName } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -82,13 +82,20 @@ const OrgChartPanel = ({
             aria-expanded={open}
             className="w-full min-w-[300px] justify-between"
           >
-            {selectedNode
-              ? employees.find((employee) =>
-                  idValue === 'id'
-                    ? employee.id === selectedNode
-                    : employee.employee?.id === selectedNode,
-                )?.name
-              : 'Search employee...'}
+            {(() => {
+              if (!selectedNode) return 'Search employee...'
+              const selectedEmployee = employees.find((employee) =>
+                idValue === 'id'
+                  ? employee.id === selectedNode
+                  : employee.employee?.id === selectedNode,
+              )
+              return selectedEmployee
+                ? getFullName(
+                    selectedEmployee.firstName,
+                    selectedEmployee.lastName,
+                  )
+                : 'Search employee...'
+            })()}
             <ChevronsUpDown className="opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -103,7 +110,7 @@ const OrgChartPanel = ({
                   .map((employee) => (
                     <CommandItem
                       key={employee.id}
-                      value={`${employee.id} - ${employee.name} - ${employee.employee?.id} - ${employee.workEmail}`}
+                      value={`${employee.id} - ${getFullName(employee.firstName, employee.lastName)} - ${employee.employee?.id} - ${employee.workEmail}`}
                       onSelect={(currentValue) => {
                         setSelectedNode(
                           (
@@ -119,7 +126,7 @@ const OrgChartPanel = ({
                         setOpen(false)
                       }}
                     >
-                      {employee.name}
+                      {getFullName(employee.firstName, employee.lastName)}
                       <Check
                         className={cn(
                           'ml-auto',

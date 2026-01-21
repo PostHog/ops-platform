@@ -7,3 +7,8 @@ export const orgChartAutozoomingEnabledAtom = atomWithStorage<boolean>(
   'org-chart.autozoomingEnabled',
   false,
 )
+
+export const hideSensitiveDataAtom = atomWithStorage<boolean>(
+  'settings.hideSensitiveData',
+  false,
+)

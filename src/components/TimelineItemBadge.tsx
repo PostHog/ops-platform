@@ -1,5 +1,5 @@
 interface TimelineItemBadgeProps {
-  type: 'salary' | 'new salary' | 'feedback'
+  type: 'salary' | 'new salary' | 'feedback' | 'commission'
 }
 
 export function TimelineItemBadge({ type }: TimelineItemBadgeProps) {
@@ -14,6 +14,14 @@ export function TimelineItemBadge({ type }: TimelineItemBadgeProps) {
     return (
       <span className="inline-flex items-center rounded-md bg-green-50 px-1 py-0.5 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">
         new salary
+      </span>
+    )
+  }
+
+  if (type === 'commission') {
+    return (
+      <span className="inline-flex items-center rounded-md bg-purple-50 px-1 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-purple-600/20 ring-inset">
+        commission bonus
       </span>
     )
   }

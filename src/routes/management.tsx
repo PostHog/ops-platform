@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -35,15 +36,21 @@ import {
 import { renderToStaticMarkup } from 'react-dom/server'
 import { fetchDeelEmployees } from './syncDeelEmployees'
 import type { KeeperTestJobPayload } from './runScheduledJobs'
-import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { createAdminFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
 import { CartaConfig } from './syncCartaData'
+import { CommissionImportPanel } from '@/components/CommissionImportPanel'
+import { getQuarterStartDate } from '@/lib/commission-calculator'
+import { z } from 'zod'
+import { impersonateUser } from '@/lib/auth-client'
+import { createAuditLogEntry } from '@/lib/audit-log'
+import { AuditLogHistoryDialog } from '@/components/AuditLogHistoryDialog'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
 })
 
-const getUsers = createAuthenticatedFn({
+const getUsers = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.user.findMany({
@@ -53,12 +60,19 @@ const getUsers = createAuthenticatedFn({
   })
 })
 
-const updateUserRole = createAuthenticatedFn({
+const updateUserRole = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; role: string }) => d)
-  .handler(async ({ data }) => {
-    return await prisma.user.update({
+  .handler(async ({ data, context }) => {
+    // Get current user role
+    const currentUser = await prisma.user.findUnique({
+      where: { id: data.id },
+      select: { role: true, email: true },
+    })
+
+    // Update user role
+    const updatedUser = await prisma.user.update({
       where: {
         id: data.id,
       },
@@ -66,9 +80,25 @@ const updateUserRole = createAuthenticatedFn({
         role: data.role,
       },
     })
+
+    // Create audit log entry
+    await createAuditLogEntry({
+      actorUserId: context.user.id,
+      entityType: 'USER_ROLE',
+      entityId: data.id,
+      fieldName: 'role',
+      oldValue: currentUser?.role ?? null,
+      newValue: data.role,
+      metadata: {
+        userEmail: updatedUser.email,
+        userName: updatedUser.name,
+      },
+    })
+
+    return updatedUser
   })
 
-const startReviewCycle = createAuthenticatedFn({
+const startReviewCycle = createAdminFn({
   method: 'POST',
 }).handler(async () => {
   return await prisma.employee.updateMany({
@@ -78,7 +108,7 @@ const startReviewCycle = createAuthenticatedFn({
   })
 })
 
-const populateInitialEmployeeSalaries = createAuthenticatedFn({
+const populateInitialEmployeeSalaries = createAdminFn({
   method: 'POST',
 }).handler(async () => {
   const employees = await prisma.deelEmployee.findMany({
@@ -239,6 +269,9 @@ const populateInitialEmployeeSalaries = createAuthenticatedFn({
 
 function RouteComponent() {
   const router = useRouter()
+  const [historyDialogOpen, setHistoryDialogOpen] = useState<string | null>(
+    null,
+  )
   const { data: users, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: () => getUsers(),
@@ -268,23 +301,72 @@ function RouteComponent() {
         }
 
         return (
-          <Select
-            value={row.original.role ?? 'error'}
-            onValueChange={handleRoleChange}
+          <div className="flex items-center gap-2">
+            <Select
+              value={row.original.role ?? 'error'}
+              onValueChange={handleRoleChange}
+            >
+              <SelectTrigger className="h-6 w-[240px] px-1 py-0 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ROLES.ADMIN}>Admin (full access)</SelectItem>
+                <SelectItem value={ROLES.ORG_CHART}>
+                  Org Chart (access the org chart and proposed hires)
+                </SelectItem>
+                <SelectItem value={ROLES.USER}>
+                  User (view own feedback + salary)
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setHistoryDialogOpen(row.original.id)}
+              className="h-6 text-xs"
+            >
+              View history
+            </Button>
+            <AuditLogHistoryDialog
+              entityType="USER_ROLE"
+              entityId={row.original.id}
+              title={`Role history for ${row.original.name}`}
+              open={historyDialogOpen === row.original.id}
+              onOpenChange={(open: boolean) =>
+                setHistoryDialogOpen(open ? row.original.id : null)
+              }
+            />
+          </div>
+        )
+      },
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => {
+        const handleImpersonate = async () => {
+          try {
+            await impersonateUser({
+              userId: row.original.id,
+            })
+            window.location.href = '/'
+          } catch (error) {
+            createToast(
+              `Failed to impersonate user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              { timeout: 5000 },
+            )
+          }
+        }
+
+        return (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleImpersonate}
+            className="h-6 text-xs"
           >
-            <SelectTrigger className="h-6 w-[240px] px-1 py-0 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ROLES.ADMIN}>Admin (full access)</SelectItem>
-              <SelectItem value={ROLES.ORG_CHART}>
-                Org Chart (access the org chart and proposed hires)
-              </SelectItem>
-              <SelectItem value={ROLES.USER}>
-                User (view own feedback + salary)
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            Impersonate
+          </Button>
         )
       },
     },
@@ -298,7 +380,7 @@ function RouteComponent() {
   })
 
   return (
-    <div className="flex w-screen justify-center px-4">
+    <div className="flex justify-center px-4 pb-4">
       <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="flex justify-between py-4">
           <div className="text-lg font-bold">User management</div>
@@ -416,12 +498,18 @@ function RouteComponent() {
         <div className="flex flex-col gap-2 overflow-hidden">
           <CartaIntegration />
         </div>
+        <div className="flex justify-between py-4">
+          <div className="text-lg font-bold">Commission Bonuses</div>
+        </div>
+        <div className="flex flex-col gap-2 overflow-hidden">
+          <CommissionImportPanel />
+        </div>
       </div>
     </div>
   )
 }
 
-const getCartaIntegration = createAuthenticatedFn({
+const getCartaIntegration = createAdminFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   const clientId = process.env.CARTA_INTEGRATION_CLIENT_ID
@@ -441,7 +529,7 @@ const getCartaIntegration = createAuthenticatedFn({
   })
 })
 
-const authorizeCartaAccount = createAuthenticatedFn({
+const authorizeCartaAccount = createAdminFn({
   method: 'POST',
 }).handler(async ({ context }) => {
   const clientId = process.env.CARTA_INTEGRATION_CLIENT_ID
@@ -519,7 +607,7 @@ const authorizeCartaAccount = createAuthenticatedFn({
   }
 })
 
-const revokeCartaToken = createAuthenticatedFn({
+const revokeCartaToken = createAdminFn({
   method: 'POST',
 }).handler(async ({ context }) => {
   const integration = await prisma.integration.findFirst({
@@ -542,7 +630,7 @@ const revokeCartaToken = createAuthenticatedFn({
   }
 })
 
-export const scheduleKeeperTests = createAuthenticatedFn({
+export const scheduleKeeperTests = createAdminFn({
   method: 'POST',
 }).handler(async () => {
   const employees = await prisma.employee.findMany({
@@ -559,10 +647,41 @@ export const scheduleKeeperTests = createAuthenticatedFn({
           not: 'Blitzscale',
         },
         startDate: {
-          gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // only schedule for employees who have passed probation
+          lte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // only schedule for employees who have passed probation
         },
       },
     },
+  })
+
+  const managerFeedbackJobResult = await prisma.cyclotronJob.createMany({
+    data: employees
+      .map((employee) => {
+        if (
+          !employee.deelEmployee?.manager ||
+          !employee.deelEmployee?.manager?.workEmail
+        ) {
+          return null
+        }
+        return {
+          queue_name: 'send_manager_feedback' as const,
+          data: JSON.stringify({
+            title: 'Manager feedback',
+            employee: {
+              id: employee.id,
+              email: employee.email,
+              firstName: employee.deelEmployee?.firstName || '',
+              lastName: employee.deelEmployee?.lastName || '',
+            },
+            manager: {
+              id: employee.deelEmployee?.manager?.id,
+              email: employee.deelEmployee?.manager?.workEmail,
+              firstName: employee.deelEmployee?.manager?.firstName || '',
+              lastName: employee.deelEmployee?.manager?.lastName || '',
+            },
+          } satisfies KeeperTestJobPayload),
+        }
+      })
+      .filter((emp) => emp !== null),
   })
 
   const result = await prisma.cyclotronJob.createMany({
@@ -581,12 +700,14 @@ export const scheduleKeeperTests = createAuthenticatedFn({
             employee: {
               id: employee.id,
               email: employee.email,
-              name: employee.deelEmployee?.name,
+              firstName: employee.deelEmployee?.firstName || '',
+              lastName: employee.deelEmployee?.lastName || '',
             },
             manager: {
               id: employee.deelEmployee?.manager?.id,
               email: employee.deelEmployee?.manager?.workEmail,
-              name: employee.deelEmployee?.manager?.name,
+              firstName: employee.deelEmployee?.manager?.firstName || '',
+              lastName: employee.deelEmployee?.manager?.lastName || '',
             },
           } satisfies KeeperTestJobPayload),
         }
@@ -596,7 +717,7 @@ export const scheduleKeeperTests = createAuthenticatedFn({
 
   return {
     success: true,
-    count: result.count,
+    count: result.count + managerFeedbackJobResult.count,
   }
 })
 
@@ -614,7 +735,7 @@ function KeeperTestManagement() {
         })
       }}
     >
-      Schedule keeper tests for every employee
+      Schedule keeper tests for every employee (incl. manager feedback)
     </Button>
   )
 }
@@ -727,3 +848,133 @@ function CartaIntegration() {
     </Card>
   )
 }
+
+const importCommissionBonusesSchema = z.object({
+  bonuses: z.array(
+    z.object({
+      employeeId: z.string(),
+      quarter: z.string().regex(/^\d{4}-Q[1-4]$/),
+      quota: z.number().positive(),
+      attainment: z.number().nonnegative(),
+      bonusAmount: z.number().nonnegative(),
+      calculatedAmount: z.number().nonnegative(),
+      commissionType: z.string().optional(),
+      notes: z.string().optional(),
+      sheet: z.string().optional(),
+      amountHeld: z.number().nonnegative().optional(),
+    }),
+  ),
+})
+
+export const importCommissionBonuses = createAdminFn({
+  method: 'POST',
+})
+  .inputValidator(importCommissionBonusesSchema)
+  .handler(async ({ data }) => {
+    const errors: string[] = []
+    const successIds: string[] = []
+
+    for (const bonus of data.bonuses) {
+      try {
+        // Check if employee exists
+        const employee = await prisma.employee.findUnique({
+          where: { id: bonus.employeeId },
+          include: {
+            salaries: {
+              orderBy: { timestamp: 'desc' },
+            },
+          },
+        })
+
+        if (!employee) {
+          throw new Error(`Employee not found: ${bonus.employeeId}`)
+        }
+
+        // Check for duplicate (unique constraint on employeeId + quarter)
+        const existing = await prisma.commissionBonus.findUnique({
+          where: {
+            employeeId_quarter: {
+              employeeId: bonus.employeeId,
+              quarter: bonus.quarter,
+            },
+          },
+        })
+
+        if (existing) {
+          throw new Error(
+            `Commission bonus already exists for this employee and quarter: ${bonus.quarter}`,
+          )
+        }
+
+        // Get exchange rate and local currency from salary at quarter start
+        // Use end of first day to include salaries created on quarter start day
+        const quarterStartDate = getQuarterStartDate(bonus.quarter)
+        const quarterStartEndOfDay = new Date(quarterStartDate)
+        quarterStartEndOfDay.setHours(23, 59, 59, 999)
+        let salaryAtQuarterStart = employee.salaries.find(
+          (s) => s.timestamp <= quarterStartEndOfDay,
+        )
+        // Fallback to oldest salary if none found before quarter start
+        if (!salaryAtQuarterStart && employee.salaries.length > 0) {
+          salaryAtQuarterStart = employee.salaries[employee.salaries.length - 1]
+        }
+        const exchangeRate = salaryAtQuarterStart?.exchangeRate ?? 1
+        const localCurrency = salaryAtQuarterStart?.localCurrency ?? 'USD'
+        const calculatedAmountLocal = bonus.calculatedAmount * exchangeRate
+
+        // Note: bonus.bonusAmount is already the quarterly amount (annual / 4) from the import panel
+        // Create commission bonus
+        const created = await prisma.commissionBonus.create({
+          data: {
+            employeeId: bonus.employeeId,
+            quarter: bonus.quarter,
+            quota: bonus.quota,
+            attainment: bonus.attainment,
+            bonusAmount: bonus.bonusAmount, // This is already quarterly (annual / 4)
+            calculatedAmount: bonus.calculatedAmount,
+            amountHeld: bonus.amountHeld ?? 0,
+            exchangeRate: exchangeRate,
+            localCurrency: localCurrency,
+            calculatedAmountLocal: calculatedAmountLocal,
+            commissionType: bonus.commissionType,
+            notes: bonus.notes,
+            sheet: bonus.sheet,
+            communicated: false,
+            synced: false,
+          },
+        })
+
+        successIds.push(created.id)
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error'
+        errors.push(
+          `Error importing bonus for employee ${bonus.employeeId} (${bonus.quarter}): ${errorMessage}`,
+        )
+      }
+    }
+
+    return {
+      successCount: successIds.length,
+      errorCount: errors.length,
+      errors,
+    }
+  })
+
+// Get employees for matching during import
+export const getEmployeesForImport = createAdminFn({
+  method: 'GET',
+}).handler(async () => {
+  return await prisma.employee.findMany({
+    include: {
+      salaries: {
+        orderBy: { timestamp: 'desc' },
+      },
+      deelEmployee: {
+        select: {
+          startDate: true,
+        },
+      },
+    },
+  })
+})

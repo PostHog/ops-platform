@@ -1,0 +1,21 @@
+name: Communicate commission bonuses
+permissions: {}
+on:
+  workflow_dispatch:
+
+jobs:
+  communicateCommissionBonuses:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call communicateCommissionBonuses endpoint
+        id: communicateCommissionBonuses
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: '${{ vars.BASE_URL }}/communicateCommissionBonuses'
+          method: 'POST'
+          customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
+          timeout: 30000
+      - name: Show Response
+        run: |
+          echo ${{ steps.communicateCommissionBonuses.outputs.status }}
+          echo ${{ steps.communicateCommissionBonuses.outputs.response }}

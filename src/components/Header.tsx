@@ -1,7 +1,7 @@
 import { Link, useRouter } from '@tanstack/react-router'
 import { Button } from './ui/button'
-import { signOut, useSession } from '@/lib/auth-client'
-import { createUserFn } from '@/lib/auth-middleware'
+import { signOut, useSession, stopImpersonating } from '@/lib/auth-client'
+import { createInternalFn } from '@/lib/auth-middleware'
 import prisma from '@/db'
 import { useQuery } from '@tanstack/react-query'
 import { ROLES } from '@/lib/consts'
@@ -11,9 +11,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import { ChevronDownIcon } from 'lucide-react'
+import { ChevronDownIcon, Settings } from 'lucide-react'
+import { createToast } from 'vercel-toast'
+import { useAtom } from 'jotai'
+import { hideSensitiveDataAtom } from '@/atoms'
+import { Switch } from './ui/switch'
 
-export const getMyEmployeeId = createUserFn({
+export const getMyEmployeeId = createInternalFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   const user = context.user
@@ -39,16 +43,33 @@ export default function Header() {
     queryKey: ['myEmployeeId'],
     queryFn: getMyEmployeeId,
   })
+  const [hideSensitiveData, setHideSensitiveData] = useAtom(
+    hideSensitiveDataAtom,
+  )
 
   const handleSignOut = () => {
     signOut()
     router.navigate({ to: '/login' })
   }
 
+  const handleStopImpersonating = async () => {
+    try {
+      await stopImpersonating()
+      window.location.href = '/'
+    } catch (error) {
+      createToast(
+        `Failed to stop impersonating: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { timeout: 5000 },
+      )
+    }
+  }
+
+  const isImpersonating = !!session?.session?.impersonatedBy
+
   if (!user) return null
 
   return (
-    <header className="flex h-10 justify-between gap-2 border-b border-gray-200 bg-white p-2 text-black">
+    <header className="fixed top-0 right-0 left-0 flex h-10 justify-between gap-2 border-b border-gray-200 bg-white p-2 text-black">
       <nav className="flex flex-row items-center gap-2">
         {user?.role === ROLES.ADMIN ? (
           <DropdownMenu>
@@ -64,6 +85,9 @@ export default function Header() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/actions">Pay review actions</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/commissionActions">Commission actions</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/process">Process</Link>
@@ -83,6 +107,16 @@ export default function Header() {
               <DropdownMenuItem asChild>
                 <Link to="/org-chart">Org chart</Link>
               </DropdownMenuItem>
+              {myEmployeeId && (
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/employee/$employeeId"
+                    params={{ employeeId: myEmployeeId }}
+                  >
+                    Org tree
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link to="/proposed-hires">Proposed hires</Link>
               </DropdownMenuItem>
@@ -105,6 +139,9 @@ export default function Header() {
                 <Link to="/salary-sync-status">Salary sync status</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/missingCommissions">Missing commissions</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/analytics">Analytics</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -122,16 +159,51 @@ export default function Header() {
         ) : null}
       </nav>
       <div className="flex flex-row items-center gap-2">
-        {session ? (
+        {session && (
           <>
-            <span className="text-sm text-gray-500">
-              Logged in as {session?.user.name}
+            <span
+              className={
+                isImpersonating
+                  ? 'text-sm font-semibold text-orange-600'
+                  : 'text-sm text-gray-500'
+              }
+            >
+              {isImpersonating ? 'Impersonating: ' : 'Logged in as '}
+              {session.user.name}
             </span>
-            <Button variant="outline" onClick={handleSignOut}>
+            {isImpersonating && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleStopImpersonating}
+              >
+                Stop Impersonating
+              </Button>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  className="flex items-center justify-between"
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <span>Hide sensitive data</span>
+                  <Switch
+                    checked={hideSensitiveData}
+                    onCheckedChange={setHideSensitiveData}
+                  />
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
               Sign out
             </Button>
           </>
-        ) : null}
+        )}
       </div>
     </header>
   )

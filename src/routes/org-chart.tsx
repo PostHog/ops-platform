@@ -12,15 +12,16 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useCallback, useEffect, useState } from 'react'
-
-import type { Prisma } from '@prisma/client'
+import { PerformanceProgramStatus, type Prisma } from '@prisma/client'
 import EmployeePanel from '@/components/EmployeePanel'
 import prisma from '@/db'
 import { nodeTypes } from '@/lib/org-chart/nodes'
 import useExpandCollapse from '@/lib/org-chart/useExpandCollapse'
 import OrgChartPanel from '@/components/OrgChartPanel'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
-import { createOrgChartFn } from '@/lib/auth-middleware'
+import { createInternalFn } from '@/lib/auth-middleware'
+import { getFullName } from '@/lib/utils'
+import { ROLES } from '@/lib/consts'
 import { useLocalStorage } from 'usehooks-ts'
 import { orgChartAutozoomingEnabledAtom } from '@/atoms'
 import { useAtom } from 'jotai'
@@ -33,12 +34,22 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
       select: {
         id: true
         email: true
+        performancePrograms: {
+          where: {
+            status: 'ACTIVE'
+          }
+          select: {
+            id: true
+          }
+          take: 1
+        }
       }
     }
     manager: {
       select: {
         id: true
-        name: true
+        firstName: true
+        lastName: true
       }
     }
   }
@@ -79,10 +90,12 @@ export type OrgChartNode = Node<
     startDate?: Date
     expanded: boolean
     isTeamLead?: boolean
+    hasActivePerformanceProgram?: boolean
     childrenCount?: {
       active: number
       pending: number
       planned: number
+      performanceIssues: number
     }
     toggleExpanded: (expandAll?: boolean) => void
     handleClick?: (id: string) => void
@@ -90,21 +103,48 @@ export type OrgChartNode = Node<
   } & ProposedHireFields
 >
 
-export const getDeelEmployeesAndProposedHires = createOrgChartFn({
+export const getDeelEmployeesAndProposedHires = createInternalFn({
   method: 'GET',
-}).handler(async () => {
+}).handler(async ({ context }) => {
+  const isAdmin = context.user.role === ROLES.ADMIN
+
+  const { managedEmployeeIds, managerDeelEmployeeId } = context.managerInfo
+
+  const isManager = managedEmployeeIds.length > 0
+
   const employees = await prisma.deelEmployee.findMany({
     include: {
       employee: {
         select: {
           id: true,
           email: true,
+          ...(isAdmin || isManager
+            ? {
+                performancePrograms: {
+                  where: {
+                    status: PerformanceProgramStatus.ACTIVE,
+                    ...(isManager && managedEmployeeIds
+                      ? {
+                          employeeId: {
+                            in: Array.from(managedEmployeeIds),
+                          },
+                        }
+                      : {}),
+                  },
+                  select: {
+                    id: true,
+                  },
+                  take: 1,
+                },
+              }
+            : {}),
         },
       },
       manager: {
         select: {
           id: true,
-          name: true,
+          firstName: true,
+          lastName: true,
         },
       },
     },
@@ -132,7 +172,7 @@ export const getDeelEmployeesAndProposedHires = createOrgChartFn({
     },
   })
 
-  return { employees, proposedHires }
+  return { employees, proposedHires, managerDeelEmployeeId, managedEmployeeIds }
 })
 
 export const Route = createFileRoute('/org-chart')({
@@ -165,12 +205,15 @@ const getInitialNodes = (
     position: { x: 0, y: 0 },
     type: 'employeeNode',
     data: {
-      name: employee.name,
+      name: getFullName(employee.firstName, employee.lastName),
       title: employee.title,
       team: employee.team,
       manager: employee.managerId,
       startDate: employee.startDate,
       isTeamLead: teamLeads.has(employee.id),
+      hasActivePerformanceProgram:
+        employee.employee?.performancePrograms &&
+        employee.employee.performancePrograms.length > 0,
     },
   }))
 

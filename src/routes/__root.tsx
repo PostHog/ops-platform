@@ -50,9 +50,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="flex h-screen w-screen flex-col">
+      <body className="flex h-screen w-full flex-col overflow-hidden">
         <Header />
-        <main className="flex-1">{children}</main>
+        <main className="mt-10 h-[calc(100vh-2.5rem)] overflow-y-auto">
+          {children}
+        </main>
         <Scripts />
       </body>
     </html>

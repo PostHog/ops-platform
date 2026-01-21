@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SyncSalaryUpdatesRouteImport } from './routes/syncSalaryUpdates'
 import { Route as SyncDeelEmployeesRouteImport } from './routes/syncDeelEmployees'
 import { Route as SyncCartaDataRouteImport } from './routes/syncCartaData'
+import { Route as SyncAshbyInterviewScoresRouteImport } from './routes/syncAshbyInterviewScores'
 import { Route as ScheduleCheckInsRouteImport } from './routes/scheduleCheckIns'
 import { Route as SalaryDeviationCheckerRouteImport } from './routes/salaryDeviationChecker'
 import { Route as SalarySyncStatusRouteImport } from './routes/salary-sync-status'
@@ -20,10 +21,14 @@ import { Route as ReceiveKeeperTestResultsRouteImport } from './routes/receiveKe
 import { Route as ProposedHiresRouteImport } from './routes/proposed-hires'
 import { Route as ProcessRouteImport } from './routes/process'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
+import { Route as NotifyOverduePerformanceProgramChecklistItemsRouteImport } from './routes/notifyOverduePerformanceProgramChecklistItems'
+import { Route as MissingCommissionsRouteImport } from './routes/missingCommissions'
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ErrorRouteImport } from './routes/error'
 import { Route as EmployeesRouteImport } from './routes/employees'
+import { Route as CommunicateCommissionBonusesRouteImport } from './routes/communicateCommissionBonuses'
+import { Route as CommissionActionsRouteImport } from './routes/commissionActions'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as IndexRouteImport } from './routes/index'
@@ -45,6 +50,12 @@ const SyncCartaDataRoute = SyncCartaDataRouteImport.update({
   path: '/syncCartaData',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SyncAshbyInterviewScoresRoute =
+  SyncAshbyInterviewScoresRouteImport.update({
+    id: '/syncAshbyInterviewScores',
+    path: '/syncAshbyInterviewScores',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ScheduleCheckInsRoute = ScheduleCheckInsRouteImport.update({
   id: '/scheduleCheckIns',
   path: '/scheduleCheckIns',
@@ -86,6 +97,17 @@ const OrgChartRoute = OrgChartRouteImport.update({
   path: '/org-chart',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotifyOverduePerformanceProgramChecklistItemsRoute =
+  NotifyOverduePerformanceProgramChecklistItemsRouteImport.update({
+    id: '/notifyOverduePerformanceProgramChecklistItems',
+    path: '/notifyOverduePerformanceProgramChecklistItems',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const MissingCommissionsRoute = MissingCommissionsRouteImport.update({
+  id: '/missingCommissions',
+  path: '/missingCommissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ManagementRoute = ManagementRouteImport.update({
   id: '/management',
   path: '/management',
@@ -104,6 +126,17 @@ const ErrorRoute = ErrorRouteImport.update({
 const EmployeesRoute = EmployeesRouteImport.update({
   id: '/employees',
   path: '/employees',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunicateCommissionBonusesRoute =
+  CommunicateCommissionBonusesRouteImport.update({
+    id: '/communicateCommissionBonuses',
+    path: '/communicateCommissionBonuses',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CommissionActionsRoute = CommissionActionsRouteImport.update({
+  id: '/commissionActions',
+  path: '/commissionActions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -136,10 +169,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/analytics': typeof AnalyticsRoute
+  '/commissionActions': typeof CommissionActionsRoute
+  '/communicateCommissionBonuses': typeof CommunicateCommissionBonusesRoute
   '/employees': typeof EmployeesRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
+  '/missingCommissions': typeof MissingCommissionsRoute
+  '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   '/org-chart': typeof OrgChartRoute
   '/process': typeof ProcessRoute
   '/proposed-hires': typeof ProposedHiresRoute
@@ -148,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/salary-sync-status': typeof SalarySyncStatusRoute
   '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
+  '/syncAshbyInterviewScores': typeof SyncAshbyInterviewScoresRoute
   '/syncCartaData': typeof SyncCartaDataRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
@@ -158,10 +196,14 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/analytics': typeof AnalyticsRoute
+  '/commissionActions': typeof CommissionActionsRoute
+  '/communicateCommissionBonuses': typeof CommunicateCommissionBonusesRoute
   '/employees': typeof EmployeesRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
+  '/missingCommissions': typeof MissingCommissionsRoute
+  '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   '/org-chart': typeof OrgChartRoute
   '/process': typeof ProcessRoute
   '/proposed-hires': typeof ProposedHiresRoute
@@ -170,6 +212,7 @@ export interface FileRoutesByTo {
   '/salary-sync-status': typeof SalarySyncStatusRoute
   '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
+  '/syncAshbyInterviewScores': typeof SyncAshbyInterviewScoresRoute
   '/syncCartaData': typeof SyncCartaDataRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
@@ -181,10 +224,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/actions': typeof ActionsRoute
   '/analytics': typeof AnalyticsRoute
+  '/commissionActions': typeof CommissionActionsRoute
+  '/communicateCommissionBonuses': typeof CommunicateCommissionBonusesRoute
   '/employees': typeof EmployeesRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
+  '/missingCommissions': typeof MissingCommissionsRoute
+  '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   '/org-chart': typeof OrgChartRoute
   '/process': typeof ProcessRoute
   '/proposed-hires': typeof ProposedHiresRoute
@@ -193,6 +240,7 @@ export interface FileRoutesById {
   '/salary-sync-status': typeof SalarySyncStatusRoute
   '/salaryDeviationChecker': typeof SalaryDeviationCheckerRoute
   '/scheduleCheckIns': typeof ScheduleCheckInsRoute
+  '/syncAshbyInterviewScores': typeof SyncAshbyInterviewScoresRoute
   '/syncCartaData': typeof SyncCartaDataRoute
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
@@ -205,10 +253,14 @@ export interface FileRouteTypes {
     | '/'
     | '/actions'
     | '/analytics'
+    | '/commissionActions'
+    | '/communicateCommissionBonuses'
     | '/employees'
     | '/error'
     | '/login'
     | '/management'
+    | '/missingCommissions'
+    | '/notifyOverduePerformanceProgramChecklistItems'
     | '/org-chart'
     | '/process'
     | '/proposed-hires'
@@ -217,6 +269,7 @@ export interface FileRouteTypes {
     | '/salary-sync-status'
     | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
+    | '/syncAshbyInterviewScores'
     | '/syncCartaData'
     | '/syncDeelEmployees'
     | '/syncSalaryUpdates'
@@ -227,10 +280,14 @@ export interface FileRouteTypes {
     | '/'
     | '/actions'
     | '/analytics'
+    | '/commissionActions'
+    | '/communicateCommissionBonuses'
     | '/employees'
     | '/error'
     | '/login'
     | '/management'
+    | '/missingCommissions'
+    | '/notifyOverduePerformanceProgramChecklistItems'
     | '/org-chart'
     | '/process'
     | '/proposed-hires'
@@ -239,6 +296,7 @@ export interface FileRouteTypes {
     | '/salary-sync-status'
     | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
+    | '/syncAshbyInterviewScores'
     | '/syncCartaData'
     | '/syncDeelEmployees'
     | '/syncSalaryUpdates'
@@ -249,10 +307,14 @@ export interface FileRouteTypes {
     | '/'
     | '/actions'
     | '/analytics'
+    | '/commissionActions'
+    | '/communicateCommissionBonuses'
     | '/employees'
     | '/error'
     | '/login'
     | '/management'
+    | '/missingCommissions'
+    | '/notifyOverduePerformanceProgramChecklistItems'
     | '/org-chart'
     | '/process'
     | '/proposed-hires'
@@ -261,6 +323,7 @@ export interface FileRouteTypes {
     | '/salary-sync-status'
     | '/salaryDeviationChecker'
     | '/scheduleCheckIns'
+    | '/syncAshbyInterviewScores'
     | '/syncCartaData'
     | '/syncDeelEmployees'
     | '/syncSalaryUpdates'
@@ -272,10 +335,14 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActionsRoute: typeof ActionsRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  CommissionActionsRoute: typeof CommissionActionsRoute
+  CommunicateCommissionBonusesRoute: typeof CommunicateCommissionBonusesRoute
   EmployeesRoute: typeof EmployeesRoute
   ErrorRoute: typeof ErrorRoute
   LoginRoute: typeof LoginRoute
   ManagementRoute: typeof ManagementRoute
+  MissingCommissionsRoute: typeof MissingCommissionsRoute
+  NotifyOverduePerformanceProgramChecklistItemsRoute: typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   OrgChartRoute: typeof OrgChartRoute
   ProcessRoute: typeof ProcessRoute
   ProposedHiresRoute: typeof ProposedHiresRoute
@@ -284,6 +351,7 @@ export interface RootRouteChildren {
   SalarySyncStatusRoute: typeof SalarySyncStatusRoute
   SalaryDeviationCheckerRoute: typeof SalaryDeviationCheckerRoute
   ScheduleCheckInsRoute: typeof ScheduleCheckInsRoute
+  SyncAshbyInterviewScoresRoute: typeof SyncAshbyInterviewScoresRoute
   SyncCartaDataRoute: typeof SyncCartaDataRoute
   SyncDeelEmployeesRoute: typeof SyncDeelEmployeesRoute
   SyncSalaryUpdatesRoute: typeof SyncSalaryUpdatesRoute
@@ -312,6 +380,13 @@ declare module '@tanstack/react-router' {
       path: '/syncCartaData'
       fullPath: '/syncCartaData'
       preLoaderRoute: typeof SyncCartaDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/syncAshbyInterviewScores': {
+      id: '/syncAshbyInterviewScores'
+      path: '/syncAshbyInterviewScores'
+      fullPath: '/syncAshbyInterviewScores'
+      preLoaderRoute: typeof SyncAshbyInterviewScoresRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/scheduleCheckIns': {
@@ -370,6 +445,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgChartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notifyOverduePerformanceProgramChecklistItems': {
+      id: '/notifyOverduePerformanceProgramChecklistItems'
+      path: '/notifyOverduePerformanceProgramChecklistItems'
+      fullPath: '/notifyOverduePerformanceProgramChecklistItems'
+      preLoaderRoute: typeof NotifyOverduePerformanceProgramChecklistItemsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/missingCommissions': {
+      id: '/missingCommissions'
+      path: '/missingCommissions'
+      fullPath: '/missingCommissions'
+      preLoaderRoute: typeof MissingCommissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/management': {
       id: '/management'
       path: '/management'
@@ -396,6 +485,20 @@ declare module '@tanstack/react-router' {
       path: '/employees'
       fullPath: '/employees'
       preLoaderRoute: typeof EmployeesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/communicateCommissionBonuses': {
+      id: '/communicateCommissionBonuses'
+      path: '/communicateCommissionBonuses'
+      fullPath: '/communicateCommissionBonuses'
+      preLoaderRoute: typeof CommunicateCommissionBonusesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/commissionActions': {
+      id: '/commissionActions'
+      path: '/commissionActions'
+      fullPath: '/commissionActions'
+      preLoaderRoute: typeof CommissionActionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -440,10 +543,15 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActionsRoute: ActionsRoute,
   AnalyticsRoute: AnalyticsRoute,
+  CommissionActionsRoute: CommissionActionsRoute,
+  CommunicateCommissionBonusesRoute: CommunicateCommissionBonusesRoute,
   EmployeesRoute: EmployeesRoute,
   ErrorRoute: ErrorRoute,
   LoginRoute: LoginRoute,
   ManagementRoute: ManagementRoute,
+  MissingCommissionsRoute: MissingCommissionsRoute,
+  NotifyOverduePerformanceProgramChecklistItemsRoute:
+    NotifyOverduePerformanceProgramChecklistItemsRoute,
   OrgChartRoute: OrgChartRoute,
   ProcessRoute: ProcessRoute,
   ProposedHiresRoute: ProposedHiresRoute,
@@ -452,6 +560,7 @@ const rootRouteChildren: RootRouteChildren = {
   SalarySyncStatusRoute: SalarySyncStatusRoute,
   SalaryDeviationCheckerRoute: SalaryDeviationCheckerRoute,
   ScheduleCheckInsRoute: ScheduleCheckInsRoute,
+  SyncAshbyInterviewScoresRoute: SyncAshbyInterviewScoresRoute,
   SyncCartaDataRoute: SyncCartaDataRoute,
   SyncDeelEmployeesRoute: SyncDeelEmployeesRoute,
   SyncSalaryUpdatesRoute: SyncSalaryUpdatesRoute,

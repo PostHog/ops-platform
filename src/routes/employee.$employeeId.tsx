@@ -1,6 +1,15 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { useServerFn } from '@tanstack/react-start'
 import { useAtom } from 'jotai'
-import { AlertCircle, ArrowLeft, Trash2 } from 'lucide-react'
+import {
+  AlertCircle,
+  ArrowLeft,
+  ChevronsLeftRight,
+  ChevronsRightLeft,
+  Search,
+  Check,
+  MoreVertical,
+} from 'lucide-react'
 import {
   flexRender,
   getCoreRowModel,
@@ -18,12 +27,15 @@ import { reviewQueueAtom } from '@/atoms'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { SalaryHistoryCard } from '@/components/SalaryHistoryCard'
 import { FeedbackCard } from '@/components/FeedbackCard'
-import { SalaryWithMismatchIndicator } from '@/components/SalaryWithMismatchIndicator'
+import { PerformanceProgramTimelineCard } from '@/components/PerformanceProgramTimelineCard'
+import { CommissionBonusTimelineCard } from '@/components/CommissionBonusTimelineCard'
+import { AshbyInterviewScoreTimelineCard } from '@/components/AshbyInterviewScoreTimelineCard'
 import {
   bonusPercentage,
-  formatCurrency,
   locationFactor,
   sfBenchmark,
+  cn,
+  getFullName,
 } from '@/lib/utils'
 import {
   Table,
@@ -36,14 +48,56 @@ import {
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import prisma from '@/db'
-import { createAuthenticatedFn, createUserFn } from '@/lib/auth-middleware'
+import { createAdminFn, createInternalFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
+import { ManagerHierarchyTree } from '@/components/ManagerHierarchyTree'
+import type { HierarchyNode } from '@/lib/types'
+import { getDeelEmployeesAndProposedHires } from './org-chart'
+import { PerformanceProgramPanel } from '@/components/PerformanceProgramPanel'
+import { useSensitiveDataHidden } from '@/components/SensitiveData'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
 import MarkdownComponent from '@/lib/MarkdownComponent'
 import StockOptionsCalculator from '@/components/StockOptionsCalculator'
+
+dayjs.extend(relativeTime)
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
@@ -51,28 +105,39 @@ export const Route = createFileRoute('/employee/$employeeId')({
     await getEmployeeById({ data: { employeeId: params.employeeId } }),
 })
 
-const getEmployeeById = createUserFn({
+const getEmployeeById = createInternalFn({
   method: 'GET',
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    return await prisma.employee.findUnique({
+    const { managedEmployeeIds } = context.managerInfo
+    const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
+
+    const employee = await prisma.employee.findUnique({
       where: {
         id: data.employeeId,
-        ...(!isAdmin
-          ? {
-              email: context.user.email,
-            }
-          : {}),
+        ...(!isAdmin && !isManager ? { email: context.user.email } : {}),
       },
       select: {
         id: true,
         email: true,
+        // Admin-only fields
         ...(isAdmin ? { priority: true, reviewed: true } : {}),
-        ...(isAdmin
+        // Keeper tests: available to admin and managers
+        // Managers only see tests from the last 12 months
+        ...(isAdmin || isManager
           ? {
               keeperTestFeedback: {
+                ...(isManager
+                  ? {
+                      where: {
+                        timestamp: {
+                          gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 12 months ago
+                        },
+                      },
+                    }
+                  : {}),
                 orderBy: {
                   timestamp: 'desc',
                 },
@@ -87,51 +152,173 @@ const getEmployeeById = createUserFn({
             }
           : {}),
         cartaOptionGrants: true,
+        // Performance programs: admin and managers (not visible to employees viewing their own profile)
+        ...(isAdmin || isManager
+          ? {
+              performancePrograms: {
+                ...(isManager
+                  ? {
+                      where: {
+                        employeeId: {
+                          in: context.managerInfo.managedEmployeeIds,
+                        },
+                      },
+                    }
+                  : {}),
+                include: {
+                  checklistItems: {
+                    include: {
+                      files: true,
+                      completedBy: {
+                        select: {
+                          id: true,
+                          name: true,
+                          email: true,
+                        },
+                      },
+                      assignedTo: {
+                        select: {
+                          id: true,
+                          email: true,
+                          deelEmployee: {
+                            select: {
+                              firstName: true,
+                              lastName: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                    orderBy: {
+                      createdAt: 'asc',
+                    },
+                  },
+                  feedback: {
+                    orderBy: {
+                      createdAt: 'desc',
+                    },
+                    include: {
+                      givenBy: {
+                        select: {
+                          id: true,
+                          name: true,
+                          email: true,
+                        },
+                      },
+                      files: true,
+                    },
+                  },
+                  startedBy: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
+                },
+                orderBy: {
+                  startedAt: 'desc',
+                },
+              },
+            }
+          : {}),
         salaries: {
           orderBy: {
             timestamp: 'desc',
           },
           ...(isAdmin
             ? {}
-            : {
-                select: {
-                  id: true,
-                  timestamp: true,
-                  country: true,
-                  area: true,
-                  locationFactor: true,
-                  level: true,
-                  step: true,
-                  bonusPercentage: true,
-                  bonusAmount: true,
-                  benchmark: true,
-                  benchmarkFactor: true,
-                  totalSalary: true,
-                  changePercentage: true,
-                  changeAmount: true,
-                  exchangeRate: true,
-                  localCurrency: true,
-                  totalSalaryLocal: true,
-                  amountTakenInOptions: true,
-                  actualSalary: true,
-                  actualSalaryLocal: true,
-                },
+            : isManager
+              ? {
+                  take: 0, // Return empty for managers
+                }
+              : {
+                  select: {
+                    id: true,
+                    timestamp: true,
+                    country: true,
+                    area: true,
+                    locationFactor: true,
+                    level: true,
+                    step: true,
+                    bonusPercentage: true,
+                    bonusAmount: true,
+                    benchmark: true,
+                    benchmarkFactor: true,
+                    totalSalary: true,
+                    changePercentage: true,
+                    changeAmount: true,
+                    exchangeRate: true,
+                    localCurrency: true,
+                    totalSalaryLocal: true,
+                    amountTakenInOptions: true,
+                    actualSalary: true,
+                    actualSalaryLocal: true,
+                  },
+                  where: {
+                    OR: [
+                      {
+                        communicated: true,
+                      },
+                      {
+                        timestamp: {
+                          lte: new Date(
+                            new Date().setDate(new Date().getDate() - 30),
+                          ),
+                        },
+                      },
+                    ],
+                  },
+                }),
+        },
+        // Commission bonuses: visible to admin, managers (last 12 months), and employees (their own)
+        commissionBonuses: {
+          ...(isManager && !isAdmin
+            ? {
                 where: {
-                  OR: [
-                    {
-                      communicated: true,
-                    },
-                    {
-                      timestamp: {
-                        lte: new Date(
-                          new Date().setDate(new Date().getDate() - 30),
-                        ),
+                  createdAt: {
+                    gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 12 months ago
+                  },
+                },
+              }
+            : {}),
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        // Interview scores: visible to admin and managers, but not to employees themselves
+        ...(isAdmin || isManager
+          ? {
+              ashbyInterviewScoresReceived: {
+                ...(isManager
+                  ? {
+                      where: {
+                        createdAt: {
+                          gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 12 months ago
+                        },
+                      },
+                    }
+                  : {}),
+                include: {
+                  interviewer: {
+                    select: {
+                      id: true,
+                      email: true,
+                      deelEmployee: {
+                        select: {
+                          firstName: true,
+                          lastName: true,
+                        },
                       },
                     },
-                  ],
+                  },
                 },
-              }),
-        },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+              },
+            }
+          : {}),
         deelEmployee: {
           include: {
             topLevelManager: true,
@@ -139,6 +326,12 @@ const getEmployeeById = createUserFn({
         },
       },
     })
+
+    if (!isAdmin && !isManager && employee?.email !== context.user.email) {
+      throw new Error('Unauthorized')
+    }
+
+    return employee
   })
 
 type Employee = Prisma.EmployeeGetPayload<{
@@ -163,10 +356,75 @@ type Employee = Prisma.EmployeeGetPayload<{
       }
     }
     cartaOptionGrants: true
+    performancePrograms: {
+      include: {
+        checklistItems: {
+          include: {
+            files: true
+            completedBy: {
+              select: {
+                id: true
+                name: true
+                email: true
+              }
+            }
+            assignedTo: {
+              select: {
+                id: true
+                name: true
+                workEmail: true
+              }
+            }
+          }
+        }
+        feedback: {
+          include: {
+            givenBy: {
+              select: {
+                id: true
+                name: true
+                email: true
+              }
+            }
+          }
+        }
+        startedBy: {
+          select: {
+            id: true
+            name: true
+            email: true
+          }
+        }
+      }
+    }
+    commissionBonuses: {
+      orderBy: {
+        createdAt: 'desc'
+      }
+    }
+    ashbyInterviewScoresReceived: {
+      include: {
+        interviewer: {
+          select: {
+            id: true
+            email: true
+            deelEmployee: {
+              select: {
+                firstName: true
+                lastName: true
+              }
+            }
+          }
+        }
+      }
+      orderBy: {
+        createdAt: 'desc'
+      }
+    }
   }
 }>
 
-export const getReferenceEmployees = createAuthenticatedFn({
+export const getReferenceEmployees = createAdminFn({
   method: 'GET',
 })
   .inputValidator(
@@ -211,7 +469,8 @@ export const getReferenceEmployees = createAuthenticatedFn({
         },
         deelEmployee: {
           select: {
-            name: true,
+            firstName: true,
+            lastName: true,
           },
         },
       },
@@ -229,7 +488,11 @@ export const getReferenceEmployees = createAuthenticatedFn({
       )
       .map((employee) => ({
         id: employee.id,
-        name: employee.deelEmployee?.name ?? employee.email,
+        name: getFullName(
+          employee.deelEmployee?.firstName,
+          employee.deelEmployee?.lastName,
+          employee.email,
+        ),
         level: employee.salaries[0]?.level,
         step: employee.salaries[0]?.step,
         locationFactor: employee.salaries[0]?.locationFactor ?? 1,
@@ -240,7 +503,23 @@ export const getReferenceEmployees = createAuthenticatedFn({
       .sort((a, b) => a.step * a.level - b.step * b.level)
   })
 
-export const updateSalary = createAuthenticatedFn({
+export const getDeelEmployees = createInternalFn({
+  method: 'GET',
+}).handler(async () => {
+  return await prisma.deelEmployee.findMany({
+    orderBy: {
+      lastName: 'asc',
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      workEmail: true,
+    },
+  })
+})
+
+export const updateSalary = createAdminFn({
   method: 'POST',
 })
   .inputValidator(
@@ -268,7 +547,7 @@ export const updateSalary = createAuthenticatedFn({
     return salary
   })
 
-export const deleteSalary = createAuthenticatedFn({
+export const deleteSalary = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string }) => d)
@@ -294,39 +573,627 @@ export const deleteSalary = createAuthenticatedFn({
     return { success: true }
   })
 
+export const createPerformanceProgram = createInternalFn({
+  method: 'POST',
+})
+  .inputValidator((d: { employeeId: string }) => d)
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+    const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
+
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
+    }
+    const existingProgram = await prisma.performanceProgram.findFirst({
+      where: {
+        employeeId: data.employeeId,
+        status: 'ACTIVE',
+      },
+    })
+
+    if (existingProgram) {
+      throw new Error('Employee already has an active performance program')
+    }
+
+    // Get the employee's manager
+    const employee = await prisma.employee.findUnique({
+      where: { id: data.employeeId },
+      include: {
+        deelEmployee: {
+          select: {
+            managerId: true,
+          },
+        },
+      },
+    })
+
+    if (!employee?.deelEmployee?.managerId) {
+      throw new Error('Manager not found')
+    }
+
+    const managerEmployee = await prisma.deelEmployee.findUnique({
+      where: {
+        id: employee?.deelEmployee?.managerId,
+      },
+      include: {
+        employee: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    })
+
+    const managerId = managerEmployee?.employee?.id
+
+    if (!managerId) {
+      throw new Error('Manager employee not found')
+    }
+
+    // Create program with initial checklist items
+    const now = new Date()
+    const slackDueDate = new Date(now)
+    slackDueDate.setDate(now.getDate() + 5)
+    const emailDueDate = new Date(now)
+    emailDueDate.setDate(now.getDate() + 7)
+
+    const program = await prisma.performanceProgram.create({
+      data: {
+        employeeId: data.employeeId,
+        startedByUserId: context.user.id,
+        checklistItems: {
+          create: [
+            {
+              type: 'SLACK_FEEDBACK_MEETING',
+              assignedToEmployeeId: managerId,
+              dueDate: slackDueDate,
+            },
+            {
+              type: 'EMAIL_FEEDBACK_MEETING',
+              assignedToEmployeeId: managerId,
+              dueDate: emailDueDate,
+            },
+          ],
+        },
+      },
+      include: {
+        checklistItems: {
+          include: {
+            files: true,
+            completedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            assignedTo: {
+              select: {
+                id: true,
+                email: true,
+                deelEmployee: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        feedback: {
+          include: {
+            givenBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            files: true,
+          },
+        },
+        startedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    })
+
+    return program
+  })
+
+export const updateChecklistItem = createInternalFn({
+  method: 'POST',
+})
+  .inputValidator(
+    (d: {
+      checklistItemId: string
+      completed: boolean
+      notes?: string
+      assignedToEmployeeId?: string | null
+      dueDate?: string | null
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+
+    const checklistItem =
+      await prisma.performanceProgramChecklistItem.findUnique({
+        where: { id: data.checklistItemId },
+        include: {
+          program: true,
+        },
+      })
+
+    if (!checklistItem) {
+      throw new Error('Checklist item not found')
+    }
+
+    // Check authorization: admins can update any checklist item, managers can only update items for their reports
+    const isManager =
+      !isAdmin && managedEmployeeIds.includes(checklistItem.program.employeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
+    }
+
+    const updated = await prisma.performanceProgramChecklistItem.update({
+      where: { id: data.checklistItemId },
+      data: {
+        completed: data.completed,
+        completedAt: data.completed ? new Date() : null,
+        completedByUserId: data.completed ? context.user.id : null,
+        notes: data.notes,
+        assignedToEmployeeId: data.assignedToEmployeeId,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+      },
+      include: {
+        files: true,
+        completedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        assignedTo: {
+          select: {
+            id: true,
+            email: true,
+            deelEmployee: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    return updated
+  })
+
+export const addProgramFeedback = createInternalFn({
+  method: 'POST',
+})
+  .inputValidator(
+    (d: { programId: string; feedback: string; createdAt?: string }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+
+    const program = await prisma.performanceProgram.findUnique({
+      where: { id: data.programId },
+    })
+
+    if (!program) {
+      throw new Error('Performance program not found')
+    }
+
+    // Check authorization: admins can add feedback to any program, managers can only add feedback to programs for their reports
+    const isManager =
+      !isAdmin && managedEmployeeIds.includes(program.employeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
+    }
+
+    const feedback = await prisma.performanceProgramFeedback.create({
+      data: {
+        programId: data.programId,
+        feedback: data.feedback,
+        givenByUserId: context.user.id,
+        ...(data.createdAt && { createdAt: new Date(data.createdAt) }),
+      },
+      include: {
+        givenBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        files: true,
+      },
+    })
+
+    return feedback
+  })
+
+export const resolvePerformanceProgram = createInternalFn({
+  method: 'POST',
+})
+  .inputValidator((d: { programId: string }) => d)
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+
+    const program = await prisma.performanceProgram.findUnique({
+      where: { id: data.programId },
+      include: {
+        checklistItems: true,
+      },
+    })
+
+    if (!program) {
+      throw new Error('Performance program not found')
+    }
+
+    // Check authorization: admins can resolve any program, managers can only resolve programs for their reports
+    const isManager =
+      !isAdmin && managedEmployeeIds.includes(program.employeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
+    }
+
+    if (program.status !== 'ACTIVE') {
+      throw new Error('Program is not active')
+    }
+
+    // Check if all checklist items are completed
+    const allCompleted = program.checklistItems.every((item) => item.completed)
+
+    if (!allCompleted) {
+      throw new Error('All checklist items must be completed before resolving')
+    }
+
+    const updated = await prisma.performanceProgram.update({
+      where: { id: data.programId },
+      data: {
+        status: 'RESOLVED',
+        resolvedAt: new Date(),
+      },
+      include: {
+        checklistItems: {
+          include: {
+            files: true,
+            completedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        feedback: {
+          include: {
+            givenBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        startedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    })
+
+    return updated
+  })
+
+export const getProofFileUploadUrl = createInternalFn({
+  method: 'POST',
+})
+  .inputValidator(
+    (d: {
+      checklistItemId?: string
+      programId?: string
+      fileName: string
+      fileSize: number
+      mimeType: string
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+
+    if (!data.checklistItemId && !data.programId) {
+      throw new Error('Either checklistItemId or programId must be provided')
+    }
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    if (data.fileSize > maxSize) {
+      throw new Error('File size exceeds 10MB limit')
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/gif',
+      'text/plain',
+    ]
+    if (!allowedTypes.includes(data.mimeType)) {
+      throw new Error('File type not allowed')
+    }
+
+    let programId: string
+    let fileKey: string
+    let programEmployeeId: string
+
+    if (data.checklistItemId) {
+      const checklistItem =
+        await prisma.performanceProgramChecklistItem.findUnique({
+          where: { id: data.checklistItemId },
+          include: {
+            program: true,
+          },
+        })
+
+      if (!checklistItem) {
+        throw new Error('Checklist item not found')
+      }
+
+      programId = checklistItem.programId
+      programEmployeeId = checklistItem.program.employeeId
+
+      // Generate file key for checklist item
+      const { generateFileKey } = await import('@/lib/s3')
+      fileKey = generateFileKey(programId, data.checklistItemId, data.fileName)
+    } else {
+      // For feedback files, verify program exists
+      const program = await prisma.performanceProgram.findUnique({
+        where: { id: data.programId! },
+      })
+
+      if (!program) {
+        throw new Error('Performance program not found')
+      }
+
+      programId = data.programId!
+      programEmployeeId = program.employeeId
+
+      // Generate file key for feedback
+      const sanitizedFileName = data.fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const timestamp = Date.now()
+      fileKey = `performance-programs/${programId}/feedback/${timestamp}-${sanitizedFileName}`
+    }
+
+    // Check authorization: admins can upload files for any program, managers can only upload files for programs for their reports
+    const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
+    }
+
+    // Generate presigned upload URL
+    const { getPresignedUploadUrl } = await import('@/lib/s3')
+    const uploadUrl = await getPresignedUploadUrl(
+      fileKey,
+      data.mimeType,
+      3600, // 1 hour
+    )
+
+    return {
+      uploadUrl,
+      fileKey,
+    }
+  })
+
+export const createProofFileRecord = createInternalFn({
+  method: 'POST',
+})
+  .inputValidator(
+    (d: {
+      checklistItemId?: string
+      feedbackId?: string
+      fileName: string
+      fileSize: number
+      mimeType: string
+      fileKey: string
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+
+    if (!data.checklistItemId && !data.feedbackId) {
+      throw new Error('Either checklistItemId or feedbackId must be provided')
+    }
+
+    // Get the program to check authorization
+    let programEmployeeId: string
+    if (data.checklistItemId) {
+      const checklistItem =
+        await prisma.performanceProgramChecklistItem.findUnique({
+          where: { id: data.checklistItemId },
+          include: { program: true },
+        })
+      if (!checklistItem) {
+        throw new Error('Checklist item not found')
+      }
+      programEmployeeId = checklistItem.program.employeeId
+    } else {
+      const feedback = await prisma.performanceProgramFeedback.findUnique({
+        where: { id: data.feedbackId! },
+        include: { program: true },
+      })
+      if (!feedback) {
+        throw new Error('Feedback not found')
+      }
+      programEmployeeId = feedback.program.employeeId
+    }
+
+    // Check authorization: admins can create file records for any program, managers can only create records for programs for their reports
+    const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
+    }
+
+    // Create database record
+    const proofFile = await prisma.file.create({
+      data: {
+        checklistItemId: data.checklistItemId || null,
+        feedbackId: data.feedbackId || null,
+        fileName: data.fileName,
+        fileUrl: data.fileKey, // Store the S3 key
+        fileSize: data.fileSize,
+        mimeType: data.mimeType,
+        uploadedByUserId: context.user.id,
+      },
+    })
+
+    return proofFile
+  })
+
+export const getProofFileUrl = createInternalFn({
+  method: 'GET',
+})
+  .inputValidator((d: { proofFileId: string }) => d)
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+
+    const proofFile = await prisma.file.findUnique({
+      where: { id: data.proofFileId },
+      include: {
+        checklistItem: {
+          include: { program: true },
+        },
+        feedback: {
+          include: { program: true },
+        },
+      },
+    })
+
+    if (!proofFile) {
+      throw new Error('Proof file not found')
+    }
+
+    // Get the program employee ID
+    const programEmployeeId = proofFile.checklistItem
+      ? proofFile.checklistItem.program.employeeId
+      : proofFile.feedback
+        ? proofFile.feedback.program.employeeId
+        : null
+
+    if (!programEmployeeId) {
+      throw new Error('Unable to determine program employee')
+    }
+
+    // Check authorization: admins can get file URLs for any program, managers can only get URLs for programs for their reports
+    const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
+    }
+
+    // Generate presigned download URL
+    const { getPresignedDownloadUrl } = await import('@/lib/s3')
+    const url = await getPresignedDownloadUrl(proofFile.fileUrl, 3600) // 1 hour
+
+    return { url, fileName: proofFile.fileName }
+  })
+
+export const deleteProofFile = createInternalFn({
+  method: 'POST',
+})
+  .inputValidator((d: { proofFileId: string }) => d)
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+
+    const proofFile = await prisma.file.findUnique({
+      where: { id: data.proofFileId },
+      include: {
+        checklistItem: {
+          include: { program: true },
+        },
+        feedback: {
+          include: { program: true },
+        },
+      },
+    })
+
+    if (!proofFile) {
+      throw new Error('Proof file not found')
+    }
+
+    // Get the program employee ID
+    const programEmployeeId = proofFile.checklistItem
+      ? proofFile.checklistItem.program.employeeId
+      : proofFile.feedback
+        ? proofFile.feedback.program.employeeId
+        : null
+
+    if (!programEmployeeId) {
+      throw new Error('Unable to determine program employee')
+    }
+
+    // Check authorization: admins can delete files for any program, managers can only delete files for programs for their reports
+    const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
+    if (!isAdmin && !isManager) {
+      throw new Error('Unauthorized')
+    }
+
+    // Delete from database (cascade will handle relations)
+    await prisma.file.delete({
+      where: { id: data.proofFileId },
+    })
+
+    // Note: We don't delete from S3 to avoid potential issues
+    // The file will remain in S3 but won't be accessible through the app
+
+    return { success: true }
+  })
+
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
+  const isSensitiveHidden = useSensitiveDataHidden()
   const [showNewSalaryForm, setShowNewSalaryForm] = useState(
     user?.role === ROLES.ADMIN,
   )
   const [showOverrideMode, setShowOverrideMode] = useState(false)
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
-  const [showDetailedColumns, setShowDetailedColumns] =
-    useLocalStorage<boolean>(
-      'employee.overview.table.showDetailedColumns',
-      false,
-    )
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByLevel, setFilterByLevel] = useState(true)
   const [filterByTitle, setFilterByTitle] = useState(true)
-  const [viewMode, setViewMode] = useLocalStorage<'table' | 'card'>(
-    'preferredEmployeeView',
-    'table',
-  )
+  const [expandAll, setExpandAll] = useState<boolean | null>(null)
+  const [expandAllCounter, setExpandAllCounter] = useState(0)
   const [showStockOptionsCalculator, setShowStockOptionsCalculator] =
     useLocalStorage<boolean>('employee.showStockOptionsCalculator', true)
-
-  // Hide inline form when switching to timeline view
-  useEffect(() => {
-    if (viewMode === 'card') {
-      setShowNewSalaryForm(false)
-    }
-  }, [viewMode])
 
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
   const [reviewQueue, setReviewQueue] = useAtom(reviewQueueAtom)
+  const createProgram = useServerFn(createPerformanceProgram)
   const [level, setLevel] = useState(employee.salaries[0]?.level ?? 1)
   const [step, setStep] = useState(employee.salaries[0]?.step ?? 1)
   const [benchmark, setBenchmark] = useState(
@@ -338,6 +1205,25 @@ function EmployeeOverview() {
     Object.keys(bonusPercentage).includes(benchmark)
 
   if (!employee) return null
+
+  const handleStartPerformanceProgram = async () => {
+    try {
+      await createProgram({
+        data: {
+          employeeId: employee.id,
+        },
+      })
+      createToast('Performance program started', { timeout: 3000 })
+      router.invalidate()
+    } catch (error) {
+      createToast(
+        error instanceof Error
+          ? error.message
+          : 'Failed to start performance program',
+        { timeout: 3000 },
+      )
+    }
+  }
 
   const handleDeleteSalary = async (salaryId: string) => {
     try {
@@ -385,12 +1271,215 @@ function EmployeeOverview() {
     enabled: !!level && !!step && !!benchmark && user?.role === ROLES.ADMIN,
   })
 
+  const { data: deelEmployeesAndProposedHiresData } = useQuery({
+    queryKey: ['deelEmployeesAndProposedHires'],
+    queryFn: () => getDeelEmployeesAndProposedHires(),
+  })
+  const deelEmployees = deelEmployeesAndProposedHiresData?.employees
+  const proposedHires = deelEmployeesAndProposedHiresData?.proposedHires || []
+  const managerDeelEmployeeId =
+    deelEmployeesAndProposedHiresData?.managerDeelEmployeeId
+
+  // Build hierarchy tree from flat list
+  const managerHierarchy = useMemo(() => {
+    if (!deelEmployees) return null
+
+    const managerMap = new Map<string, Array<(typeof deelEmployees)[0]>>()
+    for (const emp of deelEmployees) {
+      if (emp.managerId) {
+        const reports = managerMap.get(emp.managerId) || []
+        reports.push(emp)
+        managerMap.set(emp.managerId, reports)
+      }
+    }
+
+    // Map proposed hires by manager
+    const proposedHiresByManager = new Map<string, typeof proposedHires>()
+    proposedHires
+      .filter(
+        ({ manager, priority }) =>
+          manager.deelEmployee && ['low', 'medium', 'high'].includes(priority),
+      )
+      .forEach((ph) => {
+        const managerId = ph.manager.deelEmployee!.id
+        if (!proposedHiresByManager.has(managerId)) {
+          proposedHiresByManager.set(managerId, [])
+        }
+        proposedHiresByManager.get(managerId)!.push(ph)
+      })
+
+    const buildTree = (
+      employee: (typeof deelEmployees)[0],
+      visited = new Set<string>(),
+    ): HierarchyNode => {
+      if (visited.has(employee.id)) {
+        return {
+          id: employee.id,
+          name: getFullName(employee.firstName, employee.lastName),
+          title: employee.title,
+          team: employee.team,
+          employeeId: employee.employee?.id,
+          workEmail: employee.workEmail,
+          startDate: employee.startDate,
+          hasActivePerformanceProgram:
+            employee.employee?.performancePrograms &&
+            employee.employee.performancePrograms.length > 0,
+          children: [],
+        }
+      }
+
+      visited.add(employee.id)
+      const directReports = (managerMap.get(employee.id) || []).sort((a, b) =>
+        getFullName(a.firstName, a.lastName).localeCompare(
+          getFullName(b.firstName, b.lastName),
+        ),
+      )
+
+      // Add proposed hires for this manager
+      const managerProposedHires = (
+        proposedHiresByManager.get(employee.id) || []
+      ).map((ph) => ({
+        id: `employee-${ph.id}`,
+        name: '',
+        title: ph.title || '',
+        team: ph.manager.deelEmployee!.team || undefined,
+        employeeId: undefined,
+        workEmail: undefined,
+        startDate: null,
+        hiringPriority: ph.priority as 'low' | 'medium' | 'high',
+        children: [],
+      }))
+
+      const reportNodes = directReports.map((child) =>
+        buildTree(child, visited),
+      )
+      const allChildren = [...reportNodes, ...managerProposedHires].sort(
+        (a, b) => {
+          // Sort: employees first (by name), then proposed hires (by title)
+          if (a.name && !b.name) return -1
+          if (!a.name && b.name) return 1
+          if (a.name && b.name) return a.name.localeCompare(b.name)
+          return (a.title || '').localeCompare(b.title || '')
+        },
+      )
+
+      return {
+        id: employee.id,
+        name: getFullName(employee.firstName, employee.lastName),
+        title: employee.title,
+        team: employee.team,
+        employeeId: employee.employee?.id,
+        workEmail: employee.workEmail,
+        startDate: employee.startDate,
+        hasActivePerformanceProgram:
+          employee.employee?.performancePrograms &&
+          employee.employee.performancePrograms.length > 0,
+        children: allChildren,
+      }
+    }
+
+    // For non-admins, start from manager's DeelEmployee
+    if (user?.role !== ROLES.ADMIN && managerDeelEmployeeId) {
+      const managerEmployee = deelEmployees.find(
+        (e) => e.id === managerDeelEmployeeId,
+      )
+      if (managerEmployee) {
+        return buildTree(managerEmployee)
+      }
+      // Fallback: if manager not found in filtered list, return first employee
+      if (deelEmployees.length > 0) {
+        return buildTree(deelEmployees[0])
+      }
+      return null
+    }
+
+    // For admins, find top-level managers (Cofounders or employees without managers)
+    const topLevelManagers = deelEmployees.filter(
+      (e) => e.title === 'Cofounder' || !e.managerId,
+    )
+
+    if (topLevelManagers.length === 0) {
+      // Fallback: if no top-level managers found, return first employee as root
+      if (deelEmployees.length > 0) {
+        return buildTree(deelEmployees[0])
+      }
+      return null
+    }
+
+    // Return array of top-level managers (sorted by name)
+    const trees = topLevelManagers
+      .sort((a, b) =>
+        getFullName(a.firstName, a.lastName).localeCompare(
+          getFullName(b.firstName, b.lastName),
+        ),
+      )
+      .map((manager) => buildTree(manager))
+
+    // Return single node or array of nodes
+    return trees.length === 1 ? trees[0] : trees
+  }, [deelEmployees, proposedHires, user?.role, managerDeelEmployeeId])
+
+  // Flatten hierarchy to get all employees for search
+  const allHierarchyEmployees = useMemo(() => {
+    if (!managerHierarchy) return []
+    const flatten = (node: HierarchyNode): Array<HierarchyNode> => {
+      return [node, ...node.children.flatMap(flatten)]
+    }
+    const nodes = Array.isArray(managerHierarchy)
+      ? managerHierarchy
+      : [managerHierarchy]
+    return nodes.flatMap(flatten).filter((n) => n.employeeId)
+  }, [managerHierarchy])
+
+  // Get all employee IDs in the manager hierarchy (for filtering in team mode)
+  const managerHierarchyEmployeeIds = useMemo(() => {
+    // Use the already computed allHierarchyEmployees to get employee IDs
+    return new Set(
+      allHierarchyEmployees.map((n) => n.employeeId).filter(Boolean),
+    )
+  }, [allHierarchyEmployees])
+
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [managerTreeViewMode, setManagerTreeViewMode] = useLocalStorage<
+    'manager' | 'team'
+  >('manager-tree.viewMode', 'manager')
+
+  // Filter employees to only those in manager's hierarchy when in team mode for non-admin users
+  const filteredDeelEmployees = useMemo(() => {
+    if (!deelEmployees) return null
+    // For admins, show all employees
+    if (user?.role === ROLES.ADMIN) return deelEmployees
+    // For team mode, filter to only employees in the manager's hierarchy
+    if (managerTreeViewMode === 'team') {
+      return deelEmployees.filter((emp) => {
+        // Include the manager themselves
+        if (emp.id === managerDeelEmployeeId) return true
+        // Include only employees that are in the manager hierarchy
+        return emp.employee?.id
+          ? managerHierarchyEmployeeIds.has(emp.employee.id)
+          : false
+      })
+    }
+    // For manager mode, return all (already filtered by manager hierarchy)
+    return deelEmployees
+  }, [
+    deelEmployees,
+    user?.role,
+    managerTreeViewMode,
+    managerDeelEmployeeId,
+    managerHierarchyEmployeeIds,
+  ])
+
   // Combine reference employees with current employee (using form values if available)
   const combinedReferenceEmployees = useMemo(() => {
     const refs = referenceEmployees ?? []
     const currentEmployeeRef: ReferenceEmployee = {
       id: employee.id,
-      name: employee.deelEmployee?.name ?? employee.email,
+      name: getFullName(
+        employee.deelEmployee?.firstName,
+        employee.deelEmployee?.lastName,
+        employee.email,
+      ),
       level: level,
       step: step,
       locationFactor: employee.salaries[0]?.locationFactor ?? 1,
@@ -407,7 +1496,7 @@ function EmployeeOverview() {
     return combined.sort((a, b) => a.step * a.level - b.step * b.level)
   }, [referenceEmployees, employee, level, step])
 
-  // Combine and sort salary history with feedback, grouped by month
+  // Combine and sort salary history with feedback and performance programs, grouped by month
   const timelineByMonth = useMemo(() => {
     const salaryItems = employee.salaries.map((salary) => ({
       type: 'salary' as const,
@@ -423,9 +1512,104 @@ function EmployeeOverview() {
       }),
     )
 
-    const allItems = [...salaryItems, ...feedbackItems].sort(
-      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
-    )
+    const performanceProgramItems: Array<{
+      type: 'performance-program'
+      timestamp: Date
+      data: {
+        event: 'started' | 'resolved' | 'checklist-completed' | 'feedback'
+        program?: any
+        checklistItem?: any
+        feedback?: any
+      }
+    }> = []
+
+    if (
+      'performancePrograms' in employee &&
+      employee.performancePrograms &&
+      employee.performancePrograms.length > 0
+    ) {
+      const programs = employee.performancePrograms
+      programs.forEach((program) => {
+        // Program start
+        performanceProgramItems.push({
+          type: 'performance-program',
+          timestamp: program.startedAt,
+          data: {
+            event: 'started',
+            program,
+          },
+        })
+
+        // Program resolution
+        if (program.resolvedAt) {
+          performanceProgramItems.push({
+            type: 'performance-program',
+            timestamp: program.resolvedAt,
+            data: {
+              event: 'resolved',
+              program,
+            },
+          })
+        }
+
+        // Checklist item completions
+        program.checklistItems.forEach((item) => {
+          if (item.completed && item.completedAt) {
+            performanceProgramItems.push({
+              type: 'performance-program',
+              timestamp: item.completedAt,
+              data: {
+                event: 'checklist-completed',
+                program,
+                checklistItem: item,
+              },
+            })
+          }
+        })
+
+        // Feedback entries
+        program.feedback.forEach((feedback) => {
+          performanceProgramItems.push({
+            type: 'performance-program',
+            timestamp: feedback.createdAt,
+            data: {
+              event: 'feedback',
+              program,
+              feedback,
+            },
+          })
+        })
+      })
+    }
+
+    const commissionBonusItems = (
+      'commissionBonuses' in employee && employee.commissionBonuses
+        ? employee.commissionBonuses
+        : []
+    ).map((bonus) => ({
+      type: 'commission-bonus' as const,
+      timestamp: bonus.createdAt,
+      data: bonus,
+    }))
+
+    const interviewScoreItems = (
+      'ashbyInterviewScoresReceived' in employee &&
+      employee.ashbyInterviewScoresReceived
+        ? employee.ashbyInterviewScoresReceived
+        : []
+    ).map((score) => ({
+      type: 'ashby-interview-score' as const,
+      timestamp: score.createdAt,
+      data: score,
+    }))
+
+    const allItems = [
+      ...salaryItems,
+      ...feedbackItems,
+      ...performanceProgramItems,
+      ...commissionBonusItems,
+      ...interviewScoreItems,
+    ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 
     // Group items by month/year
     const grouped = new Map<
@@ -452,240 +1636,15 @@ function EmployeeOverview() {
     })
 
     return Array.from(grouped.values())
-  }, [employee.salaries, employee.keeperTestFeedback])
-
-  const columns: Array<ColumnDef<Salary>> = useMemo(() => {
-    const baseColumns: Array<ColumnDef<Salary>> = [
-      {
-        accessorKey: 'timestamp',
-        header: 'Last Change (date)',
-        cell: ({ row }) => {
-          const date = new Date(row.original.timestamp)
-          return (
-            <div>
-              {months[date.getMonth()]} {date.getFullYear()}
-            </div>
-          )
-        },
-      },
-      {
-        accessorKey: 'country',
-        header: 'Country',
-        cell: ({ row }) => <div>{row.original.country}</div>,
-      },
-      {
-        accessorKey: 'area',
-        header: 'Area',
-        cell: ({ row }) => <div>{row.original.area}</div>,
-      },
-      {
-        accessorKey: 'benchmark',
-        header: 'Benchmark',
-        cell: ({ row }) => <div>{row.original.benchmark}</div>,
-      },
-      {
-        accessorKey: 'locationFactor',
-        header: () => <div className="text-right">Location</div>,
-        cell: ({ row }) => (
-          <div className="text-right">{row.original.locationFactor}</div>
-        ),
-      },
-      {
-        accessorKey: 'level',
-        header: () => <div className="text-right">Level</div>,
-        cell: ({ row }) => (
-          <div className="text-right">{row.original.level}</div>
-        ),
-      },
-      {
-        accessorKey: 'step',
-        header: () => <div className="text-right">Step</div>,
-        cell: ({ row }) => (
-          <div className="text-right">{row.original.step}</div>
-        ),
-      },
-      ...(showBonusPercentage
-        ? ([
-            {
-              accessorKey: 'bonusPercentage',
-              header: () => <div className="text-right">Bonus (%)</div>,
-              cell: ({ row }) => (
-                <div className="text-right">
-                  {(row.original.bonusPercentage * 100).toFixed(2)}%
-                </div>
-              ),
-            },
-          ] as ColumnDef<Salary>[])
-        : []),
-      {
-        accessorKey: 'totalSalary',
-        header: () => <div className="text-right">Total Salary ($)</div>,
-        cell: ({ row }) => {
-          const salary = row.original
-          return (
-            <SalaryWithMismatchIndicator
-              totalSalary={salary.totalSalary}
-              benchmarkFactor={salary.benchmarkFactor}
-              locationFactor={salary.locationFactor}
-              level={salary.level}
-              step={salary.step}
-              align="right"
-            />
-          )
-        },
-      },
-      {
-        accessorKey: 'changeAmount',
-        header: () => <div className="text-right">Change ($)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {formatCurrency(row.original.changeAmount)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'changePercentage',
-        header: () => <div className="text-right">Change (%)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {(row.original.changePercentage * 100).toFixed(2)}%
-          </div>
-        ),
-      },
-      ...(user?.role === ROLES.ADMIN
-        ? ([
-            {
-              accessorKey: 'notes',
-              header: 'Notes',
-              cell: ({ row }) => (
-                <div className="min-w-[200px] whitespace-pre-line">
-                  {row.original.notes}
-                </div>
-              ),
-            },
-          ] as Array<ColumnDef<Salary>>)
-        : []),
-      {
-        id: 'actions',
-        header: () => (
-          <button
-            onClick={() => setShowDetailedColumns(!showDetailedColumns)}
-            className="flex w-full items-center justify-center text-gray-400 hover:text-gray-600"
-          >
-            <span className="text-xs">{showDetailedColumns ? '▶' : '◀'}</span>
-          </button>
-        ),
-        cell: ({ row }) => {
-          if (user?.role !== ROLES.ADMIN) return null
-          const salary = row.original
-          const hoursSinceCreation =
-            (Date.now() - salary.timestamp.getTime()) / (1000 * 60 * 60)
-          const isDeletable = hoursSinceCreation <= 24
-          return (
-            <div className="flex items-center justify-center">
-              {isDeletable && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleDeleteSalary(salary.id)}
-                  className="h-6 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          )
-        },
-      },
-    ]
-
-    const detailedColumns: Array<ColumnDef<Salary>> = [
-      {
-        accessorKey: 'exchangeRate',
-        header: () => <div className="text-right">Exchange Rate</div>,
-        cell: ({ row }) => (
-          <div className="text-right">{row.original.exchangeRate}</div>
-        ),
-      },
-      {
-        accessorKey: 'totalSalaryLocal',
-        header: () => <div className="text-right">Total Salary (local)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: row.original.localCurrency,
-            }).format(row.original.totalSalaryLocal)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'amountTakenInOptions',
-        header: () => (
-          <div className="text-right">Amount Taken In Options ($)</div>
-        ),
-        cell: ({ row }) => (
-          <div className="text-right">
-            {formatCurrency(row.original.amountTakenInOptions)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'actualSalary',
-        header: () => <div className="text-right">Actual Salary ($)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {formatCurrency(row.original.actualSalary)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'actualSalaryLocal',
-        header: () => <div className="text-right">Actual Salary (local)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: row.original.localCurrency,
-            }).format(row.original.actualSalaryLocal)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'equityRefreshPercentage',
-        header: () => <div className="text-right">Equity refresh (%)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {(row.original.equityRefreshPercentage * 100).toFixed(2)}%
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'equityRefreshAmount',
-        header: () => <div className="text-right">Equity refresh ($)</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            {formatCurrency(row.original.equityRefreshAmount)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'employmentCountry',
-        header: 'Employment Country',
-        cell: ({ row }) => <div>{row.original.employmentCountry}</div>,
-      },
-      {
-        accessorKey: 'employmentArea',
-        header: () => 'Employment Area',
-        cell: ({ row }) => <div>{row.original.employmentArea}</div>,
-      },
-    ]
-
-    return showDetailedColumns
-      ? [...baseColumns, ...detailedColumns]
-      : [...baseColumns]
-  }, [showDetailedColumns, user?.role, employee.salaries, showBonusPercentage])
+  }, [
+    employee.salaries,
+    employee.keeperTestFeedback,
+    employee.performancePrograms,
+    'commissionBonuses' in employee ? employee.commissionBonuses : [],
+    'ashbyInterviewScoresReceived' in employee
+      ? employee.ashbyInterviewScoresReceived
+      : [],
+  ])
 
   const handleMoveToNextEmployee = () => {
     const currentIndex = reviewQueue.indexOf(employee.id)
@@ -705,18 +1664,9 @@ function EmployeeOverview() {
         },
       )
       setReviewQueue([])
-      router.navigate({ to: '/' })
+      router.navigate({ to: '/employees' })
     }
   }
-
-  const table = useReactTable({
-    data: employee.salaries,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    filterFns: {
-      fuzzy: () => true,
-    },
-  })
 
   const benchmarkUpdated =
     employee.salaries[0] &&
@@ -730,349 +1680,404 @@ function EmployeeOverview() {
     'month',
   )
   const eligibleForEquityRefresh =
-    monthsSinceStart >= 10 && [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
+    false &&
+    monthsSinceStart >= 10 &&
+    [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
+
+  const isManager =
+    (deelEmployeesAndProposedHiresData?.managedEmployeeIds?.length ?? 0) > 0
+  const showEmployeeTree =
+    managerHierarchy && (user?.role === ROLES.ADMIN || isManager)
 
   return (
-    <div className="flex flex-col items-center justify-center gap-5 pt-8">
-      <div className="flex w-full flex-col gap-5 px-4 2xl:max-w-7xl">
-        {user?.role === ROLES.ADMIN ? (
-          <div className="flex w-full items-center justify-between">
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={() => router.navigate({ to: '/' })}
-              className="-ml-2 self-start"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to overview
-            </Button>
-            {employee.cartaOptionGrants &&
-              employee.cartaOptionGrants.length > 0 && (
+    <div className="flex h-full flex-col items-center gap-5 overflow-hidden pt-4">
+      <div className="flex h-full w-full gap-5 2xl:max-w-[2000px]">
+        {/* Sidebar with hierarchy */}
+        {showEmployeeTree && (
+          <div className="hidden w-96 flex-shrink-0 border-r px-4 lg:block">
+            <div className="mb-2 flex items-center justify-between">
+              <Select
+                value={managerTreeViewMode}
+                onValueChange={(value) =>
+                  setManagerTreeViewMode(value as 'manager' | 'team')
+                }
+              >
+                <SelectTrigger className="h-8 w-[140px] bg-white text-sm font-semibold text-gray-700">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>View modes</SelectLabel>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="team">Team</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <TooltipProvider>
+                <div className="flex items-center gap-1">
+                  <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                          >
+                            <Search className="h-3.5 w-3.5" />
+                          </Button>
+                        </PopoverTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Search employee</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search employee..."
+                          className="h-9"
+                        />
+                        <CommandList>
+                          <CommandEmpty>No employee found.</CommandEmpty>
+                          <CommandGroup>
+                            {allHierarchyEmployees
+                              .filter((node) => node.employeeId)
+                              .map((node) => (
+                                <CommandItem
+                                  key={node.id}
+                                  value={`${node.id} - ${node.name} - ${node.employeeId} - ${node.workEmail || ''}`}
+                                  onSelect={(currentValue) => {
+                                    const selectedEmployeeId =
+                                      currentValue.split(' - ')[2]
+                                    if (
+                                      selectedEmployeeId &&
+                                      selectedEmployeeId !== employee.id
+                                    ) {
+                                      router.navigate({
+                                        to: '/employee/$employeeId',
+                                        params: {
+                                          employeeId: selectedEmployeeId,
+                                        },
+                                      })
+                                    }
+                                    setSearchOpen(false)
+                                  }}
+                                >
+                                  {node.name}
+                                  <Check
+                                    className={cn(
+                                      'ml-auto',
+                                      employee.id === node.employeeId
+                                        ? 'opacity-100'
+                                        : 'opacity-0',
+                                    )}
+                                  />
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setExpandAll(true)
+                          setExpandAllCounter((prev) => prev + 1)
+                        }}
+                        className="h-6 w-6 p-0"
+                      >
+                        <ChevronsLeftRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Expand All</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setExpandAll(false)
+                          setExpandAllCounter((prev) => prev + 1)
+                        }}
+                        className="h-6 w-6 p-0"
+                      >
+                        <ChevronsRightLeft className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Collapse All</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
+            </div>
+            <div className="h-[calc(100vh-7rem)] overflow-hidden rounded-lg border bg-white">
+              <ManagerHierarchyTree
+                hierarchy={managerHierarchy}
+                currentEmployeeId={employee.id}
+                expandAll={expandAll}
+                expandAllCounter={expandAllCounter}
+                deelEmployees={filteredDeelEmployees || deelEmployees}
+                proposedHires={proposedHires}
+                viewMode={managerTreeViewMode}
+                onViewModeChange={(mode: 'manager' | 'team') =>
+                  setManagerTreeViewMode(mode)
+                }
+              />
+            </div>
+          </div>
+        )}
+        <div
+          className={cn(
+            'flex w-full min-w-0 flex-1 flex-col gap-5 overflow-y-auto',
+            showEmployeeTree ? 'pr-4 pl-4 lg:pl-0' : 'px-4',
+          )}
+        >
+          {user?.role === ROLES.ADMIN ? (
+            <div className="flex w-full items-center justify-between">
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => router.navigate({ to: '/employees' })}
+                className="-ml-2 self-start"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to overview
+              </Button>
+              {employee.cartaOptionGrants &&
+                employee.cartaOptionGrants.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setShowStockOptionsCalculator(!showStockOptionsCalculator)
+                    }
+                    className="-mr-2"
+                  >
+                    {showStockOptionsCalculator
+                      ? 'Hide stock options calculator'
+                      : 'Show stock options calculator'}
+                  </Button>
+                )}
+            </div>
+          ) : null}
+
+          {employee.cartaOptionGrants &&
+            employee.cartaOptionGrants.length > 0 &&
+            showStockOptionsCalculator && (
+              <StockOptionsCalculator optionGrants={employee.cartaOptionGrants} />
+            )}
+
+          <div className="flex flex-row items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-xl font-bold">
+                {getFullName(
+                  employee.deelEmployee?.firstName,
+                  employee.deelEmployee?.lastName,
+                  employee.email,
+                ) || 'Edit employee'}
+              </span>
+              <div className="mt-1 flex gap-4 text-sm text-gray-600">
+                <span>Email: {employee.email}</span>
+                {employee.priority && !isSensitiveHidden ? (
+                  <span>Priority: {employee.priority}</span>
+                ) : null}
+                {(employee.deelEmployee?.topLevelManager?.firstName ||
+                  employee.deelEmployee?.topLevelManager?.lastName) && (
+                  <span>
+                    Reviewer:{' '}
+                    {getFullName(
+                      employee.deelEmployee.topLevelManager.firstName,
+                      employee.deelEmployee.topLevelManager.lastName,
+                    )}
+                  </span>
+                )}
+                {typeof employee.reviewed === 'boolean' &&
+                !isSensitiveHidden ? (
+                  <span>Reviewed: {employee.reviewed ? 'Yes' : 'No'}</span>
+                ) : null}
+                {employee.deelEmployee?.startDate && (
+                  <span>
+                    Start Date:{' '}
+                    {dayjs(employee.deelEmployee.startDate).format('M/D/YYYY')}{' '}
+                    ({dayjs(employee.deelEmployee.startDate).fromNow()})
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              {reviewQueue.length > 0 ? (
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={handleMoveToNextEmployee}
+                >
+                  Move to next employee
+                </Button>
+              ) : null}
+              {'performancePrograms' in employee &&
+              employee.performancePrograms !== undefined ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleStartPerformanceProgram}>
+                      Start Performance Program
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+            </div>
+          </div>
+
+          {!isSensitiveHidden &&
+          'performancePrograms' in employee &&
+          employee.performancePrograms !== undefined ? (
+            <div className="w-full">
+              <PerformanceProgramPanel
+                employeeId={employee.id}
+                program={
+                  'performancePrograms' in employee &&
+                  employee.performancePrograms &&
+                  employee.performancePrograms.length > 0
+                    ? (employee.performancePrograms[0] as any)
+                    : null
+                }
+                onUpdate={() => router.invalidate()}
+              />
+            </div>
+          ) : null}
+
+          <div className="mt-2 flex flex-row items-center justify-between gap-2">
+            <div className="flex gap-2">
+              {showNewSalaryForm ? (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() =>
-                    setShowStockOptionsCalculator(!showStockOptionsCalculator)
+                    setShowReferenceEmployees(!showReferenceEmployees)
                   }
-                  className="-mr-2"
                 >
-                  {showStockOptionsCalculator
-                    ? 'Hide stock options calculator'
-                    : 'Show stock options calculator'}
+                  {showReferenceEmployees
+                    ? 'Hide reference employees'
+                    : 'Show reference employees'}
                 </Button>
-              )}
-          </div>
-        ) : null}
-        <div className="flex flex-row items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-xl font-bold">
-              {employee.deelEmployee?.name || employee.email || 'Edit employee'}
-            </span>
-            <div className="mt-1 flex gap-4 text-sm text-gray-600">
-              <span>Email: {employee.email}</span>
-              {employee.priority ? (
-                <span>Priority: {employee.priority}</span>
               ) : null}
-              {employee.deelEmployee?.topLevelManager?.name && (
-                <span>
-                  Reviewer: {employee.deelEmployee.topLevelManager.name}
-                </span>
-              )}
-              {typeof employee.reviewed === 'boolean' ? (
-                <span>Reviewed: {employee.reviewed ? 'Yes' : 'No'}</span>
+              {showNewSalaryForm ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowOverrideMode(!showOverrideMode)}
+                >
+                  {showOverrideMode
+                    ? 'Disable override mode'
+                    : 'Enable override mode'}
+                </Button>
+              ) : null}
+              {user?.role === ROLES.ADMIN && !isSensitiveHidden ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowNewSalaryForm(!showNewSalaryForm)}
+                >
+                  {showNewSalaryForm ? 'Cancel' : 'Add New Salary'}
+                </Button>
               ) : null}
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <div className="flex gap-1 rounded-md border">
-              <Button
-                type="button"
-                variant={viewMode === 'table' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('table')}
-              >
-                Table view
-              </Button>
-              <Button
-                type="button"
-                variant={viewMode === 'card' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('card')}
-              >
-                Timeline view
-              </Button>
-            </div>
-            {reviewQueue.length > 0 ? (
-              <Button
-                variant="outline"
-                type="button"
-                onClick={handleMoveToNextEmployee}
-              >
-                Move to next employee
-              </Button>
-            ) : null}
-          </div>
-        </div>
 
-        {employee.cartaOptionGrants &&
-          employee.cartaOptionGrants.length > 0 &&
-          showStockOptionsCalculator && (
-            <StockOptionsCalculator optionGrants={employee.cartaOptionGrants} />
-          )}
+          {employee.salaries[0] &&
+            (() => {
+              const locationFactorUpdated =
+                locationFactor.find(
+                  (l) =>
+                    l.country === employee.salaries[0].country &&
+                    l.area === employee.salaries[0].area,
+                )?.locationFactor !== employee.salaries[0].locationFactor
 
-        {user?.role === ROLES.ADMIN && viewMode === 'table' ? (
-          <>
-            <div className="mt-2 flex flex-row items-center justify-between gap-2">
-              <span className="text-md font-bold">Feedback</span>
-            </div>
-
-            <div className="w-full flex-grow">
-              <div className="mb-4 max-h-[300px] overflow-y-auto rounded-lg border bg-gray-50 p-4">
-                {employee.keeperTestFeedback.map(
-                  ({
-                    id,
-                    title,
-                    manager,
-                    wouldYouTryToKeepThem,
-                    whatMakesThemValuable,
-                    driverOrPassenger,
-                    proactiveToday,
-                    optimisticByDefault,
-                    areasToWatch,
-                    recommendation,
-                    sharedWithTeamMember,
-                    timestamp,
-                  }) => (
-                    <div
-                      key={id}
-                      className="mb-4 rounded-lg border bg-gray-50 p-4"
-                    >
-                      <span className="w-full list-disc text-right text-sm text-gray-500">
-                        {new Date(timestamp).toLocaleDateString()}
-                      </span>
-                      <MarkdownComponent>
-                        {`### ${title} feedback from ${manager.deelEmployee?.name ?? manager.email}:\n` +
-                          `- **If this team member was leaving for a similar role at another company, would you try to keep them?** ${wouldYouTryToKeepThem ? 'Yes' : 'No'}\n` +
-                          `- **What makes them so valuable to your team and PostHog?** ${whatMakesThemValuable}\n` +
-                          `- **Are they a driver or a passenger?** ${driverOrPassenger}\n` +
-                          `- **Do they get things done proactively, today?** ${proactiveToday ? 'Yes' : 'No'}\n` +
-                          `- **Are they optimistic by default?** ${optimisticByDefault ? 'Yes' : 'No'}\n` +
-                          `- **Areas to watch:** ${areasToWatch}\n` +
-                          (recommendation
-                            ? `- **Recommendation**: ${recommendation}\n`
-                            : '') +
-                          `- **Have you shared this feedback with your team member?** ${sharedWithTeamMember ? 'Yes' : 'No, but I will do right now!'}`}
-                      </MarkdownComponent>
-                    </div>
-                  ),
-                )}
-
-                {employee.keeperTestFeedback.length === 0 && (
-                  <div className="text-center text-sm text-gray-500">
-                    No feedback yet.
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        ) : null}
-
-        <div className="mt-2 flex flex-row items-center justify-between gap-2">
-          {viewMode === 'table' && (
-            <span className="text-md font-bold">Salary history</span>
-          )}
-          <div className="flex gap-2">
-            {showNewSalaryForm ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  setShowReferenceEmployees(!showReferenceEmployees)
-                }
-              >
-                {showReferenceEmployees
-                  ? 'Hide reference employees'
-                  : 'Show reference employees'}
-              </Button>
-            ) : null}
-            {showNewSalaryForm ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowOverrideMode(!showOverrideMode)}
-              >
-                {showOverrideMode
-                  ? 'Disable override mode'
-                  : 'Enable override mode'}
-              </Button>
-            ) : null}
-            {user?.role === ROLES.ADMIN ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowNewSalaryForm(!showNewSalaryForm)}
-              >
-                {showNewSalaryForm ? 'Cancel' : 'Add New Salary'}
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
-        {employee.salaries[0] &&
-          (() => {
-            const locationFactorUpdated =
-              locationFactor.find(
-                (l) =>
-                  l.country === employee.salaries[0].country &&
-                  l.area === employee.salaries[0].area,
-              )?.locationFactor !== employee.salaries[0].locationFactor
-
-            return (
-              <>
-                {benchmarkUpdated && user?.role === ROLES.ADMIN && (
-                  <Alert variant="default">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>
-                      This employee is currently on an old benchmark factor.
-                    </AlertTitle>
-                    <AlertDescription>
-                      You can keep it that way by choosing `
-                      {employee.salaries[0].benchmark} (old)` as the benchmark,
-                      or updated it by choosing `
-                      {employee.salaries[0].benchmark.replace(' (old)', '')}` as
-                      the benchmark.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {locationFactorUpdated && user?.role === ROLES.ADMIN && (
-                  <Alert variant="default">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>
-                      This employee is currently on an old location factor.
-                    </AlertTitle>
-                    <AlertDescription>
-                      The location factor will be updated on the next salary
-                      update.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {eligibleForEquityRefresh && user?.role === ROLES.ADMIN && (
-                  <Alert variant="default">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>
-                      This employee is eligible for an equity refresh.
-                    </AlertTitle>
-                    <AlertDescription>
-                      Enter an equity refresh percentage in the next salary
-                      update. In the majority of cases, this will be between 18%
-                      and 25%.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </>
-            )
-          })()}
-
-        {showNewSalaryForm && showReferenceEmployees && viewMode === 'card' ? (
-          <ReferenceEmployeesTable
-            referenceEmployees={combinedReferenceEmployees}
-            currentEmployee={employee}
-            filterByLevel={filterByLevel}
-            setFilterByLevel={setFilterByLevel}
-            filterByExec={filterByExec}
-            setFilterByExec={setFilterByExec}
-            filterByTitle={filterByTitle}
-            setFilterByTitle={setFilterByTitle}
-          />
-        ) : null}
-
-        <div className="w-full flex-grow">
-          {viewMode === 'table' ? (
-            <div className="overflow-hidden rounded-md border">
-              <Table className="text-xs">
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => {
-                        return (
-                          <TableHead key={header.id}>
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext(),
-                                )}
-                          </TableHead>
-                        )
-                      })}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {showNewSalaryForm && (
-                    <NewSalaryForm
-                      employeeId={employee.id}
-                      showOverride={showOverrideMode}
-                      setShowOverride={setShowOverrideMode}
-                      latestSalary={employee.salaries[0]}
-                      showDetailedColumns={showDetailedColumns}
-                      totalAmountInStockOptions={employee.salaries.reduce(
-                        (acc, salary) => acc + salary.amountTakenInOptions,
-                        0,
-                      )}
-                      onSuccess={() => {
-                        setShowNewSalaryForm(false)
-                        router.invalidate()
-                      }}
-                      onCancel={() => setShowNewSalaryForm(false)}
-                      benchmarkUpdated={benchmarkUpdated}
-                      setLevel={setLevel}
-                      setStep={setStep}
-                      setBenchmark={setBenchmark}
-                      showBonusPercentage={showBonusPercentage}
-                      displayMode="inline"
-                    />
+              return (
+                <>
+                  {benchmarkUpdated && user?.role === ROLES.ADMIN && (
+                    <Alert variant="default">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>
+                        This employee is currently on an old benchmark factor.
+                      </AlertTitle>
+                      <AlertDescription>
+                        You can keep it that way by choosing `
+                        {employee.salaries[0].benchmark} (old)` as the
+                        benchmark, or updated it by choosing `
+                        {employee.salaries[0].benchmark.replace(' (old)', '')}`
+                        as the benchmark.
+                      </AlertDescription>
+                    </Alert>
                   )}
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && 'selected'}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="h-24 text-center"
-                      >
-                        No results.
-                      </TableCell>
-                    </TableRow>
+
+                  {locationFactorUpdated && user?.role === ROLES.ADMIN && (
+                    <Alert variant="default">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>
+                        This employee is currently on an old location factor.
+                      </AlertTitle>
+                      <AlertDescription>
+                        The location factor will be updated on the next salary
+                        update.
+                      </AlertDescription>
+                    </Alert>
                   )}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
+
+                  {eligibleForEquityRefresh && user?.role === ROLES.ADMIN && (
+                    <Alert variant="default">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>
+                        This employee is eligible for an equity refresh.
+                      </AlertTitle>
+                      <AlertDescription>
+                        Enter an equity refresh percentage in the next salary
+                        update. In the majority of cases, this will be between
+                        18% and 25%.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </>
+              )
+            })()}
+
+          {showNewSalaryForm && showReferenceEmployees ? (
+            <ReferenceEmployeesTable
+              referenceEmployees={combinedReferenceEmployees}
+              currentEmployee={employee}
+              filterByLevel={filterByLevel}
+              setFilterByLevel={setFilterByLevel}
+              filterByExec={filterByExec}
+              setFilterByExec={setFilterByExec}
+              filterByTitle={filterByTitle}
+              setFilterByTitle={setFilterByTitle}
+            />
+          ) : null}
+
+          <div className="w-full flex-grow">
             <div className="mb-8">
-              {showNewSalaryForm && (
+              {showNewSalaryForm && !isSensitiveHidden && (
                 <NewSalaryForm
                   employeeId={employee.id}
                   showOverride={showOverrideMode}
                   setShowOverride={setShowOverrideMode}
                   latestSalary={employee.salaries[0]}
-                  showDetailedColumns={showDetailedColumns}
                   totalAmountInStockOptions={employee.salaries.reduce(
                     (acc, salary) => acc + salary.amountTakenInOptions,
                     0,
@@ -1087,10 +2092,14 @@ function EmployeeOverview() {
                   setStep={setStep}
                   setBenchmark={setBenchmark}
                   showBonusPercentage={showBonusPercentage}
-                  displayMode="card"
+                  eligibleForEquityRefresh={eligibleForEquityRefresh}
                 />
               )}
-              {timelineByMonth.length > 0 ? (
+              {isSensitiveHidden ? (
+                <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 px-4 py-12 text-center text-sm text-gray-500">
+                  Timeline hidden (sensitive data mode enabled)
+                </div>
+              ) : timelineByMonth.length > 0 ? (
                 timelineByMonth.map((monthGroup, monthGroupIndex) => (
                   <div key={`${monthGroup.year}-${monthGroup.month}`}>
                     <div
@@ -1130,21 +2139,53 @@ function EmployeeOverview() {
                           itemIndex === monthGroup.items.length - 1
                         const lastTableItem = isLastMonth && isLastItemInMonth
 
-                        return item.type === 'salary' ? (
-                          <SalaryHistoryCard
-                            key={`salary-${item.data.id}`}
-                            salary={item.data}
-                            isAdmin={user?.role === ROLES.ADMIN}
-                            onDelete={handleDeleteSalary}
-                            lastTableItem={lastTableItem}
-                          />
-                        ) : (
-                          <FeedbackCard
-                            key={`feedback-${item.data.id}`}
-                            feedback={item.data}
-                            lastTableItem={lastTableItem}
-                          />
-                        )
+                        if (item.type === 'salary') {
+                          return (
+                            <SalaryHistoryCard
+                              key={`salary-${item.data.id}`}
+                              salary={item.data}
+                              isAdmin={user?.role === ROLES.ADMIN}
+                              onDelete={handleDeleteSalary}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        } else if (item.type === 'feedback') {
+                          return (
+                            <FeedbackCard
+                              key={`feedback-${item.data.id}`}
+                              feedback={item.data}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        } else if (item.type === 'performance-program') {
+                          return (
+                            <PerformanceProgramTimelineCard
+                              key={`perf-program-${item.data.program.id}-${item.data.event}-${item.data.checklistItem?.id || item.data.feedback?.id || ''}`}
+                              event={item.data.event}
+                              program={item.data.program}
+                              checklistItem={item.data.checklistItem}
+                              feedback={item.data.feedback}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        } else if (item.type === 'commission-bonus') {
+                          return (
+                            <CommissionBonusTimelineCard
+                              key={`commission-bonus-${item.data.id}`}
+                              bonus={item.data}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        } else if (item.type === 'ashby-interview-score') {
+                          return (
+                            <AshbyInterviewScoreTimelineCard
+                              key={`ashby-interview-score-${item.data.id}`}
+                              score={item.data}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        }
+                        return null
                       })}
                     </div>
                   </div>
@@ -1155,21 +2196,8 @@ function EmployeeOverview() {
                 </div>
               )}
             </div>
-          )}
+          </div>
         </div>
-
-        {showNewSalaryForm && showReferenceEmployees && viewMode === 'table' ? (
-          <ReferenceEmployeesTable
-            referenceEmployees={combinedReferenceEmployees}
-            currentEmployee={employee}
-            filterByLevel={filterByLevel}
-            setFilterByLevel={setFilterByLevel}
-            filterByExec={filterByExec}
-            setFilterByExec={setFilterByExec}
-            filterByTitle={filterByTitle}
-            setFilterByTitle={setFilterByTitle}
-          />
-        ) : null}
       </div>
     </div>
   )

@@ -25,16 +25,40 @@ import {
 } from '@/components/ui/popover'
 import { useEffect, useState } from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, getFullName } from '@/lib/utils'
 import { createToast } from 'vercel-toast'
 import prisma from '@/db'
 import { useRouter } from '@tanstack/react-router'
+import { createAuditLogEntry } from '@/lib/audit-log'
+import { AuditLogHistoryDialog } from './AuditLogHistoryDialog'
 
 const updateDeelManager = createOrgChartFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; managerId: string }) => d)
-  .handler(async ({ data: { id, managerId } }) => {
+  .handler(async ({ data: { id, managerId }, context }) => {
+    // Get current manager and employee details
+    const currentEmployee = await prisma.deelEmployee.findUnique({
+      where: { id },
+      include: {
+        employee: { select: { email: true } },
+        manager: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            workEmail: true,
+          },
+        },
+      },
+    })
+
+    // Get new manager details
+    const newManager = await prisma.deelEmployee.findUnique({
+      where: { id: managerId },
+      select: { firstName: true, lastName: true },
+    })
+
     const response = await fetch(
       `https://api.letsdeel.com/rest/v2/hris/worker_relations/profile/${id}/parent`,
       {
@@ -58,9 +82,40 @@ const updateDeelManager = createOrgChartFn({
       )
     }
 
-    await prisma.deelEmployee.update({
+    // Update in database
+    const updatedEmployee = await prisma.deelEmployee.update({
       where: { id },
       data: { managerId },
+      include: {
+        employee: { select: { email: true } },
+        manager: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            workEmail: true,
+          },
+        },
+      },
+    })
+
+    // Create audit log entry
+    await createAuditLogEntry({
+      actorUserId: context.user.id,
+      entityType: 'MANAGER',
+      entityId: id,
+      fieldName: 'managerId',
+      oldValue: getFullName(
+        currentEmployee?.manager?.firstName,
+        currentEmployee?.manager?.lastName,
+      ),
+      newValue: getFullName(newManager?.firstName, newManager?.lastName),
+      metadata: {
+        employeeEmail: updatedEmployee.employee?.email,
+        oldManagerId: currentEmployee?.managerId,
+        newManagerId: managerId,
+        newManagerEmail: updatedEmployee.manager?.workEmail,
+      },
     })
 
     return 'OK'
@@ -77,7 +132,8 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
     manager: {
       select: {
         id: true
-        name: true
+        firstName: true
+        lastName: true
       }
     }
   }
@@ -91,6 +147,7 @@ export function ManagerEditPanel({
   employee: DeelEmployee
 }) {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState<string | null>(employee.managerId)
   const router = useRouter()
@@ -129,7 +186,14 @@ export function ManagerEditPanel({
                   className="w-full justify-between"
                 >
                   {value
-                    ? employees?.find((employee) => employee.id === value)?.name
+                    ? (() => {
+                        const emp = employees?.find(
+                          (employee) => employee.id === value,
+                        )
+                        return emp
+                          ? getFullName(emp.firstName, emp.lastName)
+                          : null
+                      })()
                     : 'Select manager...'}
                   <ChevronsUpDown className="opacity-50" />
                 </Button>
@@ -146,7 +210,7 @@ export function ManagerEditPanel({
                       {employees?.map((employee) => (
                         <CommandItem
                           key={employee.id}
-                          value={`${employee.id} - ${employee.name} - ${employee.workEmail}`}
+                          value={`${employee.id} - ${getFullName(employee.firstName, employee.lastName)} - ${employee.workEmail}`}
                           onSelect={(currentValue) => {
                             setValue(
                               currentValue === value
@@ -156,7 +220,7 @@ export function ManagerEditPanel({
                             setOpen(false)
                           }}
                         >
-                          {employee.name}
+                          {getFullName(employee.firstName, employee.lastName)}
                           <Check
                             className={cn(
                               'ml-auto',
@@ -174,15 +238,35 @@ export function ManagerEditPanel({
             </Popover>
           </div>
         </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <Button type="submit" onClick={handleSubmit}>
-            Save changes
+        <DialogFooter className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setDialogOpen(false)
+              setHistoryDialogOpen(true)
+            }}
+            className="text-xs"
+          >
+            View history
           </Button>
+          <div className="flex gap-2">
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" onClick={handleSubmit}>
+              Save changes
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
+      <AuditLogHistoryDialog
+        entityType="MANAGER"
+        entityId={employee.id}
+        title={`Manager history for ${getFullName(employee.firstName, employee.lastName)}`}
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+      />
     </Dialog>
   )
 }

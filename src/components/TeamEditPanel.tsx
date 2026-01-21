@@ -26,10 +26,12 @@ import {
 } from '@/components/ui/popover'
 import { useEffect, useState } from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, getFullName } from '@/lib/utils'
 import { createToast } from 'vercel-toast'
 import prisma from '@/db'
 import { useRouter } from '@tanstack/react-router'
+import { createAuditLogEntry } from '@/lib/audit-log'
+import { AuditLogHistoryDialog } from './AuditLogHistoryDialog'
 
 type RawDeelTeam = {
   id: string
@@ -77,7 +79,15 @@ const updateDeelTeam = createOrgChartFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; team: DeelTeam }) => d)
-  .handler(async ({ data: { id, team } }) => {
+  .handler(async ({ data: { id, team }, context }) => {
+    // Get current team and employee details
+    const currentEmployee = await prisma.deelEmployee.findUnique({
+      where: { id },
+      include: {
+        employee: { select: { email: true } },
+      },
+    })
+
     const setTeam = async (team: DeelTeam, replaceAll: boolean) => {
       const response = await fetch(
         `https://api.letsdeel.com/rest/v2/people/${id}/department${replaceAll ? '?replace_other_positions=true' : ''}`,
@@ -103,16 +113,35 @@ const updateDeelTeam = createOrgChartFn({
         )
       }
 
-      if (team.parent) {
-        await setTeam(team.parent, false)
-      }
+      // This was previously used to set multiple departments onto a user, but that doesn't seem to be supported by Deel anymore - so commenting out for now
+      // if (team.parent) {
+      //   await setTeam(team.parent, false)
+      // }
     }
 
     await setTeam(team, true)
 
-    await prisma.deelEmployee.update({
+    // Update in database
+    const updatedEmployee = await prisma.deelEmployee.update({
       where: { id },
       data: { team: team.name },
+      include: {
+        employee: { select: { email: true } },
+      },
+    })
+
+    // Create audit log entry
+    await createAuditLogEntry({
+      actorUserId: context.user.id,
+      entityType: 'TEAM',
+      entityId: id,
+      fieldName: 'team',
+      oldValue: currentEmployee?.team ?? null,
+      newValue: team.name,
+      metadata: {
+        employeeEmail: updatedEmployee.employee?.email,
+        teamId: team.id,
+      },
     })
 
     return 'OK'
@@ -129,7 +158,8 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
     manager: {
       select: {
         id: true
-        name: true
+        firstName: true
+        lastName: true
       }
     }
   }
@@ -137,6 +167,7 @@ type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
 
 export function TeamEditPanel({ employee }: { employee: DeelEmployee }) {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState(employee.team)
   const router = useRouter()
@@ -217,15 +248,35 @@ export function TeamEditPanel({ employee }: { employee: DeelEmployee }) {
             </Popover>
           </div>
         </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <Button type="submit" onClick={handleSubmit}>
-            Save changes
+        <DialogFooter className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setDialogOpen(false)
+              setHistoryDialogOpen(true)
+            }}
+            className="text-xs"
+          >
+            View history
           </Button>
+          <div className="flex gap-2">
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" onClick={handleSubmit}>
+              Save changes
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
+      <AuditLogHistoryDialog
+        entityType="TEAM"
+        entityId={employee.id}
+        title={`Team history for ${getFullName(employee.firstName, employee.lastName)}`}
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+      />
     </Dialog>
   )
 }

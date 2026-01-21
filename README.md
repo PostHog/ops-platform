@@ -1,8 +1,23 @@
-Welcome to PostHog Ops!
+# ops-platform
+
+<img width="1466" height="1321" alt="2026-01-12 at 22 47 33" src="https://github.com/user-attachments/assets/a5e599b4-69fd-46cb-9b32-d6feff86fb28" />
+
+# features
+
+- employee view
+  - salary updates
+  - ashby interview scores
+  - keeper test scores
+  - commission bonus payouts
+- pay review queues
+  - reference employees with similar step/level
+  - automatic updates in deel and bamboohr
+- probation check-ins for the first 30/60/80 days & keeper tests before pay reviews
+- org chart with a manager and team view mode
+  - proposed hires
+  - future starters
 
 # Getting Started
-
-First, request the `.env` and `historicalImporter.ts` files from a friend and put them in the project root.
 
 Download and activate services:
 
@@ -10,22 +25,12 @@ Download and activate services:
 flox activate
 flox services start
 npx prisma db push
-pnpm import-historical
 pnpm install
+pnpm seed-demo
 pnpm dev
 ```
 
-If this is the first time you're running the app, you'll need to sync from Deel and import historical data. The CURL request requires a bearer token - get that from a friend as well.
-
-```bash
-curl --request POST \
-  --url 'http://localhost:3000/syncDeelEmployees?=' \
-  --header 'Authorization: Bearer {{token}}' \
-  --header 'User-Agent: insomnia/11.6.1'
-pnpm import-historical
-```
-
-After starting the application, log in with your posthog google account.
+After starting the application, log in with your google account. To gain admin access, you'll need to change your role in the `user` table to `admin`.
 
 # Building For Production
 

@@ -1,18 +1,23 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { CyclotronJob } from '@prisma/client'
 import prisma from '@/db'
+import { getFullName } from '@/lib/utils'
 
 export type KeeperTestJobPayload = {
   title: string
   employee: {
     id: string
     email: string
-    name: string
+    firstName: string
+    lastName: string
+    name?: string // TODO: Remove after 2026-01-27 when all jobs have been updated to use firstName/lastName
   }
   manager: {
     id: string
     email: string
-    name: string
+    firstName: string
+    lastName: string
+    name?: string // TODO: Remove after 2026-01-27 when all jobs have been updated to use firstName/lastName
   }
   thread_id?: string
 }
@@ -62,18 +67,34 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'Yes',
+                      text: 'Absolutely not - in fact we should consider letting this person go',
                       emoji: true,
                     },
-                    value: 'yes',
+                    value: 'STRONG_NO',
                   },
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'No',
+                      text: 'No, they seem fine but we can find better',
                       emoji: true,
                     },
-                    value: 'no',
+                    value: 'NO',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'Yes, I would try and keep them',
+                      emoji: true,
+                    },
+                    value: 'YES',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: '1000%, I would pull in the Blitzscale team to convince them to stay',
+                      emoji: true,
+                    },
+                    value: 'STRONG_YES',
                   },
                 ],
                 action_id: 'keeper-test-question-1',
@@ -104,18 +125,34 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'Driver',
+                      text: "They're asleep in the back of the cab",
                       emoji: true,
                     },
-                    value: 'driver',
+                    value: 'STRONG_NO',
                   },
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'Passenger',
+                      text: 'A passenger',
                       emoji: true,
                     },
-                    value: 'passenger',
+                    value: 'NO',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'They definitely drive but do sometimes need breaks',
+                      emoji: true,
+                    },
+                    value: 'YES',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: "They're driving across the country with no stops",
+                      emoji: true,
+                    },
+                    value: 'STRONG_YES',
                   },
                 ],
                 action_id: 'keeper-test-question-2',
@@ -133,18 +170,34 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'Yes',
+                      text: 'Not proactive',
                       emoji: true,
                     },
-                    value: 'yes',
+                    value: 'STRONG_NO',
                   },
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'No',
+                      text: 'Sometimes proactive',
                       emoji: true,
                     },
-                    value: 'no',
+                    value: 'NO',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'Mostly proactive',
+                      emoji: true,
+                    },
+                    value: 'YES',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: "It's very rare they are not proactive",
+                      emoji: true,
+                    },
+                    value: 'STRONG_YES',
                   },
                 ],
                 action_id: 'keeper-test-question-3',
@@ -162,18 +215,34 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'Yes',
+                      text: 'Eeyore',
                       emoji: true,
                     },
-                    value: 'yes',
+                    value: 'STRONG_NO',
                   },
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'No',
+                      text: 'They are a bit doom and gloom sometimes',
                       emoji: true,
                     },
-                    value: 'no',
+                    value: 'NO',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'Yes, they are positive to be around',
+                      emoji: true,
+                    },
+                    value: 'YES',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'I think they might be Ted Lasso',
+                      emoji: true,
+                    },
+                    value: 'STRONG_YES',
                   },
                 ],
                 action_id: 'keeper-test-question-4',
@@ -285,6 +354,99 @@ export const Route = createFileRoute('/runScheduledJobs')({
           ],
         })
 
+        const getManagerFeedbackSlackMessageBody = (
+          managerEmail: string,
+          employeeId: string,
+          employeeName: string,
+          managerId: string,
+          jobId: string,
+          title: string,
+        ) => ({
+          blocks: [
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `Hey! It's ${title} Time! Please submit feedback for ${managerEmail}. Management at PostHog is different from other companies. We expect managers to focus their management time on:\n\n1. Setting the right context for their direct reports to do their jobs\n2. Making sure their direct reports are happy and productive\n3. Acting as the hiring manager for new roles in your team\n4. Creating good plans for new person onboarding and small team offsites`,
+              },
+            },
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: 'Given the above, how would you rate your manager?',
+              },
+              accessory: {
+                type: 'radio_buttons',
+                options: [
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'Strong no',
+                      emoji: true,
+                    },
+                    value: 'STRONG_NO',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'No',
+                      emoji: true,
+                    },
+                    value: 'NO',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'Yes',
+                      emoji: true,
+                    },
+                    value: 'YES',
+                  },
+                  {
+                    text: {
+                      type: 'plain_text',
+                      text: 'Strong yes',
+                      emoji: true,
+                    },
+                    value: 'STRONG_YES',
+                  },
+                ],
+                action_id: 'keeper-test-question-1',
+              },
+            },
+            {
+              type: 'input',
+              element: {
+                type: 'plain_text_input',
+                action_id: 'keeper-test-question-2',
+                multiline: true,
+              },
+              label: {
+                type: 'plain_text',
+                text: 'Why have you given this answer?',
+                emoji: true,
+              },
+            },
+            {
+              type: 'actions',
+              block_id: 'submit_block',
+              elements: [
+                {
+                  type: 'button',
+                  text: {
+                    type: 'plain_text',
+                    text: 'Submit',
+                    emoji: true,
+                  },
+                  action_id: 'submit_manager_feedback',
+                  value: `${managerEmail}|${employeeId}|${employeeName}|${managerId}|${jobId}|${title}`,
+                },
+              ],
+            },
+          ],
+        })
+
         const lock_id = crypto.randomUUID()
 
         const jobs = await prisma.$queryRaw<Array<CyclotronJob>>`
@@ -360,7 +522,11 @@ export const Route = createFileRoute('/runScheduledJobs')({
                       blocks: getSlackMessageBody(
                         employee.email,
                         employee.id,
-                        manager.name,
+                        getFullName(
+                          manager.firstName,
+                          manager.lastName,
+                          manager.name,
+                        ),
                         manager.id,
                         job.id,
                         title,
@@ -388,6 +554,176 @@ export const Route = createFileRoute('/runScheduledJobs')({
                     }),
                     queue_name: 'receive_keeper_test_results',
                     scheduled: new Date(Date.now() + 24 * 60 * 60 * 1000), // send reminders one day after the keeper test is sent
+                  },
+                })
+              } else if (job.queue_name === 'send_manager_feedback') {
+                const { employee, manager, title } = JSON.parse(
+                  job.data as string,
+                ) as KeeperTestJobPayload
+
+                const userRes = await fetch(
+                  `https://slack.com/api/users.lookupByEmail?email=${employee.email}`,
+                  {
+                    method: 'GET',
+                    headers: {
+                      Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+                    },
+                  },
+                )
+
+                const userBody = await userRes.json()
+
+                if (userRes.status !== 200 || !userBody.ok) {
+                  throw Error(
+                    `Error from Slack API: ${userRes.status}: ${JSON.stringify(userBody)}`,
+                  )
+                }
+
+                const slackUserId = userBody.user.id
+
+                const response = await fetch(
+                  'https://slack.com/api/chat.postMessage',
+                  {
+                    method: 'POST',
+                    headers: {
+                      Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      channel: slackUserId,
+                      blocks: getManagerFeedbackSlackMessageBody(
+                        manager.email,
+                        employee.id,
+                        getFullName(
+                          employee.firstName,
+                          employee.lastName,
+                          employee.name,
+                        ),
+                        manager.id,
+                        job.id,
+                        title,
+                      ).blocks,
+                    }),
+                  },
+                )
+                const messageResponse = await response.json()
+
+                if (response.status !== 200 || !messageResponse.ok) {
+                  throw Error(
+                    `Error from Slack API: ${response.status}: ${JSON.stringify(messageResponse)}`,
+                  )
+                }
+
+                jobResults.push({
+                  id: job.id,
+                  success: true,
+                  data: {
+                    data: JSON.stringify({
+                      ...(JSON.parse(
+                        job.data as string,
+                      ) as KeeperTestJobPayload),
+                      thread_id: messageResponse.ts,
+                    }),
+                    queue_name: 'receive_manager_feedback_results',
+                    scheduled: new Date(Date.now() + 24 * 60 * 60 * 1000), // send reminders one day after the keeper test is sent
+                  },
+                })
+              } else if (
+                job.queue_name === 'receive_manager_feedback_results'
+              ) {
+                const { thread_id, manager, employee } = JSON.parse(
+                  job.data as string,
+                ) as KeeperTestJobPayload
+
+                if (!thread_id) {
+                  console.log('Thread ID is required')
+                  jobResults.push({
+                    id: job.id,
+                    success: false,
+                    data: {
+                      failure_count: job.failure_count + 1,
+                    },
+                  })
+                  return
+                }
+
+                const userRes = await fetch(
+                  `https://slack.com/api/users.lookupByEmail?email=${employee.email}`,
+                  {
+                    method: 'GET',
+                    headers: {
+                      Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+                    },
+                  },
+                )
+
+                const userBody = await userRes.json()
+
+                if (userRes.status !== 200 || !userBody.ok) {
+                  throw Error(
+                    `Error from Slack API: ${userRes.status}: ${JSON.stringify(userBody)}`,
+                  )
+                }
+
+                const slackUserId = userBody.user.id
+
+                const response = await fetch(
+                  'https://slack.com/api/chat.postMessage',
+                  {
+                    method: 'POST',
+                    headers: {
+                      Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      channel: slackUserId,
+                      thread_ts: thread_id,
+                      text: `<@${slackUserId}> please make sure to submit this feedback`,
+                    }),
+                  },
+                )
+                const messageResponse = await response.json()
+
+                if (response.status !== 200 || !messageResponse.ok) {
+                  throw Error(
+                    `Error from Slack API: ${response.status}: ${JSON.stringify(messageResponse)}`,
+                  )
+                }
+
+                const daysSinceCreation = Math.floor(
+                  (Date.now() - new Date(job.created).getTime()) /
+                    (1000 * 60 * 60 * 24),
+                )
+                if (daysSinceCreation >= 3) {
+                  const res = await fetch(
+                    'https://slack.com/api/chat.postMessage',
+                    {
+                      method: 'POST',
+                      headers: {
+                        Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        channel:
+                          process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
+                        text: `${getFullName(manager.firstName, manager.lastName, manager.name)} hasn't submitted feedback for ${getFullName(employee.firstName, employee.lastName, employee.name)} within ${daysSinceCreation} days. Please follow up with them.`,
+                      }),
+                    },
+                  )
+                  const body = await res.json()
+
+                  if (res.status !== 200 || !body.ok) {
+                    throw Error(
+                      `Error from Slack API: ${res.status}: ${JSON.stringify(body)}`,
+                    )
+                  }
+                }
+
+                jobResults.push({
+                  id: job.id,
+                  success: true,
+                  data: {
+                    scheduled: new Date(Date.now() + 24 * 60 * 60 * 1000), // send another reminder after 24 hours
                   },
                 })
               } else if (job.queue_name === 'receive_keeper_test_results') {
@@ -466,7 +802,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                       body: JSON.stringify({
                         channel:
                           process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
-                        text: `${manager.name} hasn't submitted feedback for ${employee.name} within ${daysSinceCreation} days. Please follow up with them.`,
+                        text: `${getFullName(manager.firstName, manager.lastName, manager.name)} hasn't submitted feedback for ${getFullName(employee.firstName, employee.lastName, employee.name)} within ${daysSinceCreation} days. Please follow up with them.`,
                       }),
                     },
                   )

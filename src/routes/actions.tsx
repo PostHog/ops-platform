@@ -9,7 +9,7 @@ import { InfoIcon, MoreHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
 import { useLocalStorage } from 'usehooks-ts'
-import { customFilterFns, Filter, months } from './employees'
+import { customFilterFns, months } from './employees'
 import type { Prisma } from '@prisma/client'
 import type {
   ColumnDef,
@@ -33,8 +33,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { formatCurrency } from '@/lib/utils'
-import { createAuthenticatedFn } from '@/lib/auth-middleware'
+import { formatCurrency, getFullName } from '@/lib/utils'
+import { createAdminFn } from '@/lib/auth-middleware'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
@@ -52,6 +52,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { TableFilters } from '@/components/TableFilters'
 
 type Salary = Prisma.SalaryGetPayload<{
   include: {
@@ -68,7 +69,7 @@ type Salary = Prisma.SalaryGetPayload<{
   }
 }>
 
-const getUpdatedSalaries = createAuthenticatedFn({
+const getUpdatedSalaries = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.salary.findMany({
@@ -107,7 +108,7 @@ const getUpdatedSalaries = createAuthenticatedFn({
   })
 })
 
-const updateCommunicated = createAuthenticatedFn({
+const updateCommunicated = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; communicated: boolean }) => d)
@@ -126,8 +127,11 @@ export const Route = createFileRoute('/actions')({
 const defaultTemplate = `Hey {firstName}! I just wanted to let you know that we're giving you a raise of {changePercentage}%, which works out to a {changeAmountLocal} increase for a total salary of {salaryLocal}. Thanks for the hard work you do for PostHog, and let me know if you have any questions!`
 
 function processTemplate(template: string, salary: Salary): string {
-  const name = salary.employee.deelEmployee?.name || ''
-  const firstName = salary.employee.deelEmployee?.name?.split(' ')[0] || ''
+  const name = getFullName(
+    salary.employee.deelEmployee?.firstName,
+    salary.employee.deelEmployee?.lastName,
+  )
+  const firstName = salary.employee.deelEmployee?.firstName || ''
   const changePercentage = (salary.changePercentage * 100).toFixed(2)
   const changeAmount = formatCurrency(salary.changeAmount)
   const changeAmountLocal = new Intl.NumberFormat('en-US', {
@@ -140,7 +144,10 @@ function processTemplate(template: string, salary: Salary): string {
     currency: salary.localCurrency,
   }).format(salary.actualSalaryLocal)
   const localCurrency = salary.localCurrency
-  const reviewer = salary.employee.deelEmployee?.topLevelManager?.name || ''
+  const reviewer = getFullName(
+    salary.employee.deelEmployee?.topLevelManager?.firstName,
+    salary.employee.deelEmployee?.topLevelManager?.lastName,
+  )
   const step = salary.step
   const level = salary.level
   const benchmark = salary.benchmark
@@ -201,6 +208,7 @@ function App() {
     () => [
       {
         id: 'select-col',
+        enableColumnFilter: false,
         header: ({ table }) => (
           <Checkbox
             checked={
@@ -222,22 +230,28 @@ function App() {
       {
         accessorKey: 'name',
         header: 'Name',
-        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
-          (row.original.employee.deelEmployee?.name &&
+        filterFn: (row: Row<Salary>, _: string, filterValue: string) => {
+          const fullName = getFullName(
+            row.original.employee.deelEmployee?.firstName,
+            row.original.employee.deelEmployee?.lastName,
+          )
+          return (
+            (fullName &&
+              customFilterFns.containsText(fullName, _, filterValue)) ||
             customFilterFns.containsText(
-              row.original.employee.deelEmployee?.name,
+              row.original.employee.email,
               _,
               filterValue,
-            )) ||
-          customFilterFns.containsText(
-            row.original.employee.email,
-            _,
-            filterValue,
-          ),
+            )
+          )
+        },
         cell: ({ row }) => (
           <div>
-            {row.original.employee.deelEmployee?.name ||
-              row.original.employee.email}
+            {getFullName(
+              row.original.employee.deelEmployee?.firstName,
+              row.original.employee.deelEmployee?.lastName,
+              row.original.employee.email,
+            )}
           </div>
         ),
       },
@@ -295,12 +309,20 @@ function App() {
         header: 'Reviewer',
         filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
           customFilterFns.containsText(
-            row.original.employee.deelEmployee?.topLevelManager?.name ?? '',
+            getFullName(
+              row.original.employee.deelEmployee?.topLevelManager?.firstName,
+              row.original.employee.deelEmployee?.topLevelManager?.lastName,
+            ),
             _,
             filterValue,
           ),
         cell: ({ row }) => (
-          <div>{row.original.employee.deelEmployee?.topLevelManager?.name}</div>
+          <div>
+            {getFullName(
+              row.original.employee.deelEmployee?.topLevelManager?.firstName,
+              row.original.employee.deelEmployee?.topLevelManager?.lastName,
+            )}
+          </div>
         ),
       },
       {
@@ -309,16 +331,13 @@ function App() {
         meta: {
           filterVariant: 'select',
           filterOptions: [
-            { label: 'Yes', value: 'true' },
-            { label: 'No', value: 'false' },
+            { label: 'Yes', value: true },
+            { label: 'No', value: false },
           ],
         },
-        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
-          customFilterFns.equals(
-            row.original.communicated.toString(),
-            _,
-            filterValue,
-          ),
+        filterFn: (row: Row<Salary>, _: string, filterValue: boolean[]) => {
+          return filterValue.includes(row.original.communicated)
+        },
         cell: ({ row }) => (
           <div>
             <span>{row.original.communicated ? 'Yes' : 'No'}</span>
@@ -364,16 +383,13 @@ function App() {
         meta: {
           filterVariant: 'select',
           filterOptions: [
-            { label: 'Yes', value: 'true' },
-            { label: 'No', value: 'false' },
+            { label: 'Yes', value: true },
+            { label: 'No', value: false },
           ],
         },
-        filterFn: (row: Row<Salary>, _: string, filterValue: string) =>
-          customFilterFns.equals(
-            row.original.synced.toString(),
-            _,
-            filterValue,
-          ),
+        filterFn: (row: Row<Salary>, _: string, filterValue: boolean[]) => {
+          return filterValue.includes(row.original.synced)
+        },
         cell: ({ row }) => (
           <div>
             <span>{row.original.synced ? 'Yes' : 'No'}</span>
@@ -382,6 +398,7 @@ function App() {
       },
       {
         id: 'actions',
+        enableColumnFilter: false,
         enableHiding: false,
         cell: ({ row }) => {
           return (
@@ -424,7 +441,11 @@ function App() {
       table.getFilteredRowModel().rows.map((row) => {
         const salary = row.original
         return {
-          name: salary.employee.deelEmployee?.name,
+          name: getFullName(
+            salary.employee.deelEmployee?.firstName,
+            salary.employee.deelEmployee?.lastName,
+            salary.employee.email,
+          ),
           notes: salary.notes,
           salary: formatCurrency(salary.actualSalary),
           currency: salary.localCurrency,
@@ -433,7 +454,10 @@ function App() {
             currency: salary.localCurrency,
           }).format(salary.actualSalaryLocal),
           changePercentage: salary.changePercentage,
-          reviewer: salary.employee.deelEmployee?.topLevelManager?.name,
+          reviewer: getFullName(
+            salary.employee.deelEmployee?.topLevelManager?.firstName,
+            salary.employee.deelEmployee?.topLevelManager?.lastName,
+          ),
           communicated: salary.communicated ? 'Yes' : 'No',
         }
       }),
@@ -460,10 +484,12 @@ function App() {
   })
 
   return (
-    <div className="flex h-full w-full justify-center px-4">
+    <div className="flex w-full justify-center px-4 pb-4">
       <div className="max-w-full flex-grow 2xl:max-w-[80%]">
         <div className="flex justify-between py-4">
-          <div></div>
+          <div>
+            <TableFilters table={table} />
+          </div>
           <div className="flex items-center space-x-2">
             {Object.keys(rowSelection).length > 0 ? (
               <Button
@@ -507,11 +533,6 @@ function App() {
                               header.column.columnDef.header,
                               header.getContext(),
                             )}
-                        {header.column.getCanFilter() ? (
-                          <div>
-                            <Filter column={header.column} />
-                          </div>
-                        ) : null}
                       </TableHead>
                     )
                   })}

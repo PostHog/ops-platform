@@ -14,23 +14,29 @@ datasource db {
 }
 
 model Employee {
-  id                           String                 @id @default(cuid())
+  id                           String                            @id @default(cuid())
   priority                     Priority
   reviewed                     Boolean
-  email                        String                 @unique
-  cartaStakeholderId           String?                @unique
+  email                        String                            @unique
+  cartaStakeholderId           String?                           @unique
   cartaOptionGrants            CartaOptionGrant[]
   salaries                     Salary[]
   deelEmployee                 DeelEmployee?
-  keeperTestFeedback           KeeperTestFeedback[]   @relation("employee")
+  keeperTestFeedback           KeeperTestFeedback[]              @relation("employee")
   checkIn30DaysScheduled       Boolean
   checkIn60DaysScheduled       Boolean
   checkIn80DaysScheduled       Boolean
-  proposedHires                ProposedHire[]         @relation("manager")
+  proposedHires                ProposedHire[]                    @relation("manager")
   proposedHiresAsTalentPartner ProposedHire[]
-  keeperTestFeedbackSubmitted  KeeperTestFeedback[]   @relation("manager")
+  keeperTestFeedbackSubmitted  KeeperTestFeedback[]              @relation("manager")
   salaryDeviationStatus        SalaryDeviationStatus?
-  salaryDeviationCheckedAt     DateTime               @default(now())
+  salaryDeviationCheckedAt     DateTime                          @default(now())
+  performancePrograms          PerformanceProgram[]
+  commissionBonuses            CommissionBonus[]
+  ashbyInterviewScoresReceived AshbyInterviewScore[]             @relation("InterviewedEmployee")
+  ashbyInterviewScoresGiven    AshbyInterviewScore[]             @relation("Interviewer")
+  ashbyInterviewScoresImported Boolean                           @default(false)
+  checklistItemsAssigned       PerformanceProgramChecklistItem[] @relation("ChecklistItemAssignedTo")
 }
 
 enum SalaryDeviationStatus {
@@ -40,7 +46,8 @@ enum SalaryDeviationStatus {
 
 model DeelEmployee {
   id                    String         @id
-  name                  String
+  firstName             String         @default("")
+  lastName              String         @default("")
   title                 String
   team                  String
   workEmail             String?        @unique
@@ -96,15 +103,17 @@ model Salary {
   employee                Employee @relation(fields: [employeeId], references: [id])
 }
 
-enum DriverOrPassenger {
-  DRIVER
-  PASSENGER
-}
-
 enum KeeperTestRecommendation {
   STRONG_HIRE_ON_TRACK_TO_PASS_PROBATION
   AVERAGE_HIRE_NEED_TO_SEE_IMPROVEMENTS
   NOT_A_FIT_NEEDS_ESCALATING
+}
+
+enum KeeperTestRating {
+  STRONG_YES
+  YES
+  NO
+  STRONG_NO
 }
 
 model KeeperTestFeedback {
@@ -114,11 +123,11 @@ model KeeperTestFeedback {
   employee              Employee                  @relation("employee", fields: [employeeId], references: [id])
   managerId             String
   manager               Employee                  @relation("manager", fields: [managerId], references: [id])
-  wouldYouTryToKeepThem Boolean
+  wouldYouTryToKeepThem KeeperTestRating
   whatMakesThemValuable String
-  driverOrPassenger     DriverOrPassenger
-  proactiveToday        Boolean
-  optimisticByDefault   Boolean
+  driverOrPassenger     KeeperTestRating
+  proactiveToday        KeeperTestRating
+  optimisticByDefault   KeeperTestRating
   areasToWatch          String
   recommendation        KeeperTestRecommendation?
   sharedWithTeamMember  Boolean
@@ -127,7 +136,9 @@ model KeeperTestFeedback {
 
 enum CyclotronQueueName {
   send_keeper_test
+  send_manager_feedback
   receive_keeper_test_results
+  receive_manager_feedback_results
   dead_letter
 }
 
@@ -165,6 +176,12 @@ model User {
   banReason    String?
   banExpires   DateTime?
   integrations Integration[]
+
+  performanceProgramsStarted PerformanceProgram[]              @relation("ProgramStartedBy")
+  checklistItemsCompleted    PerformanceProgramChecklistItem[] @relation("ChecklistItemCompletedBy")
+  filesUploaded              File[]                            @relation("FileUploadedBy")
+  feedbackGiven              PerformanceProgramFeedback[]      @relation("FeedbackGivenBy")
+  auditLogsCreated           AuditLog[]                        @relation("AuditLogActor")
 
   @@unique([email])
   @@map("user")
@@ -233,6 +250,141 @@ model ProcessDocument {
   id        String   @id @default("process")
   content   String   @default("")
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum PerformanceProgramStatus {
+  ACTIVE
+  RESOLVED
+}
+
+enum ChecklistItemType {
+  SLACK_FEEDBACK_MEETING
+  EMAIL_FEEDBACK_MEETING
+}
+
+model PerformanceProgram {
+  id              String                            @id @default(cuid())
+  employeeId      String
+  employee        Employee                          @relation(fields: [employeeId], references: [id])
+  status          PerformanceProgramStatus          @default(ACTIVE)
+  startedAt       DateTime                          @default(now())
+  resolvedAt      DateTime?
+  startedByUserId String
+  startedBy       User                              @relation("ProgramStartedBy", fields: [startedByUserId], references: [id])
+  checklistItems  PerformanceProgramChecklistItem[]
+  feedback        PerformanceProgramFeedback[]
+  createdAt       DateTime                          @default(now())
+  updatedAt       DateTime                          @default(now()) @updatedAt
+}
+
+model PerformanceProgramChecklistItem {
+  id                     String             @id @default(cuid())
+  programId              String
+  program                PerformanceProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  type                   ChecklistItemType
+  completed              Boolean            @default(false)
+  completedAt            DateTime?
+  completedByUserId      String?
+  completedBy            User?              @relation("ChecklistItemCompletedBy", fields: [completedByUserId], references: [id])
+  assignedToEmployeeId   String?
+  assignedTo             Employee?          @relation("ChecklistItemAssignedTo", fields: [assignedToEmployeeId], references: [id])
+  dueDate                DateTime?
+  files                  File[]
+  notes                  String?
+  lastNotificationSentAt DateTime?
+  slackThreadId          String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @default(now()) @updatedAt
+}
+
+model File {
+  id               String                           @id @default(cuid())
+  checklistItemId  String?
+  checklistItem    PerformanceProgramChecklistItem? @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+  feedbackId       String?
+  feedback         PerformanceProgramFeedback?      @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  fileName         String
+  fileUrl          String
+  fileSize         Int
+  mimeType         String
+  uploadedAt       DateTime                         @default(now())
+  uploadedByUserId String
+  uploadedBy       User                             @relation("FileUploadedBy", fields: [uploadedByUserId], references: [id])
+}
+
+model PerformanceProgramFeedback {
+  id            String             @id @default(cuid())
+  programId     String
+  program       PerformanceProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  feedback      String
+  givenByUserId String
+  givenBy       User               @relation("FeedbackGivenBy", fields: [givenByUserId], references: [id])
+  files         File[]
+  createdAt     DateTime           @default(now())
+}
+
+model CommissionBonus {
+  id                    String   @id @default(cuid())
+  employeeId            String
+  employee              Employee @relation(fields: [employeeId], references: [id])
+  quarter               String // Format: "2025-Q4"
+  quota                 Float // Sales quota for the quarter
+  attainment            Float // Actual attainment amount
+  bonusAmount           Float // bonusAmount from employee's latest salary record
+  calculatedAmount      Float // (attainment / quota) × bonusAmount
+  amountHeld            Float    @default(0) // Amount held back (e.g. unpaid customer invoices)
+  exchangeRate          Float // Exchange rate from employee's latest salary
+  localCurrency         String // Local currency from employee's latest salary
+  calculatedAmountLocal Float // calculatedAmount × exchangeRate
+  commissionType        String   @default("Account Executive (OTE)") // Commission type based on salary benchmark (e.g. Account Executive (OTE), Customer Success Manager (OTE), etc.)
+  notes                 String?
+  sheet                 String?
+  communicated          Boolean  @default(false)
+  synced                Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([employeeId, quarter]) // Prevent duplicate bonuses per employee per quarter
+}
+
+model AshbyInterviewScore {
+  id            String   @id @default(cuid())
+  employeeId    String // The employee being interviewed
+  employee      Employee @relation("InterviewedEmployee", fields: [employeeId], references: [id])
+  interviewerId String // The employee who conducted the interview
+  interviewer   Employee @relation("Interviewer", fields: [interviewerId], references: [id])
+  rating        Int // Rating between 1 and 4
+  feedback      String // Interview feedback/notes
+  interviewName String? // Name of the interview (e.g., "Technical Interview", "Culture Fit")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([interviewerId])
+}
+
+enum AuditLogEntityType {
+  USER_ROLE
+  MANAGER
+  TEAM
+}
+
+model AuditLog {
+  id          String             @id @default(cuid())
+  timestamp   DateTime           @default(now())
+  actorUserId String // User who made the change
+  actor       User               @relation("AuditLogActor", fields: [actorUserId], references: [id])
+  entityType  AuditLogEntityType // What type of entity was changed
+  entityId    String // ID of the entity being changed (User.id or DeelEmployee.id)
+  fieldName   String // Field that changed (role, managerId, team)
+  oldValue    String? // Previous value (nullable for new assignments)
+  newValue    String? // New value (nullable for deletions)
+  metadata    Json? // Additional context (employee email, user email, etc.)
+  createdAt   DateTime           @default(now())
+
+  @@index([entityType, entityId]) // For querying changes to a specific entity
+  @@index([actorUserId]) // For querying changes by actor
+  @@index([timestamp]) // For time-based queries
 }
 
 model Integration {
