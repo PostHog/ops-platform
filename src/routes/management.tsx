@@ -26,7 +26,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import {
   bonusPercentage,
   currencyData,
@@ -38,13 +37,13 @@ import { fetchDeelEmployees } from './syncDeelEmployees'
 import type { KeeperTestJobPayload } from './runScheduledJobs'
 import { createAdminFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
-import { CartaConfig } from './syncCartaData'
 import { CommissionImportPanel } from '@/components/CommissionImportPanel'
 import { getQuarterStartDate } from '@/lib/commission-calculator'
 import { z } from 'zod'
 import { impersonateUser } from '@/lib/auth-client'
 import { createAuditLogEntry } from '@/lib/audit-log'
 import { AuditLogHistoryDialog } from '@/components/AuditLogHistoryDialog'
+import { CartaImportPanel } from '@/components/CartaImportPanel'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
@@ -493,10 +492,10 @@ function RouteComponent() {
           <KeeperTestManagement />
         </div>
         <div className="flex justify-between py-4">
-          <div className="text-lg font-bold">Integrations</div>
+          <div className="text-lg font-bold">Carta Option Grants</div>
         </div>
         <div className="flex flex-col gap-2 overflow-hidden">
-          <CartaIntegration />
+          <CartaImportPanel />
         </div>
         <div className="flex justify-between py-4">
           <div className="text-lg font-bold">Commission Bonuses</div>
@@ -508,127 +507,6 @@ function RouteComponent() {
     </div>
   )
 }
-
-const getCartaIntegration = createAdminFn({
-  method: 'GET',
-}).handler(async ({ context }) => {
-  const clientId = process.env.CARTA_INTEGRATION_CLIENT_ID
-  const clientSecret = process.env.CARTA_INTEGRATION_CLIENT_SECRET
-
-  if (!clientId || !clientSecret) {
-    throw new Error(
-      'Carta credentials not configured. Please set CARTA_INTEGRATION_CLIENT_ID and CARTA_INTEGRATION_CLIENT_SECRET environment variables.',
-    )
-  }
-
-  return await prisma.integration.findFirst({
-    where: {
-      kind: 'carta',
-      created_by_id: context.user.id,
-    },
-  })
-})
-
-const authorizeCartaAccount = createAdminFn({
-  method: 'POST',
-}).handler(async ({ context }) => {
-  const clientId = process.env.CARTA_INTEGRATION_CLIENT_ID
-  const clientSecret = process.env.CARTA_INTEGRATION_CLIENT_SECRET
-  const scope =
-    'read_issuer_info read_issuer_stakeholders read_issuer_securities read_issuer_securitiestemplates readwrite_issuer_draftsecurities read_issuer_capitalizationtablesummary read_issuer_valuations'
-
-  if (!clientId || !clientSecret) {
-    throw new Error(
-      'Carta credentials not configured. Please set CARTA_INTEGRATION_CLIENT_ID and CARTA_INTEGRATION_CLIENT_SECRET environment variables.',
-    )
-  }
-
-  const base64Credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
-    'base64',
-  )
-
-  const response = await fetch(
-    `https://login.playground.carta.team/o/access_token/`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${base64Credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        scope: scope,
-        grant_type: 'CLIENT_CREDENTIALS',
-      }),
-    },
-  )
-
-  if (response.status !== 200) {
-    const errorText = await response.text()
-    throw new Error(`Failed to authorize: ${errorText}`)
-  }
-
-  const responseData = await response.json()
-
-  const tokenData = {
-    access_token: responseData.access_token,
-    expires_in: responseData.expires_in,
-    token_type: responseData.token_type,
-    scope: responseData.scope,
-  }
-
-  const existing = await prisma.integration.findFirst({
-    where: {
-      kind: 'carta',
-    },
-  })
-
-  if (existing) {
-    await prisma.integration.update({
-      where: { id: existing.id },
-      data: {
-        config: tokenData,
-        created_at: new Date(),
-        created_by_id: context.user.id,
-      },
-    })
-  } else {
-    await prisma.integration.create({
-      data: {
-        kind: 'carta',
-        config: tokenData,
-        created_by_id: context.user.id,
-        integration_id: 'carta',
-      },
-    })
-  }
-
-  return {
-    success: true,
-  }
-})
-
-const revokeCartaToken = createAdminFn({
-  method: 'POST',
-}).handler(async ({ context }) => {
-  const integration = await prisma.integration.findFirst({
-    where: {
-      kind: 'carta',
-      created_by_id: context.user.id,
-    },
-  })
-
-  if (!integration) {
-    throw new Error('No integration found')
-  }
-
-  await prisma.integration.delete({
-    where: { id: integration.id },
-  })
-
-  return {
-    success: true,
-  }
-})
 
 export const scheduleKeeperTests = createAdminFn({
   method: 'POST',
@@ -740,114 +618,115 @@ function KeeperTestManagement() {
   )
 }
 
-function CartaIntegration() {
-  const {
-    data: integration,
-    error,
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ['cartaIntegration'],
-    queryFn: () => getCartaIntegration(),
-  })
-
-  const config = integration?.config as CartaConfig | undefined
-
-  const isTokenValid =
-    config?.access_token &&
-    config?.expires_in &&
-    integration?.created_at &&
-    integration.created_at.getTime() + (config.expires_in * 1000) / 2 >
-      Date.now()
-
-  const handleAuthorize = async () => {
-    try {
-      await authorizeCartaAccount()
-      refetch()
-      createToast(`Successfully authorized!`, {
-        timeout: 5000,
-      })
-    } catch (error) {
-      createToast(error instanceof Error ? error.message : 'Unknown error', {
-        timeout: 5000,
-      })
-    }
-  }
-
-  const handleRevoke = async () => {
-    try {
-      await revokeCartaToken()
-      refetch()
-      createToast('Token revoked successfully.', {
-        timeout: 3000,
-      })
-    } catch (error) {
-      createToast(
-        `Failed to revoke token: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        {
-          timeout: 5000,
+// Get employees for Carta import matching
+export const getEmployeesForCartaImport = createAdminFn({
+  method: 'GET',
+}).handler(async () => {
+  return await prisma.employee.findMany({
+    select: {
+      id: true,
+      email: true,
+      cartaStakeholderId: true,
+      deelEmployee: {
+        select: {
+          personalEmail: true,
         },
-      )
-    }
-  }
+      },
+    },
+  })
+})
 
-  return (
-    <Card>
-      <CardContent>
-        {!isLoading && error ? (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-            {error.message}
-          </div>
-        ) : (
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <div className="text-sm font-semibold">Carta Integration</div>
-              {config?.expires_in && integration?.created_at && (
-                <div className="text-xs text-gray-500">
-                  Expires{' '}
-                  {new Date(
-                    integration.created_at.getTime() + config.expires_in * 1000,
-                  ).toLocaleString()}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {isTokenValid ? (
-                <div className="flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-                  <div className="h-1.5 w-1.5 rounded-full bg-green-600" />
-                  Connected
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
-                  <div className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-                  Disconnected
-                </div>
-              )}
-              <Button
-                onClick={handleAuthorize}
-                variant="default"
-                size="sm"
-                className="text-xs"
-              >
-                {isTokenValid ? 'Refresh' : 'Authorize'}
-              </Button>
-              {isTokenValid && (
-                <Button
-                  onClick={handleRevoke}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                >
-                  Revoke
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
+const importCartaOptionGrantsSchema = z.object({
+  grants: z.array(
+    z.object({
+      employeeId: z.string(),
+      stakeholderId: z.string(),
+      grantId: z.string(),
+      quantity: z.number().int().nonnegative(),
+      vestedQuantity: z.number().int().nonnegative(),
+      exercisePrice: z.number().nonnegative(),
+      vestingSchedule: z.string().optional(),
+      vestingStartDate: z.string().optional(),
+    }),
+  ),
+})
+
+export const importCartaOptionGrants = createAdminFn({
+  method: 'POST',
+})
+  .inputValidator(importCartaOptionGrantsSchema)
+  .handler(async ({ data }) => {
+    const errors: string[] = []
+    const successIds: string[] = []
+
+    // Delete all existing Carta option grants
+    await prisma.cartaOptionGrant.deleteMany({})
+
+    // Update employees with cartaStakeholderId from the import
+    for (const grant of data.grants) {
+      try {
+        // Update employee's cartaStakeholderId if not set
+        await prisma.employee.update({
+          where: { id: grant.employeeId },
+          data: { cartaStakeholderId: grant.stakeholderId },
+        })
+      } catch (error) {
+        // Ignore errors updating stakeholder ID - might fail on uniqueness constraint
+      }
+    }
+
+    // Create new grants
+    for (const grant of data.grants) {
+      try {
+        const employee = await prisma.employee.findUnique({
+          where: { id: grant.employeeId },
+          select: { cartaStakeholderId: true },
+        })
+
+        if (!employee?.cartaStakeholderId) {
+          throw new Error(
+            `Employee ${grant.employeeId} has no cartaStakeholderId`,
+          )
+        }
+
+        // Parse vesting start date if provided
+        let vestingStartDate: Date | null = null
+        if (grant.vestingStartDate) {
+          const parsed = new Date(grant.vestingStartDate)
+          if (!isNaN(parsed.getTime())) {
+            vestingStartDate = parsed
+          }
+        }
+
+        const created = await prisma.cartaOptionGrant.create({
+          data: {
+            stakeholderId: employee.cartaStakeholderId,
+            grantId: grant.grantId,
+            quantity: grant.quantity,
+            vestedQuantity: grant.vestedQuantity,
+            expiredQuantity: 0,
+            exercisePrice: grant.exercisePrice,
+            vestingSchedule: grant.vestingSchedule || null,
+            vestingStartDate: vestingStartDate,
+          },
+        })
+
+        successIds.push(created.id)
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error'
+        errors.push(
+          `Error importing grant for employee ${grant.employeeId}: ${errorMessage}`,
+        )
+      }
+    }
+
+    return {
+      successCount: successIds.length,
+      errorCount: errors.length,
+      errors,
+    }
+  })
 
 const importCommissionBonusesSchema = z.object({
   bonuses: z.array(
