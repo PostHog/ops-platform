@@ -110,7 +110,7 @@ ${getEmailSignature()}
 
   // Amount held line for breakdown
   const amountHeldHtml = hasAmountHeld
-    ? `  <li>Amount held: ${formatCurrency(amountHeld)}\n`
+    ? `  <li>Amount held: ${formatCurrency(amountHeld * (exchangeRate || 1), localCurrency)}</li>`
     : ''
 
   return `
@@ -120,9 +120,9 @@ ${getEmailSignature()}
 <ul>
   <li>Quota: ${formatQuotaOrAttainment(quota, commissionType)}</li>
   <li>Attainment: ${formatQuotaOrAttainment(attainment, commissionType)} (${attainmentPercentage.toFixed(1)}%)</li>
-  <li>OTE amount: ${formatCurrency(bonusAmount)}</li>
-  <li>OTE payout: ${formatCurrency(calculatedAmount)}</li>
-${amountHeldHtml}  <li>Local amount: ${formatCurrency(netPayoutLocal, localCurrency)}</li>
+  <li>OTE amount: ${localCurrency && exchangeRate ? formatCurrency(bonusAmount * exchangeRate, localCurrency) : formatCurrency(bonusAmount)}</li>
+  ${amountHeldHtml}
+  <li>OTE payout: ${formatCurrency(netPayoutLocal, localCurrency)}</li>
 </ul>
 ${notesHtml}${trailing12MonthsHtml}
 <p>Please let us know any errors within 48 hours, so we can make these ahead of payroll changes. We will always default to getting you paid out on time and fixing any issues after that.</p>
