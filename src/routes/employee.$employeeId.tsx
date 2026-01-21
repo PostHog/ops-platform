@@ -95,6 +95,7 @@ import {
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import StockOptionsCalculator from '@/components/StockOptionsCalculator'
+import { OptionGrantTimelineCard } from '@/components/OptionGrantTimelineCard'
 
 dayjs.extend(relativeTime)
 
@@ -150,7 +151,8 @@ const getEmployeeById = createInternalFn({
               },
             }
           : {}),
-        cartaOptionGrants: true,
+        // Option grants: only visible to admin or the employee themselves (not managers)
+        ...(isAdmin || !isManager ? { cartaOptionGrants: true } : {}),
         // Performance programs: admin and managers (not visible to employees viewing their own profile)
         ...(isAdmin || isManager
           ? {
@@ -1602,12 +1604,21 @@ function EmployeeOverview() {
       data: score,
     }))
 
+    const optionGrantItems = (employee.cartaOptionGrants || [])
+      .filter((grant) => grant.vestingStartDate)
+      .map((grant) => ({
+        type: 'option-grant' as const,
+        timestamp: grant.vestingStartDate!,
+        data: grant,
+      }))
+
     const allItems = [
       ...salaryItems,
       ...feedbackItems,
       ...performanceProgramItems,
       ...commissionBonusItems,
       ...interviewScoreItems,
+      ...optionGrantItems,
     ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 
     // Group items by month/year
@@ -1643,6 +1654,7 @@ function EmployeeOverview() {
     'ashbyInterviewScoresReceived' in employee
       ? employee.ashbyInterviewScoresReceived
       : [],
+    employee.cartaOptionGrants,
   ])
 
   const handleMoveToNextEmployee = () => {
@@ -2181,6 +2193,14 @@ function EmployeeOverview() {
                             <AshbyInterviewScoreTimelineCard
                               key={`ashby-interview-score-${item.data.id}`}
                               score={item.data}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        } else if (item.type === 'option-grant') {
+                          return (
+                            <OptionGrantTimelineCard
+                              key={`option-grant-${item.data.id}`}
+                              grant={item.data}
                               lastTableItem={lastTableItem}
                             />
                           )
