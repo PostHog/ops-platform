@@ -1,4 +1,4 @@
-import { createUserFn } from '@/lib/auth-middleware'
+import { createInternalFn } from '@/lib/auth-middleware'
 import { formatCurrency } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,7 +16,7 @@ interface StockOptionsCalculatorProps {
   optionGrants: CartaOptionGrant[]
 }
 
-const getValuationAndShares = createUserFn({
+const getValuationAndShares = createInternalFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   if (!context.user.email.endsWith('@posthog.com')) {
