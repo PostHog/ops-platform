@@ -187,7 +187,7 @@ export default function StockOptionsCalculator({
               {formatCurrency(totalCostToExercise)}
             </span>
           </div>
-          <div className="flex justify-between border-t bg-blue-50 p-2 font-semibold">
+          <div className="flex justify-between border-t py-2 font-semibold">
             <span>
               Net value after exercise ({showVested ? 'vested' : 'total'}):
             </span>
