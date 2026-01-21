@@ -83,25 +83,23 @@ export function CommissionBonusTimelineCard({
                       <TooltipTrigger asChild>
                         <span className="cursor-help">
                           {formatCurrency(
-                            bonus.calculatedAmount - (bonus.amountHeld || 0),
+                            (bonus.calculatedAmountLocal || 0) -
+                              (bonus.amountHeld || 0) * bonus.exchangeRate,
+                            bonus.localCurrency,
                           )}
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>
-                          Calculated: {formatCurrency(bonus.calculatedAmount)}
+                          USD:{' '}
+                          {formatCurrency(
+                            bonus.calculatedAmount - (bonus.amountHeld || 0),
+                          )}
                           {bonus.amountHeld > 0 && (
                             <>
                               <br />
                               Held: {formatCurrency(bonus.amountHeld)}
                             </>
-                          )}
-                          <br />
-                          Local:{' '}
-                          {formatCurrency(
-                            (bonus.calculatedAmountLocal || 0) -
-                              (bonus.amountHeld || 0) * bonus.exchangeRate,
-                            bonus.localCurrency,
                           )}
                         </p>
                       </TooltipContent>
