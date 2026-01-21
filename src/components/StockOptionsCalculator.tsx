@@ -28,10 +28,19 @@ const getValuationAndShares = createInternalFn({
   const DILUTION_PER_ROUND =
     process.env.DILUTION_PER_ROUND?.split(',').map(Number)
 
+  // Parse valuation scenarios from env: "1:3000000000,2:5000000000,3:8000000000"
+  const VALUATION_SCENARIOS = process.env.VALUATION_SCENARIOS?.split(',').map(
+    (scenario) => {
+      const [rounds, valuation] = scenario.split(':')
+      return { rounds: Number(rounds), valuation: Number(valuation) }
+    },
+  )
+
   return {
     FULLY_DILUTED_SHARES,
     CURRENT_VALUATION,
     DILUTION_PER_ROUND,
+    VALUATION_SCENARIOS,
   }
 })
 
@@ -234,13 +243,7 @@ export default function StockOptionsCalculator({
                 <tbody>
                   {[
                     { rounds: 0, valuation: data.CURRENT_VALUATION },
-                    { rounds: 1, valuation: 3_000_000_000 },
-                    { rounds: 2, valuation: 5_000_000_000 },
-                    { rounds: 3, valuation: 8_000_000_000 },
-                    { rounds: 4, valuation: 10_000_000_000 },
-                    { rounds: 5, valuation: 15_000_000_000 },
-                    { rounds: 6, valuation: 30_000_000_000 },
-                    { rounds: 7, valuation: 60_000_000_000 },
+                    ...(data.VALUATION_SCENARIOS || []),
                   ].map(({ rounds, valuation }) => {
                     const dilutionFactor = Math.pow(
                       1 - averageDilutionPerRound / 100,
