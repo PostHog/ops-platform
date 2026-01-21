@@ -171,11 +171,10 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
-  role         String?
-  banned       Boolean?      @default(false)
-  banReason    String?
-  banExpires   DateTime?
-  integrations Integration[]
+  role       String?
+  banned     Boolean?  @default(false)
+  banReason  String?
+  banExpires DateTime?
 
   performanceProgramsStarted PerformanceProgram[]              @relation("ProgramStartedBy")
   checklistItemsCompleted    PerformanceProgramChecklistItem[] @relation("ChecklistItemCompletedBy")
@@ -385,16 +384,6 @@ model AuditLog {
   @@index([entityType, entityId]) // For querying changes to a specific entity
   @@index([actorUserId]) // For querying changes by actor
   @@index([timestamp]) // For time-based queries
-}
-
-model Integration {
-  id             String   @id @default(cuid())
-  kind           String
-  config         Json
-  created_at     DateTime @default(now())
-  created_by_id  String
-  created_by     User     @relation(fields: [created_by_id], references: [id])
-  integration_id String
 }
 
 model CartaOptionGrant {
