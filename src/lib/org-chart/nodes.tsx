@@ -8,6 +8,7 @@ import {
   CrownIcon,
   AlertTriangle,
 } from 'lucide-react'
+import { useSensitiveDataHidden } from '@/components/SensitiveData'
 
 const useMetaKeyDown = () => {
   const [isMetaDown, setIsMetaDown] = useState(false)
@@ -60,6 +61,7 @@ const TeamNode = memo(function TeamNode({
   data: OrgChartNode['data']
 }) {
   const isMetaDown = useMetaKeyDown()
+  const isSensitiveHidden = useSensitiveDataHidden()
 
   return (
     <div className="transition-all hover:translate-y-[-2px]">
@@ -74,7 +76,7 @@ const TeamNode = memo(function TeamNode({
           (childrenCount.active > 0 ||
             childrenCount.pending > 0 ||
             childrenCount.planned > 0 ||
-            childrenCount.performanceIssues > 0) ? (
+            (childrenCount.performanceIssues > 0 && !isSensitiveHidden)) ? (
             <div className="flex items-center gap-2">
               <div className="text-xs font-medium text-blue-600">
                 {childrenCount.active > 0 ? (
@@ -98,7 +100,7 @@ const TeamNode = memo(function TeamNode({
                       <CalendarClockIcon className="h-3 w-3" />
                     </div>
                   ) : null}
-                  {childrenCount.performanceIssues > 0 ? (
+                  {childrenCount.performanceIssues > 0 && !isSensitiveHidden ? (
                     <div className="flex flex-row items-center gap-1 text-orange-600">
                       <span>{childrenCount.performanceIssues}</span>
                       <AlertTriangle className="h-3 w-3" />
@@ -145,6 +147,7 @@ const EmployeeNode = memo(function EmployeeNode({
   data: OrgChartNode['data']
 }) {
   const isMetaDown = useMetaKeyDown()
+  const isSensitiveHidden = useSensitiveDataHidden()
   const isFutureHire = startDate && new Date(startDate) > new Date()
 
   const handleNodeClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -181,7 +184,7 @@ const EmployeeNode = memo(function EmployeeNode({
             (childrenCount.active > 0 ||
               childrenCount.pending > 0 ||
               childrenCount.planned > 0 ||
-              childrenCount.performanceIssues > 0) ? (
+              (childrenCount.performanceIssues > 0 && !isSensitiveHidden)) ? (
               <div className="mt-1 flex items-center gap-2">
                 <div className="flex flex-col text-xs font-medium text-blue-600">
                   {childrenCount.active > 0 ? (
@@ -205,7 +208,8 @@ const EmployeeNode = memo(function EmployeeNode({
                         <CalendarClockIcon className="h-3 w-3" />
                       </div>
                     ) : null}
-                    {childrenCount.performanceIssues > 0 ? (
+                    {childrenCount.performanceIssues > 0 &&
+                    !isSensitiveHidden ? (
                       <div className="flex flex-row items-center gap-1 text-orange-600">
                         <span>{childrenCount.performanceIssues}</span>
                         <AlertTriangle className="h-3 w-3" />
@@ -238,7 +242,7 @@ const EmployeeNode = memo(function EmployeeNode({
                 </span>
               </div>
             )}
-            {hasActivePerformanceProgram && (
+            {hasActivePerformanceProgram && !isSensitiveHidden && (
               <div className="mt-1 flex items-center gap-2">
                 <AlertTriangle className="h-3 w-3 text-orange-600" />
                 <span className="text-xs font-medium text-orange-600">
