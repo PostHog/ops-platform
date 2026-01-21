@@ -60,7 +60,13 @@ export function CommissionBonusTimelineCard({
                         bonus.commissionType,
                       )}
                       <br />
-                      Bonus Amount: {formatCurrency(bonus.bonusAmount)}
+                      OTE Amount (local):{' '}
+                      {formatCurrency(
+                        bonus.bonusAmount * bonus.exchangeRate,
+                        bonus.localCurrency,
+                      )}
+                      <br />
+                      OTE Amount ($): {formatCurrency(bonus.bonusAmount)}
                       {bonus.amountHeld > 0 && (
                         <>
                           <br />
