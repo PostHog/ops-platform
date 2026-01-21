@@ -64,37 +64,42 @@ export function SalaryHistoryCard({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="cursor-help text-red-600">
-                        {formatCurrency(salary.totalSalary)}
+                        {salary.totalSalaryLocal !== null &&
+                        salary.totalSalaryLocal !== undefined
+                          ? new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: salary.localCurrency ?? 'USD',
+                            }).format(salary.totalSalaryLocal)
+                          : formatCurrency(salary.totalSalary)}
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>
                         Mismatch detected! Expected:{' '}
                         {formatCurrency(expectedTotal)}
-                        {salary.totalSalaryLocal !== null &&
-                          salary.totalSalaryLocal !== undefined && (
+                        <br />
+                        USD: {formatCurrency(salary.totalSalary)}
+                        {salary.actualSalary !== null &&
+                          salary.actualSalary !== undefined &&
+                          Math.abs(salary.totalSalary - salary.actualSalary) >
+                            0.01 && (
                             <>
                               <br />
-                              Local:{' '}
+                              Actual ($): {formatCurrency(salary.actualSalary)}
+                            </>
+                          )}
+                        {salary.actualSalaryLocal !== null &&
+                          salary.actualSalaryLocal !== undefined &&
+                          Math.abs(
+                            salary.totalSalaryLocal! - salary.actualSalaryLocal,
+                          ) > 0.01 && (
+                            <>
+                              <br />
+                              Actual (local):{' '}
                               {new Intl.NumberFormat('en-US', {
                                 style: 'currency',
                                 currency: salary.localCurrency ?? 'USD',
-                              }).format(salary.totalSalaryLocal)}
-                              {salary.actualSalaryLocal !== null &&
-                                salary.actualSalaryLocal !== undefined &&
-                                Math.abs(
-                                  salary.totalSalaryLocal -
-                                    salary.actualSalaryLocal,
-                                ) > 0.01 && (
-                                  <>
-                                    {' '}
-                                    · Actual:{' '}
-                                    {new Intl.NumberFormat('en-US', {
-                                      style: 'currency',
-                                      currency: salary.localCurrency ?? 'USD',
-                                    }).format(salary.actualSalaryLocal)}
-                                  </>
-                                )}
+                              }).format(salary.actualSalaryLocal)}
                             </>
                           )}
                       </p>
@@ -105,24 +110,32 @@ export function SalaryHistoryCard({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="cursor-help text-gray-700">
-                        {formatCurrency(salary.totalSalary)}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        Local:{' '}
                         {new Intl.NumberFormat('en-US', {
                           style: 'currency',
                           currency: salary.localCurrency ?? 'USD',
                         }).format(salary.totalSalaryLocal)}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        USD: {formatCurrency(salary.totalSalary)}
+                        {salary.actualSalary !== null &&
+                          salary.actualSalary !== undefined &&
+                          Math.abs(salary.totalSalary - salary.actualSalary) >
+                            0.01 && (
+                            <>
+                              <br />
+                              Actual ($): {formatCurrency(salary.actualSalary)}
+                            </>
+                          )}
                         {salary.actualSalaryLocal !== null &&
                           salary.actualSalaryLocal !== undefined &&
                           Math.abs(
                             salary.totalSalaryLocal - salary.actualSalaryLocal,
                           ) > 0.01 && (
                             <>
-                              {' '}
-                              · Actual:{' '}
+                              <br />
+                              Actual (local):{' '}
                               {new Intl.NumberFormat('en-US', {
                                 style: 'currency',
                                 currency: salary.localCurrency ?? 'USD',
