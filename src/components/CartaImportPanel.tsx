@@ -357,11 +357,6 @@ export function CartaImportPanel() {
         <CardTitle>Carta Option Grants Import</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-          <strong>Warning:</strong> Importing will delete all existing Carta
-          option grants and replace them with the data from the uploaded file.
-        </div>
-
         <div className="space-y-2">
           <Label htmlFor="carta-file">Upload Carta Export (CSV or Excel)</Label>
           <Input
@@ -371,10 +366,8 @@ export function CartaImportPanel() {
             onChange={handleFileChange}
           />
           <p className="text-muted-foreground text-sm">
-            Required columns: Stakeholder Email, Stakeholder ID, Quantity
-            Outstanding. Optional: Outstanding Vested Quantity, Outstanding
-            Unvested Quantity, Exercise Price, Vesting Schedule, Vesting Start
-            Date, Security ID.
+            Expect an "Equity Plan Granted" report from Carta. You'll need to
+            remove the extra header rows manually.
           </p>
         </div>
 
@@ -450,11 +443,8 @@ export function CartaImportPanel() {
             <Button
               onClick={handleImport}
               disabled={isImporting || validRowCount === 0}
-              variant="destructive"
             >
-              {isImporting
-                ? 'Importing…'
-                : `Delete All & Import ${validRowCount} Grant(s)`}
+              {isImporting ? 'Importing…' : `Import ${validRowCount} Grant(s)`}
             </Button>
           </div>
         )}
