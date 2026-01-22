@@ -473,7 +473,7 @@ function App() {
 
   const handleReviewVisibleEmployees = () => {
     const visibleEmployees = table
-      .getFilteredRowModel()
+      .getRowModel()
       .rows.map((row) => row.original.id)
     setReviewQueue(visibleEmployees)
     router.navigate({
