@@ -281,7 +281,7 @@ export function PerformanceProgramChecklistItem({
             >
               {itemTypeLabel}
             </div>
-            {item.dueDate && (
+            {item.dueDate && !item.completed && (
               <div
                 className={`flex items-center gap-1 text-xs ${
                   isOverdue ? 'text-orange-600' : 'text-gray-500'
