@@ -17,9 +17,9 @@ export function OptionGrantTimelineCard({
   grant,
   lastTableItem = false,
 }: OptionGrantTimelineCardProps) {
-  const vestedPercentage =
+  const outstandingPercentage =
     grant.issuedQuantity > 0
-      ? (grant.vestedQuantity / grant.issuedQuantity) * 100
+      ? (grant.outstandingQuantity / grant.issuedQuantity) * 100
       : 0
 
   return (
@@ -40,13 +40,8 @@ export function OptionGrantTimelineCard({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      Vested: {grant.vestedQuantity.toLocaleString()} (
-                      {vestedPercentage.toFixed(1)}%)
-                      <br />
-                      Unvested:{' '}
-                      {(
-                        grant.issuedQuantity - grant.vestedQuantity
-                      ).toLocaleString()}
+                      Outstanding: {grant.outstandingQuantity.toLocaleString()} (
+                      {outstandingPercentage.toFixed(1)}%)
                       {grant.exercisedQuantity > 0 && (
                         <>
                           <br />

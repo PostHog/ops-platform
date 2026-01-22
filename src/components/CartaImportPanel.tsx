@@ -27,7 +27,7 @@ type ImportRow = {
   securityId: string
   issuedQuantity: number
   exercisedQuantity: number
-  vestedQuantity: number
+  outstandingQuantity: number
   expiredQuantity: number
   exercisePrice: number
   vestingSchedule: string
@@ -177,12 +177,9 @@ export function CartaImportPanel() {
               String(row['quantity exercised'] || '0').replace(/[,]/g, ''),
               10,
             ) || 0
-          const vestedQuantity =
+          const outstandingQuantity =
             parseInt(
-              String(row['outstanding vested quantity'] || '0').replace(
-                /[,]/g,
-                '',
-              ),
+              String(row['quantity outstanding'] || '0').replace(/[,]/g, ''),
               10,
             ) || 0
           const expiredQuantity =
@@ -224,7 +221,7 @@ export function CartaImportPanel() {
               securityId: securityId.trim(),
               issuedQuantity,
               exercisedQuantity,
-              vestedQuantity,
+              outstandingQuantity,
               expiredQuantity,
               exercisePrice,
               vestingSchedule: vestingSchedule.trim(),
@@ -241,7 +238,7 @@ export function CartaImportPanel() {
             securityId: securityId.trim(),
             issuedQuantity,
             exercisedQuantity,
-            vestedQuantity,
+            outstandingQuantity,
             expiredQuantity,
             exercisePrice,
             vestingSchedule: vestingSchedule.trim(),
@@ -260,7 +257,7 @@ export function CartaImportPanel() {
             securityId: securityId.trim(),
             issuedQuantity: 0,
             exercisedQuantity: 0,
-            vestedQuantity: 0,
+            outstandingQuantity: 0,
             expiredQuantity: 0,
             exercisePrice: 0,
             vestingSchedule: '',
@@ -312,7 +309,7 @@ export function CartaImportPanel() {
               row.securityId || `import-${row.stakeholderId}-${Date.now()}`,
             issuedQuantity: row.issuedQuantity,
             exercisedQuantity: row.exercisedQuantity,
-            vestedQuantity: row.vestedQuantity,
+            outstandingQuantity: row.outstandingQuantity,
             expiredQuantity: row.expiredQuantity,
             exercisePrice: row.exercisePrice,
             vestingSchedule: row.vestingSchedule || undefined,
@@ -395,7 +392,7 @@ export function CartaImportPanel() {
                     <TableHead>Security ID</TableHead>
                     <TableHead className="text-right">Qty Issued</TableHead>
                     <TableHead className="text-right">Exercised</TableHead>
-                    <TableHead className="text-right">Vested</TableHead>
+                    <TableHead className="text-right">Outstanding</TableHead>
                     <TableHead className="text-right">Expired</TableHead>
                     <TableHead className="text-right">Exercise Price</TableHead>
                     <TableHead>Vesting Schedule</TableHead>
@@ -417,7 +414,7 @@ export function CartaImportPanel() {
                         {row.exercisedQuantity.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        {row.vestedQuantity.toLocaleString()}
+                        {row.outstandingQuantity.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
                         {row.expiredQuantity.toLocaleString()}
