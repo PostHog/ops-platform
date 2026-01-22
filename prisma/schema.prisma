@@ -389,15 +389,15 @@ model AuditLog {
 }
 
 model CartaOptionGrant {
-  id                  String    @id @default(cuid())
-  grantId             String
-  stakeholderId       String
-  employee            Employee  @relation(fields: [stakeholderId], references: [cartaStakeholderId])
-  vestingStartDate    DateTime?
-  vestingSchedule     String?
-  exercisePrice       Float
-  issuedQuantity      Int
-  exercisedQuantity   Int
-  outstandingQuantity Int
-  expiredQuantity     Int
+  id                String    @id @default(cuid())
+  grantId           String
+  stakeholderId     String
+  employee          Employee  @relation(fields: [stakeholderId], references: [cartaStakeholderId])
+  vestingStartDate  DateTime?
+  vestingSchedule   String?
+  exercisePrice     Float
+  issuedQuantity    Int
+  exercisedQuantity Int
+  vestedQuantity    Int
+  expiredQuantity   Int
 }
