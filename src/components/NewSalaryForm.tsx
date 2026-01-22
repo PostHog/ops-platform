@@ -370,11 +370,7 @@ export function NewSalaryForm({
             </div>
           </div>
 
-          <div
-            className={`mb-4 grid gap-4 ${
-              eligibleForEquityRefresh ? 'grid-cols-6' : 'grid-cols-5'
-            }`}
-          >
+          <div className="mb-4 grid grid-cols-5 gap-4">
             {/* Country */}
             <form.Field name="country">
               {(field) => (
@@ -517,48 +513,6 @@ export function NewSalaryForm({
               )}
             </form.Field>
 
-            {/* Equity Refresh Percentage */}
-            {eligibleForEquityRefresh && (
-              <form.Field
-                name="equityRefreshPercentage"
-                validators={{
-                  onChange: ({ value }) => {
-                    if (value < 0 || value > 1) {
-                      return 'Equity refresh percentage must be between 0 and 1'
-                    }
-                  },
-                }}
-              >
-                {(field) => (
-                  <div>
-                    <label className="text-xs font-medium text-gray-700">
-                      Equity Refresh (%)
-                    </label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      max={1}
-                      value={field.state.value}
-                      onChange={(e) =>
-                        field.handleChange(Number(e.target.value))
-                      }
-                      className={`text-sm ${
-                        field.state.meta.errors.length > 0
-                          ? 'border-red-500 ring-red-500'
-                          : ''
-                      }`}
-                    />
-                    {field.state.meta.errors.length > 0 && (
-                      <p className="mt-1 text-xs text-red-500">
-                        {field.state.meta.errors[0]}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </form.Field>
-            )}
-
             {/* Actual Salary Override - conditionally shown */}
             {showOverride ? (
               <>
@@ -606,12 +560,8 @@ export function NewSalaryForm({
             ) : null}
           </div>
 
-          {/* Employment Country and Area */}
-          <div
-            className={`mb-4 grid gap-4 ${
-              eligibleForEquityRefresh ? 'grid-cols-6' : 'grid-cols-5'
-            }`}
-          >
+          {/* Employment Country, Area, and Equity Refresh */}
+          <div className="mb-4 grid grid-cols-5 gap-4">
             <form.Field name="employmentCountry">
               {(field) => (
                 <div>
@@ -665,6 +615,48 @@ export function NewSalaryForm({
                 </div>
               )}
             </form.Field>
+
+            {/* Equity Refresh Percentage */}
+            {eligibleForEquityRefresh && (
+              <form.Field
+                name="equityRefreshPercentage"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (value < 0 || value > 1) {
+                      return 'Equity refresh percentage must be between 0 and 1'
+                    }
+                  },
+                }}
+              >
+                {(field) => (
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">
+                      Equity Refresh (%)
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      max={1}
+                      value={field.state.value}
+                      onChange={(e) =>
+                        field.handleChange(Number(e.target.value))
+                      }
+                      className={`text-sm ${
+                        field.state.meta.errors.length > 0
+                          ? 'border-red-500 ring-red-500'
+                          : ''
+                      }`}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="mt-1 text-xs text-red-500">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+            )}
           </div>
 
           {/* Calculated values display */}

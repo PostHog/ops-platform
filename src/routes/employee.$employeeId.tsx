@@ -1684,16 +1684,20 @@ function EmployeeOverview() {
     sfBenchmark[employee.salaries[0]?.benchmark] !==
       employee.salaries[0].benchmarkFactor
 
-  // vesting start of last grant is between 12 and 16 months ago (including the initial grant when joining)
-  // TODO: include carta last option grant date in this logic
-  const monthsSinceStart = dayjs().diff(
-    employee.deelEmployee?.startDate,
-    'month',
-  )
+  // Equity refresh eligibility: employees get a refresh on each work anniversary
+  // If they have fewer refreshes than anniversaries passed, they're eligible
+  const startDate = employee.deelEmployee?.startDate
+  const yearsSinceStart = startDate
+    ? Math.floor(dayjs().diff(dayjs(startDate), 'year', true))
+    : 0
+  const equityRefreshesReceived = employee.salaries.filter(
+    (s) => s.equityRefreshAmount > 0,
+  ).length
   const eligibleForEquityRefresh =
-    false &&
-    monthsSinceStart >= 10 &&
-    [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
+    yearsSinceStart > 0 && yearsSinceStart > equityRefreshesReceived
+  const nextAnniversaryDate = startDate
+    ? dayjs(startDate).add(equityRefreshesReceived + 1, 'year')
+    : null
 
   const isManager =
     (deelEmployeesAndProposedHiresData?.managedEmployeeIds?.length ?? 0) > 0
@@ -2059,6 +2063,22 @@ function EmployeeOverview() {
                         This employee is eligible for an equity refresh.
                       </AlertTitle>
                       <AlertDescription>
+                        {equityRefreshesReceived === 0 ? (
+                          <>
+                            This is their {yearsSinceStart}-year anniversary
+                            refresh (due{' '}
+                            {nextAnniversaryDate?.format('MMM D, YYYY')}).
+                          </>
+                        ) : (
+                          <>
+                            They have {equityRefreshesReceived} refresh
+                            {equityRefreshesReceived > 1 ? 'es' : ''} recorded
+                            but {yearsSinceStart} anniversary
+                            {yearsSinceStart > 1 ? 'ies have' : ' has'} passed.
+                            Next refresh due:{' '}
+                            {nextAnniversaryDate?.format('MMM D, YYYY')}.
+                          </>
+                        )}{' '}
                         Enter an equity refresh percentage in the next salary
                         update. In the majority of cases, this will be between
                         18% and 25%.
