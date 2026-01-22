@@ -1971,24 +1971,15 @@ function EmployeeOverview() {
                     : 'Show reference employees'}
                 </Button>
               ) : null}
-              {showNewSalaryForm ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowOverrideMode(!showOverrideMode)}
-                >
-                  {showOverrideMode
-                    ? 'Disable override mode'
-                    : 'Enable override mode'}
-                </Button>
-              ) : null}
-              {user?.role === ROLES.ADMIN && !isSensitiveHidden ? (
+              {user?.role === ROLES.ADMIN &&
+              !isSensitiveHidden &&
+              !showNewSalaryForm ? (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setShowNewSalaryForm(!showNewSalaryForm)}
                 >
-                  {showNewSalaryForm ? 'Cancel' : 'Add New Salary'}
+                  Add New Salary
                 </Button>
               ) : null}
               {employee.cartaOptionGrants &&
