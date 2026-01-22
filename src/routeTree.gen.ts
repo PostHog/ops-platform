@@ -25,6 +25,7 @@ import { Route as MissingCommissionsRouteImport } from './routes/missingCommissi
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ErrorRouteImport } from './routes/error'
+import { Route as EquityActionsRouteImport } from './routes/equityActions'
 import { Route as EmployeesRouteImport } from './routes/employees'
 import { Route as CommunicateCommissionBonusesRouteImport } from './routes/communicateCommissionBonuses'
 import { Route as CommissionActionsRouteImport } from './routes/commissionActions'
@@ -117,6 +118,11 @@ const ErrorRoute = ErrorRouteImport.update({
   path: '/error',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EquityActionsRoute = EquityActionsRouteImport.update({
+  id: '/equityActions',
+  path: '/equityActions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmployeesRoute = EmployeesRouteImport.update({
   id: '/employees',
   path: '/employees',
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/commissionActions': typeof CommissionActionsRoute
   '/communicateCommissionBonuses': typeof CommunicateCommissionBonusesRoute
   '/employees': typeof EmployeesRoute
+  '/equityActions': typeof EquityActionsRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/commissionActions': typeof CommissionActionsRoute
   '/communicateCommissionBonuses': typeof CommunicateCommissionBonusesRoute
   '/employees': typeof EmployeesRoute
+  '/equityActions': typeof EquityActionsRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
@@ -219,6 +227,7 @@ export interface FileRoutesById {
   '/commissionActions': typeof CommissionActionsRoute
   '/communicateCommissionBonuses': typeof CommunicateCommissionBonusesRoute
   '/employees': typeof EmployeesRoute
+  '/equityActions': typeof EquityActionsRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
     | '/commissionActions'
     | '/communicateCommissionBonuses'
     | '/employees'
+    | '/equityActions'
     | '/error'
     | '/login'
     | '/management'
@@ -273,6 +283,7 @@ export interface FileRouteTypes {
     | '/commissionActions'
     | '/communicateCommissionBonuses'
     | '/employees'
+    | '/equityActions'
     | '/error'
     | '/login'
     | '/management'
@@ -299,6 +310,7 @@ export interface FileRouteTypes {
     | '/commissionActions'
     | '/communicateCommissionBonuses'
     | '/employees'
+    | '/equityActions'
     | '/error'
     | '/login'
     | '/management'
@@ -326,6 +338,7 @@ export interface RootRouteChildren {
   CommissionActionsRoute: typeof CommissionActionsRoute
   CommunicateCommissionBonusesRoute: typeof CommunicateCommissionBonusesRoute
   EmployeesRoute: typeof EmployeesRoute
+  EquityActionsRoute: typeof EquityActionsRoute
   ErrorRoute: typeof ErrorRoute
   LoginRoute: typeof LoginRoute
   ManagementRoute: typeof ManagementRoute
@@ -460,6 +473,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ErrorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/equityActions': {
+      id: '/equityActions'
+      path: '/equityActions'
+      fullPath: '/equityActions'
+      preLoaderRoute: typeof EquityActionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/employees': {
       id: '/employees'
       path: '/employees'
@@ -526,6 +546,7 @@ const rootRouteChildren: RootRouteChildren = {
   CommissionActionsRoute: CommissionActionsRoute,
   CommunicateCommissionBonusesRoute: CommunicateCommissionBonusesRoute,
   EmployeesRoute: EmployeesRoute,
+  EquityActionsRoute: EquityActionsRoute,
   ErrorRoute: ErrorRoute,
   LoginRoute: LoginRoute,
   ManagementRoute: ManagementRoute,
