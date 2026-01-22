@@ -139,6 +139,9 @@ export default function Header() {
                 <Link to="/management">Management</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/equity-vesting-audit">Equity vesting audit</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/salary-sync-status">Salary sync status</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
