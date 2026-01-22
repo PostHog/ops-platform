@@ -47,8 +47,8 @@ const getValuationAndShares = createInternalFn({
 export default function StockOptionsCalculator({
   optionGrants,
 }: StockOptionsCalculatorProps) {
-  const [showOutstanding, setShowOutstanding] = useLocalStorage<boolean>(
-    'stockOptions.showOutstanding',
+  const [showVested, setShowVested] = useLocalStorage<boolean>(
+    'stockOptions.showVested',
     false,
   )
 
@@ -69,27 +69,31 @@ export default function StockOptionsCalculator({
     (data.DILUTION_PER_ROUND[0] + data.DILUTION_PER_ROUND[1]) / 2
 
   const totalQuantity = optionGrants.reduce(
-    (sum, grant) => sum + grant.issuedQuantity,
+    (sum, grant) => sum + grant.issuedQuantity - grant.exercisedQuantity,
     0,
   )
 
   const totalExerciseCost = optionGrants.reduce(
-    (sum, grant) => sum + grant.exercisePrice * grant.issuedQuantity,
+    (sum, grant) =>
+      sum +
+      grant.exercisePrice * (grant.issuedQuantity - grant.exercisedQuantity),
     0,
   )
 
-  const outstandingQuantity = optionGrants.reduce(
-    (sum, grant) => sum + grant.outstandingQuantity,
+  const vestedQuantity = optionGrants.reduce(
+    (sum, grant) => sum + grant.vestedQuantity - grant.exercisedQuantity,
     0,
   )
-  const outstandingExerciseCost = optionGrants.reduce(
-    (sum, grant) => sum + grant.exercisePrice * grant.outstandingQuantity,
+  const vestedExerciseCost = optionGrants.reduce(
+    (sum, grant) =>
+      sum +
+      grant.exercisePrice * (grant.vestedQuantity - grant.exercisedQuantity),
     0,
   )
 
-  const displayQuantity = showOutstanding ? outstandingQuantity : totalQuantity
-  const displayExerciseCost = showOutstanding
-    ? outstandingExerciseCost
+  const displayQuantity = showVested ? vestedQuantity : totalQuantity
+  const displayExerciseCost = showVested
+    ? vestedExerciseCost
     : totalExerciseCost
 
   const avgExercisePrice =
@@ -113,19 +117,19 @@ export default function StockOptionsCalculator({
         <div className="flex gap-1 rounded-md border">
           <Button
             type="button"
-            variant={!showOutstanding ? 'default' : 'ghost'}
+            variant={!showVested ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setShowOutstanding(false)}
+            onClick={() => setShowVested(false)}
           >
-            Total
+            Total (outstanding)
           </Button>
           <Button
             type="button"
-            variant={showOutstanding ? 'default' : 'ghost'}
+            variant={showVested ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setShowOutstanding(true)}
+            onClick={() => setShowVested(true)}
           >
-            Outstanding
+            Vested
           </Button>
         </div>
       </div>
@@ -133,7 +137,7 @@ export default function StockOptionsCalculator({
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-600">
-              Number of {showOutstanding ? 'outstanding' : 'total'} shares:
+              Number of {showVested ? 'vested' : 'total'} shares:
             </span>
             <span className="font-medium">
               {displayQuantity.toLocaleString()}
@@ -167,7 +171,7 @@ export default function StockOptionsCalculator({
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">
-              Value of {showOutstanding ? 'outstanding' : 'total'} underlying
+              Value of {showVested ? 'vested' : 'total'} underlying
               stock:
             </span>
             <span className="font-medium">{formatCurrency(currentValue)}</span>
@@ -182,7 +186,7 @@ export default function StockOptionsCalculator({
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">
-              Total cost to exercise {showOutstanding ? 'outstanding' : 'all'}{' '}
+              Total cost to exercise {showVested ? 'vested' : 'all'}{' '}
               options:
             </span>
             <span className="font-medium">
@@ -192,7 +196,7 @@ export default function StockOptionsCalculator({
           <div className="flex justify-between border-t py-2 font-semibold">
             <span>
               Net value after exercise (
-              {showOutstanding ? 'outstanding' : 'total'}):
+              {showVested ? 'vested' : 'total'}):
             </span>
             <span className={netValue >= 0 ? 'text-green-600' : 'text-red-600'}>
               {formatCurrency(netValue)}

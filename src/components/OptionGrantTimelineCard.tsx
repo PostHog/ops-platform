@@ -17,9 +17,9 @@ export function OptionGrantTimelineCard({
   grant,
   lastTableItem = false,
 }: OptionGrantTimelineCardProps) {
-  const outstandingPercentage =
+  const vestedPercentage =
     grant.issuedQuantity > 0
-      ? (grant.outstandingQuantity / grant.issuedQuantity) * 100
+      ? (grant.vestedQuantity / grant.issuedQuantity) * 100
       : 0
 
   return (
@@ -40,8 +40,8 @@ export function OptionGrantTimelineCard({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      Outstanding: {grant.outstandingQuantity.toLocaleString()}{' '}
-                      ({outstandingPercentage.toFixed(1)}%)
+                      Vested: {grant.vestedQuantity.toLocaleString()}{' '}
+                      ({vestedPercentage.toFixed(1)}%)
                       {grant.exercisedQuantity > 0 && (
                         <>
                           <br />
@@ -74,18 +74,6 @@ export function OptionGrantTimelineCard({
                         Total Cost to Exercise:{' '}
                         {formatCurrency(
                           grant.exercisePrice * grant.issuedQuantity,
-                        )}
-                        {grant.vestingSchedule && (
-                          <>
-                            <br />
-                            Vesting: {grant.vestingSchedule}
-                          </>
-                        )}
-                        {grant.grantId && (
-                          <>
-                            <br />
-                            Grant ID: {grant.grantId}
-                          </>
                         )}
                       </p>
                     </TooltipContent>
