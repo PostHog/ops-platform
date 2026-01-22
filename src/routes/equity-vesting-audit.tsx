@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import type { CartaOptionGrant } from '@prisma/client'
 import prisma from '@/db'
 import {
   Table,
@@ -12,6 +11,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { createAdminFn } from '@/lib/auth-middleware'
+import { calculateVestedQuantity } from '@/lib/vesting'
 import {
   Column,
   ColumnDef,
@@ -41,45 +41,6 @@ declare module '@tanstack/react-table' {
     filterOptions?: Array<{ label: string; value: string | number | boolean }>
     filterLabel?: string
   }
-}
-
-/**
- * Calculate vested quantity at runtime based on vesting schedule
- * Default: 1/48 monthly, 1 year cliff
- * Alternative: 1/48 monthly, no cliff
- */
-function calculateVestedQuantity(grant: CartaOptionGrant): number {
-  if (!grant.vestingStartDate) {
-    return 0
-  }
-
-  const now = new Date()
-  const vestingStart = new Date(grant.vestingStartDate)
-  const monthsElapsed = Math.floor(
-    (now.getTime() - vestingStart.getTime()) / (1000 * 60 * 60 * 24 * 30.44),
-  )
-
-  if (monthsElapsed < 0) {
-    return 0
-  }
-
-  const totalShares = grant.issuedQuantity
-  const vestingPeriodMonths = 48
-  const hasNoCliff =
-    grant.vestingSchedule?.toLowerCase().includes('no cliff') ?? false
-  const cliffMonths = hasNoCliff ? 0 : 12
-
-  if (!hasNoCliff && monthsElapsed < cliffMonths) {
-    return 0
-  }
-
-  // Calculate vested shares
-  const monthsVested = Math.min(monthsElapsed, vestingPeriodMonths)
-  const vestedShares = Math.floor(
-    (totalShares * monthsVested) / vestingPeriodMonths,
-  )
-
-  return Math.min(vestedShares, totalShares)
 }
 
 type EmployeeVestingData = {
@@ -272,11 +233,6 @@ function EquityVestingAudit() {
       fuzzy: () => true,
     },
   })
-
-  const matchCount =
-    employees?.filter((e) => e.status === 'MATCH').length ?? 0
-  const mismatchCount =
-    employees?.filter((e) => e.status === 'MISMATCH').length ?? 0
 
   if (isLoading) {
     return (

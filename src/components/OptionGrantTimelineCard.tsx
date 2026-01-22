@@ -1,6 +1,7 @@
 import { Award } from 'lucide-react'
 import type { CartaOptionGrant } from '@prisma/client'
 import { formatCurrency } from '@/lib/utils'
+import { calculateVestedQuantity } from '@/lib/vesting'
 import {
   Tooltip,
   TooltipContent,
@@ -17,9 +18,10 @@ export function OptionGrantTimelineCard({
   grant,
   lastTableItem = false,
 }: OptionGrantTimelineCardProps) {
+  const vestedQuantity = calculateVestedQuantity(grant)
   const vestedPercentage =
     grant.issuedQuantity > 0
-      ? (grant.vestedQuantity / grant.issuedQuantity) * 100
+      ? (vestedQuantity / grant.issuedQuantity) * 100
       : 0
 
   return (
@@ -40,7 +42,7 @@ export function OptionGrantTimelineCard({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      Vested: {grant.vestedQuantity.toLocaleString()}{' '}
+                      Vested: {vestedQuantity.toLocaleString()}{' '}
                       ({vestedPercentage.toFixed(1)}%)
                       {grant.exercisedQuantity > 0 && (
                         <>
