@@ -40,8 +40,8 @@ export function OptionGrantTimelineCard({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      Outstanding: {grant.outstandingQuantity.toLocaleString()} (
-                      {outstandingPercentage.toFixed(1)}%)
+                      Outstanding: {grant.outstandingQuantity.toLocaleString()}{' '}
+                      ({outstandingPercentage.toFixed(1)}%)
                       {grant.exercisedQuantity > 0 && (
                         <>
                           <br />
