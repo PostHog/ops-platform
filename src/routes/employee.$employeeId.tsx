@@ -2120,6 +2120,7 @@ function EmployeeOverview() {
                   setBenchmark={setBenchmark}
                   showBonusPercentage={showBonusPercentage}
                   eligibleForEquityRefresh={eligibleForEquityRefresh}
+                  nextAnniversaryDate={nextAnniversaryDate?.toDate()}
                 />
               )}
               {isSensitiveHidden ? (

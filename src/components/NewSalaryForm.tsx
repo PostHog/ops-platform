@@ -49,6 +49,7 @@ export function NewSalaryForm({
   setBenchmark,
   showBonusPercentage,
   eligibleForEquityRefresh,
+  nextAnniversaryDate,
 }: {
   employeeId: string
   showOverride: boolean
@@ -63,6 +64,7 @@ export function NewSalaryForm({
   setBenchmark: (benchmark: string) => void
   showBonusPercentage: boolean
   eligibleForEquityRefresh?: boolean
+  nextAnniversaryDate?: Date
 }) {
   const getDefaultValues = () => ({
     country: latestSalary?.country ?? 'United States',
@@ -230,7 +232,15 @@ export function NewSalaryForm({
   const form = useForm({
     defaultValues: getDefaultValues(),
     onSubmit: async ({ value }) => {
-      await updateSalary({ data: value })
+      // Add equityRefreshDate if there's an equity refresh amount
+      const dataToSubmit = {
+        ...value,
+        equityRefreshDate:
+          value.equityRefreshAmount > 0 && nextAnniversaryDate
+            ? nextAnniversaryDate
+            : null,
+      }
+      await updateSalary({ data: dataToSubmit })
       onSuccess()
       createToast('Salary added successfully.', {
         timeout: 3000,
