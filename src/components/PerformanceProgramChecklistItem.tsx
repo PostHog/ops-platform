@@ -88,6 +88,7 @@ export function PerformanceProgramChecklistItem({
           completed: checked,
           notes: notes || undefined,
           assignedToEmployeeId: item.assignedTo?.id || null,
+          dueDate: item.dueDate ? new Date(item.dueDate).toISOString() : null,
         },
       })
       createToast(
