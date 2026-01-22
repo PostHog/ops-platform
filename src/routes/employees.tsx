@@ -120,7 +120,7 @@ const getEmployees = createAdminFn({
     },
     orderBy: {
       deelEmployee: {
-        lastName: 'asc',
+        startDate: 'desc',
       },
     },
   })
