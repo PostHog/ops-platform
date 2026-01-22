@@ -202,6 +202,12 @@ export function CartaImportPanel() {
             continue
           }
 
+          // Skip cancelled grants
+          const canceledDate = row['canceled date'] || ''
+          if (canceledDate.trim() !== '') {
+            continue
+          }
+
           // Find employee by work email or personal email
           const employee = employees.find(
             (emp: {
