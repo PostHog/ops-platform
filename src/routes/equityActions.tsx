@@ -56,6 +56,9 @@ const getEquityRefreshes = createAdminFn({
       equityRefreshAmount: {
         gt: 0,
       },
+      timestamp: {
+        gte: new Date(new Date().setMonth(new Date().getMonth() - 3)),
+      },
     },
     include: {
       employee: {
@@ -190,8 +193,8 @@ function App() {
         ),
       },
       {
-        accessorKey: 'timestamp',
-        header: 'Date',
+        accessorKey: 'equityRefreshDate',
+        header: 'Grant Date',
         meta: {
           filterVariant: 'dateRange',
         },
@@ -200,7 +203,10 @@ function App() {
           _: string,
           filterValue: [string, string],
         ) => {
-          const date = new Date(row.original.timestamp)
+          const date = row.original.equityRefreshDate
+            ? new Date(row.original.equityRefreshDate)
+            : null
+          if (!date) return true
           const [from, to] = filterValue
           if (from && date < new Date(from)) return false
           if (to && date > new Date(to)) return false
@@ -208,11 +214,13 @@ function App() {
         },
         cell: ({ row }) => (
           <div>
-            {new Intl.DateTimeFormat('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-            }).format(new Date(row.original.timestamp))}
+            {row.original.equityRefreshDate
+              ? new Intl.DateTimeFormat('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                }).format(new Date(row.original.equityRefreshDate))
+              : '-'}
           </div>
         ),
       },
@@ -340,11 +348,13 @@ function App() {
             salary.employee.email,
           ),
           email: salary.employee.email,
-          date: new Intl.DateTimeFormat('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          }).format(new Date(salary.timestamp)),
+          grantDate: salary.equityRefreshDate
+            ? new Intl.DateTimeFormat('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              }).format(new Date(salary.equityRefreshDate))
+            : '',
           refreshPercentage: `${(salary.equityRefreshPercentage * 100).toFixed(2)}%`,
           refreshAmount: formatCurrency(salary.equityRefreshAmount),
           totalSalary: formatCurrency(salary.actualSalary),
