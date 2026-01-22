@@ -21,6 +21,7 @@ import type {
 } from '@tanstack/react-table'
 import type { Priority, Prisma } from '@prisma/client'
 import { useLocalStorage } from 'usehooks-ts'
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -138,6 +139,17 @@ const updateEmployeePriority = createAdminFn({
     })
   })
 
+function handleSortToggle(column: Column<any, unknown>) {
+  const sortState = column.getIsSorted()
+  if (!sortState) {
+    column.toggleSorting(false) // asc
+  } else if (sortState === 'asc') {
+    column.toggleSorting(true) // desc
+  } else {
+    column.clearSorting() // no sort
+  }
+}
+
 export const customFilterFns = {
   inDateRange: (
     row: Row<Employee>,
@@ -187,8 +199,10 @@ function App() {
 
   const columns: Array<ColumnDef<Employee>> = [
     {
-      accessorKey: 'name',
-      header: () => <span className="pl-2 font-bold">Employee</span>,
+      id: 'name',
+      accessorFn: (row) =>
+        getFullName(row.deelEmployee?.firstName, row.deelEmployee?.lastName),
+      header: 'Employee',
       filterFn: (row: Row<Employee>, _: string, filterValue: string) => {
         const fullName = getFullName(
           row.original.deelEmployee?.firstName,
@@ -217,8 +231,33 @@ function App() {
       ),
     },
     {
-      accessorKey: 'lastChange',
-      header: () => <span className="font-bold">Last Change</span>,
+      id: 'startDate',
+      accessorFn: (row) =>
+        row.deelEmployee?.startDate
+          ? new Date(row.deelEmployee.startDate).getTime()
+          : 0,
+      header: 'Start Date',
+      cell: ({ row }) => {
+        const startDate = row.original.deelEmployee?.startDate
+        if (!startDate) return null
+        return (
+          <span className="text-gray-600">
+            {new Date(startDate).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            })}
+          </span>
+        )
+      },
+    },
+    {
+      id: 'lastChange',
+      accessorFn: (row) =>
+        row.salaries?.[0]?.timestamp
+          ? new Date(row.salaries[0].timestamp).getTime()
+          : 0,
+      header: 'Last Change',
       meta: {
         filterVariant: 'dateRange',
         filterLabel: 'Last Change (date)',
@@ -266,8 +305,10 @@ function App() {
       },
     },
     {
-      accessorKey: 'salaries.0.step',
-      header: () => <span className="font-bold">Level / Step</span>,
+      id: 'levelStep',
+      accessorFn: (row) =>
+        Number(row.salaries?.[0]?.step) * Number(row.salaries?.[0]?.level),
+      header: 'Level / Step',
       meta: {
         filterLabel: 'Step',
         filterVariant: 'range',
@@ -282,7 +323,7 @@ function App() {
     },
     {
       accessorKey: 'priority',
-      header: () => <span className="font-bold">Priority</span>,
+      header: 'Priority',
       meta: {
         filterVariant: 'select',
         filterOptions: [
@@ -293,6 +334,13 @@ function App() {
       },
       filterFn: (row: Row<Employee>, _: string, filterValue: string[]) => {
         return filterValue.includes(row.original.priority)
+      },
+      sortingFn: (rowA, rowB) => {
+        const priorityOrder = ['high', 'medium', 'low']
+        return (
+          priorityOrder.indexOf(rowA.original.priority) -
+          priorityOrder.indexOf(rowB.original.priority)
+        )
       },
       cell: ({ row }) => {
         const handlePriorityChange = async (value: string) => {
@@ -331,8 +379,13 @@ function App() {
       },
     },
     {
-      accessorKey: 'reviewer',
-      header: () => <span className="font-bold">Reviewer</span>,
+      id: 'reviewer',
+      accessorFn: (row) =>
+        getFullName(
+          row.deelEmployee?.topLevelManager?.firstName,
+          row.deelEmployee?.topLevelManager?.lastName,
+        ),
+      header: 'Reviewer',
       filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
         customFilterFns.containsText(
           getFullName(
@@ -354,20 +407,20 @@ function App() {
     {
       id: 'team',
       accessorKey: 'deelEmployee.team',
-      header: () => <span className="font-bold">Team</span>,
+      header: 'Team',
       enableColumnFilter: true,
       enableHiding: false,
     },
     {
       id: 'role',
       accessorKey: 'salaries.0.benchmark',
-      header: () => <span className="font-bold">Role</span>,
+      header: 'Role',
       enableColumnFilter: true,
       enableHiding: false,
     },
     {
       accessorKey: 'reviewed',
-      header: () => <span className="font-bold">Status</span>,
+      header: 'Status',
       meta: {
         filterVariant: 'select',
         filterOptions: [
@@ -452,14 +505,36 @@ function App() {
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
+                    const sortState = header.column.getIsSorted()
                     return (
                       <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
+                        {header.isPlaceholder ? null : (
+                          <>
+                            <div
+                              {...{
+                                className: header.column.getCanSort()
+                                  ? 'cursor-pointer select-none flex items-center gap-1 hover:text-gray-700'
+                                  : 'flex items-center gap-1',
+                                onClick: header.column.getCanSort()
+                                  ? () => handleSortToggle(header.column)
+                                  : undefined,
+                              }}
+                            >
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
+                              {header.column.getCanSort() &&
+                                (sortState === 'asc' ? (
+                                  <ArrowUp className="h-3 w-3" />
+                                ) : sortState === 'desc' ? (
+                                  <ArrowDown className="h-3 w-3" />
+                                ) : (
+                                  <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                ))}
+                            </div>
+                          </>
+                        )}
                         {header.column.getCanFilter() ? (
                           <div className="hidden">
                             {/* for some reason removing the filters cause infinite re-renders */}
