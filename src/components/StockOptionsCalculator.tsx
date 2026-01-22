@@ -69,12 +69,12 @@ export default function StockOptionsCalculator({
     (data.DILUTION_PER_ROUND[0] + data.DILUTION_PER_ROUND[1]) / 2
 
   const totalQuantity = optionGrants.reduce(
-    (sum, grant) => sum + grant.quantity,
+    (sum, grant) => sum + grant.issuedQuantity,
     0,
   )
 
   const totalExerciseCost = optionGrants.reduce(
-    (sum, grant) => sum + grant.exercisePrice * grant.quantity,
+    (sum, grant) => sum + grant.exercisePrice * grant.issuedQuantity,
     0,
   )
 

@@ -25,9 +25,10 @@ type ImportRow = {
   stakeholderId: string
   stakeholderName: string
   securityId: string
-  quantityOutstanding: number
+  issuedQuantity: number
+  exercisedQuantity: number
   vestedQuantity: number
-  unvestedQuantity: number
+  expiredQuantity: number
   exercisePrice: number
   vestingSchedule: string
   vestingStartDate: string
@@ -133,15 +134,11 @@ export function CartaImportPanel() {
 
       const hasStakeholderEmail = 'stakeholder email' in firstRow
       const hasStakeholderId = 'stakeholder id' in firstRow
-      const hasQuantityOutstanding = 'quantity outstanding' in firstRow
+      const hasQuantityIssued = 'quantity issued' in firstRow
 
-      if (
-        !hasStakeholderEmail ||
-        !hasStakeholderId ||
-        !hasQuantityOutstanding
-      ) {
+      if (!hasStakeholderEmail || !hasStakeholderId || !hasQuantityIssued) {
         throw new Error(
-          'File must contain columns: Stakeholder Email, Stakeholder ID, and Quantity Outstanding.',
+          'File must contain columns: Stakeholder Email, Stakeholder ID, and Quantity Issued.',
         )
       }
 
@@ -170,9 +167,14 @@ export function CartaImportPanel() {
 
         try {
           // Parse quantities
-          const quantityOutstanding =
+          const issuedQuantity =
             parseInt(
-              String(row['quantity outstanding'] || '0').replace(/[,]/g, ''),
+              String(row['quantity issued'] || '0').replace(/[,]/g, ''),
+              10,
+            ) || 0
+          const exercisedQuantity =
+            parseInt(
+              String(row['quantity exercised'] || '0').replace(/[,]/g, ''),
               10,
             ) || 0
           const vestedQuantity =
@@ -183,12 +185,9 @@ export function CartaImportPanel() {
               ),
               10,
             ) || 0
-          const unvestedQuantity =
+          const expiredQuantity =
             parseInt(
-              String(row['outstanding unvested quantity'] || '0').replace(
-                /[,]/g,
-                '',
-              ),
+              String(row['quantity expired'] || '0').replace(/[,]/g, ''),
               10,
             ) || 0
 
@@ -201,8 +200,8 @@ export function CartaImportPanel() {
           const vestingSchedule = row['vesting schedule'] || ''
           const vestingStartDate = row['vesting start date'] || ''
 
-          // Skip rows with no outstanding options
-          if (quantityOutstanding === 0) {
+          // Skip rows with no issued options
+          if (issuedQuantity === 0) {
             continue
           }
 
@@ -223,9 +222,10 @@ export function CartaImportPanel() {
               stakeholderId: stakeholderId.trim(),
               stakeholderName: stakeholderName.trim(),
               securityId: securityId.trim(),
-              quantityOutstanding,
+              issuedQuantity,
+              exercisedQuantity,
               vestedQuantity,
-              unvestedQuantity,
+              expiredQuantity,
               exercisePrice,
               vestingSchedule: vestingSchedule.trim(),
               vestingStartDate: vestingStartDate.trim(),
@@ -239,9 +239,10 @@ export function CartaImportPanel() {
             stakeholderId: stakeholderId.trim(),
             stakeholderName: stakeholderName.trim(),
             securityId: securityId.trim(),
-            quantityOutstanding,
+            issuedQuantity,
+            exercisedQuantity,
             vestedQuantity,
-            unvestedQuantity,
+            expiredQuantity,
             exercisePrice,
             vestingSchedule: vestingSchedule.trim(),
             vestingStartDate: vestingStartDate.trim(),
@@ -257,9 +258,10 @@ export function CartaImportPanel() {
             stakeholderId: stakeholderId.trim(),
             stakeholderName: stakeholderName.trim(),
             securityId: securityId.trim(),
-            quantityOutstanding: 0,
+            issuedQuantity: 0,
+            exercisedQuantity: 0,
             vestedQuantity: 0,
-            unvestedQuantity: 0,
+            expiredQuantity: 0,
             exercisePrice: 0,
             vestingSchedule: '',
             vestingStartDate: '',
@@ -308,8 +310,10 @@ export function CartaImportPanel() {
             stakeholderId: row.stakeholderId,
             grantId:
               row.securityId || `import-${row.stakeholderId}-${Date.now()}`,
-            quantity: row.quantityOutstanding,
+            issuedQuantity: row.issuedQuantity,
+            exercisedQuantity: row.exercisedQuantity,
             vestedQuantity: row.vestedQuantity,
+            expiredQuantity: row.expiredQuantity,
             exercisePrice: row.exercisePrice,
             vestingSchedule: row.vestingSchedule || undefined,
             vestingStartDate: row.vestingStartDate || undefined,
@@ -389,11 +393,10 @@ export function CartaImportPanel() {
                     <TableHead>Stakeholder Email</TableHead>
                     <TableHead>Stakeholder Name</TableHead>
                     <TableHead>Security ID</TableHead>
-                    <TableHead className="text-right">
-                      Qty Outstanding
-                    </TableHead>
+                    <TableHead className="text-right">Qty Issued</TableHead>
+                    <TableHead className="text-right">Exercised</TableHead>
                     <TableHead className="text-right">Vested</TableHead>
-                    <TableHead className="text-right">Unvested</TableHead>
+                    <TableHead className="text-right">Expired</TableHead>
                     <TableHead className="text-right">Exercise Price</TableHead>
                     <TableHead>Vesting Schedule</TableHead>
                     <TableHead>Status</TableHead>
@@ -408,13 +411,16 @@ export function CartaImportPanel() {
                         {row.securityId || '-'}
                       </TableCell>
                       <TableCell className="text-right">
-                        {row.quantityOutstanding.toLocaleString()}
+                        {row.issuedQuantity.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.exercisedQuantity.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
                         {row.vestedQuantity.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        {row.unvestedQuantity.toLocaleString()}
+                        {row.expiredQuantity.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
                         {row.exercisePrice > 0

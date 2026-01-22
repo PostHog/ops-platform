@@ -18,7 +18,9 @@ export function OptionGrantTimelineCard({
   lastTableItem = false,
 }: OptionGrantTimelineCardProps) {
   const vestedPercentage =
-    grant.quantity > 0 ? (grant.vestedQuantity / grant.quantity) * 100 : 0
+    grant.issuedQuantity > 0
+      ? (grant.vestedQuantity / grant.issuedQuantity) * 100
+      : 0
 
   return (
     <TooltipProvider>
@@ -33,7 +35,7 @@ export function OptionGrantTimelineCard({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="cursor-help font-bold text-gray-700">
-                      {grant.quantity.toLocaleString()} options
+                      {grant.issuedQuantity.toLocaleString()} options
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -42,7 +44,15 @@ export function OptionGrantTimelineCard({
                       {vestedPercentage.toFixed(1)}%)
                       <br />
                       Unvested:{' '}
-                      {(grant.quantity - grant.vestedQuantity).toLocaleString()}
+                      {(
+                        grant.issuedQuantity - grant.vestedQuantity
+                      ).toLocaleString()}
+                      {grant.exercisedQuantity > 0 && (
+                        <>
+                          <br />
+                          Exercised: {grant.exercisedQuantity.toLocaleString()}
+                        </>
+                      )}
                       {grant.expiredQuantity > 0 && (
                         <>
                           <br />
@@ -67,7 +77,9 @@ export function OptionGrantTimelineCard({
                         Exercise Price: {formatCurrency(grant.exercisePrice)}
                         <br />
                         Total Cost to Exercise:{' '}
-                        {formatCurrency(grant.exercisePrice * grant.quantity)}
+                        {formatCurrency(
+                          grant.exercisePrice * grant.issuedQuantity,
+                        )}
                         {grant.vestingSchedule && (
                           <>
                             <br />
