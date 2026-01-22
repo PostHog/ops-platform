@@ -122,6 +122,7 @@ const getEmployeeById = createInternalFn({
       select: {
         id: true,
         email: true,
+        previousEquityRefreshes: true,
         // Admin-only fields
         ...(isAdmin ? { priority: true, reviewed: true } : {}),
         // Keeper tests: available to admin and managers
@@ -1690,9 +1691,12 @@ function EmployeeOverview() {
   const yearsSinceStart = startDate
     ? Math.floor(dayjs().diff(dayjs(startDate), 'year', true))
     : 0
-  const equityRefreshesReceived = employee.salaries.filter(
+  const equityRefreshesInSystem = employee.salaries.filter(
     (s) => s.equityRefreshAmount > 0,
   ).length
+  const previousEquityRefreshes = employee.previousEquityRefreshes ?? 0
+  const equityRefreshesReceived =
+    equityRefreshesInSystem + previousEquityRefreshes
   const eligibleForEquityRefresh =
     yearsSinceStart > 0 && yearsSinceStart > equityRefreshesReceived
   const nextAnniversaryDate = startDate

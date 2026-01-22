@@ -20,6 +20,7 @@ model Employee {
   email                        String                            @unique
   cartaStakeholderId           String?                           @unique
   cartaOptionGrants            CartaOptionGrant[]
+  previousEquityRefreshes      Int                               @default(0) // Number of equity refreshes granted outside of the ops-platform
   salaries                     Salary[]
   deelEmployee                 DeelEmployee?
   keeperTestFeedback           KeeperTestFeedback[]              @relation("employee")
@@ -71,8 +72,8 @@ enum Priority {
 }
 
 model Salary {
-  id                      String   @id @default(cuid())
-  timestamp               DateTime @default(now())
+  id                      String    @id @default(cuid())
+  timestamp               DateTime  @default(now())
   country                 String
   area                    String
   locationFactor          Float
@@ -81,8 +82,8 @@ model Salary {
   benchmark               String
   benchmarkFactor         Float
   totalSalary             Float
-  bonusPercentage         Float    @default(0)
-  bonusAmount             Float    @default(0)
+  bonusPercentage         Float     @default(0)
+  bonusAmount             Float     @default(0)
   changePercentage        Float
   changeAmount            Float
   exchangeRate            Float
@@ -91,16 +92,17 @@ model Salary {
   amountTakenInOptions    Float
   actualSalary            Float
   actualSalaryLocal       Float
-  equityRefreshPercentage Float    @default(0)
-  equityRefreshAmount     Float    @default(0)
-  equityRefreshGranted    Boolean  @default(true)
+  equityRefreshPercentage Float     @default(0)
+  equityRefreshAmount     Float     @default(0)
+  equityRefreshGranted    Boolean   @default(true)
+  equityRefreshDate       DateTime?
   employmentCountry       String?
   employmentArea          String?
   notes                   String
   employeeId              String
-  synced                  Boolean  @default(true)
-  communicated            Boolean  @default(false)
-  employee                Employee @relation(fields: [employeeId], references: [id])
+  synced                  Boolean   @default(true)
+  communicated            Boolean   @default(false)
+  employee                Employee  @relation(fields: [employeeId], references: [id])
 }
 
 enum KeeperTestRecommendation {
