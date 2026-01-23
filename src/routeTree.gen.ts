@@ -25,6 +25,8 @@ import { Route as MissingCommissionsRouteImport } from './routes/missingCommissi
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ErrorRouteImport } from './routes/error'
+import { Route as EquityActionsRouteImport } from './routes/equityActions'
+import { Route as EquityVestingAuditRouteImport } from './routes/equity-vesting-audit'
 import { Route as EmployeesRouteImport } from './routes/employees'
 import { Route as CommunicateCommissionBonusesRouteImport } from './routes/communicateCommissionBonuses'
 import { Route as CommissionActionsRouteImport } from './routes/commissionActions'
@@ -117,6 +119,16 @@ const ErrorRoute = ErrorRouteImport.update({
   path: '/error',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EquityActionsRoute = EquityActionsRouteImport.update({
+  id: '/equityActions',
+  path: '/equityActions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EquityVestingAuditRoute = EquityVestingAuditRouteImport.update({
+  id: '/equity-vesting-audit',
+  path: '/equity-vesting-audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmployeesRoute = EmployeesRouteImport.update({
   id: '/employees',
   path: '/employees',
@@ -166,6 +178,8 @@ export interface FileRoutesByFullPath {
   '/commissionActions': typeof CommissionActionsRoute
   '/communicateCommissionBonuses': typeof CommunicateCommissionBonusesRoute
   '/employees': typeof EmployeesRoute
+  '/equity-vesting-audit': typeof EquityVestingAuditRoute
+  '/equityActions': typeof EquityActionsRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
@@ -192,6 +206,8 @@ export interface FileRoutesByTo {
   '/commissionActions': typeof CommissionActionsRoute
   '/communicateCommissionBonuses': typeof CommunicateCommissionBonusesRoute
   '/employees': typeof EmployeesRoute
+  '/equity-vesting-audit': typeof EquityVestingAuditRoute
+  '/equityActions': typeof EquityActionsRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
@@ -219,6 +235,8 @@ export interface FileRoutesById {
   '/commissionActions': typeof CommissionActionsRoute
   '/communicateCommissionBonuses': typeof CommunicateCommissionBonusesRoute
   '/employees': typeof EmployeesRoute
+  '/equity-vesting-audit': typeof EquityVestingAuditRoute
+  '/equityActions': typeof EquityActionsRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
@@ -247,6 +265,8 @@ export interface FileRouteTypes {
     | '/commissionActions'
     | '/communicateCommissionBonuses'
     | '/employees'
+    | '/equity-vesting-audit'
+    | '/equityActions'
     | '/error'
     | '/login'
     | '/management'
@@ -273,6 +293,8 @@ export interface FileRouteTypes {
     | '/commissionActions'
     | '/communicateCommissionBonuses'
     | '/employees'
+    | '/equity-vesting-audit'
+    | '/equityActions'
     | '/error'
     | '/login'
     | '/management'
@@ -299,6 +321,8 @@ export interface FileRouteTypes {
     | '/commissionActions'
     | '/communicateCommissionBonuses'
     | '/employees'
+    | '/equity-vesting-audit'
+    | '/equityActions'
     | '/error'
     | '/login'
     | '/management'
@@ -326,6 +350,8 @@ export interface RootRouteChildren {
   CommissionActionsRoute: typeof CommissionActionsRoute
   CommunicateCommissionBonusesRoute: typeof CommunicateCommissionBonusesRoute
   EmployeesRoute: typeof EmployeesRoute
+  EquityVestingAuditRoute: typeof EquityVestingAuditRoute
+  EquityActionsRoute: typeof EquityActionsRoute
   ErrorRoute: typeof ErrorRoute
   LoginRoute: typeof LoginRoute
   ManagementRoute: typeof ManagementRoute
@@ -460,6 +486,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ErrorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/equityActions': {
+      id: '/equityActions'
+      path: '/equityActions'
+      fullPath: '/equityActions'
+      preLoaderRoute: typeof EquityActionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/equity-vesting-audit': {
+      id: '/equity-vesting-audit'
+      path: '/equity-vesting-audit'
+      fullPath: '/equity-vesting-audit'
+      preLoaderRoute: typeof EquityVestingAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/employees': {
       id: '/employees'
       path: '/employees'
@@ -526,6 +566,8 @@ const rootRouteChildren: RootRouteChildren = {
   CommissionActionsRoute: CommissionActionsRoute,
   CommunicateCommissionBonusesRoute: CommunicateCommissionBonusesRoute,
   EmployeesRoute: EmployeesRoute,
+  EquityVestingAuditRoute: EquityVestingAuditRoute,
+  EquityActionsRoute: EquityActionsRoute,
   ErrorRoute: ErrorRoute,
   LoginRoute: LoginRoute,
   ManagementRoute: ManagementRoute,

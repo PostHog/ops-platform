@@ -43,6 +43,7 @@ import { z } from 'zod'
 import { impersonateUser } from '@/lib/auth-client'
 import { createAuditLogEntry } from '@/lib/audit-log'
 import { AuditLogHistoryDialog } from '@/components/AuditLogHistoryDialog'
+import { CartaImportPanel } from '@/components/CartaImportPanel'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
@@ -491,6 +492,12 @@ function RouteComponent() {
           <KeeperTestManagement />
         </div>
         <div className="flex justify-between py-4">
+          <div className="text-lg font-bold">Carta Option Grants</div>
+        </div>
+        <div className="flex flex-col gap-2 overflow-hidden">
+          <CartaImportPanel />
+        </div>
+        <div className="flex justify-between py-4">
           <div className="text-lg font-bold">Commission Bonuses</div>
         </div>
         <div className="flex flex-col gap-2 overflow-hidden">
@@ -610,6 +617,119 @@ function KeeperTestManagement() {
     </Button>
   )
 }
+
+// Get employees for Carta import matching
+export const getEmployeesForCartaImport = createAdminFn({
+  method: 'GET',
+}).handler(async () => {
+  return await prisma.employee.findMany({
+    select: {
+      id: true,
+      email: true,
+      cartaStakeholderId: true,
+      deelEmployee: {
+        select: {
+          personalEmail: true,
+        },
+      },
+    },
+  })
+})
+
+const importCartaOptionGrantsSchema = z.object({
+  grants: z.array(
+    z.object({
+      employeeId: z.string(),
+      stakeholderId: z.string(),
+      grantId: z.string(),
+      issuedQuantity: z.number().int().nonnegative(),
+      exercisedQuantity: z.number().int().nonnegative(),
+      vestedQuantity: z.number().int().nonnegative(),
+      expiredQuantity: z.number().int().nonnegative(),
+      exercisePrice: z.number().nonnegative(),
+      vestingSchedule: z.string().optional(),
+      vestingStartDate: z.string().optional(),
+    }),
+  ),
+})
+
+export const importCartaOptionGrants = createAdminFn({
+  method: 'POST',
+})
+  .inputValidator(importCartaOptionGrantsSchema)
+  .handler(async ({ data }) => {
+    const errors: string[] = []
+    const successIds: string[] = []
+
+    // Delete all existing Carta option grants
+    await prisma.cartaOptionGrant.deleteMany({})
+
+    // Update employees with cartaStakeholderId from the import
+    for (const grant of data.grants) {
+      try {
+        // Update employee's cartaStakeholderId if not set
+        await prisma.employee.update({
+          where: { id: grant.employeeId },
+          data: { cartaStakeholderId: grant.stakeholderId },
+        })
+      } catch (error) {
+        // Ignore errors updating stakeholder ID - might fail on uniqueness constraint
+      }
+    }
+
+    // Create new grants
+    for (const grant of data.grants) {
+      try {
+        const employee = await prisma.employee.findUnique({
+          where: { id: grant.employeeId },
+          select: { cartaStakeholderId: true },
+        })
+
+        if (!employee?.cartaStakeholderId) {
+          throw new Error(
+            `Employee ${grant.employeeId} has no cartaStakeholderId`,
+          )
+        }
+
+        // Parse vesting start date if provided
+        let vestingStartDate: Date | null = null
+        if (grant.vestingStartDate) {
+          const parsed = new Date(grant.vestingStartDate)
+          if (!isNaN(parsed.getTime())) {
+            vestingStartDate = parsed
+          }
+        }
+
+        const created = await prisma.cartaOptionGrant.create({
+          data: {
+            stakeholderId: employee.cartaStakeholderId,
+            grantId: grant.grantId,
+            issuedQuantity: grant.issuedQuantity,
+            exercisedQuantity: grant.exercisedQuantity,
+            vestedQuantity: grant.vestedQuantity,
+            expiredQuantity: grant.expiredQuantity,
+            exercisePrice: grant.exercisePrice,
+            vestingSchedule: grant.vestingSchedule || null,
+            vestingStartDate: vestingStartDate,
+          },
+        })
+
+        successIds.push(created.id)
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error'
+        errors.push(
+          `Error importing grant for employee ${grant.employeeId}: ${errorMessage}`,
+        )
+      }
+    }
+
+    return {
+      successCount: successIds.length,
+      errorCount: errors.length,
+      errors,
+    }
+  })
 
 const importCommissionBonusesSchema = z.object({
   bonuses: z.array(

@@ -94,6 +94,8 @@ import {
 } from '@/components/ui/select'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import StockOptionsCalculator from '@/components/StockOptionsCalculator'
+import { OptionGrantTimelineCard } from '@/components/OptionGrantTimelineCard'
 
 dayjs.extend(relativeTime)
 
@@ -148,6 +150,10 @@ const getEmployeeById = createInternalFn({
                 },
               },
             }
+          : {}),
+        // Option grants: only visible to admin or the employee themselves (not managers)
+        ...(isAdmin || !isManager
+          ? { cartaOptionGrants: true, previousEquityRefreshes: true }
           : {}),
         // Performance programs: admin and managers (not visible to employees viewing their own profile)
         ...(isAdmin || isManager
@@ -352,6 +358,7 @@ type Employee = Prisma.EmployeeGetPayload<{
         }
       }
     }
+    cartaOptionGrants: true
     performancePrograms: {
       include: {
         checklistItems: {
@@ -1183,6 +1190,8 @@ function EmployeeOverview() {
   const [filterByTitle, setFilterByTitle] = useState(true)
   const [expandAll, setExpandAll] = useState<boolean | null>(null)
   const [expandAllCounter, setExpandAllCounter] = useState(0)
+  const [showStockOptionsCalculator, setShowStockOptionsCalculator] =
+    useLocalStorage<boolean>('employee.showStockOptionsCalculator', true)
 
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
@@ -1597,12 +1606,21 @@ function EmployeeOverview() {
       data: score,
     }))
 
+    const optionGrantItems = (employee.cartaOptionGrants || [])
+      .filter((grant) => grant.vestingStartDate)
+      .map((grant) => ({
+        type: 'option-grant' as const,
+        timestamp: grant.vestingStartDate!,
+        data: grant,
+      }))
+
     const allItems = [
       ...salaryItems,
       ...feedbackItems,
       ...performanceProgramItems,
       ...commissionBonusItems,
       ...interviewScoreItems,
+      ...optionGrantItems,
     ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 
     // Group items by month/year
@@ -1638,6 +1656,7 @@ function EmployeeOverview() {
     'ashbyInterviewScoresReceived' in employee
       ? employee.ashbyInterviewScoresReceived
       : [],
+    employee.cartaOptionGrants,
   ])
 
   const handleMoveToNextEmployee = () => {
@@ -1667,16 +1686,23 @@ function EmployeeOverview() {
     sfBenchmark[employee.salaries[0]?.benchmark] !==
       employee.salaries[0].benchmarkFactor
 
-  // vesting start of last grant is between 12 and 16 months ago (including the initial grant when joining)
-  // TODO: include carta last option grant date in this logic
-  const monthsSinceStart = dayjs().diff(
-    employee.deelEmployee?.startDate,
-    'month',
-  )
+  // Equity refresh eligibility: employees get a refresh on each work anniversary
+  // If they have fewer refreshes than anniversaries passed, they're eligible
+  const startDate = employee.deelEmployee?.startDate
+  const yearsSinceStart = startDate
+    ? Math.floor(dayjs().diff(dayjs(startDate), 'year', true))
+    : 0
+  const equityRefreshesInSystem = employee.salaries.filter(
+    (s) => s.equityRefreshAmount > 0,
+  ).length
+  const previousEquityRefreshes = employee.previousEquityRefreshes ?? 0
+  const equityRefreshesReceived =
+    equityRefreshesInSystem + previousEquityRefreshes
   const eligibleForEquityRefresh =
-    false &&
-    monthsSinceStart >= 10 &&
-    [11, 0, 1, 2, 3].includes(monthsSinceStart % 12)
+    yearsSinceStart > 0 && yearsSinceStart > equityRefreshesReceived
+  const nextAnniversaryDate = startDate
+    ? dayjs(startDate).add(equityRefreshesReceived + 1, 'year')
+    : null
 
   const isManager =
     (deelEmployeesAndProposedHiresData?.managedEmployeeIds?.length ?? 0) > 0
@@ -1839,16 +1865,19 @@ function EmployeeOverview() {
           )}
         >
           {user?.role === ROLES.ADMIN ? (
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={() => router.navigate({ to: '/employees' })}
-              className="-ml-2 self-start"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to overview
-            </Button>
+            <div className="flex w-full items-center justify-between">
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => router.navigate({ to: '/employees' })}
+                className="-ml-2 self-start"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to overview
+              </Button>
+            </div>
           ) : null}
+
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-col">
               <span className="text-xl font-bold">
@@ -1947,28 +1976,41 @@ function EmployeeOverview() {
                     : 'Show reference employees'}
                 </Button>
               ) : null}
-              {showNewSalaryForm ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowOverrideMode(!showOverrideMode)}
-                >
-                  {showOverrideMode
-                    ? 'Disable override mode'
-                    : 'Enable override mode'}
-                </Button>
-              ) : null}
-              {user?.role === ROLES.ADMIN && !isSensitiveHidden ? (
+              {user?.role === ROLES.ADMIN &&
+              !isSensitiveHidden &&
+              !showNewSalaryForm ? (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setShowNewSalaryForm(!showNewSalaryForm)}
                 >
-                  {showNewSalaryForm ? 'Cancel' : 'Add New Salary'}
+                  Add New Salary
                 </Button>
               ) : null}
+              {employee.cartaOptionGrants &&
+                employee.cartaOptionGrants.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setShowStockOptionsCalculator(!showStockOptionsCalculator)
+                    }
+                  >
+                    {showStockOptionsCalculator
+                      ? 'Hide stock options calculator'
+                      : 'Show stock options calculator'}
+                  </Button>
+                )}
             </div>
           </div>
+
+          {employee.cartaOptionGrants &&
+            employee.cartaOptionGrants.length > 0 &&
+            showStockOptionsCalculator && (
+              <StockOptionsCalculator
+                optionGrants={employee.cartaOptionGrants}
+              />
+            )}
 
           {employee.salaries[0] &&
             (() => {
@@ -2017,6 +2059,22 @@ function EmployeeOverview() {
                         This employee is eligible for an equity refresh.
                       </AlertTitle>
                       <AlertDescription>
+                        {equityRefreshesReceived === 0 ? (
+                          <>
+                            This is their {yearsSinceStart}-year anniversary
+                            refresh (due{' '}
+                            {nextAnniversaryDate?.format('MMM D, YYYY')}).
+                          </>
+                        ) : (
+                          <>
+                            They have {equityRefreshesReceived} refresh
+                            {equityRefreshesReceived > 1 ? 'es' : ''} recorded
+                            but {yearsSinceStart} anniversary
+                            {yearsSinceStart > 1 ? 'ies have' : ' has'} passed.
+                            Next refresh due:{' '}
+                            {nextAnniversaryDate?.format('MMM D, YYYY')}.
+                          </>
+                        )}{' '}
                         Enter an equity refresh percentage in the next salary
                         update. In the majority of cases, this will be between
                         18% and 25%.
@@ -2063,6 +2121,7 @@ function EmployeeOverview() {
                   setBenchmark={setBenchmark}
                   showBonusPercentage={showBonusPercentage}
                   eligibleForEquityRefresh={eligibleForEquityRefresh}
+                  nextAnniversaryDate={nextAnniversaryDate?.toDate()}
                 />
               )}
               {isSensitiveHidden ? (
@@ -2151,6 +2210,14 @@ function EmployeeOverview() {
                             <AshbyInterviewScoreTimelineCard
                               key={`ashby-interview-score-${item.data.id}`}
                               score={item.data}
+                              lastTableItem={lastTableItem}
+                            />
+                          )
+                        } else if (item.type === 'option-grant') {
+                          return (
+                            <OptionGrantTimelineCard
+                              key={`option-grant-${item.data.id}`}
+                              grant={item.data}
                               lastTableItem={lastTableItem}
                             />
                           )
