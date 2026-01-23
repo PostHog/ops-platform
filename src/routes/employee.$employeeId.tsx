@@ -152,8 +152,9 @@ const getEmployeeById = createInternalFn({
             }
           : {}),
         // Option grants: only visible to admin or the employee themselves (not managers)
-        ...(isAdmin || !isManager ? { cartaOptionGrants: true, 
-          previousEquityRefreshes: true, } : {}),
+        ...(isAdmin || !isManager
+          ? { cartaOptionGrants: true, previousEquityRefreshes: true }
+          : {}),
         // Performance programs: admin and managers (not visible to employees viewing their own profile)
         ...(isAdmin || isManager
           ? {
