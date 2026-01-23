@@ -122,7 +122,6 @@ const getEmployeeById = createInternalFn({
       select: {
         id: true,
         email: true,
-        previousEquityRefreshes: true,
         // Admin-only fields
         ...(isAdmin ? { priority: true, reviewed: true } : {}),
         // Keeper tests: available to admin and managers
@@ -153,7 +152,8 @@ const getEmployeeById = createInternalFn({
             }
           : {}),
         // Option grants: only visible to admin or the employee themselves (not managers)
-        ...(isAdmin || !isManager ? { cartaOptionGrants: true } : {}),
+        ...(isAdmin || !isManager ? { cartaOptionGrants: true, 
+          previousEquityRefreshes: true, } : {}),
         // Performance programs: admin and managers (not visible to employees viewing their own profile)
         ...(isAdmin || isManager
           ? {
