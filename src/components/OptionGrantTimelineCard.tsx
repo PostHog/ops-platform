@@ -73,7 +73,10 @@ export function OptionGrantTimelineCard({
                         <br />
                         Total Cost to Exercise:{' '}
                         {formatCurrency(
-                          grant.exercisePrice * grant.issuedQuantity,
+                          grant.exercisePrice *
+                            (grant.issuedQuantity -
+                              grant.exercisedQuantity -
+                              grant.expiredQuantity),
                         )}
                       </p>
                     </TooltipContent>

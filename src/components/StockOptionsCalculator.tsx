@@ -70,24 +70,38 @@ export default function StockOptionsCalculator({
     (data.DILUTION_PER_ROUND[0] + data.DILUTION_PER_ROUND[1]) / 2
 
   const totalQuantity = optionGrants.reduce(
-    (sum, grant) => sum + grant.issuedQuantity - grant.exercisedQuantity,
+    (sum, grant) =>
+      sum +
+      grant.issuedQuantity -
+      grant.exercisedQuantity -
+      grant.expiredQuantity,
     0,
   )
 
   const totalExerciseCost = optionGrants.reduce(
     (sum, grant) =>
       sum +
-      grant.exercisePrice * (grant.issuedQuantity - grant.exercisedQuantity),
+      grant.exercisePrice *
+        (grant.issuedQuantity -
+          grant.exercisedQuantity -
+          grant.expiredQuantity),
     0,
   )
 
   const vestedQuantity = optionGrants.reduce((sum, grant) => {
     const vested = calculateVestedQuantity(grant)
-    return sum + vested - grant.exercisedQuantity
+    return (
+      sum +
+      Math.max(0, vested - grant.exercisedQuantity - grant.expiredQuantity)
+    )
   }, 0)
   const vestedExerciseCost = optionGrants.reduce((sum, grant) => {
     const vested = calculateVestedQuantity(grant)
-    return sum + grant.exercisePrice * (vested - grant.exercisedQuantity)
+    const vestedExercisable = Math.max(
+      0,
+      vested - grant.exercisedQuantity - grant.expiredQuantity,
+    )
+    return sum + grant.exercisePrice * vestedExercisable
   }, 0)
 
   const displayQuantity = showVested ? vestedQuantity : totalQuantity
