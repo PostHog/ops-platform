@@ -1945,64 +1945,67 @@ function EmployeeOverview() {
 
           {!isSensitiveHidden &&
           'performancePrograms' in employee &&
-          employee.performancePrograms !== undefined ? (
+          employee.performancePrograms !== undefined &&
+          employee.performancePrograms.length > 0 &&
+          employee.performancePrograms[0].status === 'ACTIVE' ? (
             <div className="w-full">
               <PerformanceProgramPanel
                 employeeId={employee.id}
-                program={
-                  'performancePrograms' in employee &&
-                  employee.performancePrograms &&
-                  employee.performancePrograms.length > 0
-                    ? (employee.performancePrograms[0] as any)
-                    : null
-                }
+                program={employee.performancePrograms[0] as any}
                 onUpdate={() => router.invalidate()}
               />
             </div>
           ) : null}
 
-          <div className="mt-2 flex flex-row items-center justify-between gap-2">
-            <div className="flex gap-2">
-              {showNewSalaryForm ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    setShowReferenceEmployees(!showReferenceEmployees)
-                  }
-                >
-                  {showReferenceEmployees
-                    ? 'Hide reference employees'
-                    : 'Show reference employees'}
-                </Button>
-              ) : null}
-              {user?.role === ROLES.ADMIN &&
-              !isSensitiveHidden &&
-              !showNewSalaryForm ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowNewSalaryForm(!showNewSalaryForm)}
-                >
-                  Add New Salary
-                </Button>
-              ) : null}
-              {employee.cartaOptionGrants &&
-                employee.cartaOptionGrants.length > 0 && (
+          {(showNewSalaryForm ||
+            (user?.role === ROLES.ADMIN && !isSensitiveHidden) ||
+            (employee.cartaOptionGrants &&
+              employee.cartaOptionGrants.length > 0)) && (
+            <div className="mt-2 flex flex-row items-center justify-between gap-2">
+              <div className="flex gap-2">
+                {showNewSalaryForm ? (
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() =>
-                      setShowStockOptionsCalculator(!showStockOptionsCalculator)
+                      setShowReferenceEmployees(!showReferenceEmployees)
                     }
                   >
-                    {showStockOptionsCalculator
-                      ? 'Hide stock options calculator'
-                      : 'Show stock options calculator'}
+                    {showReferenceEmployees
+                      ? 'Hide reference employees'
+                      : 'Show reference employees'}
                   </Button>
-                )}
+                ) : null}
+                {user?.role === ROLES.ADMIN &&
+                !isSensitiveHidden &&
+                !showNewSalaryForm ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowNewSalaryForm(!showNewSalaryForm)}
+                  >
+                    Add New Salary
+                  </Button>
+                ) : null}
+                {employee.cartaOptionGrants &&
+                  employee.cartaOptionGrants.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        setShowStockOptionsCalculator(
+                          !showStockOptionsCalculator,
+                        )
+                      }
+                    >
+                      {showStockOptionsCalculator
+                        ? 'Hide stock options calculator'
+                        : 'Show stock options calculator'}
+                    </Button>
+                  )}
+              </div>
             </div>
-          </div>
+          )}
 
           {employee.cartaOptionGrants &&
             employee.cartaOptionGrants.length > 0 &&
