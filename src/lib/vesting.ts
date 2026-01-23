@@ -60,4 +60,3 @@ export function calculateVestedQuantity(grant: CartaOptionGrant): number {
 
   return Math.min(vestedShares, totalShares)
 }
-

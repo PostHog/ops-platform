@@ -170,8 +170,7 @@ export default function StockOptionsCalculator({
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">
-              Value of {showVested ? 'vested' : 'total'} underlying
-              stock:
+              Value of {showVested ? 'vested' : 'total'} underlying stock:
             </span>
             <span className="font-medium">{formatCurrency(currentValue)}</span>
           </div>
@@ -185,8 +184,7 @@ export default function StockOptionsCalculator({
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">
-              Total cost to exercise {showVested ? 'vested' : 'all'}{' '}
-              options:
+              Total cost to exercise {showVested ? 'vested' : 'all'} options:
             </span>
             <span className="font-medium">
               {formatCurrency(totalCostToExercise)}
@@ -194,8 +192,7 @@ export default function StockOptionsCalculator({
           </div>
           <div className="flex justify-between border-t py-2 font-semibold">
             <span>
-              Net value after exercise (
-              {showVested ? 'vested' : 'total'}):
+              Net value after exercise ({showVested ? 'vested' : 'total'}):
             </span>
             <span className={netValue >= 0 ? 'text-green-600' : 'text-red-600'}>
               {formatCurrency(netValue)}

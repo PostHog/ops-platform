@@ -100,11 +100,10 @@ function handleSortToggle(column: Column<any, unknown>) {
 }
 
 function EquityVestingAudit() {
-  const [columnFilters, setColumnFilters] =
-    useLocalStorage<ColumnFiltersState>(
-      'equity-vesting-audit.table.filters',
-      [],
-    )
+  const [columnFilters, setColumnFilters] = useLocalStorage<ColumnFiltersState>(
+    'equity-vesting-audit.table.filters',
+    [],
+  )
   const [sorting, setSorting] = useLocalStorage<SortingState>(
     'equity-vesting-audit.table.sorting',
     [
@@ -130,7 +129,11 @@ function EquityVestingAudit() {
           _: string,
           filterValue: string,
         ) => {
-          return customFilterFns.containsText(row.original.email, _, filterValue)
+          return customFilterFns.containsText(
+            row.original.email,
+            _,
+            filterValue,
+          )
         },
         cell: ({ row }) => (
           <div className="font-medium">{row.original.email}</div>

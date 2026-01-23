@@ -20,9 +20,7 @@ export function OptionGrantTimelineCard({
 }: OptionGrantTimelineCardProps) {
   const vestedQuantity = calculateVestedQuantity(grant)
   const vestedPercentage =
-    grant.issuedQuantity > 0
-      ? (vestedQuantity / grant.issuedQuantity) * 100
-      : 0
+    grant.issuedQuantity > 0 ? (vestedQuantity / grant.issuedQuantity) * 100 : 0
 
   return (
     <TooltipProvider>
@@ -42,8 +40,8 @@ export function OptionGrantTimelineCard({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      Vested: {vestedQuantity.toLocaleString()}{' '}
-                      ({vestedPercentage.toFixed(1)}%)
+                      Vested: {vestedQuantity.toLocaleString()} (
+                      {vestedPercentage.toFixed(1)}%)
                       {grant.exercisedQuantity > 0 && (
                         <>
                           <br />
