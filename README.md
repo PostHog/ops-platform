@@ -6,13 +6,16 @@
 
 - employee view
   - salary updates
-  - ashby interview scores
-  - keeper test scores
+  - option grants
+  - keeper test feedback
+  - probation check-in feedback
   - commission bonus payouts
+  - ashby interview scores
 - pay review queues
   - reference employees with similar step/level
+  - yearly option refreshes
   - automatic updates in deel and bamboohr
-- probation check-ins for the first 30/60/80 days & keeper tests before pay reviews
+- keeper tests & probation check-ins (30/60/80 days in) via slack
 - org chart with a manager and team view mode
   - proposed hires
   - future starters
