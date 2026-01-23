@@ -1993,7 +1993,9 @@ function EmployeeOverview() {
                       type="button"
                       variant="outline"
                       onClick={() =>
-                        setShowStockOptionsCalculator(!showStockOptionsCalculator)
+                        setShowStockOptionsCalculator(
+                          !showStockOptionsCalculator,
+                        )
                       }
                     >
                       {showStockOptionsCalculator
