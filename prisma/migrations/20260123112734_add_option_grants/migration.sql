@@ -5,19 +5,11 @@
 
 */
 -- AlterTable
-ALTER TABLE "Employee" ADD COLUMN     "cartaStakeholderId" TEXT;
+ALTER TABLE "Employee" ADD COLUMN     "cartaStakeholderId" TEXT,
+ADD COLUMN     "previousEquityRefreshes" INTEGER NOT NULL DEFAULT 0;
 
--- CreateTable
-CREATE TABLE "Integration" (
-    "id" TEXT NOT NULL,
-    "kind" TEXT NOT NULL,
-    "config" JSONB NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "created_by_id" TEXT NOT NULL,
-    "integration_id" TEXT NOT NULL,
-
-    CONSTRAINT "Integration_pkey" PRIMARY KEY ("id")
-);
+-- AlterTable
+ALTER TABLE "Salary" ADD COLUMN     "equityRefreshDate" TIMESTAMP(3);
 
 -- CreateTable
 CREATE TABLE "CartaOptionGrant" (
@@ -27,7 +19,8 @@ CREATE TABLE "CartaOptionGrant" (
     "vestingStartDate" TIMESTAMP(3),
     "vestingSchedule" TEXT,
     "exercisePrice" DOUBLE PRECISION NOT NULL,
-    "quantity" INTEGER NOT NULL,
+    "issuedQuantity" INTEGER NOT NULL,
+    "exercisedQuantity" INTEGER NOT NULL,
     "vestedQuantity" INTEGER NOT NULL,
     "expiredQuantity" INTEGER NOT NULL,
 
@@ -36,9 +29,6 @@ CREATE TABLE "CartaOptionGrant" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Employee_cartaStakeholderId_key" ON "Employee"("cartaStakeholderId");
-
--- AddForeignKey
-ALTER TABLE "Integration" ADD CONSTRAINT "Integration_created_by_id_fkey" FOREIGN KEY ("created_by_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CartaOptionGrant" ADD CONSTRAINT "CartaOptionGrant_stakeholderId_fkey" FOREIGN KEY ("stakeholderId") REFERENCES "Employee"("cartaStakeholderId") ON DELETE RESTRICT ON UPDATE CASCADE;
