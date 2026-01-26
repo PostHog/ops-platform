@@ -22,7 +22,8 @@ function RouteComponent() {
 
         {session?.user?.email && (
           <span className="mt-6 text-center text-sm text-gray-400">
-            You are logged in as {session.user.email}. Please make sure to login with your work email.
+            You are logged in as {session.user.email}. Please make sure to login
+            with your work email.
           </span>
         )}
       </div>
