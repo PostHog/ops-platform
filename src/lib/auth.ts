@@ -1,4 +1,5 @@
 import { betterAuth } from 'better-auth'
+import { APIError } from 'better-auth/api'
 import { admin } from 'better-auth/plugins'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
@@ -36,7 +37,9 @@ export const auth = betterAuth({
             console.warn(
               `Rejected login attempt from non-posthog email: ${user.email}`,
             )
-            return false
+            throw new APIError('FORBIDDEN', {
+              message: 'only-posthog-emails-allowed',
+            })
           }
           return { data: user }
         },
