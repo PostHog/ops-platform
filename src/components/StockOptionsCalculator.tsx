@@ -40,10 +40,7 @@ const getValuationAndShares = createInternalFn({
 })
 
 const DEFAULT_VALUATIONS: number[] = [
-  5_000_000_000,
-  15_000_000_000,
-  60_000_000_000,
-  100_000_000_000,
+  5_000_000_000, 15_000_000_000, 60_000_000_000, 100_000_000_000,
 ]
 
 const PLACEHOLDER = '•••'
@@ -132,7 +129,11 @@ export default function StockOptionsCalculator({
     const numericValue = value.replace(/[^0-9]/g, '')
     if (!numericValue) return ''
     const num = parseInt(numericValue, 10)
-    return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+    return num.toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    })
   }
 
   const addValuation = () => {
@@ -265,7 +266,9 @@ export default function StockOptionsCalculator({
               Net value after exercise ({showVested ? 'vested' : 'total'}):
             </span>
             <span className="text-green-600">
-              {isSensitiveHidden ? PLACEHOLDER : formatCurrency(Math.max(0, netValue))}
+              {isSensitiveHidden
+                ? PLACEHOLDER
+                : formatCurrency(Math.max(0, netValue))}
             </span>
           </div>
 
@@ -318,10 +321,11 @@ export default function StockOptionsCalculator({
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
                             <p className="text-sm">
-                              Each round of funding typically dilutes existing shareholders.
-                              We assume {averageDilutionPerRound}% dilution per round, meaning
-                              your ownership percentage decreases by this amount each time
-                              the company raises money.
+                              Each round of funding typically dilutes existing
+                              shareholders. We assume {averageDilutionPerRound}%
+                              dilution per round, meaning your ownership
+                              percentage decreases by this amount each time the
+                              company raises money.
                             </p>
                           </TooltipContent>
                         </Tooltip>
@@ -345,7 +349,9 @@ export default function StockOptionsCalculator({
                         : formatCurrency(data.CURRENT_VALUATION)}
                     </td>
                     <td className="py-1.5 pr-4 font-medium text-green-600">
-                      {isSensitiveHidden ? PLACEHOLDER : formatCurrency(Math.max(0, netValue))}
+                      {isSensitiveHidden
+                        ? PLACEHOLDER
+                        : formatCurrency(Math.max(0, netValue))}
                     </td>
                     <td />
                   </tr>
@@ -372,7 +378,9 @@ export default function StockOptionsCalculator({
                     const futureNetValue = futureValue - totalCostToExercise
                     const dilutedPercentage = (1 - dilutionFactor) * 100
                     const previousValuation =
-                      index === 0 ? data.CURRENT_VALUATION : customValuations[index - 1]
+                      index === 0
+                        ? data.CURRENT_VALUATION
+                        : customValuations[index - 1]
                     const multiplier = valuation / previousValuation
 
                     return (
@@ -388,8 +396,9 @@ export default function StockOptionsCalculator({
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="text-sm">
-                                  After {roundNumber} round{roundNumber > 1 ? 's' : ''}, your
-                                  ownership is diluted by {dilutedPercentage.toFixed(1)}%
+                                  After {roundNumber} round
+                                  {roundNumber > 1 ? 's' : ''}, your ownership
+                                  is diluted by {dilutedPercentage.toFixed(1)}%
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -397,7 +406,9 @@ export default function StockOptionsCalculator({
                         </td>
                         <td className="py-1.5 pr-4">
                           {formatCurrency(valuation)}{' '}
-                          <span className="text-gray-400">({multiplier.toFixed(1)}x)</span>
+                          <span className="text-gray-400">
+                            ({multiplier.toFixed(1)}x)
+                          </span>
                         </td>
                         <td className="py-1.5 pr-4 font-medium text-green-600">
                           <TooltipProvider>
@@ -410,20 +421,36 @@ export default function StockOptionsCalculator({
                               <TooltipContent className="max-w-xs">
                                 <div className="space-y-1 text-sm">
                                   <p>
-                                    <span className="text-gray-400">Your ownership:</span>{' '}
-                                    {isSensitiveHidden ? PLACEHOLDER : `${previousOwnershipPercent.toFixed(4)}%`}
+                                    <span className="text-gray-400">
+                                      Your ownership:
+                                    </span>{' '}
+                                    {isSensitiveHidden
+                                      ? PLACEHOLDER
+                                      : `${previousOwnershipPercent.toFixed(4)}%`}
                                     {' → '}
-                                    {isSensitiveHidden ? PLACEHOLDER : `${dilutedOwnershipPercent.toFixed(4)}%`}
-                                    {' '}
-                                    <span className="text-gray-400">(-{averageDilutionPerRound}% dilution)</span>
+                                    {isSensitiveHidden
+                                      ? PLACEHOLDER
+                                      : `${dilutedOwnershipPercent.toFixed(4)}%`}{' '}
+                                    <span className="text-gray-400">
+                                      (-{averageDilutionPerRound}% dilution)
+                                    </span>
                                   </p>
                                   <p>
-                                    <span className="text-gray-400">Stake value at {formatCurrency(valuation)}:</span>{' '}
-                                    {isSensitiveHidden ? PLACEHOLDER : formatCurrency(futureValue)}
+                                    <span className="text-gray-400">
+                                      Stake value at {formatCurrency(valuation)}
+                                      :
+                                    </span>{' '}
+                                    {isSensitiveHidden
+                                      ? PLACEHOLDER
+                                      : formatCurrency(futureValue)}
                                   </p>
                                   <p>
-                                    <span className="text-gray-400">Minus exercise cost:</span>{' '}
-                                    {isSensitiveHidden ? PLACEHOLDER : formatCurrency(totalCostToExercise)}
+                                    <span className="text-gray-400">
+                                      Minus exercise cost:
+                                    </span>{' '}
+                                    {isSensitiveHidden
+                                      ? PLACEHOLDER
+                                      : formatCurrency(totalCostToExercise)}
                                   </p>
                                 </div>
                               </TooltipContent>
@@ -434,7 +461,7 @@ export default function StockOptionsCalculator({
                           <button
                             type="button"
                             onClick={() => removeValuation(valuation)}
-                            className="text-gray-400 opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+                            className="text-gray-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500"
                             aria-label={`Remove ${formatCurrency(valuation)}`}
                           >
                             <X className="h-4 w-4" />
@@ -452,7 +479,9 @@ export default function StockOptionsCalculator({
                 type="text"
                 placeholder="Add valuation (e.g., $50,000,000,000)"
                 value={newValuation}
-                onChange={(e) => setNewValuation(formatValuationInput(e.target.value))}
+                onChange={(e) =>
+                  setNewValuation(formatValuationInput(e.target.value))
+                }
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
