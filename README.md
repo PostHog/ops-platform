@@ -32,16 +32,16 @@ cp .env.example .env
 
 For local development with demo data, you can use dummy values for most external services. The essential variables are:
 
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | Set automatically by flox, or use `postgresql://myuser:password@127.0.0.1:9001/mydb` |
-| `BETTER_AUTH_SECRET` | Any random string for local dev |
-| `VITE_APP_BETTER_AUTH_URL` | `http://localhost:3000` |
-| `ALLOW_DEV_AUTH` | Set to `true` to enable email/password login in development |
-| `RESEND_API_KEY` | Use `re_dummy_key` to prevent startup errors (emails won't send) |
-| `FULLY_DILUTED_SHARES` | e.g., `100000000` |
-| `CURRENT_VALUATION` | e.g., `5000000000` |
-| `DILUTION_PER_ROUND` | e.g., `10,15` |
+| Variable                   | Description                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------ |
+| `DATABASE_URL`             | Set automatically by flox, or use `postgresql://myuser:password@127.0.0.1:9001/mydb` |
+| `BETTER_AUTH_SECRET`       | Any random string for local dev                                                      |
+| `VITE_APP_BETTER_AUTH_URL` | `http://localhost:3000`                                                              |
+| `ALLOW_DEV_AUTH`           | Set to `true` to enable email/password login in development                          |
+| `RESEND_API_KEY`           | Use `re_dummy_key` to prevent startup errors (emails won't send)                     |
+| `FULLY_DILUTED_SHARES`     | e.g., `100000000`                                                                    |
+| `CURRENT_VALUATION`        | e.g., `5000000000`                                                                   |
+| `DILUTION_PER_ROUND`       | e.g., `10,15`                                                                        |
 
 > **Security Note:** The `ALLOW_DEV_AUTH` flag only works when `NODE_ENV=development`. Production builds always disable email/password authentication regardless of this setting.
 

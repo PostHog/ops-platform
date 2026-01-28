@@ -62,7 +62,9 @@ export function DevLoginForm() {
 
   return (
     <div className="mt-4">
-      {error && <p className="mb-2 text-center text-sm text-red-500">{error}</p>}
+      {error && (
+        <p className="mb-2 text-center text-sm text-red-500">{error}</p>
+      )}
       <Button
         type="button"
         variant="outline"
