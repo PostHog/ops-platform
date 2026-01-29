@@ -24,7 +24,7 @@ const getValuationAndShares = createInternalFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   if (!context.user.email.endsWith('@posthog.com')) {
-    throw new Error('Unauthorized2')
+    throw new Error('Unauthorized')
   }
 
   const FULLY_DILUTED_SHARES = Number(process.env.FULLY_DILUTED_SHARES)
