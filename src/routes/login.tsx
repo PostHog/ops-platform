@@ -46,6 +46,7 @@ function RouteComponent() {
     await signIn.social({
       provider: 'google',
       callbackURL: '/login',
+      errorCallbackURL: '/error',
     })
   }
 

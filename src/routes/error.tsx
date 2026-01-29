@@ -6,8 +6,16 @@ export const Route = createFileRoute('/error')({
 })
 
 function RouteComponent() {
-  const search: { message: string } = useSearch({ from: '/error' })
+  const search: {
+    message?: string
+    error_description?: string
+    error?: string
+  } = useSearch({
+    from: '/error',
+  })
   const { data: session } = useSession()
+  const errorMessage =
+    search.message || search.error_description || search.error
 
   return (
     <div className="flex h-full flex-col items-center justify-center">
@@ -17,7 +25,7 @@ function RouteComponent() {
         </h1>
 
         <span className="text-center text-sm text-gray-500">
-          {search.message}
+          {errorMessage}
         </span>
 
         {session?.user?.email && (
