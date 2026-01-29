@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { signIn, useSession } from '@/lib/auth-client'
+import { DevLoginForm } from '@/components/DevLoginForm'
+import { signIn, useSession, isDevMode } from '@/lib/auth-client'
 import { useEffect } from 'react'
 import { getMyEmployeeId } from '@/components/Header'
 import { useQuery } from '@tanstack/react-query'
@@ -14,6 +15,7 @@ function RouteComponent() {
   const { data: session, isRefetching } = useSession()
   const user = session?.user
   const router = useRouter()
+
   const {
     data: myEmployeeId,
     isLoading,
@@ -40,7 +42,7 @@ function RouteComponent() {
     }
   }, [user, myEmployeeId, isLoading, error])
 
-  const handleLogin = async () => {
+  const handleGoogleLogin = async () => {
     await signIn.social({
       provider: 'google',
       callbackURL: '/login',
@@ -57,10 +59,12 @@ function RouteComponent() {
 
         <Button
           className="h-11 w-full rounded-lg font-medium shadow-lg transition-all"
-          onClick={handleLogin}
+          onClick={handleGoogleLogin}
         >
-          Sign in
+          Sign in with Google
         </Button>
+
+        {isDevMode && <DevLoginForm />}
       </div>
     </div>
   )

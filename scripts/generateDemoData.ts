@@ -23,7 +23,6 @@ interface Config {
   seed?: number
 }
 
-// Helper function to parse command-line arguments
 function parseArgs(): Config {
   const args = process.argv.slice(2)
   const config: Config = {
@@ -58,7 +57,6 @@ Options:
   return config
 }
 
-// Helper function to get random enum value
 function randomEnum<T extends Record<string, string | number>>(
   enumObject: T,
 ): T[keyof T] {
@@ -66,8 +64,7 @@ function randomEnum<T extends Record<string, string | number>>(
   return faker.helpers.arrayElement(values) as T[keyof T]
 }
 
-// Helper function to generate unique emails
-const usedEmails = new Set<string>()
+const usedEmails = new Set<string>(['dev@posthog.com'])
 function generateUniqueEmail(): string {
   let email: string
   do {
@@ -77,7 +74,6 @@ function generateUniqueEmail(): string {
   return email
 }
 
-// Helper function to generate realistic dates in the past
 function generatePastDate(daysAgo: number): Date {
   const date = new Date()
   date.setDate(date.getDate() - daysAgo)
@@ -110,23 +106,226 @@ const CHECK_IN_TITLES = [
   'Manager feedback',
 ]
 
-// Stage 1: Clear existing data
+// Must match DevLoginForm.tsx
+const DEV_USER_EMAIL = 'dev@posthog.com'
+
 async function clearExistingData(): Promise<void> {
   console.log('Clearing existing data...')
 
-  // Delete in reverse dependency order
   await prisma.commissionBonus.deleteMany()
   await prisma.ashbyInterviewScore.deleteMany()
   await prisma.keeperTestFeedback.deleteMany()
   await prisma.proposedHire.deleteMany()
   await prisma.salary.deleteMany()
+  await prisma.cartaOptionGrant.deleteMany()
   await prisma.deelEmployee.deleteMany()
   await prisma.employee.deleteMany()
+
+  // Auth tables - dev user will be recreated on sign up
+  await prisma.session.deleteMany()
+  await prisma.account.deleteMany()
+  await prisma.user.deleteMany()
 
   console.log('Existing data cleared.')
 }
 
-// Stage 2: Generate Employees
+async function generateDevUser() {
+  console.log('Generating dev user for local development...')
+
+  const DEV_CARTA_STAKEHOLDER_ID = 'dev-stakeholder-id'
+
+  const existingEmployee = await prisma.employee.findUnique({
+    where: { email: DEV_USER_EMAIL },
+  })
+
+  if (existingEmployee) {
+    console.log(`Dev user (${DEV_USER_EMAIL}) already exists, skipping.`)
+    return existingEmployee
+  }
+
+  const devEmployee = await prisma.employee.create({
+    data: {
+      email: DEV_USER_EMAIL,
+      priority: 'high',
+      reviewed: true,
+      checkIn30DaysScheduled: true,
+      checkIn60DaysScheduled: true,
+      checkIn80DaysScheduled: true,
+      cartaStakeholderId: DEV_CARTA_STAKEHOLDER_ID,
+    },
+  })
+
+  await prisma.deelEmployee.create({
+    data: {
+      id: 'dev-user-deel-id',
+      firstName: 'Dev',
+      lastName: 'User',
+      title: 'Cofounder',
+      team: 'Exec',
+      workEmail: DEV_USER_EMAIL,
+      personalEmail: 'dev.personal@example.com',
+      managerId: null,
+      topLevelManagerId: null,
+      startDate: new Date('2020-01-01'),
+    },
+  })
+
+  await prisma.cartaOptionGrant.createMany({
+    data: [
+      {
+        grantId: 'grant-001',
+        stakeholderId: DEV_CARTA_STAKEHOLDER_ID,
+        vestingStartDate: new Date('2020-01-01'),
+        vestingSchedule: '4 years, 1 year cliff',
+        exercisePrice: 5.6,
+        issuedQuantity: 10000,
+        exercisedQuantity: 0,
+        vestedQuantity: 10000,
+        expiredQuantity: 0,
+      },
+      {
+        grantId: 'grant-002',
+        stakeholderId: DEV_CARTA_STAKEHOLDER_ID,
+        vestingStartDate: new Date('2022-01-01'),
+        vestingSchedule: '4 years, 1 year cliff',
+        exercisePrice: 22.2,
+        issuedQuantity: 5000,
+        exercisedQuantity: 0,
+        vestedQuantity: 3750,
+        expiredQuantity: 0,
+      },
+    ],
+  })
+
+  // Dev user salary: USD, San Francisco
+  await prisma.salary.create({
+    data: {
+      employeeId: devEmployee.id,
+      timestamp: new Date('2020-01-01'),
+      country: 'United States',
+      area: 'San Francisco, California',
+      locationFactor: 1.0,
+      level: 7,
+      step: 0.8,
+      benchmark: 'Product Engineer',
+      benchmarkFactor: 1.0,
+      totalSalary: 250000,
+      bonusPercentage: 0,
+      bonusAmount: 0,
+      changePercentage: 0,
+      changeAmount: 0,
+      exchangeRate: 1.0,
+      localCurrency: 'USD',
+      totalSalaryLocal: 250000,
+      amountTakenInOptions: 0,
+      actualSalary: 250000,
+      actualSalaryLocal: 250000,
+      equityRefreshPercentage: 0.1,
+      equityRefreshAmount: 25000,
+      equityRefreshGranted: true,
+      employmentCountry: 'United States',
+      employmentArea: 'San Francisco, California',
+      notes: 'Initial salary',
+      synced: true,
+      communicated: true,
+    },
+  })
+
+  console.log(`Created dev user: ${DEV_USER_EMAIL}`)
+  console.log(`  - 2 option grants (150,000 total options)`)
+  console.log(`  - Salary: $250,000 USD`)
+  return devEmployee
+}
+
+async function generateOptionGrants(
+  employees: { id: string; email: string }[],
+) {
+  console.log(`Generating option grants for ${employees.length} employees...`)
+
+  const CURRENT_STOCK_PRICE = 93
+  const TARGET_TOTAL_OPTIONS = 10000
+
+  let totalGrants = 0
+
+  for (const employee of employees) {
+    const existingEmployee = await prisma.employee.findUnique({
+      where: { id: employee.id },
+      select: { cartaStakeholderId: true },
+    })
+
+    // Skip employees who already have grants (like dev user)
+    if (existingEmployee?.cartaStakeholderId) {
+      continue
+    }
+
+    const stakeholderId = `stakeholder-${employee.id}`
+
+    await prisma.employee.update({
+      where: { id: employee.id },
+      data: { cartaStakeholderId: stakeholderId },
+    })
+
+    const deelEmployee = await prisma.deelEmployee.findUnique({
+      where: { workEmail: employee.email },
+    })
+    const startDate = deelEmployee?.startDate || faker.date.past({ years: 3 })
+
+    const numGrants = faker.number.int({ min: 1, max: 3 })
+    let remainingOptions = TARGET_TOTAL_OPTIONS
+
+    for (let i = 0; i < numGrants; i++) {
+      const isLastGrant = i === numGrants - 1
+
+      const grantOptions = isLastGrant
+        ? remainingOptions
+        : faker.number.int({
+            min: Math.floor(remainingOptions * 0.2),
+            max: Math.floor(remainingOptions * 0.6),
+          })
+      remainingOptions -= grantOptions
+
+      // Earlier grants have lower exercise prices
+      const maxExercisePrice = CURRENT_STOCK_PRICE * (0.3 + i * 0.2)
+      const exercisePrice = faker.number.float({
+        min: maxExercisePrice / 10,
+        max: maxExercisePrice,
+        fractionDigits: 2,
+      })
+
+      const grantDate = new Date(startDate)
+      grantDate.setFullYear(grantDate.getFullYear() + i)
+
+      // 4-year vesting schedule
+      const now = new Date()
+      const monthsElapsed = Math.max(
+        0,
+        (now.getFullYear() - grantDate.getFullYear()) * 12 +
+          (now.getMonth() - grantDate.getMonth()),
+      )
+      const vestedRatio = Math.min(1, monthsElapsed / 48)
+      const vestedQuantity = Math.floor(grantOptions * vestedRatio)
+
+      await prisma.cartaOptionGrant.create({
+        data: {
+          grantId: `grant-${employee.id}-${i + 1}`,
+          stakeholderId,
+          vestingStartDate: grantDate,
+          vestingSchedule: '4 years, 1 year cliff',
+          exercisePrice,
+          issuedQuantity: grantOptions,
+          exercisedQuantity: 0,
+          vestedQuantity,
+          expiredQuantity: 0,
+        },
+      })
+
+      totalGrants++
+    }
+  }
+
+  console.log(`Generated ${totalGrants} option grants.`)
+}
+
 async function generateEmployees(count: number) {
   console.log(`Generating ${count} employees...`)
 
@@ -156,7 +355,6 @@ async function generateEmployees(count: number) {
   return employees
 }
 
-// Stage 2: Generate DeelEmployees with manager hierarchies
 async function generateDeelEmployees(
   employees: Awaited<ReturnType<typeof generateEmployees>>,
 ) {
@@ -165,11 +363,9 @@ async function generateDeelEmployees(
   const deelEmployees = []
   const titles = Object.keys(sfBenchmark)
 
-  // First, create all DeelEmployees without manager relationships
   for (const employee of employees) {
     const startDate = generatePastDate(faker.number.int({ min: 30, max: 1000 }))
     const team = faker.helpers.arrayElement(VALID_TEAMS)
-    // All exec employees should have title "Cofounder" to connect to root-node
     const title =
       team === 'Exec' ? 'Cofounder' : faker.helpers.arrayElement(titles)
 
@@ -192,13 +388,8 @@ async function generateDeelEmployees(
     deelEmployees.push(deelEmployee)
   }
 
-  // Now set up manager hierarchies
-  // Structure: Exec team -> Team leads -> Regular employees
-
-  // Step 1: Identify exec employees (they are top-level)
+  // Set up manager hierarchies: Exec -> Team leads -> Regular employees
   const execEmployees = deelEmployees.filter((de) => de.team === 'Exec')
-
-  // Step 2: For each non-exec team, identify team leads (first employee in each team)
   const teamLeads: typeof deelEmployees = []
   const regularEmployees: typeof deelEmployees = []
 
@@ -207,13 +398,11 @@ async function generateDeelEmployees(
 
     const teamMembers = deelEmployees.filter((de) => de.team === team)
     if (teamMembers.length > 0) {
-      // First employee in each team is the team lead
       teamLeads.push(teamMembers[0])
       regularEmployees.push(...teamMembers.slice(1))
     }
   }
 
-  // Step 3: Assign team leads to report to exec employees
   for (const teamLead of teamLeads) {
     if (execEmployees.length === 0) break
 
@@ -226,12 +415,10 @@ async function generateDeelEmployees(
       },
     })
 
-    // Update the team lead object
     teamLead.managerId = execManager.id
     teamLead.topLevelManagerId = execManager.id
   }
 
-  // Step 4: Assign regular employees to report to their team leads
   for (const employee of regularEmployees) {
     const teamLead = teamLeads.find((tl) => tl.team === employee.team)
     if (!teamLead) continue
@@ -249,7 +436,6 @@ async function generateDeelEmployees(
       },
     })
 
-    // Update the employee object
     employee.managerId = teamLead.id
     employee.topLevelManagerId = topLevelManager.id
   }
@@ -260,7 +446,6 @@ async function generateDeelEmployees(
   return deelEmployees
 }
 
-// Stage 3: Generate Salary History
 async function generateSalaries(
   employees: Awaited<ReturnType<typeof generateEmployees>>,
 ) {
@@ -275,13 +460,11 @@ async function generateSalaries(
     const numSalaries = faker.number.int({ min: 2, max: 5 })
     const salaries = []
 
-    // Get employee's start date from DeelEmployee if available
     const deelEmployee = await prisma.deelEmployee.findUnique({
       where: { workEmail: employee.email },
     })
     const startDate = deelEmployee?.startDate || generatePastDate(365)
 
-    // Generate base salary (starting point)
     let baseSalary = faker.number.float({
       min: 50000,
       max: 300000,
@@ -291,20 +474,16 @@ async function generateSalaries(
     const areasForCountry = getAreasByCountry(country)
     const area = faker.helpers.arrayElement(areasForCountry)
 
-    // Find the location factor entry to get currency
     const locationEntry = locationFactor.find(
       (loc) => loc.country === country && loc.area === area,
     )
     const localCurrency = locationEntry?.currency || 'USD'
     const locationFactorValue = locationEntry?.locationFactor || 1
 
-    // Get exchange rate from currencyData
     const exchangeRate = currencyData[localCurrency] || 1
 
     for (let i = 0; i < numSalaries; i++) {
-      // First salary is the base, subsequent ones have increases
       if (i > 0) {
-        // Increase by 0-20% for raises
         const increasePercent = faker.number.float({
           min: 0,
           max: 0.2,
@@ -320,7 +499,6 @@ async function generateSalaries(
 
       const level = faker.helpers.arrayElement(SALARY_LEVEL_OPTIONS).value
       const step = faker.number.float({ min: 0, max: 1, fractionDigits: 2 })
-      // Use the locationFactor from the location entry
       const benchmark = faker.helpers.arrayElement(benchmarks)
       const benchmarkFactor = faker.number.float({
         min: 0.8,
@@ -345,7 +523,6 @@ async function generateSalaries(
       const actualSalary = totalSalary - amountTakenInOptions
       const actualSalaryLocal = actualSalary * exchangeRate
 
-      // Calculate change from previous salary
       const previousSalary: { actualSalary: number } | undefined =
         salaries[i - 1]
       const changeAmount: number = previousSalary
@@ -402,7 +579,6 @@ async function generateSalaries(
   console.log(`Generated ${totalSalaries} salary records.`)
 }
 
-// Stage 4: Generate Proposed Hires
 async function generateProposedHires(
   employees: Awaited<ReturnType<typeof generateEmployees>>,
 ) {
@@ -411,7 +587,6 @@ async function generateProposedHires(
   const numProposedHires = faker.number.int({ min: 5, max: 15 })
   const proposedHireTitles = Object.keys(sfBenchmark)
 
-  // Get employees that can be managers (those with DeelEmployees)
   const managerCandidates = await prisma.employee.findMany({
     where: {
       deelEmployee: { isNot: null },
@@ -448,13 +623,11 @@ async function generateProposedHires(
   console.log(`Generated ${numProposedHires} proposed hires.`)
 }
 
-// Stage 5: Generate Keeper Test Feedback
 async function generateKeeperTestFeedback(
   _employees: Awaited<ReturnType<typeof generateEmployees>>,
 ) {
   console.log('Generating keeper test feedback...')
 
-  // Get employees with managers (those that have DeelEmployees with managers)
   const employeesWithManagers = await prisma.employee.findMany({
     where: {
       deelEmployee: {
@@ -501,7 +674,6 @@ async function generateKeeperTestFeedback(
     for (let i = 0; i < numFeedback; i++) {
       const title = faker.helpers.arrayElement(CHECK_IN_TITLES)
 
-      // Generate timestamp after start date
       const daysSinceStart = faker.number.int({ min: 30, max: 365 })
       const timestamp = new Date(startDate)
       timestamp.setDate(timestamp.getDate() + daysSinceStart)
@@ -532,13 +704,11 @@ async function generateKeeperTestFeedback(
   console.log(`Generated ${totalFeedback} keeper test feedback records.`)
 }
 
-// Stage 6: Generate Ashby Interview Scores
 async function generateAshbyInterviewScores(
   _employees: Awaited<ReturnType<typeof generateEmployees>>,
 ) {
   console.log('Generating Ashby interview scores...')
 
-  // Get employees with personalEmail (for realism)
   const employeesWithPersonalEmail = await prisma.employee.findMany({
     where: {
       deelEmployee: {
@@ -557,7 +727,6 @@ async function generateAshbyInterviewScores(
     return
   }
 
-  // Get all employees that can be interviewers
   const interviewerCandidates = await prisma.employee.findMany({
     take: 30,
   })
@@ -569,7 +738,6 @@ async function generateAshbyInterviewScores(
     const startDate = employee.deelEmployee?.startDate || generatePastDate(365)
 
     for (let i = 0; i < numScores; i++) {
-      // Interviewers should be different from interviewee
       const interviewerCandidatesFiltered = interviewerCandidates.filter(
         (e) => e.id !== employee.id,
       )
@@ -582,7 +750,6 @@ async function generateAshbyInterviewScores(
         interviewerCandidatesFiltered,
       )
 
-      // Interviews typically happen before start date
       const daysBeforeStart = faker.number.int({ min: 30, max: 180 })
       const createdAt = new Date(startDate)
       createdAt.setDate(createdAt.getDate() - daysBeforeStart)
@@ -607,13 +774,11 @@ async function generateAshbyInterviewScores(
   console.log(`Generated ${totalScores} Ashby interview scores.`)
 }
 
-// Stage 7: Generate Commission Bonuses
 async function generateCommissionBonuses(
   _employees: Awaited<ReturnType<typeof generateEmployees>>,
 ) {
   console.log('Generating commission bonuses...')
 
-  // Get employees with bonusAmount > 0 in their latest salary
   const employeesWithBonuses = await prisma.employee.findMany({
     include: {
       salaries: {
@@ -637,7 +802,6 @@ async function generateCommissionBonuses(
     return
   }
 
-  // Generate quarters for the past 2 years
   const quarters: string[] = []
   const currentYear = new Date().getFullYear()
   for (let year = currentYear - 2; year <= currentYear; year++) {
@@ -661,7 +825,6 @@ async function generateCommissionBonuses(
     )
 
     for (const quarter of selectedQuarters) {
-      // Check if bonus already exists for this employee/quarter
       const existing = await prisma.commissionBonus.findUnique({
         where: {
           employeeId_quarter: {
@@ -712,11 +875,9 @@ async function generateCommissionBonuses(
   console.log(`Generated ${totalBonuses} commission bonuses.`)
 }
 
-// Main function
 async function generateDemoData() {
   const config = parseArgs()
 
-  // Initialize faker with seed if provided
   if (config.seed !== undefined) {
     faker.seed(config.seed)
     console.log(`Using seed: ${config.seed}`)
@@ -727,20 +888,25 @@ async function generateDemoData() {
   console.log('')
 
   try {
-    // Clear existing data if requested
     if (config.clearExisting) {
       await clearExistingData()
       console.log('')
     }
 
-    // Generate data in dependency order
-    const employees = await generateEmployees(config.numEmployees)
+    const devEmployee = await generateDevUser()
     console.log('')
 
-    await generateDeelEmployees(employees)
+    const randomEmployees = await generateEmployees(config.numEmployees)
+    const employees = [devEmployee, ...randomEmployees]
     console.log('')
 
-    await generateSalaries(employees)
+    await generateDeelEmployees(randomEmployees)
+    console.log('')
+
+    await generateSalaries(randomEmployees)
+    console.log('')
+
+    await generateOptionGrants(employees)
     console.log('')
 
     await generateProposedHires(employees)
@@ -755,11 +921,11 @@ async function generateDemoData() {
     await generateCommissionBonuses(employees)
     console.log('')
 
-    // Print summary
     const summary = {
       employees: await prisma.employee.count(),
       deelEmployees: await prisma.deelEmployee.count(),
       salaries: await prisma.salary.count(),
+      optionGrants: await prisma.cartaOptionGrant.count(),
       proposedHires: await prisma.proposedHire.count(),
       keeperTestFeedback: await prisma.keeperTestFeedback.count(),
       ashbyInterviewScores: await prisma.ashbyInterviewScore.count(),
@@ -771,6 +937,7 @@ async function generateDemoData() {
     console.log(`  Employees: ${summary.employees}`)
     console.log(`  DeelEmployees: ${summary.deelEmployees}`)
     console.log(`  Salaries: ${summary.salaries}`)
+    console.log(`  Option Grants: ${summary.optionGrants}`)
     console.log(`  Proposed Hires: ${summary.proposedHires}`)
     console.log(`  Keeper Test Feedback: ${summary.keeperTestFeedback}`)
     console.log(`  Ashby Interview Scores: ${summary.ashbyInterviewScores}`)
@@ -783,7 +950,6 @@ async function generateDemoData() {
   }
 }
 
-// Run the script
 generateDemoData()
   .then(() => {
     console.log('')
