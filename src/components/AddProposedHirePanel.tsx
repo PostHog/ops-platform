@@ -103,7 +103,7 @@ const addProposedHire = createOrgChartFn({
     })
   })
 
-const updateProposedHire = createOrgChartFn({
+export const updateProposedHire = createOrgChartFn({
   method: 'POST',
 })
   .inputValidator(

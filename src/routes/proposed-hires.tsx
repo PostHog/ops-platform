@@ -13,8 +13,8 @@ import {
   Row,
 } from '@tanstack/react-table'
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import type { Prisma } from '@prisma/client'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import type { Prisma, Priority } from '@prisma/client'
 import {
   Table,
   TableBody,
@@ -23,13 +23,38 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { customFilterFns } from './employees'
 import { getFullName } from '@/lib/utils'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
-import AddProposedHirePanel from '@/components/AddProposedHirePanel'
+import AddProposedHirePanel, {
+  updateProposedHire,
+} from '@/components/AddProposedHirePanel'
 import { useLocalStorage } from 'usehooks-ts'
 import { PriorityBadge } from '@/components/PriorityBadge'
 import { TableFilters } from '@/components/TableFilters'
+import { EditableTextCell } from '@/components/editable-cells/EditableTextCell'
+import { EditableManagerCell } from '@/components/editable-cells/EditableManagerCell'
+import { EditableTalentPartnersCell } from '@/components/editable-cells/EditableTalentPartnersCell'
+import { createToast } from 'vercel-toast'
+import { useMemo } from 'react'
+
+type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
+  include: {
+    employee: {
+      select: {
+        id: true
+        email: true
+      }
+    }
+  }
+}>
 
 type ProposedHire = Prisma.ProposedHireGetPayload<{
   include: {
@@ -50,31 +75,40 @@ type ProposedHire = Prisma.ProposedHireGetPayload<{
   }
 }>
 
-export const Route = createFileRoute('/proposed-hires')({
-  component: RouteComponent,
-})
-
 declare module '@tanstack/react-table' {
-  // allows us to define custom properties for our columns
   interface ColumnMeta<TData extends RowData, TValue> {
     filterVariant?: 'text' | 'range' | 'select' | 'dateRange'
     filterOptions?: Array<{ label: string; value: string | number | boolean }>
     filterLabel?: string
   }
+  interface TableMeta<TData extends RowData> {
+    employees?: DeelEmployee[]
+    talentTeamEmployees?: DeelEmployee[]
+    handleUpdate?: (
+      proposedHire: ProposedHire,
+      field: string,
+      value: string | string[],
+    ) => Promise<void>
+  }
 }
 
-function handleSortToggle(column: Column<any, unknown>) {
+export const Route = createFileRoute('/proposed-hires')({
+  component: RouteComponent,
+})
+
+function handleSortToggle(column: Column<ProposedHire, unknown>) {
   const sortState = column.getIsSorted()
   if (!sortState) {
-    column.toggleSorting(false) // asc
+    column.toggleSorting(false)
   } else if (sortState === 'asc') {
-    column.toggleSorting(true) // desc
+    column.toggleSorting(true)
   } else {
-    column.clearSorting() // no sort
+    column.clearSorting()
   }
 }
 
 function RouteComponent() {
+  const queryClient = useQueryClient()
   const [columnFilters, setColumnFilters] = useLocalStorage<ColumnFiltersState>(
     'proposed-hires.table.columnFilters',
     [],
@@ -96,10 +130,81 @@ function RouteComponent() {
   const proposedHires = data?.proposedHires || []
   const employees = data?.employees || []
 
+  const talentTeamEmployees = useMemo(
+    () =>
+      employees.filter(
+        (employee) =>
+          employee.employee?.id &&
+          employee.team?.toLowerCase().includes('talent'),
+      ),
+    [employees],
+  )
+
+  const handleUpdate = async (
+    proposedHire: ProposedHire,
+    field: string,
+    value: string | string[],
+  ) => {
+    try {
+      const result = await updateProposedHire({
+        data: {
+          id: proposedHire.id,
+          title: field === 'title' ? (value as string) : proposedHire.title,
+          managerId:
+            field === 'managerId'
+              ? (value as string)
+              : proposedHire.manager?.id || '',
+          talentPartnerIds:
+            field === 'talentPartnerIds'
+              ? (value as string[])
+              : proposedHire.talentPartners.map((tp) => tp.id),
+          priority:
+            field === 'priority'
+              ? (value as Priority)
+              : proposedHire.priority,
+          hiringProfile:
+            field === 'hiringProfile'
+              ? (value as string)
+              : proposedHire.hiringProfile,
+        },
+      })
+      // Update the cache in place without refetching to prevent row jumping
+      queryClient.setQueryData(
+        ['proposedHires'],
+        (oldData: typeof data | undefined) => {
+          if (!oldData) return oldData
+          return {
+            ...oldData,
+            proposedHires: oldData.proposedHires.map((ph: ProposedHire) =>
+              ph.id === proposedHire.id ? result : ph,
+            ),
+          }
+        },
+      )
+      createToast('Updated successfully', { timeout: 3000 })
+    } catch (error) {
+      createToast(
+        error instanceof Error ? error.message : 'Failed to update',
+        { timeout: 3000 },
+      )
+      throw error
+    }
+  }
+
   const columns: Array<ColumnDef<ProposedHire>> = [
     {
       accessorKey: 'title',
       header: 'Title',
+      cell: ({ row, table }) => (
+        <EditableTextCell
+          value={row.original.title}
+          onSave={(value) =>
+            table.options.meta?.handleUpdate?.(row.original, 'title', value) ??
+            Promise.resolve()
+          }
+          placeholder="Enter title..."
+        />
+      ),
     },
     {
       accessorKey: 'talentPartners',
@@ -112,35 +217,39 @@ function RouteComponent() {
             filterValue,
           ),
         ),
-      cell: ({ row }) => {
-        const partners = row.original.talentPartners
-        return (
-          <div>
-            {partners.length > 0
-              ? partners
-                  .map((tp) =>
-                    getFullName(
-                      tp.deelEmployee?.firstName,
-                      tp.deelEmployee?.lastName,
-                      tp.email,
-                    ),
-                  )
-                  .join(', ')
-              : 'None'}
-          </div>
-        )
-      },
+      cell: ({ row, table }) => (
+        <EditableTalentPartnersCell
+          selectedIds={row.original.talentPartners.map((tp) => tp.id)}
+          employees={table.options.meta?.talentTeamEmployees || []}
+          onSave={(ids) =>
+            table.options.meta?.handleUpdate?.(
+              row.original,
+              'talentPartnerIds',
+              ids,
+            ) ?? Promise.resolve()
+          }
+        />
+      ),
     },
     {
       accessorKey: 'manager.deelEmployee.firstName',
       header: 'Manager',
-      cell: ({ row }) => (
-        <div>
-          {getFullName(
+      cell: ({ row, table }) => (
+        <EditableManagerCell
+          selectedId={row.original.manager?.id || null}
+          employees={table.options.meta?.employees || []}
+          displayValue={getFullName(
             row.original.manager?.deelEmployee?.firstName,
             row.original.manager?.deelEmployee?.lastName,
           )}
-        </div>
+          onSave={(managerId) =>
+            table.options.meta?.handleUpdate?.(
+              row.original,
+              'managerId',
+              managerId,
+            ) ?? Promise.resolve()
+          }
+        />
       ),
     },
     {
@@ -151,7 +260,39 @@ function RouteComponent() {
       accessorKey: 'priority',
       header: 'Priority',
       cell: ({ row }) => {
-        return <PriorityBadge priority={row.original.priority} />
+        const handlePriorityChange = async (value: string) => {
+          await handleUpdate(row.original, 'priority', value)
+        }
+
+        return (
+          <Select
+            value={row.original.priority}
+            onValueChange={handlePriorityChange}
+          >
+            <SelectTrigger className="h-auto w-auto border-0 p-0 shadow-none hover:bg-transparent focus:ring-0">
+              <SelectValue>
+                <PriorityBadge priority={row.original.priority} />
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="high">
+                <PriorityBadge priority="high" />
+              </SelectItem>
+              <SelectItem value="medium">
+                <PriorityBadge priority="medium" />
+              </SelectItem>
+              <SelectItem value="low">
+                <PriorityBadge priority="low" />
+              </SelectItem>
+              <SelectItem value="filled">
+                <PriorityBadge priority="filled" />
+              </SelectItem>
+              <SelectItem value="pushed_to_next_quarter">
+                <PriorityBadge priority="pushed_to_next_quarter" />
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        )
       },
       meta: {
         filterVariant: 'select',
@@ -183,43 +324,44 @@ function RouteComponent() {
     {
       accessorKey: 'hiringProfile',
       header: 'Hiring Profile',
-      cell: ({ row }) => {
-        return (
-          <div className="min-w-[200px] whitespace-pre-line">
-            {row.original.hiringProfile}
-          </div>
-        )
-      },
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      enableColumnFilter: false,
-      cell: ({ row }) => {
-        return (
-          <AddProposedHirePanel
-            employees={employees}
-            proposedHire={row.original}
-            buttonType="icon"
-          />
-        )
-      },
+      cell: ({ row, table }) => (
+        <EditableTextCell
+          value={row.original.hiringProfile || ''}
+          onSave={(value) =>
+            table.options.meta?.handleUpdate?.(
+              row.original,
+              'hiringProfile',
+              value,
+            ) ?? Promise.resolve()
+          }
+          multiline
+          placeholder="Enter hiring profile..."
+          className="min-w-[200px]"
+        />
+      ),
     },
   ]
 
   const table = useReactTable({
     data: proposedHires || [],
     columns,
+    getRowId: (row) => row.id,
     onColumnFiltersChange: setColumnFilters,
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    autoResetAll: false,
     state: {
       columnFilters,
       sorting,
     },
     filterFns: {},
+    meta: {
+      employees,
+      talentTeamEmployees,
+      handleUpdate,
+    },
   })
 
   return (
