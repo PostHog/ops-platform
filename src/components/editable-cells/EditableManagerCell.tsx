@@ -96,7 +96,9 @@ export function EditableManagerCell({
                       <Check
                         className={cn(
                           'ml-auto h-4 w-4',
-                          selectedId === employeeId ? 'opacity-100' : 'opacity-0',
+                          selectedId === employeeId
+                            ? 'opacity-100'
+                            : 'opacity-0',
                         )}
                       />
                     </CommandItem>

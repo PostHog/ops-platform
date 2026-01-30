@@ -60,8 +60,9 @@ export function EditableTextCell({
   if (isEditing) {
     const commonProps = {
       value: localValue,
-      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-        setLocalValue(e.target.value),
+      onChange: (
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+      ) => setLocalValue(e.target.value),
       onBlur: handleSave,
       onKeyDown: handleKeyDown,
       placeholder,
@@ -101,7 +102,9 @@ export function EditableTextCell({
         className,
       )}
     >
-      {localValue || <span className="text-gray-400">{placeholder || 'Click to edit'}</span>}
+      {localValue || (
+        <span className="text-gray-400">{placeholder || 'Click to edit'}</span>
+      )}
     </div>
   )
 }

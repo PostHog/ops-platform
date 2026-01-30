@@ -159,9 +159,7 @@ function RouteComponent() {
               ? (value as string[])
               : proposedHire.talentPartners.map((tp) => tp.id),
           priority:
-            field === 'priority'
-              ? (value as Priority)
-              : proposedHire.priority,
+            field === 'priority' ? (value as Priority) : proposedHire.priority,
           hiringProfile:
             field === 'hiringProfile'
               ? (value as string)
@@ -183,10 +181,9 @@ function RouteComponent() {
       )
       createToast('Updated successfully', { timeout: 3000 })
     } catch (error) {
-      createToast(
-        error instanceof Error ? error.message : 'Failed to update',
-        { timeout: 3000 },
-      )
+      createToast(error instanceof Error ? error.message : 'Failed to update', {
+        timeout: 3000,
+      })
       throw error
     }
   }
