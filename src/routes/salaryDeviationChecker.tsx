@@ -138,11 +138,9 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
           filteredResults: results
             .filter((x) => x.deviationPercentage > 0.001)
             .map((x) => ({
-              deelSalary: x.deelSalary,
               deviation: x.deviation,
               deviationPercentage: x.deviationPercentage,
               email: x.email,
-              salary: x.salary,
               currency: x.compensation_details.currency_code,
               team: x.team,
             })),
