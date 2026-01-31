@@ -362,8 +362,8 @@ export const Route = createFileRoute('/syncSalaryUpdates')({
           console.log(errors)
         }
 
-        for (const { result, salaryId, email } of results) {
-          console.log(result, email)
+        for (const { result: _result, salaryId, email: _email } of results) {
+          // console.log(_result, _email)
           await prisma.salary.update({
             where: { id: salaryId },
             data: { synced: true },
