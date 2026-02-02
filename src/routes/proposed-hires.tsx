@@ -12,7 +12,7 @@ import {
   SortingState,
   Row,
 } from '@tanstack/react-table'
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Prisma, Priority } from '@prisma/client'
 import {
@@ -30,11 +30,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { customFilterFns } from './employees'
 import { getFullName } from '@/lib/utils'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel, {
   updateProposedHire,
+  deleteProposedHire,
 } from '@/components/AddProposedHirePanel'
 import { useLocalStorage } from 'usehooks-ts'
 import { PriorityBadge } from '@/components/PriorityBadge'
@@ -43,7 +55,7 @@ import { EditableTextCell } from '@/components/editable-cells/EditableTextCell'
 import { EditableManagerCell } from '@/components/editable-cells/EditableManagerCell'
 import { EditableTalentPartnersCell } from '@/components/editable-cells/EditableTalentPartnersCell'
 import { createToast } from 'vercel-toast'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -105,6 +117,62 @@ function handleSortToggle(column: Column<ProposedHire, unknown>) {
   } else {
     column.clearSorting()
   }
+}
+
+function DeleteButton({
+  proposedHire,
+  onDelete,
+}: {
+  proposedHire: ProposedHire
+  onDelete: (id: string) => Promise<void>
+}) {
+  const [open, setOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await onDelete(proposedHire.id)
+      setOpen(false)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 text-gray-400 hover:text-red-500"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete proposed hire?</DialogTitle>
+          <DialogDescription>
+            This will permanently delete the proposed hire &quot;{proposedHire.title}&quot;.
+            This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function RouteComponent() {
@@ -186,6 +254,23 @@ function RouteComponent() {
       })
       throw error
     }
+  }
+
+  const handleDeleteProposedHire = async (id: string) => {
+    await deleteProposedHire({ data: { id } })
+    queryClient.setQueryData(
+      ['proposedHires'],
+      (oldData: typeof data | undefined) => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          proposedHires: oldData.proposedHires.filter(
+            (ph: ProposedHire) => ph.id !== id,
+          ),
+        }
+      },
+    )
+    createToast('Successfully deleted proposed hire.', { timeout: 3000 })
   }
 
   const columns: Array<ColumnDef<ProposedHire>> = [
@@ -334,6 +419,18 @@ function RouteComponent() {
           multiline
           placeholder="Enter hiring profile..."
           className="min-w-[200px]"
+        />
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableColumnFilter: false,
+      enableSorting: false,
+      cell: ({ row }) => (
+        <DeleteButton
+          proposedHire={row.original}
+          onDelete={handleDeleteProposedHire}
         />
       ),
     },
