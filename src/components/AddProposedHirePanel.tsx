@@ -143,7 +143,7 @@ export const updateProposedHire = createOrgChartFn({
     })
   })
 
-const deleteProposedHire = createOrgChartFn({
+export const deleteProposedHire = createOrgChartFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string }) => d)
