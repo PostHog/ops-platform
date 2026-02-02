@@ -253,12 +253,15 @@ const exportCommissionBonusesForDeel = createAdminFn({
         bonus.quota,
         bonus.commissionType,
       )
+      // Calculate net payout after deducting amount held
+      const amountHeldLocal = (bonus.amountHeld || 0) * bonus.exchangeRate
+      const netPayoutLocal = bonus.calculatedAmountLocal - amountHeldLocal
       csvRows.push({
         oid: contractId,
         name: employeeName,
         email: bonus.employee.deelEmployee.personalEmail,
         adjustmentCategoryName: 'Commission',
-        amount: bonus.calculatedAmountLocal.toFixed(2),
+        amount: netPayoutLocal.toFixed(2),
         vendorName: '',
         title: `${bonus.quarter} Commission Bonus`,
         description: `${bonus.quarter} Commission Bonus - ${attainmentPct.toFixed(2)}% attainment`,
@@ -439,14 +442,19 @@ function App() {
         meta: {
           filterVariant: 'range',
         },
-        cell: ({ row }) => (
-          <div>
-            {new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: row.original.localCurrency,
-            }).format(row.original.calculatedAmountLocal)}
-          </div>
-        ),
+        cell: ({ row }) => {
+          const amountHeldLocal =
+            (row.original.amountHeld || 0) * row.original.exchangeRate
+          const netPayout = row.original.calculatedAmountLocal - amountHeldLocal
+          return (
+            <div>
+              {new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: row.original.localCurrency,
+              }).format(netPayout)}
+            </div>
+          )
+        },
       },
       {
         accessorKey: 'localCurrency',
@@ -542,7 +550,10 @@ function App() {
           bonusAmount: new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: bonus.localCurrency,
-          }).format(bonus.calculatedAmountLocal),
+          }).format(
+            bonus.calculatedAmountLocal -
+              (bonus.amountHeld || 0) * bonus.exchangeRate,
+          ),
           currency: bonus.localCurrency,
           communicated: bonus.communicated ? 'Yes' : 'No',
         }
