@@ -254,8 +254,7 @@ const exportCommissionBonusesForDeel = createAdminFn({
         bonus.commissionType,
       )
       // Calculate net payout after deducting amount held
-      const amountHeldLocal =
-        (bonus.amountHeld || 0) * bonus.exchangeRate
+      const amountHeldLocal = (bonus.amountHeld || 0) * bonus.exchangeRate
       const netPayoutLocal = bonus.calculatedAmountLocal - amountHeldLocal
       csvRows.push({
         oid: contractId,
