@@ -154,8 +154,8 @@ function DeleteButton({
         <DialogHeader>
           <DialogTitle>Delete proposed hire?</DialogTitle>
           <DialogDescription>
-            This will permanently delete the proposed hire &quot;{proposedHire.title}&quot;.
-            This action cannot be undone.
+            This will permanently delete the proposed hire &quot;
+            {proposedHire.title}&quot;. This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
