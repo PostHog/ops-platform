@@ -240,6 +240,44 @@ function RouteComponent() {
       .sort((a, b) => a.label.localeCompare(b.label))
   }, [talentTeamEmployees])
 
+  const titleOptions = useMemo(() => {
+    const uniqueTitles = new Set(proposedHires.map((ph) => ph.title))
+    return Array.from(uniqueTitles)
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b))
+      .map((title) => ({ label: title, value: title }))
+  }, [proposedHires])
+
+  const managerOptions = useMemo(() => {
+    const seen = new Map<string, { label: string; value: string }>()
+    for (const ph of proposedHires) {
+      const managerId = ph.manager?.id
+      if (managerId && !seen.has(managerId)) {
+        const name = getFullName(
+          ph.manager?.deelEmployee?.firstName,
+          ph.manager?.deelEmployee?.lastName,
+        )
+        if (name) {
+          seen.set(managerId, { label: name, value: managerId })
+        }
+      }
+    }
+    return Array.from(seen.values()).sort((a, b) =>
+      a.label.localeCompare(b.label),
+    )
+  }, [proposedHires])
+
+  const teamOptions = useMemo(() => {
+    const uniqueTeams = new Set(
+      proposedHires
+        .map((ph) => ph.manager?.deelEmployee?.team)
+        .filter(Boolean) as string[],
+    )
+    return Array.from(uniqueTeams)
+      .sort((a, b) => a.localeCompare(b))
+      .map((team) => ({ label: team, value: team }))
+  }, [proposedHires])
+
   const handleUpdate = async (
     proposedHire: ProposedHire,
     field: string,
@@ -309,6 +347,12 @@ function RouteComponent() {
     {
       accessorKey: 'title',
       header: 'Title',
+      meta: {
+        filterVariant: 'select',
+        filterOptions: titleOptions,
+      },
+      filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) =>
+        filterValue.includes(row.original.title),
       cell: ({ row, table }) => (
         <EditableTextCell
           value={row.original.title}
@@ -346,6 +390,15 @@ function RouteComponent() {
     {
       accessorKey: 'manager.deelEmployee.firstName',
       header: 'Manager',
+      meta: {
+        filterVariant: 'select',
+        filterOptions: managerOptions,
+      },
+      filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) => {
+        const managerId = row.original.manager?.id
+        if (!managerId) return false
+        return filterValue.includes(managerId)
+      },
       cell: ({ row, table }) => (
         <EditableManagerCell
           selectedId={row.original.manager?.id || null}
@@ -367,6 +420,15 @@ function RouteComponent() {
     {
       accessorKey: 'manager.deelEmployee.team',
       header: 'Team',
+      meta: {
+        filterVariant: 'select',
+        filterOptions: teamOptions,
+      },
+      filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) => {
+        const team = row.original.manager?.deelEmployee?.team
+        if (!team) return false
+        return filterValue.includes(team)
+      },
     },
     {
       id: 'blitzscaleManager',
