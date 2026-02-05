@@ -213,24 +213,14 @@ function RouteComponent() {
   )
 
   const blitzscaleManagerOptions = useMemo(() => {
-    // Get unique top-level manager IDs from employees
-    const tlmIds = new Set<string>()
-    for (const emp of employees) {
-      if (emp.topLevelManagerId) {
-        tlmIds.add(emp.topLevelManagerId)
-      }
-    }
-    // Look up each top-level manager's name from the employees list
-    const employeeMap = new Map(employees.map((e) => [e.id, e]))
-    return Array.from(tlmIds)
+    const employeeById = new Map(employees.map((e) => [e.id, e]))
+    const tlmIds = [...new Set(employees.map((e) => e.topLevelManagerId).filter(Boolean))]
+    return tlmIds
       .map((id) => {
-        const tlm = employeeMap.get(id)
-        return {
-          label: tlm ? getFullName(tlm.firstName, tlm.lastName) : id,
-          value: id,
-        }
+        const tlm = employeeById.get(id!)
+        return tlm ? { label: getFullName(tlm.firstName, tlm.lastName), value: id! } : null
       })
-      .filter((opt) => opt.label) // Filter out empty names
+      .filter((opt): opt is { label: string; value: string } => opt !== null && opt.label !== '')
       .sort((a, b) => a.label.localeCompare(b.label))
   }, [employees])
 
