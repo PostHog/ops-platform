@@ -104,7 +104,7 @@ function RouteComponent() {
     } else {
       // Start new conversation (without creating DB record yet)
       setConversationId(undefined)
-      navigate({ search: {} })
+      navigate({ search: { c: undefined } })
     }
   }
 

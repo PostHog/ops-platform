@@ -19,7 +19,7 @@ export function ChatSidebar({
 
   const { data: conversations = [] } = useQuery({
     queryKey: ['agentConversations'],
-    queryFn: () => getConversations({ data: {} }),
+    queryFn: getConversations,
   })
 
   const deleteConversationMutation = useMutation({
@@ -43,7 +43,10 @@ export function ChatSidebar({
   const getConversationTitle = (conversation: (typeof conversations)[0]) => {
     const firstMessage = conversation.messages[0]
     if (firstMessage?.content) {
-      return firstMessage.content.slice(0, 50) + (firstMessage.content.length > 50 ? '…' : '')
+      return (
+        firstMessage.content.slice(0, 50) +
+        (firstMessage.content.length > 50 ? '…' : '')
+      )
     }
     return 'New conversation'
   }
