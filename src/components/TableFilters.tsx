@@ -143,7 +143,11 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
   const columns = table.getAllColumns()
   // Track filter options changes to re-compute filters when dynamic options load
   const filterOptionsKey = columns
-    .map((col) => (col.columnDef.meta as ColumnMeta | undefined)?.filterOptions?.length ?? 0)
+    .map(
+      (col) =>
+        (col.columnDef.meta as ColumnMeta | undefined)?.filterOptions?.length ??
+        0,
+    )
     .join(',')
   const filters: FilterConfig[] = useMemo(
     () =>
