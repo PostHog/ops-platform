@@ -74,7 +74,11 @@ type ProposedHire = Prisma.ProposedHireGetPayload<{
       select: {
         id: true
         email: true
-        deelEmployee: true
+        deelEmployee: {
+          include: {
+            topLevelManager: true
+          }
+        }
       }
     }
     talentPartners: {
@@ -208,6 +212,28 @@ function RouteComponent() {
     [employees],
   )
 
+  const blitzscaleManagerOptions = useMemo(() => {
+    // Get unique top-level manager IDs from employees
+    const tlmIds = new Set<string>()
+    for (const emp of employees) {
+      if (emp.topLevelManagerId) {
+        tlmIds.add(emp.topLevelManagerId)
+      }
+    }
+    // Look up each top-level manager's name from the employees list
+    const employeeMap = new Map(employees.map((e) => [e.id, e]))
+    return Array.from(tlmIds)
+      .map((id) => {
+        const tlm = employeeMap.get(id)
+        return {
+          label: tlm ? getFullName(tlm.firstName, tlm.lastName) : id,
+          value: id,
+        }
+      })
+      .filter((opt) => opt.label) // Filter out empty names
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [employees])
+
   const handleUpdate = async (
     proposedHire: ProposedHire,
     field: string,
@@ -337,6 +363,24 @@ function RouteComponent() {
     {
       accessorKey: 'manager.deelEmployee.team',
       header: 'Team',
+    },
+    {
+      id: 'blitzscaleManager',
+      accessorFn: (row) =>
+        getFullName(
+          row.manager?.deelEmployee?.topLevelManager?.firstName,
+          row.manager?.deelEmployee?.topLevelManager?.lastName,
+        ),
+      header: 'Blitzscale Manager',
+      meta: {
+        filterVariant: 'select',
+        filterOptions: blitzscaleManagerOptions,
+      },
+      filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) => {
+        const tlmId = row.original.manager?.deelEmployee?.topLevelManagerId
+        if (!tlmId) return false
+        return filterValue.includes(tlmId)
+      },
     },
     {
       accessorKey: 'priority',
