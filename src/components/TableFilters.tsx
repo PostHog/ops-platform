@@ -140,10 +140,18 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
     setFilterOpenStates((prev) => ({ ...prev, [columnId]: open }))
   }, [])
 
+  const columns = table.getAllColumns()
+  // Track filter options changes to re-compute filters when dynamic options load
+  const filterOptionsKey = columns
+    .map(
+      (col) =>
+        (col.columnDef.meta as ColumnMeta | undefined)?.filterOptions?.length ??
+        0,
+    )
+    .join(',')
   const filters: FilterConfig[] = useMemo(
     () =>
-      table
-        .getAllColumns()
+      columns
         .filter((col) => col.columnDef.enableColumnFilter !== false)
         .map((column) => {
           const def = column.columnDef
@@ -160,7 +168,8 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
           }
         })
         .filter((filter) => table.getColumn(filter.columnId) != null),
-    [table],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [table, filterOptionsKey],
   )
 
   // Create stable onOpenChange callbacks for each filter

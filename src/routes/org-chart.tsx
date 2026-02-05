@@ -156,7 +156,11 @@ export const getDeelEmployeesAndProposedHires = createInternalFn({
         select: {
           id: true,
           email: true,
-          deelEmployee: true,
+          deelEmployee: {
+            include: {
+              topLevelManager: true,
+            },
+          },
         },
       },
       talentPartners: {
