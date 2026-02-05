@@ -24,7 +24,6 @@ interface AgentChatProps {
 export function AgentChat({
   agent,
   conversationId: propConversationId,
-  onConversationCreated,
 }: AgentChatProps) {
   const queryClient = useQueryClient()
   const [conversationId, setConversationId] = useState(propConversationId)
@@ -68,12 +67,6 @@ export function AgentChat({
   // AI SDK useChat hook
   const chatHook = useChat({
     transport,
-    initialMessages:
-      conversation?.messages?.map((m) => ({
-        id: m.id,
-        role: m.role as 'user' | 'assistant',
-        parts: [{ type: 'text' as const, text: m.content }],
-      })) ?? [],
     onFinish: () => {
       queryClient.invalidateQueries({ queryKey: ['agentConversations'] })
     },
@@ -83,7 +76,8 @@ export function AgentChat({
   const sendMessage = chatHook.sendMessage
   const setMessages = chatHook.setMessages
   const error = chatHook.error
-  const isLoading = chatHook.isLoading
+  const status = chatHook.status
+  const isLoading = status === 'streaming'
 
   const handleInputChange = (
     e: ChangeEvent<HTMLTextAreaElement> | ChangeEvent<HTMLInputElement>,
@@ -107,30 +101,6 @@ export function AgentChat({
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  // Check for pending confirmations in messages
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role === 'assistant' && lastMessage.content) {
-      // Check if there's a confirmation request in content
-      const content = lastMessage.content
-      if (content.includes('__requiresConfirmation')) {
-        try {
-          const match = content.match(
-            /__requiresConfirmation.*?toolName.*?"([^"]+)".*?args.*?(\{[^}]+\})/s,
-          )
-          if (match) {
-            setPendingAction({
-              toolName: match[1],
-              args: JSON.parse(match[2]),
-            })
-          }
-        } catch {
-          // Ignore parse errors
-        }
-      }
-    }
   }, [messages])
 
   const handleSend = async (e: React.FormEvent) => {

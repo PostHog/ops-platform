@@ -8,7 +8,10 @@ export const readEmployees = defineTool({
     'Retrieve employee data with optional filters. Returns employee information including their latest salary, location factor, and team.',
   parameters: z.object({
     team: z.string().optional().describe('Filter by team name'),
-    benchmark: z.string().optional().describe('Filter by salary benchmark/role'),
+    benchmark: z
+      .string()
+      .optional()
+      .describe('Filter by salary benchmark/role'),
     country: z.string().optional().describe('Filter by country'),
     managerId: z.string().optional().describe('Filter by manager employee ID'),
     limit: z
@@ -48,14 +51,14 @@ export const readEmployees = defineTool({
     let filtered = employees
     if (params.benchmark) {
       filtered = filtered.filter((e) =>
-        e.salaries[0]?.benchmark
+        e.salaries?.[0]?.benchmark
           ?.toLowerCase()
           .includes(params.benchmark!.toLowerCase()),
       )
     }
     if (params.country) {
       filtered = filtered.filter((e) =>
-        e.salaries[0]?.country
+        e.salaries?.[0]?.country
           ?.toLowerCase()
           .includes(params.country!.toLowerCase()),
       )
@@ -70,7 +73,7 @@ export const readEmployees = defineTool({
       title: e.deelEmployee?.title,
       team: e.deelEmployee?.team,
       startDate: e.deelEmployee?.startDate,
-      latestSalary: e.salaries[0]
+      latestSalary: e.salaries?.[0]
         ? {
             totalSalary: e.salaries[0].totalSalary,
             locationFactor: e.salaries[0].locationFactor,
@@ -93,7 +96,9 @@ export const readSalaryHistory = defineTool({
   description:
     'Get salary history for a specific employee. Returns all salary records ordered by date.',
   parameters: z.object({
-    employeeId: z.string().describe('The employee ID to get salary history for'),
+    employeeId: z
+      .string()
+      .describe('The employee ID to get salary history for'),
     limit: z
       .number()
       .max(20)
@@ -224,7 +229,9 @@ export const readOrgStructure = defineTool({
     rootManagerId: z
       .string()
       .optional()
-      .describe('Start from this manager (DeelEmployee ID). If not provided, returns top-level managers.'),
+      .describe(
+        'Start from this manager (DeelEmployee ID). If not provided, returns top-level managers.',
+      ),
     depth: z
       .number()
       .max(5)
@@ -264,8 +271,8 @@ export const readOrgStructure = defineTool({
           title: emp.title,
           team: emp.team,
           startDate: emp.startDate,
-          salary: emp.employee?.salaries[0]?.totalSalary,
-          locationFactor: emp.employee?.salaries[0]?.locationFactor,
+          salary: emp.employee?.salaries?.[0]?.totalSalary,
+          locationFactor: emp.employee?.salaries?.[0]?.locationFactor,
           directReports,
         })
       }
