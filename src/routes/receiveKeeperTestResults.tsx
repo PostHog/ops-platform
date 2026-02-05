@@ -180,8 +180,8 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
               recommendation: KeeperTestRecommendation | null,
             ): { flag: string; mention: boolean } => {
               // Flag logic:
-              // Red circle + mention: Any STRONG_NO or (NO on 80 day check-in)
-              // Yellow circle: Any NO
+              // Red circle + mention: Any STRONG_NO or (NO on 80 Day check-in or Keeper test)
+              // Yellow circle: Any NO (on 30/60 day check-ins)
               // Green circle: All responses are YES
               // Star: Any STRONG_YES
               const hasStrongNo =
@@ -195,7 +195,11 @@ export const Route = createFileRoute('/receiveKeeperTestResults')({
                 (rating) => rating === 'STRONG_YES',
               )
 
-              if (hasStrongNo || (hasNo && title === '80 Day check-in')) {
+              if (
+                hasStrongNo ||
+                (hasNo &&
+                  (title === '80 Day check-in' || title === 'Keeper test'))
+              ) {
                 return { flag: ':red_circle:', mention: true }
               } else if (hasNo) {
                 return { flag: ':large_yellow_circle:', mention: false }
