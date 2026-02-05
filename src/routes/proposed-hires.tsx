@@ -41,7 +41,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { customFilterFns } from './employees'
 import { getFullName } from '@/lib/utils'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel, {
@@ -230,6 +229,17 @@ function RouteComponent() {
     return options.sort((a, b) => a.label.localeCompare(b.label))
   }, [employees])
 
+  const talentPartnerOptions = useMemo(() => {
+    return talentTeamEmployees
+      .filter((emp) => emp.employee?.id)
+      .map((emp) => ({
+        label: getFullName(emp.firstName, emp.lastName),
+        value: emp.employee!.id,
+      }))
+      .filter((opt) => opt.label)
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [talentTeamEmployees])
+
   const handleUpdate = async (
     proposedHire: ProposedHire,
     field: string,
@@ -313,14 +323,12 @@ function RouteComponent() {
     {
       accessorKey: 'talentPartners',
       header: 'Talent Partners',
-      filterFn: (row: Row<ProposedHire>, _: string, filterValue: string) =>
-        row.original.talentPartners.some((tp) =>
-          customFilterFns.containsText(
-            getFullName(tp.deelEmployee?.firstName, tp.deelEmployee?.lastName),
-            _,
-            filterValue,
-          ),
-        ),
+      meta: {
+        filterVariant: 'select',
+        filterOptions: talentPartnerOptions,
+      },
+      filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) =>
+        row.original.talentPartners.some((tp) => filterValue.includes(tp.id)),
       cell: ({ row, table }) => (
         <EditableTalentPartnersCell
           selectedIds={row.original.talentPartners.map((tp) => tp.id)}
