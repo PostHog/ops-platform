@@ -635,6 +635,17 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   job.data as string,
                 ) as KeeperTestJobPayload
 
+                const deelEmployee = await prisma.deelEmployee.findFirst({
+                  where: { workEmail: employee.email },
+                })
+                if (!deelEmployee) {
+                  await prisma.cyclotronJob.update({
+                    where: { id: job.id },
+                    data: { state: 'cancelled', lock_id: null },
+                  })
+                  return
+                }
+
                 if (!thread_id) {
                   console.log('Thread ID is required')
                   jobResults.push({
@@ -730,6 +741,17 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 const { thread_id, manager, employee } = JSON.parse(
                   job.data as string,
                 ) as KeeperTestJobPayload
+
+                const deelEmployee = await prisma.deelEmployee.findFirst({
+                  where: { workEmail: employee.email },
+                })
+                if (!deelEmployee) {
+                  await prisma.cyclotronJob.update({
+                    where: { id: job.id },
+                    data: { state: 'cancelled', lock_id: null },
+                  })
+                  return
+                }
 
                 if (!thread_id) {
                   console.log('Thread ID is required')

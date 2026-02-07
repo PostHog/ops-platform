@@ -148,6 +148,7 @@ enum CyclotronJobState {
   running
   available
   failed
+  cancelled
 }
 
 model CyclotronJob {
