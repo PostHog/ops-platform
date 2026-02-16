@@ -96,7 +96,7 @@ export const Route = createFileRoute(
                         text: 'View Employee Page',
                         emoji: true,
                       },
-                      url: `${process.env.VITE_APP_BETTER_AUTH_URL}/employees/${item.program.employeeId}`,
+                      url: `${process.env.VITE_APP_BETTER_AUTH_URL}/employee/${item.program.employeeId}`,
                       action_id: 'view_employee_page',
                     },
                   },
