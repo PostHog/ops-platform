@@ -135,6 +135,9 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
   const [filterOpenStates, setFilterOpenStates] = useState<
     Record<string, boolean>
   >({})
+  const [multiSelectSearch, setMultiSelectSearch] = useState<
+    Record<string, string>
+  >({})
 
   const setFilterOpen = useCallback((columnId: string, open: boolean) => {
     setFilterOpenStates((prev) => ({ ...prev, [columnId]: open }))
@@ -272,33 +275,64 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
       column?.setFilterValue(newValue.length > 0 ? newValue : undefined)
     }
 
+    const searchTerm = multiSelectSearch[filter.columnId] ?? ''
+    const filteredOptions = filter.options?.filter((option) =>
+      option.label.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
+    const showSearch = (filter.options?.length ?? 0) > 8
+
     return (
       <FilterPopover
         filter={filter}
         hasValue={hasValue}
         badgeCount={currentValue.length}
         isOpen={isOpen}
-        onOpenChange={(open) => setFilterOpen(filter.columnId, open)}
+        onOpenChange={(open) => {
+          setFilterOpen(filter.columnId, open)
+          if (!open) {
+            setMultiSelectSearch((prev) => ({ ...prev, [filter.columnId]: '' }))
+          }
+        }}
       >
-        <div className="space-y-2">
-          {filter.options?.map((option) => (
-            <div
-              key={String(option.value)}
-              className="flex items-center space-x-2"
-            >
-              <Checkbox
-                id={`${filter.columnId}-${option.value}`}
-                checked={currentValue.includes(option.value)}
-                onCheckedChange={() => toggleValue(option.value)}
-              />
-              <label
-                htmlFor={`${filter.columnId}-${option.value}`}
-                className="flex-1 cursor-pointer text-sm"
+        {showSearch && (
+          <Input
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) =>
+              setMultiSelectSearch((prev) => ({
+                ...prev,
+                [filter.columnId]: e.target.value,
+              }))
+            }
+            className="mb-2 h-8"
+          />
+        )}
+        <div className="max-h-60 overflow-y-auto">
+          <div className="space-y-2">
+            {filteredOptions?.map((option) => (
+              <div
+                key={String(option.value)}
+                className="flex items-center space-x-2"
               >
-                {option.render ? option.render(option.value) : option.label}
-              </label>
-            </div>
-          ))}
+                <Checkbox
+                  id={`${filter.columnId}-${option.value}`}
+                  checked={currentValue.includes(option.value)}
+                  onCheckedChange={() => toggleValue(option.value)}
+                />
+                <label
+                  htmlFor={`${filter.columnId}-${option.value}`}
+                  className="flex-1 cursor-pointer text-sm"
+                >
+                  {option.render ? option.render(option.value) : option.label}
+                </label>
+              </div>
+            ))}
+            {filteredOptions?.length === 0 && (
+              <div className="text-muted-foreground py-2 text-center text-sm">
+                No options found
+              </div>
+            )}
+          </div>
         </div>
         {hasValue && (
           <ClearButton
