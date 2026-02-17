@@ -12,7 +12,7 @@ import {
   SortingState,
   Row,
 } from '@tanstack/react-table'
-import { ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from 'lucide-react'
+import { ArrowUpDown, ArrowUp, ArrowDown, Trash2, Info } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Prisma, Priority } from '@prisma/client'
 import {
@@ -54,6 +54,12 @@ import { EditableTextCell } from '@/components/editable-cells/EditableTextCell'
 import { EditableManagerCell } from '@/components/editable-cells/EditableManagerCell'
 import { EditableTalentPartnersCell } from '@/components/editable-cells/EditableTalentPartnersCell'
 import { createToast } from 'vercel-toast'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useMemo, useState } from 'react'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
@@ -419,9 +425,24 @@ function RouteComponent() {
     },
     {
       accessorKey: 'manager.deelEmployee.team',
-      header: 'Team',
+      header: () => (
+        <span className="flex items-center gap-1">
+          Team
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="text-muted-foreground h-3.5 w-3.5" />
+              </TooltipTrigger>
+              <TooltipContent>
+                This field is derived from the assigned manager
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </span>
+      ),
       meta: {
         filterVariant: 'select',
+        filterLabel: 'Team',
         filterOptions: teamOptions,
       },
       filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) => {
@@ -437,9 +458,24 @@ function RouteComponent() {
           row.manager?.deelEmployee?.topLevelManager?.firstName,
           row.manager?.deelEmployee?.topLevelManager?.lastName,
         ),
-      header: 'Blitzscale Manager',
+      header: () => (
+        <span className="flex items-center gap-1">
+          Blitzscale Manager
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="text-muted-foreground h-3.5 w-3.5" />
+              </TooltipTrigger>
+              <TooltipContent>
+                This field is derived from the assigned manager
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </span>
+      ),
       meta: {
         filterVariant: 'select',
+        filterLabel: 'Blitzscale Manager',
         filterOptions: blitzscaleManagerOptions,
       },
       filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) => {
