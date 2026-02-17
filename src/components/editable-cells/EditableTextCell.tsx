@@ -68,7 +68,7 @@ export function EditableTextCell({
       placeholder,
       disabled: isSaving,
       className: cn(
-        'h-auto min-h-0 px-2 py-1 text-xs leading-normal',
+        'h-auto min-h-0 px-2 py-1 text-xs md:text-xs leading-normal',
         multiline && 'min-w-[200px]',
         className,
       ),
