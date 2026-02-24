@@ -77,7 +77,7 @@ export function formatCurrency(
   }).format(amount)
 }
 
-// compensation data updated on 2025-12-02
+// compensation data updated on 2026-02-24
 
 export const currencyData: Record<string, number> = {
   CAD: 1.264,
@@ -136,6 +136,7 @@ export const sfBenchmark: Record<string, number> = {
   'Events Manager': 165000,
   'Finance Manager': 181680,
   'Front End Developer': 212000,
+  'Forward Deployed Engineer': 211000,
   'Full Stack Engineer': 262000,
   'Graphic Designer': 147530,
   'Mobile Engineer': 262000,
@@ -151,6 +152,7 @@ export const sfBenchmark: Record<string, number> = {
   'Site Reliability Engineer': 236000,
   'Support Engineer': 189000,
   'Talent Partner': 210000,
+  'Talent Sourcer': 165000,
   'Video Producer': 166800,
 }
 
