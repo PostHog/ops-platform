@@ -120,6 +120,7 @@ export const currencyData: Record<string, number> = {
 export const bonusPercentage: Record<string, number> = {
   'Account Executive (OTE)': 0.5,
   'Customer Success Manager (OTE)': 0.2,
+  'Business Development Representative (OTE)': 0.0,
 }
 
 export const sfBenchmark: Record<string, number> = {
