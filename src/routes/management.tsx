@@ -144,6 +144,8 @@ const populateInitialEmployeeSalaries = createAdminFn({
     'Technical Content Marketer': 'Content Marketer',
     'Platform Engineer': 'Site Reliability Engineer',
     'Clickhouse Engineer': 'Product Engineer',
+    'Software Engineer': 'Product Engineer',
+    'Infrastructure Engineer': 'Product Engineer',
   }
 
   let successCount = 0
