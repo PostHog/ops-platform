@@ -87,10 +87,6 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
                   throw new Error('No compensation table found')
                 }
 
-                console.log(
-                  'fetched bamboo rate',
-                  compTable[compTable.length - 1].rate.value,
-                )
                 return Number(compTable[compTable.length - 1].rate.value)
               }
               return getDeelAnnualSalary(compensation_details)
@@ -133,19 +129,6 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
             })
           }),
         )
-
-        console.log({
-          filteredResults: results
-            .filter((x) => x.deviationPercentage > 0.001)
-            .map((x) => ({
-              deviation: x.deviation,
-              deviationPercentage: x.deviationPercentage,
-              email: x.email,
-              currency: x.compensation_details.currency_code,
-              team: x.team,
-            })),
-          errors,
-        })
 
         if (errors.length > 0) {
           console.log(errors)
