@@ -1,5 +1,5 @@
 import { memo, useState } from 'react'
-import { Check, Eye, File as FileIcon, MessageSquare, X } from 'lucide-react'
+import { Eye, File as FileIcon, MessageSquare, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -343,7 +343,7 @@ export function PerformanceProgramPanel({
               return (
                 <div
                   key={feedback.id}
-                  className="group/feedback flex flex-col gap-2 rounded border border-gray-200 bg-gray-50/50 px-3 py-2"
+                  className="flex flex-col gap-2 rounded border border-gray-200 bg-gray-50/50 px-3 py-2"
                 >
                   <div className="flex items-center gap-2">
                     <MessageSquare className="h-4 w-4 shrink-0 text-gray-500" />
@@ -397,7 +397,6 @@ export function PerformanceProgramPanel({
                           onClick={handleSaveEdit}
                           disabled={isSavingEdit || !editingText.trim()}
                         >
-                          <Check className="h-3.5 w-3.5" />
                           {isSavingEdit ? 'Saving...' : 'Save'}
                         </Button>
                         <Button
