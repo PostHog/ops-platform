@@ -1,4 +1,5 @@
-import { memo, useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useState } from 'react'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { useServerFn } from '@tanstack/react-start'
 import { getProofFileUrl } from '@/routes/employee.$employeeId'
 
@@ -7,27 +8,56 @@ interface InlineProofImageProps {
   fileName: string
 }
 
+function isSafeUrl(raw: string): boolean {
+  try {
+    const parsed = new URL(raw)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+
 export const InlineProofImage = memo(function InlineProofImage({
   fileId,
   fileName,
 }: InlineProofImageProps) {
   const [url, setUrl] = useState<string | null>(null)
+  const [error, setError] = useState(false)
   const getFileUrl = useServerFn(getProofFileUrl)
 
-  useEffect(() => {
+  const fetchUrl = useCallback(() => {
+    setError(false)
+    setUrl(null)
     getFileUrl({ data: { proofFileId: fileId } })
       .then((result) => {
-        try {
-          const parsed = new URL(result.url)
-          if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
-            setUrl(result.url)
-          }
-        } catch {
-          // Invalid URL, ignore
+        if (isSafeUrl(result.url)) {
+          setUrl(result.url)
+        } else {
+          setError(true)
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        setError(true)
+      })
   }, [fileId])
+
+  useEffect(() => {
+    fetchUrl()
+  }, [fetchUrl])
+
+  if (error) {
+    return (
+      <button
+        type="button"
+        onClick={fetchUrl}
+        className="flex h-32 w-full items-center justify-center gap-2 rounded border border-gray-200 bg-gray-50 text-sm text-gray-500 hover:bg-gray-100"
+      >
+        <AlertTriangle className="h-4 w-4" />
+        Failed to load {fileName}
+        <RefreshCw className="h-3.5 w-3.5" />
+      </button>
+    )
+  }
 
   if (!url) {
     return (
