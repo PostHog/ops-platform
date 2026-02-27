@@ -301,12 +301,16 @@ export function PerformanceProgramChecklistItem({
       onDrop={handleDrop}
     >
       <div className="flex items-center gap-3">
-        <Checkbox
-          checked={item.completed}
-          onCheckedChange={handleToggleComplete}
-          disabled={isUpdating}
-          className="shrink-0"
-        />
+        <label className="flex shrink-0 cursor-pointer items-center gap-1.5">
+          <Checkbox
+            checked={item.completed}
+            onCheckedChange={handleToggleComplete}
+            disabled={isUpdating}
+          />
+          <span className="text-xs text-gray-500">
+            {item.completed ? 'Completed' : 'Mark complete'}
+          </span>
+        </label>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <div
