@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CalendarIcon,
   Eye,
@@ -91,6 +91,30 @@ interface PerformanceProgramPanelProps {
   program: PerformanceProgram | null
   onUpdate: () => void
   reportingChain?: Array<{ name: string; team?: string }>
+}
+
+function PendingImagePreview({
+  file,
+  fileName,
+}: {
+  file: File
+  fileName: string
+}) {
+  const previewUrl = useMemo(() => URL.createObjectURL(file), [file])
+
+  useEffect(() => {
+    return () => {
+      URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
+
+  return (
+    <img
+      src={previewUrl}
+      alt={fileName}
+      className="max-h-[120px] rounded border border-gray-200"
+    />
+  )
 }
 
 export function PerformanceProgramPanel({
@@ -401,11 +425,7 @@ export function PerformanceProgramPanel({
                 {feedbackFiles.map((file, index) =>
                   isImageFile(file.name, file.type) ? (
                     <div key={index} className="group relative">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={file.name}
-                        className="max-h-[120px] rounded border border-gray-200"
-                      />
+                      <PendingImagePreview file={file} fileName={file.name} />
                       <button
                         type="button"
                         onClick={() => {
