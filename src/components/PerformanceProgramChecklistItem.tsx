@@ -505,7 +505,6 @@ export function PerformanceProgramChecklistItem({
         placeholder="Add notes (optional)..."
         className="w-full resize-none text-sm"
         rows={3}
-        disabled={item.completed}
       />
     </div>
   )
