@@ -829,6 +829,40 @@ export const addProgramFeedback = createInternalFn({
     return feedback
   })
 
+export const updateProgramFeedback = createInternalFn({
+  method: 'POST',
+})
+  .inputValidator((d: { feedbackId: string; feedback: string }) => d)
+  .handler(async ({ data, context }) => {
+    const existing = await prisma.performanceProgramFeedback.findUnique({
+      where: { id: data.feedbackId },
+      include: { program: true },
+    })
+
+    if (!existing) {
+      throw new Error('Feedback not found')
+    }
+
+    if (existing.program.status !== 'ACTIVE') {
+      throw new Error('Cannot edit feedback on a resolved program')
+    }
+
+    // Only the author can edit their own feedback
+    if (existing.givenByUserId !== context.user.id) {
+      throw new Error('Unauthorized')
+    }
+
+    const updated = await prisma.performanceProgramFeedback.update({
+      where: { id: data.feedbackId },
+      data: {
+        feedback: data.feedback,
+        updatedAt: new Date(),
+      },
+    })
+
+    return updated
+  })
+
 export const resolvePerformanceProgram = createInternalFn({
   method: 'POST',
 })
