@@ -58,7 +58,6 @@ interface PerformanceProgramTimelineCardProps {
   lastTableItem?: boolean
 }
 
-
 export function PerformanceProgramTimelineCard({
   event,
   program,

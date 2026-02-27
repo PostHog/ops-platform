@@ -1437,7 +1437,11 @@ function EmployeeOverview() {
       if (!manager) break
 
       chain.push({
-        name: getFullName(manager.firstName, manager.lastName, manager.workEmail ?? undefined),
+        name: getFullName(
+          manager.firstName,
+          manager.lastName,
+          manager.workEmail ?? undefined,
+        ),
         team: manager.team || undefined,
       })
 
