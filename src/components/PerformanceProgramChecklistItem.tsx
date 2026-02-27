@@ -221,7 +221,7 @@ export function PerformanceProgramChecklistItem({
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    setDragCounter((c) => c - 1)
+    setDragCounter((c) => Math.max(0, c - 1))
   }, [])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
