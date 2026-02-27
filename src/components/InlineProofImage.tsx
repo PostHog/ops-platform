@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { useServerFn } from '@tanstack/react-start'
 import { getProofFileUrl } from '@/routes/employee.$employeeId'
 
@@ -7,7 +7,10 @@ interface InlineProofImageProps {
   fileName: string
 }
 
-export function InlineProofImage({ fileId, fileName }: InlineProofImageProps) {
+export const InlineProofImage = memo(function InlineProofImage({
+  fileId,
+  fileName,
+}: InlineProofImageProps) {
   const [url, setUrl] = useState<string | null>(null)
   const getFileUrl = useServerFn(getProofFileUrl)
 
@@ -32,7 +35,7 @@ export function InlineProofImage({ fileId, fileName }: InlineProofImageProps) {
       />
     </a>
   )
-}
+})
 
 export function isImageFile(
   fileName: string,
