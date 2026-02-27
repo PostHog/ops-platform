@@ -1422,6 +1422,36 @@ function EmployeeOverview() {
     return trees.length === 1 ? trees[0] : trees
   }, [deelEmployees, proposedHires, user?.role, managerDeelEmployeeId])
 
+  // Build the reporting chain for the performance program "Viewable by" tooltip
+  const reportingChain = useMemo(() => {
+    if (!deelEmployees || !employee.deelEmployee?.managerId) return []
+
+    const employeeMap = new Map(deelEmployees.map((e) => [e.id, e]))
+    const chain: Array<{ name: string; team?: string }> = []
+    let currentId: string | null = employee.deelEmployee.managerId
+    const visitedManagerIds = new Set<string>()
+
+    while (currentId && !visitedManagerIds.has(currentId)) {
+      visitedManagerIds.add(currentId)
+      const manager = employeeMap.get(currentId)
+      if (!manager) break
+
+      chain.push({
+        name: getFullName(
+          manager.firstName,
+          manager.lastName,
+          manager.workEmail ?? undefined,
+        ),
+        team: manager.team || undefined,
+      })
+
+      if (manager.team === 'Blitzscale') break
+      currentId = manager.managerId
+    }
+
+    return chain
+  }, [deelEmployees, employee.deelEmployee?.managerId])
+
   // Flatten hierarchy to get all employees for search
   const allHierarchyEmployees = useMemo(() => {
     if (!managerHierarchy) return []
@@ -1953,6 +1983,7 @@ function EmployeeOverview() {
                 employeeId={employee.id}
                 program={employee.performancePrograms[0] as any}
                 onUpdate={() => router.invalidate()}
+                reportingChain={reportingChain}
               />
             </div>
           ) : null}

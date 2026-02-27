@@ -11,7 +11,7 @@ import { useServerFn } from '@tanstack/react-start'
 import { getProofFileUrl } from '@/routes/employee.$employeeId'
 import { Button } from '@/components/ui/button'
 import { createToast } from 'vercel-toast'
-import { cn } from '@/lib/utils'
+import { cn, getChecklistItemTypeLabel } from '@/lib/utils'
 
 type PerformanceProgram = Prisma.PerformanceProgramGetPayload<{
   include: {
@@ -72,10 +72,7 @@ export function PerformanceProgramTimelineCard({
       case 'resolved':
         return 'Performance Program Resolved'
       case 'checklist-completed':
-        const itemType =
-          checklistItem?.type === 'SLACK_FEEDBACK_MEETING'
-            ? 'Slack Feedback Meeting'
-            : 'Email Feedback Meeting'
+        const itemType = getChecklistItemTypeLabel(checklistItem?.type)
         return `${itemType} Completed`
       case 'feedback':
         return 'Feedback Added'
