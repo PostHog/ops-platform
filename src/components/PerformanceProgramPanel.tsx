@@ -161,7 +161,7 @@ export function PerformanceProgramPanel({
   }
 
   const handleAddFeedback = async () => {
-    if (!feedbackText.trim() || !program) return
+    if ((!feedbackText.trim() && feedbackFiles.length === 0) || !program) return
 
     setIsSubmittingFeedback(true)
     try {
@@ -431,7 +431,7 @@ export function PerformanceProgramPanel({
                 <Button
                   onClick={handleAddFeedback}
                   disabled={
-                    !feedbackText.trim() ||
+                    (!feedbackText.trim() && feedbackFiles.length === 0) ||
                     isSubmittingFeedback ||
                     isUploadingFiles
                   }
