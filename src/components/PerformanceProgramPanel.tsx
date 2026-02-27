@@ -1,11 +1,5 @@
 import { memo, useState } from 'react'
-import {
-  Check,
-  Eye,
-  File as FileIcon,
-  MessageSquare,
-  X,
-} from 'lucide-react'
+import { Check, Eye, File as FileIcon, MessageSquare, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
