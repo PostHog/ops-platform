@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CalendarIcon,
   File as FileIcon,
@@ -7,6 +7,9 @@ import {
   Upload,
   X,
 } from 'lucide-react'
+import { createToast } from 'vercel-toast'
+import { useServerFn } from '@tanstack/react-start'
+import { isImageFile } from './InlineProofImage'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -16,14 +19,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { createToast } from 'vercel-toast'
-import { useServerFn } from '@tanstack/react-start'
 import {
   addProgramFeedback,
-  getProofFileUploadUrl,
   createProofFileRecord,
+  getProofFileUploadUrl,
 } from '@/routes/employee.$employeeId'
-import { isImageFile } from './InlineProofImage'
 
 function PendingImagePreview({
   file,
@@ -32,19 +32,15 @@ function PendingImagePreview({
   file: File
   fileName: string
 }) {
-  const imgRef = useRef<HTMLImageElement>(null)
+  const previewUrl = useMemo(() => URL.createObjectURL(file), [file])
 
   useEffect(() => {
-    const url = URL.createObjectURL(file)
-    if (imgRef.current) {
-      imgRef.current.src = url
-    }
-    return () => URL.revokeObjectURL(url)
-  }, [file])
+    return () => URL.revokeObjectURL(previewUrl)
+  }, [previewUrl])
 
   return (
     <img
-      ref={imgRef}
+      src={previewUrl}
       alt={fileName}
       className="max-h-[120px] rounded border border-gray-200"
     />
