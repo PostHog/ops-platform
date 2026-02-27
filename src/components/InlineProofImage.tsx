@@ -16,7 +16,16 @@ export const InlineProofImage = memo(function InlineProofImage({
 
   useEffect(() => {
     getFileUrl({ data: { proofFileId: fileId } })
-      .then((result) => setUrl(result.url))
+      .then((result) => {
+        try {
+          const parsed = new URL(result.url)
+          if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+            setUrl(result.url)
+          }
+        } catch {
+          // Invalid URL, ignore
+        }
+      })
       .catch(() => {})
   }, [fileId])
 
