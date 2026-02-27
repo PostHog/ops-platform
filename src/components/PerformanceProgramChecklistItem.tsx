@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Upload, File as FileIcon, X } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { File as FileIcon, ImageIcon, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -24,6 +24,7 @@ import {
 } from '@/routes/employee.$employeeId'
 import { getDeelEmployeesAndProposedHires } from '@/routes/org-chart'
 import { getFullName } from '@/lib/utils'
+import { InlineProofImage, isImageFile } from './InlineProofImage'
 import type { Prisma } from '@prisma/client'
 
 type ChecklistItem = Prisma.PerformanceProgramChecklistItemGetPayload<{
@@ -63,6 +64,8 @@ export function PerformanceProgramChecklistItem({
   const [notes, setNotes] = useState(item.notes || '')
   const [isUploading, setIsUploading] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [dragCounter, setDragCounter] = useState(0)
+  const isDragging = dragCounter > 0
 
   const updateItem = useServerFn(updateChecklistItem)
   const getDeelEmployeesFn = useServerFn(getDeelEmployeesAndProposedHires)
@@ -142,10 +145,7 @@ export function PerformanceProgramChecklistItem({
     }
   }
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
+  const handleFileUpload = async (file: File) => {
     // Validate file size (10MB)
     if (file.size > 10 * 1024 * 1024) {
       createToast('File size exceeds 10MB limit', { timeout: 3000 })
@@ -211,10 +211,34 @@ export function PerformanceProgramChecklistItem({
       )
     } finally {
       setIsUploading(false)
-      // Reset file input
-      e.target.value = ''
     }
   }
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragCounter((c) => c + 1)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragCounter((c) => c - 1)
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+  }, [])
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setDragCounter(0)
+      const files = Array.from(e.dataTransfer.files)
+      if (files.length > 0) {
+        handleFileUpload(files[0])
+      }
+    },
+    [handleFileUpload],
+  )
 
   const handleDownloadFile = async (fileId: string) => {
     try {
@@ -255,13 +279,26 @@ export function PerformanceProgramChecklistItem({
   const isOverdue =
     !item.completed && item.dueDate && new Date(item.dueDate) < new Date()
 
+  const imageFiles = item.files.filter((f) =>
+    isImageFile(f.fileName, f.mimeType),
+  )
+  const nonImageFiles = item.files.filter(
+    (f) => !isImageFile(f.fileName, f.mimeType),
+  )
+
   return (
     <div
       className={`flex flex-col gap-2 rounded border px-3 py-2 transition-colors ${
         item.completed
           ? 'border-green-200 bg-green-50/50'
-          : 'border-gray-200 bg-white'
+          : isDragging
+            ? 'border-blue-400 bg-blue-50/50'
+            : 'border-gray-200 bg-white'
       }`}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       <div className="flex items-center gap-3">
         <Checkbox
@@ -297,9 +334,9 @@ export function PerformanceProgramChecklistItem({
               </div>
             )}
           </div>
-          {item.files.length > 0 && (
+          {nonImageFiles.length > 0 && (
             <div className="mt-1 flex flex-wrap gap-1">
-              {item.files.map((file) => (
+              {nonImageFiles.map((file) => (
                 <div
                   key={file.id}
                   className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs hover:border-gray-300"
@@ -383,7 +420,13 @@ export function PerformanceProgramChecklistItem({
               id={`file-upload-${item.id}`}
               className="hidden"
               accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
-              onChange={handleFileUpload}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  handleFileUpload(file)
+                }
+                e.target.value = ''
+              }}
               disabled={isUploading}
             />
             <Label
@@ -405,6 +448,28 @@ export function PerformanceProgramChecklistItem({
           </div>
         </div>
       </div>
+      {imageFiles.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {imageFiles.map((file) => (
+            <div key={file.id} className="group relative">
+              <InlineProofImage fileId={file.id} fileName={file.fileName} />
+              <button
+                type="button"
+                className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gray-800/70 text-white opacity-0 shadow transition-opacity group-hover:opacity-100 hover:bg-gray-900"
+                onClick={() => handleDeleteFile(file.id)}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {isDragging && (
+        <div className="flex items-center gap-1.5 text-xs text-blue-600">
+          <ImageIcon className="h-3.5 w-3.5" />
+          Drop files to attach
+        </div>
+      )}
       <Textarea
         id={`notes-${item.id}`}
         value={notes}
