@@ -1,6 +1,7 @@
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import type { ClassValue } from 'clsx'
+import type { ChecklistItemType } from '@prisma/client'
 
 export function cn(...inputs: Array<ClassValue>) {
   return twMerge(clsx(inputs))
@@ -61,6 +62,19 @@ export function optimisticRatingToText(rating: string): string {
     STRONG_NO: 'Eeyore',
   }
   return map[rating] || rating
+}
+
+export function getChecklistItemTypeLabel(
+  type: ChecklistItemType | undefined,
+): string {
+  switch (type) {
+    case 'SLACK_FEEDBACK_MEETING':
+      return 'Step 1 - after starting the process, DM the person letting them know in slack and upload a screenshot of that here'
+    case 'EMAIL_FEEDBACK_MEETING':
+      return "Step 2 - If you don't see immediate improvements after roughly a week, you should loop in Fraser to send a more formal message via email"
+    default:
+      return 'Unknown Checklist Item Type'
+  }
 }
 
 export function formatCurrency(

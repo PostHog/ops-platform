@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import { createToast } from 'vercel-toast'
 import { useServerFn } from '@tanstack/react-start'
+import { getChecklistItemTypeLabel } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import {
   updateChecklistItem,
@@ -248,10 +249,7 @@ export function PerformanceProgramChecklistItem({
     }
   }
 
-  const itemTypeLabel =
-    item.type === 'SLACK_FEEDBACK_MEETING'
-      ? 'Slack Feedback Meeting'
-      : 'Email Feedback Meeting'
+  const itemTypeLabel = getChecklistItemTypeLabel(item.type)
 
   // Check if item is overdue
   const isOverdue =
