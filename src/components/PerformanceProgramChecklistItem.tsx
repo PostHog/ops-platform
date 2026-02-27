@@ -146,6 +146,8 @@ export function PerformanceProgramChecklistItem({
   }
 
   const handleFileUpload = async (file: File) => {
+    if (isUploading) return
+
     // Validate file size (10MB)
     if (file.size > 10 * 1024 * 1024) {
       createToast('File size exceeds 10MB limit', { timeout: 3000 })
@@ -232,12 +234,13 @@ export function PerformanceProgramChecklistItem({
     (e: React.DragEvent) => {
       e.preventDefault()
       setDragCounter(0)
+      if (isUploading) return
       const files = Array.from(e.dataTransfer.files)
       if (files.length > 0) {
         handleFileUpload(files[0])
       }
     },
-    [handleFileUpload],
+    [handleFileUpload, isUploading],
   )
 
   const handleDownloadFile = async (fileId: string) => {
