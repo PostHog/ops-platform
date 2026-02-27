@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   CalendarIcon,
   File as FileIcon,
@@ -32,23 +32,19 @@ function PendingImagePreview({
   file: File
   fileName: string
 }) {
-  const previewUrl = useMemo(() => {
-    const url = URL.createObjectURL(file)
-    // Validate protocol to satisfy CodeQL's DOM-text-as-HTML check
-    return url.startsWith('blob:') ? url : null
-  }, [file])
+  const imgRef = useRef<HTMLImageElement>(null)
 
   useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    const url = URL.createObjectURL(file)
+    if (imgRef.current) {
+      imgRef.current.src = url
     }
-  }, [previewUrl])
-
-  if (!previewUrl) return null
+    return () => URL.revokeObjectURL(url)
+  }, [file])
 
   return (
     <img
-      src={previewUrl}
+      ref={imgRef}
       alt={fileName}
       className="max-h-[120px] rounded border border-gray-200"
     />
