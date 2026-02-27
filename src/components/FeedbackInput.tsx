@@ -32,13 +32,19 @@ function PendingImagePreview({
   file: File
   fileName: string
 }) {
-  const previewUrl = useMemo(() => URL.createObjectURL(file), [file])
+  const previewUrl = useMemo(() => {
+    const url = URL.createObjectURL(file)
+    // Validate protocol to satisfy CodeQL's DOM-text-as-HTML check
+    return url.startsWith('blob:') ? url : null
+  }, [file])
 
   useEffect(() => {
     return () => {
-      URL.revokeObjectURL(previewUrl)
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
     }
   }, [previewUrl])
+
+  if (!previewUrl) return null
 
   return (
     <img
