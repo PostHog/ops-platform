@@ -6,6 +6,7 @@ import {
   File as FileIcon,
   X,
   CalendarIcon,
+  Eye,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -16,6 +17,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { createToast } from 'vercel-toast'
 import { useServerFn } from '@tanstack/react-start'
 import {
@@ -81,11 +88,13 @@ interface PerformanceProgramPanelProps {
   employeeId: string
   program: PerformanceProgram | null
   onUpdate: () => void
+  reportingChain?: Array<{ name: string; team?: string }>
 }
 
 export function PerformanceProgramPanel({
   program,
   onUpdate,
+  reportingChain = [],
 }: PerformanceProgramPanelProps) {
   const [feedbackText, setFeedbackText] = useState('')
   const [feedbackDate, setFeedbackDate] = useState<Date | undefined>(undefined)
@@ -254,6 +263,27 @@ export function PerformanceProgramPanel({
               </>
             )}
           </span>
+          {reportingChain.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex cursor-default items-center gap-1 text-sm text-gray-500">
+                    <Eye className="h-3.5 w-3.5" />
+                    Viewable by: {reportingChain.length}{' '}
+                    {reportingChain.length === 1 ? 'person' : 'people'}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <ul className="space-y-1">
+                    {reportingChain.map((person, i) => (
+                      <li key={i}>{person.name}</li>
+                    ))}
+                    <li>+ Blitzscale</li>
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
         {program.status === 'ACTIVE' && allItemsCompleted && (
           <Button
