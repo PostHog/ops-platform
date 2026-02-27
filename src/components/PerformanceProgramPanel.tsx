@@ -1,6 +1,7 @@
 import { memo, useState } from 'react'
 import { Eye, File as FileIcon, MessageSquare, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Tooltip,
   TooltipContent,
@@ -11,9 +12,11 @@ import { createToast } from 'vercel-toast'
 import { useServerFn } from '@tanstack/react-start'
 import {
   resolvePerformanceProgram,
+  updateProgramFeedback,
   getProofFileUrl,
   deleteProofFile,
 } from '@/routes/employee.$employeeId'
+import { useSession } from '@/lib/auth-client'
 import { PerformanceProgramChecklistItem } from './PerformanceProgramChecklistItem'
 import { InlineProofImage, isImageFile } from './InlineProofImage'
 import { FeedbackInput } from './FeedbackInput'
@@ -121,8 +124,17 @@ export function PerformanceProgramPanel({
   reportingChain = [],
 }: PerformanceProgramPanelProps) {
   const [isResolving, setIsResolving] = useState(false)
+  const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(
+    null,
+  )
+  const [editingText, setEditingText] = useState('')
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+
+  const { data: session } = useSession()
+  const currentUserId = session?.user?.id
 
   const resolveProgram = useServerFn(resolvePerformanceProgram)
+  const editFeedback = useServerFn(updateProgramFeedback)
   const getFileUrl = useServerFn(getProofFileUrl)
   const deleteFile = useServerFn(deleteProofFile)
 
@@ -185,6 +197,41 @@ export function PerformanceProgramPanel({
         error instanceof Error ? error.message : 'Failed to remove file',
         { timeout: 3000 },
       )
+    }
+  }
+
+  const handleStartEdit = (feedbackId: string, currentText: string) => {
+    setEditingFeedbackId(feedbackId)
+    setEditingText(currentText)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingFeedbackId(null)
+    setEditingText('')
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingFeedbackId || !editingText.trim()) return
+
+    setIsSavingEdit(true)
+    try {
+      await editFeedback({
+        data: {
+          feedbackId: editingFeedbackId,
+          feedback: editingText.trim(),
+        },
+      })
+      createToast('Feedback updated', { timeout: 3000 })
+      setEditingFeedbackId(null)
+      setEditingText('')
+      onUpdate()
+    } catch (error) {
+      createToast(
+        error instanceof Error ? error.message : 'Failed to update feedback',
+        { timeout: 3000 },
+      )
+    } finally {
+      setIsSavingEdit(false)
     }
   }
 
@@ -289,6 +336,10 @@ export function PerformanceProgramPanel({
               const nonImageFiles = feedback.files.filter(
                 (f) => !isImageFile(f.fileName, f.mimeType),
               )
+              const canEdit =
+                program.status === 'ACTIVE' &&
+                feedback.givenBy.id === currentUserId
+              const isEditing = editingFeedbackId === feedback.id
               return (
                 <div
                   key={feedback.id}
@@ -302,24 +353,69 @@ export function PerformanceProgramPanel({
                     <span className="shrink-0 text-sm whitespace-nowrap text-gray-500">
                       {new Date(feedback.createdAt).toLocaleDateString()}
                     </span>
-                    {nonImageFiles.length > 0 && (
-                      <div className="ml-auto flex shrink-0 items-center gap-1">
-                        {nonImageFiles.map((file) => (
-                          <FeedbackFileChip
-                            key={file.id}
-                            file={file}
-                            isActive={program.status === 'ACTIVE'}
-                            onDownload={handleDownloadFile}
-                            onDelete={handleDeleteFile}
-                          />
-                        ))}
-                      </div>
+                    {feedback.updatedAt && (
+                      <span className="shrink-0 text-xs text-gray-400 italic">
+                        (edited)
+                      </span>
                     )}
+                    <div className="ml-auto flex shrink-0 items-center gap-1">
+                      {nonImageFiles.map((file) => (
+                        <FeedbackFileChip
+                          key={file.id}
+                          file={file}
+                          isActive={program.status === 'ACTIVE'}
+                          onDownload={handleDownloadFile}
+                          onDelete={handleDeleteFile}
+                        />
+                      ))}
+                      {canEdit && !isEditing && (
+                        <button
+                          type="button"
+                          className="shrink-0 text-xs text-gray-400 hover:text-gray-600"
+                          onClick={() =>
+                            handleStartEdit(feedback.id, feedback.feedback)
+                          }
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  {feedback.feedback && (
-                    <p className="text-sm whitespace-pre-line text-gray-700">
-                      {feedback.feedback}
-                    </p>
+                  {isEditing ? (
+                    <div className="space-y-1.5">
+                      <Textarea
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        rows={3}
+                        className="w-full resize-none text-sm"
+                        autoFocus
+                      />
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-xs"
+                          onClick={handleSaveEdit}
+                          disabled={isSavingEdit || !editingText.trim()}
+                        >
+                          {isSavingEdit ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={handleCancelEdit}
+                          disabled={isSavingEdit}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    feedback.feedback && (
+                      <p className="text-sm whitespace-pre-line text-gray-700">
+                        {feedback.feedback}
+                      </p>
+                    )
                   )}
                   {imageFiles.length > 0 && (
                     <div className="flex flex-wrap gap-2">
