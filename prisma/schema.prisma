@@ -184,6 +184,7 @@ model User {
   filesUploaded              File[]                            @relation("FileUploadedBy")
   feedbackGiven              PerformanceProgramFeedback[]      @relation("FeedbackGivenBy")
   auditLogsCreated           AuditLog[]                        @relation("AuditLogActor")
+  agentConversations         AgentConversation[]               @relation("UserConversations")
 
   @@unique([email])
   @@map("user")
@@ -370,6 +371,7 @@ enum AuditLogEntityType {
   USER_ROLE
   MANAGER
   TEAM
+  AGENT_ACTION
 }
 
 model AuditLog {
@@ -402,4 +404,38 @@ model CartaOptionGrant {
   exercisedQuantity Int
   vestedQuantity    Int
   expiredQuantity   Int
+}
+
+// AI Agents
+model AgentConversation {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation("UserConversations", fields: [userId], references: [id])
+  title     String?
+  messages  AgentMessage[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @default(now()) @updatedAt
+
+  @@index([userId])
+}
+
+model AgentMessage {
+  id             String            @id @default(cuid())
+  conversationId String
+  conversation   AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           AgentMessageRole
+  content        String            @db.Text
+  toolCalls      Json?
+  toolResults    Json?
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+
+  @@index([conversationId])
+}
+
+enum AgentMessageRole {
+  user
+  assistant
+  system
+  tool
 }
