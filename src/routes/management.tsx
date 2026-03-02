@@ -747,7 +747,7 @@ function KeeperTestManagement() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex items-center gap-2">
+      <div className="flex w-full items-center gap-2">
         <Popover
           modal={true}
           open={comboboxOpen}
@@ -758,7 +758,7 @@ function KeeperTestManagement() {
               variant="outline"
               role="combobox"
               aria-expanded={comboboxOpen}
-              className="w-[300px] justify-between"
+              className="flex-1 justify-between"
             >
               {selectedEmployee
                 ? getFullName(
@@ -769,7 +769,7 @@ function KeeperTestManagement() {
               <ChevronsUpDown className="opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[300px] p-0">
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
             <Command>
               <CommandInput placeholder="Search employee..." className="h-9" />
               <CommandList>
