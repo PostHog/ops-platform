@@ -36,10 +36,10 @@ export function ratingToText(rating: string): string {
 
 export function driverRatingToText(rating: string): string {
   const map: Record<string, string> = {
-    STRONG_YES: "They're driving across the country with no stops",
-    YES: 'They definitely drive but do sometimes need breaks',
+    STRONG_YES: "Strong driver",
+    YES: 'Driver',
     NO: 'A passenger',
-    STRONG_NO: "They're asleep in the back of the cab",
+    STRONG_NO: "Extreme passenger",
   }
   return map[rating] || rating
 }
@@ -56,10 +56,10 @@ export function proactiveRatingToText(rating: string): string {
 
 export function optimisticRatingToText(rating: string): string {
   const map: Record<string, string> = {
-    STRONG_YES: 'I think they might be Ted Lasso',
-    YES: 'Yes, they are positive to be around',
-    NO: 'They are a bit doom and gloom sometimes',
-    STRONG_NO: 'Eeyore',
+    STRONG_YES: 'Extremely optimistic',
+    YES: 'Optimistic',
+    NO: 'Pessimistic',
+    STRONG_NO: 'Extremely pessimistic',
   }
   return map[rating] || rating
 }
