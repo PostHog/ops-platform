@@ -125,7 +125,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: "They're asleep in the back of the cab",
+                      text: 'Extreme passenger, needs heavy prodding and detailed direction',
                       emoji: true,
                     },
                     value: 'STRONG_NO',
@@ -133,7 +133,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'A passenger',
+                      text: 'Passenger, needs occasional pushing or direction',
                       emoji: true,
                     },
                     value: 'NO',
@@ -141,7 +141,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'They definitely drive but do sometimes need breaks',
+                      text: 'Driver, pushes projects, usually in the right direction',
                       emoji: true,
                     },
                     value: 'YES',
@@ -149,7 +149,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: "They're driving across the country with no stops",
+                      text: 'Strong driver, pushes ambitious projects in the right direction',
                       emoji: true,
                     },
                     value: 'STRONG_YES',
@@ -215,7 +215,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'Eeyore',
+                      text: 'Extremely pessimistic',
                       emoji: true,
                     },
                     value: 'STRONG_NO',
@@ -223,7 +223,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'They are a bit doom and gloom sometimes',
+                      text: 'Pessimistic',
                       emoji: true,
                     },
                     value: 'NO',
@@ -231,7 +231,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'Yes, they are positive to be around',
+                      text: 'Optimistic',
                       emoji: true,
                     },
                     value: 'YES',
@@ -239,7 +239,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   {
                     text: {
                       type: 'plain_text',
-                      text: 'I think they might be Ted Lasso',
+                      text: 'Extremely optimistic',
                       emoji: true,
                     },
                     value: 'STRONG_YES',
