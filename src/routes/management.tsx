@@ -703,7 +703,8 @@ function KeeperTestManagement() {
     queryKey: ['deelEmployeesAndProposedHires'],
     queryFn: () => getDeelEmployeesFn(),
   })
-  const employees = data?.employees?.filter((e) => e.employee?.id) ?? []
+  const employees =
+    data?.employees?.filter((e) => e.employee?.id && e.manager?.id) ?? []
 
   const selectedEmployee = employees.find(
     (e) => e.employee?.id === selectedEmployeeId,
@@ -835,17 +836,24 @@ function KeeperTestManagement() {
               <Button
                 onClick={async () => {
                   if (!selectedEmployeeId) return
-                  await scheduleKeeperTestForEmployee({
-                    data: { employeeId: selectedEmployeeId },
-                  })
-                  setSingleDialogOpen(false)
-                  setSelectedEmployeeId(null)
-                  router.invalidate()
+                  try {
+                    await scheduleKeeperTestForEmployee({
+                      data: { employeeId: selectedEmployeeId },
+                    })
+                    setSingleDialogOpen(false)
+                    setSelectedEmployeeId(null)
+                    router.invalidate()
 
-                  createToast(
-                    `Successfully scheduled keeper test for ${getFullName(selectedEmployee?.firstName, selectedEmployee?.lastName)}.`,
-                    { timeout: 3000 },
-                  )
+                    createToast(
+                      `Successfully scheduled keeper test for ${getFullName(selectedEmployee?.firstName, selectedEmployee?.lastName)}.`,
+                      { timeout: 3000 },
+                    )
+                  } catch (error) {
+                    createToast(
+                      `Failed to schedule keeper test: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                      { timeout: 5000 },
+                    )
+                  }
                 }}
               >
                 Confirm
