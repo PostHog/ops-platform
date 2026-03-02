@@ -27,6 +27,15 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
   bonusPercentage,
   currencyData,
   locationFactor,
@@ -603,20 +612,44 @@ export const scheduleKeeperTests = createAdminFn({
 
 function KeeperTestManagement() {
   const router = useRouter()
+  const [open, setOpen] = useState(false)
 
   return (
-    <Button
-      onClick={async () => {
-        const results = await scheduleKeeperTests()
-        router.invalidate()
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          Schedule keeper tests for every employee (incl. manager feedback)
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Schedule keeper tests?</DialogTitle>
+          <DialogDescription>
+            This will schedule keeper tests and manager feedback forms for all
+            eligible employees (excluding employees on probation).
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={async () => {
+              const results = await scheduleKeeperTests()
+              setOpen(false)
+              router.invalidate()
 
-        createToast(`Successfully scheduled ${results.count} keeper tests.`, {
-          timeout: 3000,
-        })
-      }}
-    >
-      Schedule keeper tests for every employee (incl. manager feedback)
-    </Button>
+              createToast(
+                `Successfully scheduled ${results.count} keeper tests.`,
+                { timeout: 3000 },
+              )
+            }}
+          >
+            Confirm
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
