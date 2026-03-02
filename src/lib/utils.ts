@@ -36,10 +36,12 @@ export function ratingToText(rating: string): string {
 
 export function driverRatingToText(rating: string): string {
   const map: Record<string, string> = {
-    STRONG_YES: "Strong driver, initiating and pushing ambitious projects in the right direction",
+    STRONG_YES:
+      'Strong driver, initiating and pushing ambitious projects in the right direction',
     YES: 'Driver, pushing projects, usually but not always in the right direction',
     NO: 'A passenger, needs occasional prodding or pushing or more guidance on direction',
-    STRONG_NO: "Extreme passenger, needs prodding or pushing to get anything done or needs direction spelled out in a lot of detail",
+    STRONG_NO:
+      'Extreme passenger, needs prodding or pushing to get anything done or needs direction spelled out in a lot of detail',
   }
   return map[rating] || rating
 }
