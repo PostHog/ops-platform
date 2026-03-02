@@ -448,6 +448,44 @@ function App() {
         filterVariant: 'range',
       },
     },
+    {
+      id: 'location',
+      accessorFn: (row) => {
+        const salary = row.salaries?.[0]
+        if (!salary?.area) return undefined
+        return salary.country
+          ? `${salary.area} (${salary.country})`
+          : salary.area
+      },
+      enableColumnFilter: true,
+      enableHiding: false,
+      meta: {
+        filterVariant: 'select',
+        filterLabel: 'Location',
+        filterOptions: [
+          ...new Map(
+            (employees ?? [])
+              .filter((e) => e.salaries?.[0]?.area)
+              .map((e) => {
+                const area = e.salaries[0].area
+                const country = e.salaries[0].country
+                const value = country
+                  ? `${area} (${country})`
+                  : area
+                return [value, { label: value, value }] as const
+              }),
+          ).values(),
+        ].sort((a, b) => a.label.localeCompare(b.label)),
+      },
+      filterFn: (row: Row<Employee>, _: string, filterValue: string[]) => {
+        const salary = row.original.salaries?.[0]
+        if (!salary?.area) return false
+        const location = salary.country
+          ? `${salary.area} (${salary.country})`
+          : salary.area
+        return filterValue.includes(location)
+      },
+    },
   ]
 
   const table = useReactTable({
@@ -466,6 +504,7 @@ function App() {
         level: false,
         team: false,
         role: false,
+        location: false,
       },
     },
     filterFns: {},
