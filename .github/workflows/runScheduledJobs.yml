@@ -2,7 +2,7 @@ name: Run scheduled jobs
 permissions: {}
 on:
   schedule:
-    - cron: '*/10 12 * * 1-5' # Runs every 10 minutes, between 12:00 and 12:59 UTC, Monday through Friday
+    - cron: '*/10 12 * * 1-5' # Runs every 10 minutes, between 12:00 and 12:59 PM UTC, Monday through Friday
   workflow_dispatch:
 
 jobs:
