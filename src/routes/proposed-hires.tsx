@@ -12,7 +12,15 @@ import {
   SortingState,
   Row,
 } from '@tanstack/react-table'
-import { ArrowUpDown, ArrowUp, ArrowDown, Trash2, Info } from 'lucide-react'
+import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
+  Info,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Prisma, Priority } from '@prisma/client'
 import {
@@ -61,6 +69,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useMemo, useState } from 'react'
+
+const UNASSIGNED_TALENT_PARTNER_FILTER = '__unassigned__'
+const NO_TEAM_FILTER = '__no_team__'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -154,9 +165,9 @@ function DeleteButton({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0 text-gray-400 hover:text-red-500"
+          className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-3 w-3" />
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -199,6 +210,10 @@ function RouteComponent() {
       },
     ],
   )
+  const [showStats, setShowStats] = useLocalStorage<boolean>(
+    'proposed-hires.showStats',
+    false,
+  )
 
   const { data, isLoading } = useQuery({
     queryKey: ['proposedHires'],
@@ -206,6 +221,66 @@ function RouteComponent() {
   })
   const proposedHires = data?.proposedHires || []
   const employees = data?.employees || []
+
+  const openProposedHires = useMemo(() => {
+    const openPriorities = new Set<Priority>(['high', 'medium', 'low'])
+    return proposedHires.filter((ph) => openPriorities.has(ph.priority))
+  }, [proposedHires])
+
+  const openCountsByPriority = useMemo(() => {
+    return openProposedHires.reduce(
+      (acc, ph) => {
+        if (ph.priority === 'high') acc.high += 1
+        if (ph.priority === 'medium') acc.medium += 1
+        if (ph.priority === 'low') acc.low += 1
+        return acc
+      },
+      { high: 0, medium: 0, low: 0 },
+    )
+  }, [openProposedHires])
+
+  const openHiresByTalentPartner = useMemo(() => {
+    const counts = new Map<string, { label: string; count: number }>()
+    for (const ph of openProposedHires) {
+      if (!ph.talentPartners.length) {
+        counts.set(UNASSIGNED_TALENT_PARTNER_FILTER, {
+          label: '(Unassigned)',
+          count:
+            (counts.get(UNASSIGNED_TALENT_PARTNER_FILTER)?.count ?? 0) + 1,
+        })
+        continue
+      }
+      for (const tp of ph.talentPartners) {
+        const name =
+          getFullName(tp.deelEmployee?.firstName, tp.deelEmployee?.lastName) ||
+          tp.email
+        const key = tp.id
+        const existing = counts.get(key)
+        counts.set(key, {
+          label: name,
+          count: (existing?.count ?? 0) + 1,
+        })
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+  }, [openProposedHires])
+
+  const openHiresByTeam = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const ph of openProposedHires) {
+      const team = ph.manager?.deelEmployee?.team || NO_TEAM_FILTER
+      counts.set(team, (counts.get(team) ?? 0) + 1)
+    }
+    return Array.from(counts.entries())
+      .map(([team, count]) => ({
+        team,
+        label: team === NO_TEAM_FILTER ? '(No team)' : team,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+  }, [openProposedHires])
 
   const talentTeamEmployees = useMemo(
     () =>
@@ -378,6 +453,8 @@ function RouteComponent() {
         filterOptions: talentPartnerOptions,
       },
       filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) =>
+        (filterValue.includes(UNASSIGNED_TALENT_PARTNER_FILTER) &&
+          row.original.talentPartners.length === 0) ||
         row.original.talentPartners.some((tp) => filterValue.includes(tp.id)),
       cell: ({ row, table }) => (
         <EditableTalentPartnersCell
@@ -447,7 +524,7 @@ function RouteComponent() {
       },
       filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) => {
         const team = row.original.manager?.deelEmployee?.team
-        if (!team) return false
+        if (!team) return filterValue.includes(NO_TEAM_FILTER)
         return filterValue.includes(team)
       },
     },
@@ -503,19 +580,19 @@ function RouteComponent() {
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="high">
+              <SelectItem value="high" className="py-1 text-xs">
                 <PriorityBadge priority="high" />
               </SelectItem>
-              <SelectItem value="medium">
+              <SelectItem value="medium" className="py-1 text-xs">
                 <PriorityBadge priority="medium" />
               </SelectItem>
-              <SelectItem value="low">
+              <SelectItem value="low" className="py-1 text-xs">
                 <PriorityBadge priority="low" />
               </SelectItem>
-              <SelectItem value="filled">
+              <SelectItem value="filled" className="py-1 text-xs">
                 <PriorityBadge priority="filled" />
               </SelectItem>
-              <SelectItem value="pushed_to_next_quarter">
+              <SelectItem value="pushed_to_next_quarter" className="py-1 text-xs">
                 <PriorityBadge priority="pushed_to_next_quarter" />
               </SelectItem>
             </SelectContent>
@@ -564,7 +641,6 @@ function RouteComponent() {
           }
           multiline
           placeholder="Enter hiring profile..."
-          className="min-w-[200px]"
         />
       ),
     },
@@ -604,16 +680,165 @@ function RouteComponent() {
     },
   })
 
+  const getFilterValues = (id: string): string[] => {
+    const current = columnFilters.find((f) => f.id === id)?.value
+    if (!current) return []
+    return Array.isArray(current) ? (current as string[]) : []
+  }
+
+  const toggleExclusiveFilterValue = (id: string, value: string) => {
+    const currentValues = getFilterValues(id)
+    const isActive = currentValues.length === 1 && currentValues[0] === value
+    const next = columnFilters.filter((f) => f.id !== id)
+    if (!isActive) next.push({ id, value: [value] })
+    setColumnFilters(next)
+  }
+
+  const clearFilter = (id: string) => {
+    setColumnFilters(columnFilters.filter((f) => f.id !== id))
+  }
+
   return (
     <div className="flex justify-center px-4 pb-4">
       <div className="max-w-full flex-grow 2xl:max-w-[80%]">
-        <div className="flex justify-between py-4">
-          <div>
-            <TableFilters table={table} />
+        <div className="rounded-md border p-2 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-xs font-medium">Stats</div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-1.5 text-xs text-muted-foreground"
+              onClick={() => setShowStats((v) => !v)}
+            >
+              {showStats ? (
+                <>
+                  Hide <ChevronUp className="ml-1 h-3 w-3" />
+                </>
+              ) : (
+                <>
+                  Show <ChevronDown className="ml-1 h-3 w-3" />
+                </>
+              )}
+            </Button>
           </div>
-          <div className="flex items-center space-x-2">
-            <AddProposedHirePanel employees={employees} />
-          </div>
+          {showStats ? (
+            <div className="mt-2 grid grid-cols-1 gap-2 lg:grid-cols-3">
+              <div className="rounded-md border p-2">
+                <div className="text-muted-foreground mb-1 text-[11px] uppercase tracking-wide">
+                  Open Roles By Priority
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(['high', 'medium', 'low'] as const).map((priority) => {
+                    const isActive =
+                      getFilterValues('priority').length === 1 &&
+                      getFilterValues('priority')[0] === priority
+                    return (
+                      <button
+                        type="button"
+                        key={priority}
+                        onClick={() =>
+                          toggleExclusiveFilterValue('priority', priority)
+                        }
+                        aria-pressed={isActive}
+                        className={`flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 hover:bg-muted ${isActive ? 'bg-muted ring-1 ring-border' : ''}`}
+                      >
+                        <PriorityBadge priority={priority} />
+                        <span className="font-medium">
+                          {openCountsByPriority[priority]}
+                        </span>
+                      </button>
+                    )
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => clearFilter('priority')}
+                    className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 text-muted-foreground hover:bg-muted"
+                  >
+                    <span>Total</span>
+                    <span className="font-medium text-foreground">
+                      {openProposedHires.length}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-md border p-2">
+                <div className="text-muted-foreground mb-1 text-[11px] uppercase tracking-wide">
+                  Open Hires By Talent Partner
+                </div>
+                <div className="max-h-48 space-y-0.5 overflow-auto pr-1">
+                  {openHiresByTalentPartner.length ? (
+                    openHiresByTalentPartner.map((tp) => {
+                      const isActive =
+                        getFilterValues('talentPartners').length === 1 &&
+                        getFilterValues('talentPartners')[0] === tp.id
+                      return (
+                        <button
+                          type="button"
+                          key={tp.id}
+                          onClick={() =>
+                            toggleExclusiveFilterValue('talentPartners', tp.id)
+                          }
+                          aria-pressed={isActive}
+                          className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-sm px-1 py-0.5 text-left hover:bg-muted ${isActive ? 'bg-muted ring-1 ring-border' : ''}`}
+                        >
+                          <div className="truncate">{tp.label}</div>
+                          <div className="font-medium tabular-nums">
+                            {tp.count}
+                          </div>
+                        </button>
+                      )
+                    })
+                  ) : (
+                    <div className="text-muted-foreground">No open hires.</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-md border p-2">
+                <div className="text-muted-foreground mb-1 text-[11px] uppercase tracking-wide">
+                  Open Hires By Team
+                </div>
+                <div className="max-h-48 space-y-0.5 overflow-auto pr-1">
+                  {openHiresByTeam.length ? (
+                    openHiresByTeam.map((team) => {
+                      const isActive =
+                        getFilterValues('manager.deelEmployee.team').length ===
+                          1 &&
+                        getFilterValues('manager.deelEmployee.team')[0] ===
+                          team.team
+                      return (
+                        <button
+                          type="button"
+                          key={team.team}
+                          onClick={() =>
+                            toggleExclusiveFilterValue(
+                              'manager.deelEmployee.team',
+                              team.team,
+                            )
+                          }
+                          aria-pressed={isActive}
+                          className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-sm px-1 py-0.5 text-left hover:bg-muted ${isActive ? 'bg-muted ring-1 ring-border' : ''}`}
+                        >
+                          <div className="truncate">{team.label}</div>
+                          <div className="font-medium tabular-nums">
+                            {team.count}
+                          </div>
+                        </button>
+                      )
+                    })
+                  ) : (
+                    <div className="text-muted-foreground">No open hires.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-between py-2">
+          <TableFilters table={table} />
+          <AddProposedHirePanel employees={employees} />
         </div>
         <div className="rounded-md border">
           <Table className="text-xs">
@@ -623,14 +848,14 @@ function RouteComponent() {
                   {headerGroup.headers.map((header) => {
                     const sortState = header.column.getIsSorted()
                     return (
-                      <TableHead key={header.id}>
+                      <TableHead key={header.id} className="h-8 px-1">
                         {header.isPlaceholder ? null : (
                           <>
                             <div
                               {...{
                                 className: header.column.getCanSort()
-                                  ? 'cursor-pointer select-none flex items-center gap-2 hover:text-gray-700'
-                                  : 'flex items-center gap-2',
+                                  ? 'cursor-pointer select-none flex items-center gap-1 hover:text-gray-700'
+                                  : 'flex items-center gap-1',
                                 onClick: header.column.getCanSort()
                                   ? () => handleSortToggle(header.column)
                                   : undefined,
@@ -642,11 +867,11 @@ function RouteComponent() {
                               )}
                               {header.column.getCanSort() &&
                                 (sortState === 'asc' ? (
-                                  <ArrowUp className="h-4 w-4" />
+                                  <ArrowUp className="h-3 w-3" />
                                 ) : sortState === 'desc' ? (
-                                  <ArrowDown className="h-4 w-4" />
+                                  <ArrowDown className="h-3 w-3" />
                                 ) : (
-                                  <ArrowUpDown className="h-4 w-4 opacity-50" />
+                                  <ArrowUpDown className="h-3 w-3 opacity-50" />
                                 ))}
                             </div>
                           </>
@@ -662,7 +887,7 @@ function RouteComponent() {
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-1 py-1">
+                      <TableCell key={cell.id} className="px-1 py-0.5">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
