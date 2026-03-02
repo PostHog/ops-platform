@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { useServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
+import { Check, ChevronsUpDown } from 'lucide-react'
 import { createToast } from 'vercel-toast'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { User } from '@prisma/client'
@@ -27,6 +29,14 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -36,8 +46,15 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
   bonusPercentage,
+  cn,
   currencyData,
+  getFullName,
   locationFactor,
   sfBenchmark,
 } from '@/lib/utils'
@@ -53,6 +70,7 @@ import { impersonateUser } from '@/lib/auth-client'
 import { createAuditLogEntry } from '@/lib/audit-log'
 import { AuditLogHistoryDialog } from '@/components/AuditLogHistoryDialog'
 import { CartaImportPanel } from '@/components/CartaImportPanel'
+import { getDeelEmployeesAndProposedHires } from './org-chart'
 
 export const Route = createFileRoute('/management')({
   component: RouteComponent,
@@ -610,46 +628,233 @@ export const scheduleKeeperTests = createAdminFn({
   }
 })
 
+const scheduleKeeperTestForEmployee = createAdminFn({
+  method: 'POST',
+})
+  .inputValidator((d: { employeeId: string }) => d)
+  .handler(async ({ data }) => {
+    const employee = await prisma.employee.findUnique({
+      where: { id: data.employeeId },
+      include: {
+        deelEmployee: {
+          include: {
+            manager: true,
+          },
+        },
+      },
+    })
+
+    if (!employee) {
+      throw new Error('Employee not found')
+    }
+
+    if (!employee.deelEmployee?.manager?.workEmail) {
+      throw new Error('Employee does not have a manager with a work email')
+    }
+
+    const manager = employee.deelEmployee.manager
+
+    const payload: KeeperTestJobPayload = {
+      title: 'Keeper test',
+      employee: {
+        id: employee.id,
+        email: employee.email,
+        firstName: employee.deelEmployee.firstName || '',
+        lastName: employee.deelEmployee.lastName || '',
+      },
+      manager: {
+        id: manager.id,
+        email: manager.workEmail!,
+        firstName: manager.firstName || '',
+        lastName: manager.lastName || '',
+      },
+    }
+
+    await prisma.cyclotronJob.createMany({
+      data: [
+        {
+          queue_name: 'send_keeper_test',
+          data: JSON.stringify(payload),
+        },
+        {
+          queue_name: 'send_manager_feedback',
+          data: JSON.stringify({
+            ...payload,
+            title: 'Manager feedback',
+          } satisfies KeeperTestJobPayload),
+        },
+      ],
+    })
+
+    return { success: true }
+  })
+
 function KeeperTestManagement() {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false)
+  const [singleDialogOpen, setSingleDialogOpen] = useState(false)
+  const [comboboxOpen, setComboboxOpen] = useState(false)
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
+    null,
+  )
+
+  const getDeelEmployeesFn = useServerFn(getDeelEmployeesAndProposedHires)
+  const { data } = useQuery({
+    queryKey: ['deelEmployeesAndProposedHires'],
+    queryFn: () => getDeelEmployeesFn(),
+  })
+  const employees = data?.employees?.filter((e) => e.employee?.id) ?? []
+
+  const selectedEmployee = employees.find(
+    (e) => e.employee?.id === selectedEmployeeId,
+  )
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          Schedule keeper tests for every employee (incl. manager feedback)
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Schedule keeper tests?</DialogTitle>
-          <DialogDescription>
-            This will schedule keeper tests and manager feedback forms for all
-            eligible employees (excluding employees on probation).
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
+    <div className="flex flex-col gap-2">
+      <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+        <DialogTrigger asChild>
+          <Button>
+            Schedule keeper tests for every employee (incl. manager feedback)
           </Button>
-          <Button
-            onClick={async () => {
-              const results = await scheduleKeeperTests()
-              setOpen(false)
-              router.invalidate()
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule keeper tests?</DialogTitle>
+            <DialogDescription>
+              This will schedule keeper tests and manager feedback forms for all
+              eligible employees (excluding employees on probation).
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                const results = await scheduleKeeperTests()
+                setBulkDialogOpen(false)
+                router.invalidate()
 
-              createToast(
-                `Successfully scheduled ${results.count} keeper tests.`,
-                { timeout: 3000 },
-              )
-            }}
-          >
-            Confirm
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+                createToast(
+                  `Successfully scheduled ${results.count} keeper tests.`,
+                  { timeout: 3000 },
+                )
+              }}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex items-center gap-2">
+        <Popover
+          modal={true}
+          open={comboboxOpen}
+          onOpenChange={setComboboxOpen}
+        >
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={comboboxOpen}
+              className="w-[300px] justify-between"
+            >
+              {selectedEmployee
+                ? getFullName(
+                    selectedEmployee.firstName,
+                    selectedEmployee.lastName,
+                  )
+                : 'Search employee...'}
+              <ChevronsUpDown className="opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[300px] p-0">
+            <Command>
+              <CommandInput placeholder="Search employee..." className="h-9" />
+              <CommandList>
+                <CommandEmpty>No employee found.</CommandEmpty>
+                <CommandGroup>
+                  {employees.map((employee) => (
+                    <CommandItem
+                      key={employee.id}
+                      value={`${employee.id} - ${getFullName(employee.firstName, employee.lastName)} - ${employee.employee?.id} - ${employee.workEmail}`}
+                      onSelect={() => {
+                        setSelectedEmployeeId(
+                          employee.employee?.id === selectedEmployeeId
+                            ? null
+                            : (employee.employee?.id ?? null),
+                        )
+                        setComboboxOpen(false)
+                      }}
+                    >
+                      {getFullName(employee.firstName, employee.lastName)}
+                      <Check
+                        className={cn(
+                          'ml-auto',
+                          selectedEmployeeId === employee.employee?.id
+                            ? 'opacity-100'
+                            : 'opacity-0',
+                        )}
+                      />
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        <Dialog open={singleDialogOpen} onOpenChange={setSingleDialogOpen}>
+          <DialogTrigger asChild>
+            <Button disabled={!selectedEmployeeId}>Schedule</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Schedule keeper test?</DialogTitle>
+              <DialogDescription>
+                This will schedule a keeper test and manager feedback form for{' '}
+                <strong>
+                  {selectedEmployee
+                    ? getFullName(
+                        selectedEmployee.firstName,
+                        selectedEmployee.lastName,
+                      )
+                    : ''}
+                </strong>
+                .
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setSingleDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!selectedEmployeeId) return
+                  await scheduleKeeperTestForEmployee({
+                    data: { employeeId: selectedEmployeeId },
+                  })
+                  setSingleDialogOpen(false)
+                  setSelectedEmployeeId(null)
+                  router.invalidate()
+
+                  createToast(
+                    `Successfully scheduled keeper test for ${getFullName(selectedEmployee?.firstName, selectedEmployee?.lastName)}.`,
+                    { timeout: 3000 },
+                  )
+                }}
+              >
+                Confirm
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
   )
 }
 
