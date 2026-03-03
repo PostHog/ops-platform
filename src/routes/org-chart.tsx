@@ -20,6 +20,7 @@ import useExpandCollapse from '@/lib/org-chart/useExpandCollapse'
 import OrgChartPanel from '@/components/OrgChartPanel'
 import AddProposedHirePanel from '@/components/AddProposedHirePanel'
 import { createInternalFn } from '@/lib/auth-middleware'
+import { useSession } from '@/lib/auth-client'
 import { getFullName } from '@/lib/utils'
 import { ROLES } from '@/lib/consts'
 import { useLocalStorage } from 'usehooks-ts'
@@ -413,6 +414,10 @@ const getInitialEdges = (
 
 export default function OrgChart() {
   const { employees, proposedHires } = Route.useLoaderData()
+  const { data: session } = useSession()
+  const canEditOrgChart =
+    session?.user?.role === ROLES.ADMIN ||
+    session?.user?.role === ROLES.ORG_CHART
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const [autoZoomingEnabled] = useAtom(orgChartAutozoomingEnabledAtom)
   const [viewMode, setViewMode] = useLocalStorage<OrgChartMode>(
@@ -806,9 +811,11 @@ export default function OrgChart() {
           />
         </Panel>
 
-        <Panel position="top-right">
-          <AddProposedHirePanel employees={employees} />
-        </Panel>
+        {canEditOrgChart && (
+          <Panel position="top-right">
+            <AddProposedHirePanel employees={employees} />
+          </Panel>
+        )}
 
         <EmployeePanel
           selectedNode={selectedNode}
