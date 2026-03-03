@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useRef, useState, type RefObject } from 'react'
 import prisma from '@/db'
 import { createAdminFn } from '@/lib/auth-middleware'
 import { formatCurrency, sfBenchmark } from '@/lib/utils'
@@ -72,6 +72,7 @@ function RouteComponent() {
   >({})
   const [locationFilter, setLocationFilter] = useState('')
   const [benchmarkFilter, setBenchmarkFilter] = useState('')
+  const tableRef = useRef<HTMLDivElement>(null)
 
   const activeEmployees: ActiveEmployee[] = deelEmployees
     .filter((de) => de.employee?.salaries?.length)
@@ -242,12 +243,16 @@ function RouteComponent() {
               <input
                 type="text"
                 value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
+                onChange={(e) => {
+                  setLocationFilter(e.target.value)
+                  tableRef.current?.scrollTo({ top: 0 })
+                }}
                 placeholder="Filter locations…"
                 className="w-64 rounded border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
               />
             </div>
             <ScenarioTable
+              tableRef={tableRef}
               rows={filteredLocations}
               columnHeader="Location"
               overrides={locationOverrides}
@@ -267,12 +272,16 @@ function RouteComponent() {
               <input
                 type="text"
                 value={benchmarkFilter}
-                onChange={(e) => setBenchmarkFilter(e.target.value)}
+                onChange={(e) => {
+                  setBenchmarkFilter(e.target.value)
+                  tableRef.current?.scrollTo({ top: 0 })
+                }}
                 placeholder="Filter benchmarks…"
                 className="w-64 rounded border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
               />
             </div>
             <ScenarioTable
+              tableRef={tableRef}
               rows={filteredBenchmarks}
               columnHeader="Benchmark"
               overrides={benchmarkOverrides}
@@ -321,6 +330,7 @@ function ScenarioTable({
   getNewFactor,
   factorStep,
   formatFactor,
+  tableRef,
 }: {
   rows: GroupRow[]
   columnHeader: string
@@ -329,9 +339,10 @@ function ScenarioTable({
   getNewFactor: (key: string) => number | null
   factorStep: string
   formatFactor: (factor: number) => string
+  tableRef: RefObject<HTMLDivElement>
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
+    <div ref={tableRef} className="max-h-[60vh] overflow-auto rounded-lg border border-gray-200">
       <table className="w-full text-sm">
         <thead className="bg-gray-50 text-xs text-gray-500">
           <tr>
