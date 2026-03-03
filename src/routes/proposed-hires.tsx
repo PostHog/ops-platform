@@ -245,8 +245,7 @@ function RouteComponent() {
       if (!ph.talentPartners.length) {
         counts.set(UNASSIGNED_TALENT_PARTNER_FILTER, {
           label: '(Unassigned)',
-          count:
-            (counts.get(UNASSIGNED_TALENT_PARTNER_FILTER)?.count ?? 0) + 1,
+          count: (counts.get(UNASSIGNED_TALENT_PARTNER_FILTER)?.count ?? 0) + 1,
         })
         continue
       }
@@ -592,7 +591,10 @@ function RouteComponent() {
               <SelectItem value="filled" className="py-1 text-xs">
                 <PriorityBadge priority="filled" />
               </SelectItem>
-              <SelectItem value="pushed_to_next_quarter" className="py-1 text-xs">
+              <SelectItem
+                value="pushed_to_next_quarter"
+                className="py-1 text-xs"
+              >
                 <PriorityBadge priority="pushed_to_next_quarter" />
               </SelectItem>
             </SelectContent>
@@ -707,7 +709,7 @@ function RouteComponent() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-1.5 text-xs text-muted-foreground"
+              className="text-muted-foreground h-6 px-1.5 text-xs"
               onClick={() => setShowStats((v) => !v)}
             >
               {showStats ? (
@@ -724,7 +726,7 @@ function RouteComponent() {
           {showStats ? (
             <div className="mt-2 grid grid-cols-1 gap-2 lg:grid-cols-3">
               <div className="rounded-md border p-2">
-                <div className="text-muted-foreground mb-1 text-[11px] uppercase tracking-wide">
+                <div className="text-muted-foreground mb-1 text-[11px] tracking-wide uppercase">
                   Open Roles By Priority
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -740,7 +742,7 @@ function RouteComponent() {
                           toggleExclusiveFilterValue('priority', priority)
                         }
                         aria-pressed={isActive}
-                        className={`flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 hover:bg-muted ${isActive ? 'bg-muted ring-1 ring-border' : ''}`}
+                        className={`hover:bg-muted flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 ${isActive ? 'bg-muted ring-border ring-1' : ''}`}
                       >
                         <PriorityBadge priority={priority} />
                         <span className="font-medium">
@@ -752,10 +754,10 @@ function RouteComponent() {
                   <button
                     type="button"
                     onClick={() => clearFilter('priority')}
-                    className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 text-muted-foreground hover:bg-muted"
+                    className="text-muted-foreground hover:bg-muted flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5"
                   >
                     <span>Total</span>
-                    <span className="font-medium text-foreground">
+                    <span className="text-foreground font-medium">
                       {openProposedHires.length}
                     </span>
                   </button>
@@ -763,7 +765,7 @@ function RouteComponent() {
               </div>
 
               <div className="rounded-md border p-2">
-                <div className="text-muted-foreground mb-1 text-[11px] uppercase tracking-wide">
+                <div className="text-muted-foreground mb-1 text-[11px] tracking-wide uppercase">
                   Open Hires By Talent Partner
                 </div>
                 <div className="max-h-48 space-y-0.5 overflow-auto pr-1">
@@ -780,7 +782,7 @@ function RouteComponent() {
                             toggleExclusiveFilterValue('talentPartners', tp.id)
                           }
                           aria-pressed={isActive}
-                          className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-sm px-1 py-0.5 text-left hover:bg-muted ${isActive ? 'bg-muted ring-1 ring-border' : ''}`}
+                          className={`hover:bg-muted flex w-full cursor-pointer items-center justify-between gap-3 rounded-sm px-1 py-0.5 text-left ${isActive ? 'bg-muted ring-border ring-1' : ''}`}
                         >
                           <div className="truncate">{tp.label}</div>
                           <div className="font-medium tabular-nums">
@@ -796,7 +798,7 @@ function RouteComponent() {
               </div>
 
               <div className="rounded-md border p-2">
-                <div className="text-muted-foreground mb-1 text-[11px] uppercase tracking-wide">
+                <div className="text-muted-foreground mb-1 text-[11px] tracking-wide uppercase">
                   Open Hires By Team
                 </div>
                 <div className="max-h-48 space-y-0.5 overflow-auto pr-1">
@@ -818,7 +820,7 @@ function RouteComponent() {
                             )
                           }
                           aria-pressed={isActive}
-                          className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-sm px-1 py-0.5 text-left hover:bg-muted ${isActive ? 'bg-muted ring-1 ring-border' : ''}`}
+                          className={`hover:bg-muted flex w-full cursor-pointer items-center justify-between gap-3 rounded-sm px-1 py-0.5 text-left ${isActive ? 'bg-muted ring-border ring-1' : ''}`}
                         >
                           <div className="truncate">{team.label}</div>
                           <div className="font-medium tabular-nums">
