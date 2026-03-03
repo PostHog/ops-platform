@@ -60,6 +60,7 @@ const EmployeePanel = ({
 }) => {
   const { data: session } = useSession()
   const user = session?.user
+  const canEdit = user?.role === ROLES.ADMIN || user?.role === ROLES.ORG_CHART
   const employee = employees.find((employee) => employee.id === selectedNode)
   const proposedHire = proposedHires.find(
     (proposedHire) => proposedHire.id === selectedNode,
@@ -111,6 +112,29 @@ const EmployeePanel = ({
                         : 'N/A'}
                     </span>
                   </div>
+                  {!canEdit && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-700">
+                          Manager:
+                        </span>
+                        <span className="text-gray-900">
+                          {employee?.manager
+                            ? getFullName(
+                                employee.manager.firstName,
+                                employee.manager.lastName,
+                              )
+                            : 'None'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-700">Team:</span>
+                        <span className="text-gray-900">
+                          {employee?.team || 'None'}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </>
               ) : proposedHire ? (
                 <>
@@ -182,7 +206,7 @@ const EmployeePanel = ({
                 </Button>
               </Link>
             ) : null}
-            {employee ? (
+            {canEdit && employee ? (
               <>
                 <div className="flex flex-row items-center justify-between gap-2 px-2">
                   <span>Manager</span>
@@ -195,25 +219,23 @@ const EmployeePanel = ({
                           )
                         : 'None'}
                     </span>
-                    {employee ? (
-                      <ManagerEditPanel
-                        employees={employees}
-                        employee={employee}
-                      />
-                    ) : null}
+                    <ManagerEditPanel
+                      employees={employees}
+                      employee={employee}
+                    />
                   </div>
                 </div>
                 <div className="flex flex-row items-center justify-between gap-2 px-2">
                   <span>Team</span>
                   <div className="flex flex-row items-center gap-2">
                     <span>{employee?.team || 'None'}</span>
-                    {employee ? <TeamEditPanel employee={employee} /> : null}
+                    <TeamEditPanel employee={employee} />
                   </div>
                 </div>
               </>
             ) : null}
           </div>
-          {proposedHire ? (
+          {proposedHire && canEdit ? (
             <div className="my-4 w-full">
               <AddProposedHirePanel
                 employees={employees}
