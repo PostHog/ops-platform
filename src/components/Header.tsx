@@ -98,7 +98,8 @@ export default function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
-        {user && (user?.role === ROLES.ADMIN || user?.role === ROLES.ORG_CHART) ? (
+        {user &&
+        (user?.role === ROLES.ADMIN || user?.role === ROLES.ORG_CHART) ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">

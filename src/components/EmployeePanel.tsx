@@ -60,8 +60,7 @@ const EmployeePanel = ({
 }) => {
   const { data: session } = useSession()
   const user = session?.user
-  const canEdit =
-    user?.role === ROLES.ADMIN || user?.role === ROLES.ORG_CHART
+  const canEdit = user?.role === ROLES.ADMIN || user?.role === ROLES.ORG_CHART
   const employee = employees.find((employee) => employee.id === selectedNode)
   const proposedHire = proposedHires.find(
     (proposedHire) => proposedHire.id === selectedNode,
@@ -129,9 +128,7 @@ const EmployeePanel = ({
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="font-medium text-gray-700">
-                          Team:
-                        </span>
+                        <span className="font-medium text-gray-700">Team:</span>
                         <span className="text-gray-900">
                           {employee?.team || 'None'}
                         </span>
