@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Check, ChevronsUpDown, SettingsIcon } from 'lucide-react'
 import { cn, getFullName } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -68,6 +68,7 @@ const OrgChartPanel = ({
 }) => {
   const [open, setOpen] = useState(false)
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
+  const commandListRef = useRef<HTMLDivElement>(null)
   const [autoZoomingEnabled, setAutoZoomingEnabled] = useAtom(
     orgChartAutozoomingEnabledAtom,
   )
@@ -101,8 +102,12 @@ const OrgChartPanel = ({
         </PopoverTrigger>
         <PopoverContent className="w-[300px] p-0">
           <Command>
-            <CommandInput placeholder="Search employee..." className="h-9" />
-            <CommandList>
+            <CommandInput
+              placeholder="Search employee..."
+              className="h-9"
+              onValueChange={() => commandListRef.current?.scrollTo({ top: 0 })}
+            />
+            <CommandList ref={commandListRef}>
               <CommandEmpty>No employee found.</CommandEmpty>
               <CommandGroup>
                 {employees
