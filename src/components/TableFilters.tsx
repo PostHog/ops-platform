@@ -87,7 +87,7 @@ const FilterPopover = memo(
         <Button
           variant={hasValue ? 'default' : 'outline'}
           size="sm"
-          className="h-8"
+          className="h-7 px-2 text-xs"
         >
           {filter.label}
           {hasValue && (
@@ -485,8 +485,8 @@ export function TableFilters<TData>({ table }: TableFiltersProps<TData>) {
   }
 
   return (
-    <div className="flex items-center gap-2 py-4">
-      <div className="text-sm font-medium">Filters:</div>
+    <div className="flex flex-wrap items-center gap-1.5">
+      <div className="text-xs font-medium">Filters:</div>
       {filters.map((filter) => (
         <div key={filter.columnId}>{renderFilter(filter)}</div>
       ))}

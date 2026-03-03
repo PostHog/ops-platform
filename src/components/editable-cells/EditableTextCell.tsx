@@ -68,8 +68,7 @@ export function EditableTextCell({
       placeholder,
       disabled: isSaving,
       className: cn(
-        'h-auto min-h-0 px-2 py-1 text-xs md:text-xs leading-normal',
-        multiline && 'min-w-[200px]',
+        'h-auto min-h-0 px-1 py-0.5 text-xs md:text-xs leading-normal',
         className,
       ),
     }
@@ -96,9 +95,9 @@ export function EditableTextCell({
     <div
       onClick={() => !isSaving && setIsEditing(true)}
       className={cn(
-        'cursor-text rounded px-2 py-1 transition-colors hover:bg-gray-50',
+        'cursor-text rounded px-1 py-0.5 transition-colors hover:bg-gray-50',
         isSaving && 'pointer-events-none opacity-50',
-        multiline && 'min-w-[200px] whitespace-pre-line',
+        multiline && 'whitespace-pre-line',
         className,
       )}
     >
