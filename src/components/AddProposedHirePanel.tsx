@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select'
-import { type Department, type Priority, type Prisma } from '@prisma/client'
+import { type Priority, type Prisma } from '@prisma/client'
 import { getFullName } from '@/lib/utils'
 import OrgChartPanel from './OrgChartPanel'
 import prisma from '@/db'
@@ -72,7 +72,6 @@ const addProposedHire = createOrgChartFn({
       talentPartnerIds: string[]
       priority: Priority
       hiringProfile: string
-      department: Department | null
       quantity: number
     }) => d,
   )
@@ -86,7 +85,6 @@ const addProposedHire = createOrgChartFn({
               managerId: data.managerId,
               priority: data.priority,
               hiringProfile: data.hiringProfile,
-              department: data.department ?? undefined,
               talentPartners: {
                 connect: data.talentPartnerIds.map((id) => ({ id })),
               },
@@ -116,7 +114,6 @@ export const updateProposedHire = createOrgChartFn({
       talentPartnerIds: string[]
       priority: Priority
       hiringProfile: string
-      department: Department | null
     }) => d,
   )
   .handler(async ({ data }) => {
@@ -124,10 +121,9 @@ export const updateProposedHire = createOrgChartFn({
       where: { id: data.id },
       data: {
         title: data.title,
-        manager: { connect: { id: data.managerId } },
+        managerId: data.managerId,
         priority: data.priority,
         hiringProfile: data.hiringProfile,
-        department: data.department ?? null,
         talentPartners: {
           set: data.talentPartnerIds.map((id) => ({ id })),
         },
@@ -190,7 +186,6 @@ function AddProposedHirePanel({
           talentPartnerIds: proposedHire.talentPartners.map((tp) => tp.id),
           priority: proposedHire.priority,
           hiringProfile: proposedHire.hiringProfile,
-          department: proposedHire.department as Department | null,
           quantity: 1,
         }
       : {
@@ -199,7 +194,6 @@ function AddProposedHirePanel({
           talentPartnerIds: [] as string[],
           priority: 'medium' as Priority,
           hiringProfile: '',
-          department: null as Department | null,
           quantity: 1,
         },
     validators: {
@@ -217,7 +211,6 @@ function AddProposedHirePanel({
           'filled',
         ]),
         hiringProfile: z.string(),
-        department: z.enum(['RD', 'SM', 'GA']).nullable(),
         quantity: z.number().int().min(1, 'Quantity must be at least 1'),
       }),
     },
@@ -237,7 +230,6 @@ function AddProposedHirePanel({
               talentPartnerIds: value.talentPartnerIds,
               priority: value.priority,
               hiringProfile: value.hiringProfile,
-              department: value.department,
             },
           })
         : await addProposedHire({
@@ -247,7 +239,6 @@ function AddProposedHirePanel({
               talentPartnerIds: value.talentPartnerIds,
               priority: value.priority,
               hiringProfile: value.hiringProfile,
-              department: value.department,
               quantity: value.quantity,
             },
           })
@@ -420,32 +411,6 @@ function AddProposedHirePanel({
                         Pushed to Next Quarter
                       </SelectItem>
                       <SelectItem value="filled">Filled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FieldInfo field={field} />
-                </div>
-              )}
-            />
-            <form.Field
-              name="department"
-              children={(field) => (
-                <div className="col-span-2 grid gap-3">
-                  <Label htmlFor={field.name}>Department</Label>
-                  <Select
-                    value={field.state.value ?? ''}
-                    onValueChange={(value) =>
-                      field.handleChange(
-                        value === '' ? null : (value as Department),
-                      )
-                    }
-                  >
-                    <SelectTrigger className="h-6 w-full text-xs">
-                      <SelectValue placeholder="Select department..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="RD">R&amp;D</SelectItem>
-                      <SelectItem value="SM">S&amp;M</SelectItem>
-                      <SelectItem value="GA">G&amp;A</SelectItem>
                     </SelectContent>
                   </Select>
                   <FieldInfo field={field} />
