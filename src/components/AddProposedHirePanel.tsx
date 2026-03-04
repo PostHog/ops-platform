@@ -124,7 +124,7 @@ export const updateProposedHire = createOrgChartFn({
       where: { id: data.id },
       data: {
         title: data.title,
-        managerId: data.managerId,
+        manager: { connect: { id: data.managerId } },
         priority: data.priority,
         hiringProfile: data.hiringProfile,
         department: data.department ?? null,
