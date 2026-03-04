@@ -278,7 +278,7 @@ function AddProposedHirePanel({
       <form>
         <DialogTrigger asChild>
           {buttonType === 'default' ? (
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" size="sm" className="h-7 text-xs">
               {editingExisting ? 'Edit proposed hire' : 'Add proposed hire'}
             </Button>
           ) : (

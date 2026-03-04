@@ -88,7 +88,7 @@ export function EditableTalentPartnersCell({
           aria-expanded={open}
           disabled={isSaving}
           className={cn(
-            'h-auto w-full justify-between px-2 py-1 text-left text-xs font-normal hover:bg-gray-50',
+            'h-auto w-full justify-between px-1 py-0.5 text-left text-xs font-normal hover:bg-gray-50',
             isSaving && 'opacity-50',
           )}
         >

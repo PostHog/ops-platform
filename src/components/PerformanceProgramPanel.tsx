@@ -1,32 +1,25 @@
-import { useState } from 'react'
-import {
-  MessageSquare,
-  Send,
-  Upload,
-  File as FileIcon,
-  X,
-  CalendarIcon,
-} from 'lucide-react'
+import { memo, useState } from 'react'
+import { Eye, File as FileIcon, MessageSquare, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Calendar } from '@/components/ui/calendar'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { createToast } from 'vercel-toast'
 import { useServerFn } from '@tanstack/react-start'
 import {
-  addProgramFeedback,
   resolvePerformanceProgram,
-  getProofFileUploadUrl,
-  createProofFileRecord,
+  updateProgramFeedback,
   getProofFileUrl,
   deleteProofFile,
 } from '@/routes/employee.$employeeId'
+import { useSession } from '@/lib/auth-client'
 import { PerformanceProgramChecklistItem } from './PerformanceProgramChecklistItem'
+import { InlineProofImage, isImageFile } from './InlineProofImage'
+import { FeedbackInput } from './FeedbackInput'
 import type { Prisma } from '@prisma/client'
 
 type PerformanceProgram = Prisma.PerformanceProgramGetPayload<{
@@ -81,121 +74,69 @@ interface PerformanceProgramPanelProps {
   employeeId: string
   program: PerformanceProgram | null
   onUpdate: () => void
+  reportingChain?: Array<{ name: string; team?: string }>
 }
+
+type FeedbackFile = PerformanceProgram['feedback'][number]['files'][number]
+
+const FeedbackFileChip = memo(function FeedbackFileChip({
+  file,
+  isActive,
+  onDownload,
+  onDelete,
+}: {
+  file: FeedbackFile
+  isActive: boolean
+  onDownload: (fileId: string) => void
+  onDelete: (fileId: string) => void
+}) {
+  return (
+    <div className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs hover:border-gray-300">
+      <FileIcon className="h-3 w-3 text-gray-500" />
+      <span className="text-gray-700">{file.fileName}</span>
+      <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-4 px-1 text-xs"
+          onClick={() => onDownload(file.id)}
+        >
+          Download
+        </Button>
+        {isActive && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-4 w-4 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+            onClick={() => onDelete(file.id)}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+})
 
 export function PerformanceProgramPanel({
   program,
   onUpdate,
+  reportingChain = [],
 }: PerformanceProgramPanelProps) {
-  const [feedbackText, setFeedbackText] = useState('')
-  const [feedbackDate, setFeedbackDate] = useState<Date | undefined>(undefined)
-  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const [isResolving, setIsResolving] = useState(false)
-  const [feedbackFiles, setFeedbackFiles] = useState<
-    Array<File & { fileKey: string }>
-  >([])
-  const [isUploadingFiles, setIsUploadingFiles] = useState(false)
+  const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(
+    null,
+  )
+  const [editingText, setEditingText] = useState('')
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
 
-  const addFeedback = useServerFn(addProgramFeedback)
+  const { data: session } = useSession()
+  const currentUserId = session?.user?.id
+
   const resolveProgram = useServerFn(resolvePerformanceProgram)
-  const getUploadUrl = useServerFn(getProofFileUploadUrl)
-  const createFileRecord = useServerFn(createProofFileRecord)
+  const editFeedback = useServerFn(updateProgramFeedback)
   const getFileUrl = useServerFn(getProofFileUrl)
   const deleteFile = useServerFn(deleteProofFile)
-
-  const handleFileUpload = async (file: File) => {
-    if (!program) return
-
-    // Validate file size (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      createToast('File size exceeds 10MB limit', { timeout: 3000 })
-      return
-    }
-
-    setIsUploadingFiles(true)
-    try {
-      // Get presigned upload URL
-      const { uploadUrl, fileKey } = await getUploadUrl({
-        data: {
-          programId: program.id,
-          fileName: file.name,
-          fileSize: file.size,
-          mimeType: file.type || 'application/octet-stream',
-        },
-      })
-
-      // Upload file directly to S3 using presigned URL
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type,
-        },
-      })
-
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload file to S3')
-      }
-
-      // Store file info for later (will create record after feedback is created)
-      setFeedbackFiles((prev) => [...prev, Object.assign(file, { fileKey })])
-
-      createToast('File ready to attach', { timeout: 2000 })
-    } catch (error) {
-      createToast(
-        error instanceof Error ? error.message : 'Failed to upload file',
-        { timeout: 3000 },
-      )
-    } finally {
-      setIsUploadingFiles(false)
-    }
-  }
-
-  const handleAddFeedback = async () => {
-    if (!feedbackText.trim() || !program) return
-
-    setIsSubmittingFeedback(true)
-    try {
-      // Create feedback first
-      const feedback = await addFeedback({
-        data: {
-          programId: program.id,
-          feedback: feedbackText.trim(),
-          ...(feedbackDate && { createdAt: feedbackDate.toISOString() }),
-        },
-      })
-
-      // Upload any files that were selected
-      if (feedbackFiles.length > 0) {
-        await Promise.all(
-          feedbackFiles.map((file) =>
-            createFileRecord({
-              data: {
-                feedbackId: feedback.id,
-                fileName: file.name,
-                fileSize: file.size,
-                mimeType: file.type,
-                fileKey: file.fileKey,
-              },
-            }),
-          ),
-        )
-      }
-
-      createToast('Feedback added', { timeout: 3000 })
-      setFeedbackText('')
-      setFeedbackDate(undefined)
-      setFeedbackFiles([])
-      onUpdate()
-    } catch (error) {
-      createToast(
-        error instanceof Error ? error.message : 'Failed to add feedback',
-        { timeout: 3000 },
-      )
-    } finally {
-      setIsSubmittingFeedback(false)
-    }
-  }
 
   const handleResolveProgram = async () => {
     if (!program) return
@@ -227,6 +168,73 @@ export function PerformanceProgramPanel({
     }
   }
 
+  const handleDownloadFile = async (fileId: string) => {
+    try {
+      const { url } = await getFileUrl({ data: { proofFileId: fileId } })
+      window.open(url, '_blank')
+    } catch (error) {
+      createToast(
+        error instanceof Error ? error.message : 'Failed to get file URL',
+        { timeout: 3000 },
+      )
+    }
+  }
+
+  const handleDeleteFile = async (fileId: string) => {
+    if (
+      !confirm(
+        'Are you sure you want to remove this file? This action cannot be undone.',
+      )
+    ) {
+      return
+    }
+    try {
+      await deleteFile({ data: { proofFileId: fileId } })
+      createToast('File removed', { timeout: 3000 })
+      onUpdate()
+    } catch (error) {
+      createToast(
+        error instanceof Error ? error.message : 'Failed to remove file',
+        { timeout: 3000 },
+      )
+    }
+  }
+
+  const handleStartEdit = (feedbackId: string, currentText: string) => {
+    setEditingFeedbackId(feedbackId)
+    setEditingText(currentText)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingFeedbackId(null)
+    setEditingText('')
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingFeedbackId || !editingText.trim()) return
+
+    setIsSavingEdit(true)
+    try {
+      await editFeedback({
+        data: {
+          feedbackId: editingFeedbackId,
+          feedback: editingText.trim(),
+        },
+      })
+      createToast('Feedback updated', { timeout: 3000 })
+      setEditingFeedbackId(null)
+      setEditingText('')
+      onUpdate()
+    } catch (error) {
+      createToast(
+        error instanceof Error ? error.message : 'Failed to update feedback',
+        { timeout: 3000 },
+      )
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
   if (!program) {
     return null
   }
@@ -254,6 +262,27 @@ export function PerformanceProgramPanel({
               </>
             )}
           </span>
+          {reportingChain.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex cursor-default items-center gap-1 text-sm text-gray-500">
+                    <Eye className="h-3.5 w-3.5" />
+                    Viewable by: {reportingChain.length}{' '}
+                    {reportingChain.length === 1 ? 'person' : 'people'}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <ul className="space-y-1">
+                    {reportingChain.map((person, i) => (
+                      <li key={i}>{person.name}</li>
+                    ))}
+                    <li>+ Blitzscale</li>
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
         {program.status === 'ACTIVE' && allItemsCompleted && (
           <Button
@@ -294,220 +323,124 @@ export function PerformanceProgramPanel({
           Additional performance feedback
         </h4>
         {program.status === 'ACTIVE' && (
-          <div className="mb-2 space-y-1.5">
-            <Textarea
-              id="feedback-input"
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder="Enter feedback..."
-              rows={3}
-              className="w-full resize-none text-sm"
-            />
-            <div className="flex items-center gap-1.5">
-              {feedbackFiles.length > 0 && (
-                <div className="flex flex-1 flex-wrap items-center gap-1">
-                  {feedbackFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs hover:border-gray-300"
-                    >
-                      <FileIcon className="h-3 w-3 text-gray-500" />
-                      <span className="text-gray-700">{file.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFeedbackFiles((prev) =>
-                            prev.filter((_, i) => i !== index),
-                          )
-                        }}
-                        className="text-gray-500 opacity-0 transition-opacity group-hover:opacity-100 hover:text-gray-700"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="ml-auto flex items-center gap-1.5">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className={`h-8 shrink-0 gap-1.5 px-2 text-xs ${feedbackDate ? 'border-blue-500 text-blue-600' : ''}`}
-                    >
-                      <CalendarIcon className="h-4 w-4" />
-                      {feedbackDate
-                        ? feedbackDate.toLocaleDateString()
-                        : 'Backdate'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="single"
-                      selected={feedbackDate}
-                      onSelect={setFeedbackDate}
-                      disabled={(date) => date > new Date()}
-                      initialFocus
-                    />
-                    {feedbackDate && (
-                      <div className="border-t p-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-full text-xs"
-                          onClick={() => setFeedbackDate(undefined)}
-                        >
-                          Clear date (use today)
-                        </Button>
-                      </div>
-                    )}
-                  </PopoverContent>
-                </Popover>
-                <div className="relative shrink-0">
-                  <input
-                    type="file"
-                    id="feedback-file-upload"
-                    className="hidden"
-                    accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        handleFileUpload(file)
-                      }
-                      e.target.value = ''
-                    }}
-                    disabled={isUploadingFiles}
-                  />
-                  <Label
-                    htmlFor="feedback-file-upload"
-                    className="cursor-pointer"
-                  >
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isUploadingFiles}
-                      className="h-8 w-8 p-0"
-                      asChild
-                    >
-                      <span>
-                        <Upload className="h-4 w-4" />
-                      </span>
-                    </Button>
-                  </Label>
-                </div>
-                <Button
-                  onClick={handleAddFeedback}
-                  disabled={
-                    !feedbackText.trim() ||
-                    isSubmittingFeedback ||
-                    isUploadingFiles
-                  }
-                  size="sm"
-                  className="h-8 w-8 shrink-0 p-0"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
+          <FeedbackInput programId={program.id} onFeedbackAdded={onUpdate} />
         )}
         <div className="space-y-2">
           {program.feedback.length === 0 ? (
             <p className="text-sm text-gray-500">No feedback yet</p>
           ) : (
-            program.feedback.map((feedback) => (
-              <div
-                key={feedback.id}
-                className="flex flex-col gap-2 rounded border border-gray-200 bg-gray-50/50 px-3 py-2"
-              >
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 shrink-0 text-gray-500" />
-                  <span className="shrink-0 text-sm font-medium whitespace-nowrap">
-                    {feedback.givenBy.name || feedback.givenBy.email}
-                  </span>
-                  <span className="shrink-0 text-sm whitespace-nowrap text-gray-500">
-                    {new Date(feedback.createdAt).toLocaleDateString()}
-                  </span>
-                  {feedback.files && feedback.files.length > 0 && (
+            program.feedback.map((feedback) => {
+              const imageFiles = feedback.files.filter((f) =>
+                isImageFile(f.fileName, f.mimeType),
+              )
+              const nonImageFiles = feedback.files.filter(
+                (f) => !isImageFile(f.fileName, f.mimeType),
+              )
+              const canEdit =
+                program.status === 'ACTIVE' &&
+                feedback.givenBy.id === currentUserId
+              const isEditing = editingFeedbackId === feedback.id
+              return (
+                <div
+                  key={feedback.id}
+                  className="flex flex-col gap-2 rounded border border-gray-200 bg-gray-50/50 px-3 py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 shrink-0 text-gray-500" />
+                    <span className="shrink-0 text-sm font-medium whitespace-nowrap">
+                      {feedback.givenBy.name || feedback.givenBy.email}
+                    </span>
+                    <span className="shrink-0 text-sm whitespace-nowrap text-gray-500">
+                      {new Date(feedback.createdAt).toLocaleDateString()}
+                    </span>
+                    {feedback.updatedAt && (
+                      <span className="shrink-0 text-xs text-gray-400 italic">
+                        (edited)
+                      </span>
+                    )}
                     <div className="ml-auto flex shrink-0 items-center gap-1">
-                      {feedback.files.map((file) => (
-                        <div
+                      {nonImageFiles.map((file) => (
+                        <FeedbackFileChip
                           key={file.id}
-                          className="group flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs hover:border-gray-300"
+                          file={file}
+                          isActive={program.status === 'ACTIVE'}
+                          onDownload={handleDownloadFile}
+                          onDelete={handleDeleteFile}
+                        />
+                      ))}
+                      {canEdit && !isEditing && (
+                        <button
+                          type="button"
+                          className="shrink-0 text-xs text-gray-400 hover:text-gray-600"
+                          onClick={() =>
+                            handleStartEdit(feedback.id, feedback.feedback)
+                          }
                         >
-                          <FileIcon className="h-3 w-3 text-gray-500" />
-                          <span className="text-gray-700">{file.fileName}</span>
-                          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-4 px-1 text-xs"
-                              onClick={async () => {
-                                try {
-                                  const { url } = await getFileUrl({
-                                    data: { proofFileId: file.id },
-                                  })
-                                  window.open(url, '_blank')
-                                } catch (error) {
-                                  createToast(
-                                    error instanceof Error
-                                      ? error.message
-                                      : 'Failed to get file URL',
-                                    { timeout: 3000 },
-                                  )
-                                }
-                              }}
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {isEditing ? (
+                    <div className="space-y-1.5">
+                      <Textarea
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        rows={3}
+                        className="w-full resize-none text-sm"
+                        autoFocus
+                      />
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-xs"
+                          onClick={handleSaveEdit}
+                          disabled={isSavingEdit || !editingText.trim()}
+                        >
+                          {isSavingEdit ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={handleCancelEdit}
+                          disabled={isSavingEdit}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    feedback.feedback && (
+                      <p className="text-sm whitespace-pre-line text-gray-700">
+                        {feedback.feedback}
+                      </p>
+                    )
+                  )}
+                  {imageFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {imageFiles.map((file) => (
+                        <div key={file.id} className="group relative">
+                          <InlineProofImage
+                            fileId={file.id}
+                            fileName={file.fileName}
+                          />
+                          {program.status === 'ACTIVE' && (
+                            <button
+                              type="button"
+                              className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gray-800/70 text-white opacity-0 shadow transition-opacity group-hover:opacity-100 hover:bg-gray-900"
+                              onClick={() => handleDeleteFile(file.id)}
                             >
-                              Download
-                            </Button>
-                            {program.status === 'ACTIVE' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-4 w-4 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
-                                onClick={async () => {
-                                  if (
-                                    !confirm(
-                                      'Are you sure you want to remove this file? This action cannot be undone.',
-                                    )
-                                  ) {
-                                    return
-                                  }
-                                  try {
-                                    await deleteFile({
-                                      data: { proofFileId: file.id },
-                                    })
-                                    createToast('File removed', {
-                                      timeout: 3000,
-                                    })
-                                    onUpdate()
-                                  } catch (error) {
-                                    createToast(
-                                      error instanceof Error
-                                        ? error.message
-                                        : 'Failed to remove file',
-                                      { timeout: 3000 },
-                                    )
-                                  }
-                                }}
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-                <p className="text-sm whitespace-pre-line text-gray-700">
-                  {feedback.feedback}
-                </p>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       </div>

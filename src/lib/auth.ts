@@ -65,6 +65,10 @@ export const auth = betterAuth({
               message: 'only-posthog-emails-allowed',
             })
           }
+          // In development, make the dev user an admin by default
+          if (isDevAuthEnabled && user.email === 'dev@posthog.com') {
+            return { data: { ...user, role: 'admin' } }
+          }
           return { data: user }
         },
       },

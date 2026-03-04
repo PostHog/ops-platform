@@ -829,6 +829,40 @@ export const addProgramFeedback = createInternalFn({
     return feedback
   })
 
+export const updateProgramFeedback = createInternalFn({
+  method: 'POST',
+})
+  .inputValidator((d: { feedbackId: string; feedback: string }) => d)
+  .handler(async ({ data, context }) => {
+    const existing = await prisma.performanceProgramFeedback.findUnique({
+      where: { id: data.feedbackId },
+      include: { program: true },
+    })
+
+    if (!existing) {
+      throw new Error('Feedback not found')
+    }
+
+    if (existing.program.status !== 'ACTIVE') {
+      throw new Error('Cannot edit feedback on a resolved program')
+    }
+
+    // Only the author can edit their own feedback
+    if (existing.givenByUserId !== context.user.id) {
+      throw new Error('Unauthorized')
+    }
+
+    const updated = await prisma.performanceProgramFeedback.update({
+      where: { id: data.feedbackId },
+      data: {
+        feedback: data.feedback,
+        updatedAt: new Date(),
+      },
+    })
+
+    return updated
+  })
+
 export const resolvePerformanceProgram = createInternalFn({
   method: 'POST',
 })
@@ -1422,6 +1456,36 @@ function EmployeeOverview() {
     return trees.length === 1 ? trees[0] : trees
   }, [deelEmployees, proposedHires, user?.role, managerDeelEmployeeId])
 
+  // Build the reporting chain for the performance program "Viewable by" tooltip
+  const reportingChain = useMemo(() => {
+    if (!deelEmployees || !employee.deelEmployee?.managerId) return []
+
+    const employeeMap = new Map(deelEmployees.map((e) => [e.id, e]))
+    const chain: Array<{ name: string; team?: string }> = []
+    let currentId: string | null = employee.deelEmployee.managerId
+    const visitedManagerIds = new Set<string>()
+
+    while (currentId && !visitedManagerIds.has(currentId)) {
+      visitedManagerIds.add(currentId)
+      const manager = employeeMap.get(currentId)
+      if (!manager) break
+
+      chain.push({
+        name: getFullName(
+          manager.firstName,
+          manager.lastName,
+          manager.workEmail ?? undefined,
+        ),
+        team: manager.team || undefined,
+      })
+
+      if (manager.team === 'Blitzscale') break
+      currentId = manager.managerId
+    }
+
+    return chain
+  }, [deelEmployees, employee.deelEmployee?.managerId])
+
   // Flatten hierarchy to get all employees for search
   const allHierarchyEmployees = useMemo(() => {
     if (!managerHierarchy) return []
@@ -1953,6 +2017,7 @@ function EmployeeOverview() {
                 employeeId={employee.id}
                 program={employee.performancePrograms[0] as any}
                 onUpdate={() => router.invalidate()}
+                reportingChain={reportingChain}
               />
             </div>
           ) : null}

@@ -469,9 +469,7 @@ function App() {
               .map((e) => {
                 const area = e.salaries[0].area
                 const country = e.salaries[0].country
-                const value = country
-                  ? `${area} (${country})`
-                  : area
+                const value = country ? `${area} (${country})` : area
                 return [value, { label: value, value }] as const
               }),
           ).values(),
