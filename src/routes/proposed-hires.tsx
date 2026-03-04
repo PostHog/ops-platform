@@ -22,7 +22,7 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import type { Prisma, Priority } from '@prisma/client'
+import type { Department, Prisma, Priority } from '@prisma/client'
 import {
   Table,
   TableBody,
@@ -382,6 +382,10 @@ function RouteComponent() {
             field === 'hiringProfile'
               ? (value as string)
               : proposedHire.hiringProfile,
+          department:
+            field === 'department'
+              ? ((value as string) || null) as Department | null
+              : proposedHire.department,
         },
       })
       // Update the cache in place without refetching to prevent row jumping
@@ -625,6 +629,52 @@ function RouteComponent() {
         return (
           priorityOrder.indexOf(rowA.original.priority) -
           priorityOrder.indexOf(rowB.original.priority)
+        )
+      },
+    },
+    {
+      accessorKey: 'department',
+      header: 'Department',
+      meta: {
+        filterVariant: 'select',
+        filterOptions: [
+          { label: 'R&D', value: 'RD' },
+          { label: 'S&M', value: 'SM' },
+          { label: 'G&A', value: 'GA' },
+        ],
+      },
+      filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) =>
+        filterValue.includes(row.original.department ?? ''),
+      cell: ({ row, table }) => {
+        const DEPARTMENT_LABELS: Record<Department, string> = {
+          RD: 'R&D',
+          SM: 'S&M',
+          GA: 'G&A',
+        }
+        return (
+          <Select
+            value={row.original.department ?? ''}
+            onValueChange={(value) =>
+              table.options.meta?.handleUpdate?.(
+                row.original,
+                'department',
+                value,
+              )
+            }
+          >
+            <SelectTrigger className="h-auto w-auto border-0 p-0 shadow-none hover:bg-transparent focus:ring-0">
+              <SelectValue placeholder="—">
+                {row.original.department
+                  ? DEPARTMENT_LABELS[row.original.department]
+                  : '—'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="RD">R&amp;D</SelectItem>
+              <SelectItem value="SM">S&amp;M</SelectItem>
+              <SelectItem value="GA">G&amp;A</SelectItem>
+            </SelectContent>
+          </Select>
         )
       },
     },
