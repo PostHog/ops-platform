@@ -384,7 +384,7 @@ function RouteComponent() {
               : proposedHire.hiringProfile,
           department:
             field === 'department'
-              ? ((value as string) || null) as Department | null
+              ? (((value as string) || null) as Department | null)
               : proposedHire.department,
         },
       })
