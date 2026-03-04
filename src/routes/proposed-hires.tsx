@@ -239,6 +239,18 @@ function RouteComponent() {
     )
   }, [openProposedHires])
 
+  const openCountsByDepartment = useMemo(() => {
+    return openProposedHires.reduce(
+      (acc, ph) => {
+        if (ph.department === 'RD') acc.RD += 1
+        if (ph.department === 'SM') acc.SM += 1
+        if (ph.department === 'GA') acc.GA += 1
+        return acc
+      },
+      { RD: 0, SM: 0, GA: 0 },
+    )
+  }, [openProposedHires])
+
   const openHiresByTalentPartner = useMemo(() => {
     const counts = new Map<string, { label: string; count: number }>()
     for (const ph of openProposedHires) {
@@ -775,42 +787,78 @@ function RouteComponent() {
           </div>
           {showStats ? (
             <div className="mt-2 grid grid-cols-1 gap-2 lg:grid-cols-3">
-              <div className="rounded-md border p-2">
-                <div className="text-muted-foreground mb-1 text-[11px] tracking-wide uppercase">
-                  Open Roles By Priority
+              <div className="flex flex-col gap-2">
+                <div className="rounded-md border p-2">
+                  <div className="text-muted-foreground mb-1 text-[11px] tracking-wide uppercase">
+                    Open Roles By Priority
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(['high', 'medium', 'low'] as const).map((priority) => {
+                      const isActive =
+                        getFilterValues('priority').length === 1 &&
+                        getFilterValues('priority')[0] === priority
+                      return (
+                        <button
+                          type="button"
+                          key={priority}
+                          onClick={() =>
+                            toggleExclusiveFilterValue('priority', priority)
+                          }
+                          aria-pressed={isActive}
+                          className={`hover:bg-muted flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 ${isActive ? 'bg-muted ring-border ring-1' : ''}`}
+                        >
+                          <PriorityBadge priority={priority} />
+                          <span className="font-medium">
+                            {openCountsByPriority[priority]}
+                          </span>
+                        </button>
+                      )
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => clearFilter('priority')}
+                      className="text-muted-foreground hover:bg-muted flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5"
+                    >
+                      <span>Total</span>
+                      <span className="text-foreground font-medium">
+                        {openProposedHires.length}
+                      </span>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {(['high', 'medium', 'low'] as const).map((priority) => {
-                    const isActive =
-                      getFilterValues('priority').length === 1 &&
-                      getFilterValues('priority')[0] === priority
-                    return (
-                      <button
-                        type="button"
-                        key={priority}
-                        onClick={() =>
-                          toggleExclusiveFilterValue('priority', priority)
-                        }
-                        aria-pressed={isActive}
-                        className={`hover:bg-muted flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 ${isActive ? 'bg-muted ring-border ring-1' : ''}`}
-                      >
-                        <PriorityBadge priority={priority} />
-                        <span className="font-medium">
-                          {openCountsByPriority[priority]}
-                        </span>
-                      </button>
-                    )
-                  })}
-                  <button
-                    type="button"
-                    onClick={() => clearFilter('priority')}
-                    className="text-muted-foreground hover:bg-muted flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5"
-                  >
-                    <span>Total</span>
-                    <span className="text-foreground font-medium">
-                      {openProposedHires.length}
-                    </span>
-                  </button>
+                <div className="rounded-md border p-2">
+                  <div className="text-muted-foreground mb-1 text-[11px] tracking-wide uppercase">
+                    Open Roles By Department
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        ['RD', 'R&D'],
+                        ['SM', 'S&M'],
+                        ['GA', 'G&A'],
+                      ] as const
+                    ).map(([value, label]) => {
+                      const isActive =
+                        getFilterValues('department').length === 1 &&
+                        getFilterValues('department')[0] === value
+                      return (
+                        <button
+                          type="button"
+                          key={value}
+                          onClick={() =>
+                            toggleExclusiveFilterValue('department', value)
+                          }
+                          aria-pressed={isActive}
+                          className={`hover:bg-muted flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 ${isActive ? 'bg-muted ring-border ring-1' : ''}`}
+                        >
+                          <span>{label}</span>
+                          <span className="font-medium">
+                            {openCountsByDepartment[value]}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
 
