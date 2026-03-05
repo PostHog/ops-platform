@@ -717,7 +717,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                       body: JSON.stringify({
                         channel:
                           process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
-                        text: `${getFullName(manager.firstName, manager.lastName, manager.name)} hasn't submitted feedback for ${getFullName(employee.firstName, employee.lastName, employee.name)} within ${daysSinceCreation} days. Please follow up with them.`,
+                        text: `${getFullName(employee.firstName, employee.lastName, employee.name)} hasn't submitted manager feedback for ${getFullName(manager.firstName, manager.lastName, manager.name)} within ${daysSinceCreation} days. Please follow up with them.`,
                       }),
                     },
                   )
