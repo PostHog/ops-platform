@@ -155,6 +155,9 @@ export default function Header() {
               <DropdownMenuItem asChild>
                 <Link to="/analytics">Analytics</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/payroll-scenarios">Payroll scenarios</Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
