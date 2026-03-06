@@ -38,6 +38,7 @@ model Employee {
   ashbyInterviewScoresGiven    AshbyInterviewScore[]             @relation("Interviewer")
   ashbyInterviewScoresImported Boolean                           @default(false)
   checklistItemsAssigned       PerformanceProgramChecklistItem[] @relation("ChecklistItemAssignedTo")
+  salaryDraft                  SalaryDraft?
 }
 
 enum SalaryDeviationStatus {
@@ -409,4 +410,24 @@ model CartaOptionGrant {
   exercisedQuantity Int
   vestedQuantity    Int
   expiredQuantity   Int
+}
+
+model SalaryDraft {
+  id                      String   @id @default(cuid())
+  employeeId              String   @unique
+  employee                Employee @relation(fields: [employeeId], references: [id])
+  country                 String
+  area                    String
+  level                   Float
+  step                    Float
+  benchmark               String
+  employmentCountry       String?
+  employmentArea          String?
+  amountTakenInOptions    Float    @default(0)
+  equityRefreshPercentage Float    @default(0)
+  notes                   String   @default("")
+  showOverride            Boolean  @default(false)
+  totalSalaryOverride     Float?
+  bonusPercentageOverride Float?
+  updatedAt               DateTime @updatedAt
 }

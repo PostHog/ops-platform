@@ -11,11 +11,16 @@ import {
   roleTypeOptions,
   roleType,
 } from '@/lib/utils'
-import { updateSalary } from '@/routes/employee.$employeeId'
-import { Salary } from '@prisma/client'
+import {
+  updateSalary,
+  saveSalaryDraft,
+  deleteSalaryDraft,
+} from '@/routes/employee.$employeeId'
+import { Salary, SalaryDraft } from '@prisma/client'
 import { AnyFormApi, useForm, useStore } from '@tanstack/react-form'
-import { MoreVertical } from 'lucide-react'
-import { useEffect } from 'react'
+import { useServerFn } from '@tanstack/react-start'
+import { Loader2, MoreVertical } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createToast } from 'vercel-toast'
 import { TimelineItemBadge } from './TimelineItemBadge'
 import { Button } from './ui/button'
@@ -50,6 +55,7 @@ export function NewSalaryForm({
   showBonusPercentage,
   eligibleForEquityRefresh,
   nextAnniversaryDate,
+  salaryDraft,
 }: {
   employeeId: string
   showOverride: boolean
@@ -65,37 +71,60 @@ export function NewSalaryForm({
   showBonusPercentage: boolean
   eligibleForEquityRefresh?: boolean
   nextAnniversaryDate?: Date
+  salaryDraft: SalaryDraft | null
 }) {
+  const saveDraft = useServerFn(saveSalaryDraft)
+  const removeDraft = useServerFn(deleteSalaryDraft)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>(
+    'idle',
+  )
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Restore showOverride from draft on mount
+  useEffect(() => {
+    if (salaryDraft?.showOverride) {
+      setShowOverride(true)
+    }
+  }, [])
+
   const getDefaultValues = () => ({
-    country: latestSalary?.country ?? 'United States',
-    area: latestSalary?.area ?? 'San Francisco, California',
+    country: salaryDraft?.country ?? latestSalary?.country ?? 'United States',
+    area:
+      salaryDraft?.area ?? latestSalary?.area ?? 'San Francisco, California',
     locationFactor: latestSalary?.locationFactor ?? 0,
-    level: latestSalary?.level ?? 1,
-    step: latestSalary?.step ?? 1,
-    benchmark: latestSalary?.benchmark ?? 'Product Engineer',
+    level: salaryDraft?.level ?? latestSalary?.level ?? 1,
+    step: salaryDraft?.step ?? latestSalary?.step ?? 1,
+    benchmark:
+      salaryDraft?.benchmark ?? latestSalary?.benchmark ?? 'Product Engineer',
     benchmarkFactor: latestSalary?.benchmarkFactor ?? 0,
-    bonusPercentage: latestSalary?.bonusPercentage ?? 0,
+    bonusPercentage:
+      salaryDraft?.bonusPercentageOverride ??
+      latestSalary?.bonusPercentage ??
+      0,
     bonusAmount: 0,
-    totalSalary: latestSalary?.totalSalary ?? 0,
+    totalSalary:
+      salaryDraft?.totalSalaryOverride ?? latestSalary?.totalSalary ?? 0,
     changePercentage: 0, // Always 0 for new entries
     changeAmount: 0, // Always 0 for new entries
     localCurrency: latestSalary?.localCurrency ?? 'USD',
     exchangeRate: latestSalary?.exchangeRate ?? 1,
     totalSalaryLocal: latestSalary?.totalSalaryLocal ?? 0,
-    amountTakenInOptions: 0,
+    amountTakenInOptions: salaryDraft?.amountTakenInOptions ?? 0,
     actualSalary: latestSalary?.actualSalary ?? 0,
     actualSalaryLocal: latestSalary?.actualSalaryLocal ?? 0,
-    equityRefreshPercentage: 0,
+    equityRefreshPercentage: salaryDraft?.equityRefreshPercentage ?? 0,
     equityRefreshAmount: 0,
     employmentCountry:
+      salaryDraft?.employmentCountry ??
       latestSalary?.employmentCountry ??
       latestSalary?.country ??
       'United States',
     employmentArea:
+      salaryDraft?.employmentArea ??
       latestSalary?.employmentArea ??
       latestSalary?.area ??
       'San Francisco, California',
-    notes: '',
+    notes: salaryDraft?.notes ?? '',
     employeeId: employeeId,
   })
 
@@ -229,6 +258,55 @@ export function NewSalaryForm({
     )
   }
 
+  const scheduleDraftSave = useCallback(
+    (formApi: AnyFormApi) => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+      setSaveStatus('saving')
+      debounceTimerRef.current = setTimeout(async () => {
+        try {
+          const values = formApi.state.values
+          await saveDraft({
+            data: {
+              employeeId,
+              country: values.country,
+              area: values.area,
+              level: values.level,
+              step: values.step,
+              benchmark: values.benchmark,
+              employmentCountry: values.employmentCountry,
+              employmentArea: values.employmentArea,
+              amountTakenInOptions: values.amountTakenInOptions,
+              equityRefreshPercentage: values.equityRefreshPercentage,
+              notes: values.notes,
+              showOverride,
+              totalSalaryOverride: showOverride
+                ? values.totalSalary
+                : undefined,
+              bonusPercentageOverride: showOverride
+                ? values.bonusPercentage
+                : undefined,
+            },
+          })
+          setSaveStatus('saved')
+        } catch {
+          setSaveStatus('idle')
+        }
+      }, 2000)
+    },
+    [employeeId, saveDraft, showOverride],
+  )
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [])
+
   const form = useForm({
     defaultValues: getDefaultValues(),
     onSubmit: async ({ value }) => {
@@ -241,6 +319,7 @@ export function NewSalaryForm({
             : null,
       }
       await updateSalary({ data: dataToSubmit })
+      await removeDraft({ data: { employeeId } })
       onSuccess()
       createToast('Salary added successfully.', {
         timeout: 3000,
@@ -271,6 +350,7 @@ export function NewSalaryForm({
         ) {
           updateFormFields(formApi)
         }
+        scheduleDraftSave(formApi)
       },
     },
   })
@@ -342,7 +422,13 @@ export function NewSalaryForm({
         >
           <div className="mb-2 flex items-start justify-between">
             <TimelineItemBadge type="new salary" />
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              {saveStatus === 'saving' && (
+                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              )}
+              {saveStatus === 'saved' && (
+                <span className="text-xs text-gray-400">Draft saved</span>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -366,7 +452,10 @@ export function NewSalaryForm({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={onCancel}
+                onClick={async () => {
+                  await removeDraft({ data: { employeeId } })
+                  onCancel()
+                }}
               >
                 Cancel
               </Button>

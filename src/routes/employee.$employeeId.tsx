@@ -123,7 +123,9 @@ const getEmployeeById = createInternalFn({
         id: true,
         email: true,
         // Admin-only fields
-        ...(isAdmin ? { priority: true, reviewed: true } : {}),
+        ...(isAdmin
+          ? { priority: true, reviewed: true, salaryDraft: true }
+          : {}),
         // Keeper tests: available to admin and managers
         // Managers only see tests from the last 12 months
         ...(isAdmin || isManager
@@ -359,6 +361,7 @@ type Employee = Prisma.EmployeeGetPayload<{
       }
     }
     cartaOptionGrants: true
+    salaryDraft: true
     performancePrograms: {
       include: {
         checklistItems: {
@@ -573,6 +576,47 @@ export const deleteSalary = createAdminFn({
       where: { id: data.id },
     })
 
+    return { success: true }
+  })
+
+export const saveSalaryDraft = createAdminFn({
+  method: 'POST',
+})
+  .inputValidator(
+    (d: {
+      employeeId: string
+      country: string
+      area: string
+      level: number
+      step: number
+      benchmark: string
+      employmentCountry?: string
+      employmentArea?: string
+      amountTakenInOptions: number
+      equityRefreshPercentage: number
+      notes: string
+      showOverride: boolean
+      totalSalaryOverride?: number
+      bonusPercentageOverride?: number
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    const { employeeId, ...draftData } = data
+    return await prisma.salaryDraft.upsert({
+      where: { employeeId },
+      create: { employeeId, ...draftData },
+      update: draftData,
+    })
+  })
+
+export const deleteSalaryDraft = createAdminFn({
+  method: 'POST',
+})
+  .inputValidator((d: { employeeId: string }) => d)
+  .handler(async ({ data }) => {
+    await prisma.salaryDraft.deleteMany({
+      where: { employeeId: data.employeeId },
+    })
     return { success: true }
   })
 
@@ -2190,6 +2234,7 @@ function EmployeeOverview() {
                   showBonusPercentage={showBonusPercentage}
                   eligibleForEquityRefresh={eligibleForEquityRefresh}
                   nextAnniversaryDate={nextAnniversaryDate?.toDate()}
+                  salaryDraft={employee.salaryDraft ?? null}
                 />
               )}
               {isSensitiveHidden ? (
