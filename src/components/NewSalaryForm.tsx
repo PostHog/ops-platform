@@ -312,7 +312,6 @@ export function NewSalaryForm({
             : null,
       }
       await updateSalary({ data: dataToSubmit })
-      await removeDraft({ data: { employeeId } })
       onSuccess()
       createToast('Salary added successfully.', {
         timeout: 3000,
@@ -402,6 +401,7 @@ export function NewSalaryForm({
     form.store,
     (state) => state.values.employmentCountry,
   )
+  const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
 
   return (
     <div className="mb-4 w-full bg-white">
@@ -455,7 +455,7 @@ export function NewSalaryForm({
               <Button
                 type="submit"
                 size="sm"
-                disabled={step < 0.85 || step > 1.2}
+                disabled={isSubmitting || step < 0.85 || step > 1.2}
               >
                 Save
               </Button>

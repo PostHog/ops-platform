@@ -537,18 +537,20 @@ export const updateSalary = createAdminFn({
     ) => d,
   )
   .handler(async ({ data }) => {
-    // Create the salary entry
-    const salary = await prisma.salary.create({
-      data: {
-        ...data,
-      },
-    })
-
-    // Update the employee's reviewed status to true
-    await prisma.employee.update({
-      where: { id: data.employeeId },
-      data: { reviewed: true },
-    })
+    const [salary] = await prisma.$transaction([
+      prisma.salary.create({
+        data: {
+          ...data,
+        },
+      }),
+      prisma.salaryDraft.deleteMany({
+        where: { employeeId: data.employeeId },
+      }),
+      prisma.employee.update({
+        where: { id: data.employeeId },
+        data: { reviewed: true },
+      }),
+    ])
 
     return salary
   })
