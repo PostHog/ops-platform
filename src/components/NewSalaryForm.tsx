@@ -252,11 +252,16 @@ export function NewSalaryForm({
 
   const scheduleDraftSave = useCallback(
     (formApi: AnyFormApi) => {
+      if (formApi.state.isSubmitting) {
+        return
+      }
+
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
       }
       setSaveStatus('saving')
       debounceTimerRef.current = setTimeout(async () => {
+        debounceTimerRef.current = null
         try {
           const values = formApi.state.values
           await saveDraft({
@@ -295,6 +300,7 @@ export function NewSalaryForm({
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
       }
     }
   }, [])
@@ -302,6 +308,11 @@ export function NewSalaryForm({
   const form = useForm({
     defaultValues: getDefaultValues(),
     onSubmit: async ({ value }) => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
+      }
+
       // Add equityRefreshDate if there's an equity refresh amount
       const dataToSubmit = {
         ...value,
