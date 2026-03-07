@@ -80,13 +80,6 @@ export function NewSalaryForm({
   )
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Restore showOverride from draft on mount
-  useEffect(() => {
-    if (salaryDraft?.showOverride) {
-      setShowOverride(true)
-    }
-  }, [])
-
   const getDefaultValues = () => ({
     country: salaryDraft?.country ?? latestSalary?.country ?? 'United States',
     area:

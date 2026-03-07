@@ -1258,10 +1258,14 @@ function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
   const isSensitiveHidden = useSensitiveDataHidden()
+  const router = useRouter()
+  const employee: Employee = Route.useLoaderData()
   const [showNewSalaryForm, setShowNewSalaryForm] = useState(
     user?.role === ROLES.ADMIN,
   )
-  const [showOverrideMode, setShowOverrideMode] = useState(false)
+  const [showOverrideMode, setShowOverrideMode] = useState(
+    Boolean(employee.salaryDraft?.showOverride),
+  )
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByLevel, setFilterByLevel] = useState(true)
@@ -1271,8 +1275,6 @@ function EmployeeOverview() {
   const [showStockOptionsCalculator, setShowStockOptionsCalculator] =
     useLocalStorage<boolean>('employee.showStockOptionsCalculator', true)
 
-  const router = useRouter()
-  const employee: Employee = Route.useLoaderData()
   const [reviewQueue, setReviewQueue] = useAtom(reviewQueueAtom)
   const createProgram = useServerFn(createPerformanceProgram)
   const [level, setLevel] = useState(employee.salaries[0]?.level ?? 1)
@@ -1280,6 +1282,10 @@ function EmployeeOverview() {
   const [benchmark, setBenchmark] = useState(
     employee.salaries[0]?.benchmark ?? 'Product Engineer',
   )
+
+  useEffect(() => {
+    setShowOverrideMode(Boolean(employee.salaryDraft?.showOverride))
+  }, [employee.id, employee.salaryDraft?.showOverride])
 
   const showBonusPercentage =
     employee.salaries.some((salary) => salary.bonusPercentage > 0) ||
