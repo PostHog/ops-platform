@@ -123,7 +123,9 @@ const getEmployeeById = createInternalFn({
         id: true,
         email: true,
         // Admin-only fields
-        ...(isAdmin ? { priority: true, reviewed: true } : {}),
+        ...(isAdmin
+          ? { priority: true, reviewed: true, salaryDraft: true }
+          : {}),
         // Keeper tests: available to admin and managers
         // Managers only see tests from the last 12 months
         ...(isAdmin || isManager
@@ -359,6 +361,7 @@ type Employee = Prisma.EmployeeGetPayload<{
       }
     }
     cartaOptionGrants: true
+    salaryDraft: true
     performancePrograms: {
       include: {
         checklistItems: {
@@ -534,18 +537,20 @@ export const updateSalary = createAdminFn({
     ) => d,
   )
   .handler(async ({ data }) => {
-    // Create the salary entry
-    const salary = await prisma.salary.create({
-      data: {
-        ...data,
-      },
-    })
-
-    // Update the employee's reviewed status to true
-    await prisma.employee.update({
-      where: { id: data.employeeId },
-      data: { reviewed: true },
-    })
+    const [salary] = await prisma.$transaction([
+      prisma.salary.create({
+        data: {
+          ...data,
+        },
+      }),
+      prisma.salaryDraft.deleteMany({
+        where: { employeeId: data.employeeId },
+      }),
+      prisma.employee.update({
+        where: { id: data.employeeId },
+        data: { reviewed: true },
+      }),
+    ])
 
     return salary
   })
@@ -574,6 +579,36 @@ export const deleteSalary = createAdminFn({
     })
 
     return { success: true }
+  })
+
+export const saveSalaryDraft = createAdminFn({
+  method: 'POST',
+})
+  .inputValidator(
+    (d: {
+      employeeId: string
+      country: string
+      area: string
+      level: number
+      step: number
+      benchmark: string
+      employmentCountry?: string
+      employmentArea?: string
+      amountTakenInOptions: number
+      equityRefreshPercentage: number
+      notes: string
+      showOverride: boolean
+      totalSalaryOverride?: number
+      bonusPercentageOverride?: number
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    const { employeeId, ...draftData } = data
+    return await prisma.salaryDraft.upsert({
+      where: { employeeId },
+      create: { employeeId, ...draftData },
+      update: draftData,
+    })
   })
 
 export const createPerformanceProgram = createInternalFn({
@@ -1214,10 +1249,14 @@ function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
   const isSensitiveHidden = useSensitiveDataHidden()
+  const router = useRouter()
+  const employee: Employee = Route.useLoaderData()
   const [showNewSalaryForm, setShowNewSalaryForm] = useState(
     user?.role === ROLES.ADMIN,
   )
-  const [showOverrideMode, setShowOverrideMode] = useState(false)
+  const [showOverrideMode, setShowOverrideMode] = useState(
+    Boolean(employee.salaryDraft?.showOverride),
+  )
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByLevel, setFilterByLevel] = useState(true)
@@ -1227,8 +1266,6 @@ function EmployeeOverview() {
   const [showStockOptionsCalculator, setShowStockOptionsCalculator] =
     useLocalStorage<boolean>('employee.showStockOptionsCalculator', true)
 
-  const router = useRouter()
-  const employee: Employee = Route.useLoaderData()
   const [reviewQueue, setReviewQueue] = useAtom(reviewQueueAtom)
   const createProgram = useServerFn(createPerformanceProgram)
   const [level, setLevel] = useState(employee.salaries[0]?.level ?? 1)
@@ -1236,6 +1273,10 @@ function EmployeeOverview() {
   const [benchmark, setBenchmark] = useState(
     employee.salaries[0]?.benchmark ?? 'Product Engineer',
   )
+
+  useEffect(() => {
+    setShowOverrideMode(Boolean(employee.salaryDraft?.showOverride))
+  }, [employee.id, employee.salaryDraft?.showOverride])
 
   const showBonusPercentage =
     employee.salaries.some((salary) => salary.bonusPercentage > 0) ||
@@ -2190,6 +2231,7 @@ function EmployeeOverview() {
                   showBonusPercentage={showBonusPercentage}
                   eligibleForEquityRefresh={eligibleForEquityRefresh}
                   nextAnniversaryDate={nextAnniversaryDate?.toDate()}
+                  salaryDraft={employee.salaryDraft ?? null}
                 />
               )}
               {isSensitiveHidden ? (
