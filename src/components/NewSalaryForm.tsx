@@ -11,10 +11,7 @@ import {
   roleTypeOptions,
   roleType,
 } from '@/lib/utils'
-import {
-  updateSalary,
-  saveSalaryDraft,
-} from '@/routes/employee.$employeeId'
+import { updateSalary, saveSalaryDraft } from '@/routes/employee.$employeeId'
 import { Salary, SalaryDraft } from '@prisma/client'
 import { AnyFormApi, useForm, useStore } from '@tanstack/react-form'
 import { useServerFn } from '@tanstack/react-start'
