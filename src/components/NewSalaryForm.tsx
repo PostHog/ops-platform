@@ -14,7 +14,6 @@ import {
 import {
   updateSalary,
   saveSalaryDraft,
-  deleteSalaryDraft,
 } from '@/routes/employee.$employeeId'
 import { Salary, SalaryDraft } from '@prisma/client'
 import { AnyFormApi, useForm, useStore } from '@tanstack/react-form'
@@ -74,7 +73,7 @@ export function NewSalaryForm({
   salaryDraft: SalaryDraft | null
 }) {
   const saveDraft = useServerFn(saveSalaryDraft)
-  const removeDraft = useServerFn(deleteSalaryDraft)
+
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>(
     'idle',
   )
@@ -445,10 +444,7 @@ export function NewSalaryForm({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={async () => {
-                  await removeDraft({ data: { employeeId } })
-                  onCancel()
-                }}
+                onClick={onCancel}
               >
                 Cancel
               </Button>

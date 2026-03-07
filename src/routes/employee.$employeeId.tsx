@@ -611,16 +611,6 @@ export const saveSalaryDraft = createAdminFn({
     })
   })
 
-export const deleteSalaryDraft = createAdminFn({
-  method: 'POST',
-})
-  .inputValidator((d: { employeeId: string }) => d)
-  .handler(async ({ data }) => {
-    await prisma.salaryDraft.deleteMany({
-      where: { employeeId: data.employeeId },
-    })
-    return { success: true }
-  })
 
 export const createPerformanceProgram = createInternalFn({
   method: 'POST',
