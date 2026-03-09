@@ -858,26 +858,19 @@ export const Route = createFileRoute('/runScheduledJobs')({
               ? `${notification.managerName} hasn't submitted feedback for ${notification.employeeName} within ${notification.daysSinceCreation} days.`
               : `${notification.employeeName} hasn't submitted manager feedback for ${notification.managerName} within ${notification.daysSinceCreation} days.`
 
-          const postSlackMessage = async (
-            text: string,
-            threadTs?: string,
-          ) => {
-            const res = await fetch(
-              'https://slack.com/api/chat.postMessage',
-              {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  channel:
-                    process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
-                  text,
-                  ...(threadTs ? { thread_ts: threadTs } : {}),
-                }),
+          const postSlackMessage = async (text: string, threadTs?: string) => {
+            const res = await fetch('https://slack.com/api/chat.postMessage', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+                'Content-Type': 'application/json',
               },
-            )
+              body: JSON.stringify({
+                channel: process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
+                text,
+                ...(threadTs ? { thread_ts: threadTs } : {}),
+              }),
+            })
             const body = await res.json()
 
             if (res.status !== 200 || !body.ok) {
@@ -913,10 +906,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
 
               const results = await Promise.allSettled(
                 overdueNotifications.map((notification) =>
-                  postSlackMessage(
-                    formatMessage(notification),
-                    parentBody.ts,
-                  ),
+                  postSlackMessage(formatMessage(notification), parentBody.ts),
                 ),
               )
               for (const result of results) {
@@ -928,10 +918,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 }
               }
             } catch (error) {
-              console.error(
-                'Failed to send overdue summary to Slack:',
-                error,
-              )
+              console.error('Failed to send overdue summary to Slack:', error)
             }
           }
         }
