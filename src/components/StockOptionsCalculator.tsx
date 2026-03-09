@@ -377,11 +377,7 @@ export default function StockOptionsCalculator({
                     const futureValue = valuation * dilutedOwnership
                     const futureNetValue = futureValue - totalCostToExercise
                     const dilutedPercentage = (1 - dilutionFactor) * 100
-                    const previousValuation =
-                      index === 0
-                        ? data.CURRENT_VALUATION
-                        : customValuations[index - 1]
-                    const multiplier = valuation / previousValuation
+                    const multiplier = valuation / data.CURRENT_VALUATION
 
                     return (
                       <tr
