@@ -19,11 +19,13 @@ import { Route as RunScheduledJobsRouteImport } from './routes/runScheduledJobs'
 import { Route as ReceiveKeeperTestResultsRouteImport } from './routes/receiveKeeperTestResults'
 import { Route as ProposedHiresRouteImport } from './routes/proposed-hires'
 import { Route as ProcessRouteImport } from './routes/process'
+import { Route as PayrollScenariosRouteImport } from './routes/payroll-scenarios'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
 import { Route as NotifyOverduePerformanceProgramChecklistItemsRouteImport } from './routes/notifyOverduePerformanceProgramChecklistItems'
 import { Route as MissingCommissionsRouteImport } from './routes/missingCommissions'
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LocationFactorScenariosRouteImport } from './routes/location-factor-scenarios'
 import { Route as ErrorRouteImport } from './routes/error'
 import { Route as EquityActionsRouteImport } from './routes/equityActions'
 import { Route as EquityVestingAuditRouteImport } from './routes/equity-vesting-audit'
@@ -88,6 +90,11 @@ const ProcessRoute = ProcessRouteImport.update({
   path: '/process',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PayrollScenariosRoute = PayrollScenariosRouteImport.update({
+  id: '/payroll-scenarios',
+  path: '/payroll-scenarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrgChartRoute = OrgChartRouteImport.update({
   id: '/org-chart',
   path: '/org-chart',
@@ -112,6 +119,11 @@ const ManagementRoute = ManagementRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocationFactorScenariosRoute = LocationFactorScenariosRouteImport.update({
+  id: '/location-factor-scenarios',
+  path: '/location-factor-scenarios',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ErrorRoute = ErrorRouteImport.update({
@@ -181,11 +193,13 @@ export interface FileRoutesByFullPath {
   '/equity-vesting-audit': typeof EquityVestingAuditRoute
   '/equityActions': typeof EquityActionsRoute
   '/error': typeof ErrorRoute
+  '/location-factor-scenarios': typeof LocationFactorScenariosRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
   '/missingCommissions': typeof MissingCommissionsRoute
   '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   '/org-chart': typeof OrgChartRoute
+  '/payroll-scenarios': typeof PayrollScenariosRoute
   '/process': typeof ProcessRoute
   '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
@@ -209,11 +223,13 @@ export interface FileRoutesByTo {
   '/equity-vesting-audit': typeof EquityVestingAuditRoute
   '/equityActions': typeof EquityActionsRoute
   '/error': typeof ErrorRoute
+  '/location-factor-scenarios': typeof LocationFactorScenariosRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
   '/missingCommissions': typeof MissingCommissionsRoute
   '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   '/org-chart': typeof OrgChartRoute
+  '/payroll-scenarios': typeof PayrollScenariosRoute
   '/process': typeof ProcessRoute
   '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
@@ -238,11 +254,13 @@ export interface FileRoutesById {
   '/equity-vesting-audit': typeof EquityVestingAuditRoute
   '/equityActions': typeof EquityActionsRoute
   '/error': typeof ErrorRoute
+  '/location-factor-scenarios': typeof LocationFactorScenariosRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
   '/missingCommissions': typeof MissingCommissionsRoute
   '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   '/org-chart': typeof OrgChartRoute
+  '/payroll-scenarios': typeof PayrollScenariosRoute
   '/process': typeof ProcessRoute
   '/proposed-hires': typeof ProposedHiresRoute
   '/receiveKeeperTestResults': typeof ReceiveKeeperTestResultsRoute
@@ -268,11 +286,13 @@ export interface FileRouteTypes {
     | '/equity-vesting-audit'
     | '/equityActions'
     | '/error'
+    | '/location-factor-scenarios'
     | '/login'
     | '/management'
     | '/missingCommissions'
     | '/notifyOverduePerformanceProgramChecklistItems'
     | '/org-chart'
+    | '/payroll-scenarios'
     | '/process'
     | '/proposed-hires'
     | '/receiveKeeperTestResults'
@@ -296,11 +316,13 @@ export interface FileRouteTypes {
     | '/equity-vesting-audit'
     | '/equityActions'
     | '/error'
+    | '/location-factor-scenarios'
     | '/login'
     | '/management'
     | '/missingCommissions'
     | '/notifyOverduePerformanceProgramChecklistItems'
     | '/org-chart'
+    | '/payroll-scenarios'
     | '/process'
     | '/proposed-hires'
     | '/receiveKeeperTestResults'
@@ -324,11 +346,13 @@ export interface FileRouteTypes {
     | '/equity-vesting-audit'
     | '/equityActions'
     | '/error'
+    | '/location-factor-scenarios'
     | '/login'
     | '/management'
     | '/missingCommissions'
     | '/notifyOverduePerformanceProgramChecklistItems'
     | '/org-chart'
+    | '/payroll-scenarios'
     | '/process'
     | '/proposed-hires'
     | '/receiveKeeperTestResults'
@@ -353,11 +377,13 @@ export interface RootRouteChildren {
   EquityVestingAuditRoute: typeof EquityVestingAuditRoute
   EquityActionsRoute: typeof EquityActionsRoute
   ErrorRoute: typeof ErrorRoute
+  LocationFactorScenariosRoute: typeof LocationFactorScenariosRoute
   LoginRoute: typeof LoginRoute
   ManagementRoute: typeof ManagementRoute
   MissingCommissionsRoute: typeof MissingCommissionsRoute
   NotifyOverduePerformanceProgramChecklistItemsRoute: typeof NotifyOverduePerformanceProgramChecklistItemsRoute
   OrgChartRoute: typeof OrgChartRoute
+  PayrollScenariosRoute: typeof PayrollScenariosRoute
   ProcessRoute: typeof ProcessRoute
   ProposedHiresRoute: typeof ProposedHiresRoute
   ReceiveKeeperTestResultsRoute: typeof ReceiveKeeperTestResultsRoute
@@ -444,6 +470,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/payroll-scenarios': {
+      id: '/payroll-scenarios'
+      path: '/payroll-scenarios'
+      fullPath: '/payroll-scenarios'
+      preLoaderRoute: typeof PayrollScenariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/org-chart': {
       id: '/org-chart'
       path: '/org-chart'
@@ -477,6 +510,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/location-factor-scenarios': {
+      id: '/location-factor-scenarios'
+      path: '/location-factor-scenarios'
+      fullPath: '/location-factor-scenarios'
+      preLoaderRoute: typeof LocationFactorScenariosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/error': {
@@ -569,12 +609,14 @@ const rootRouteChildren: RootRouteChildren = {
   EquityVestingAuditRoute: EquityVestingAuditRoute,
   EquityActionsRoute: EquityActionsRoute,
   ErrorRoute: ErrorRoute,
+  LocationFactorScenariosRoute: LocationFactorScenariosRoute,
   LoginRoute: LoginRoute,
   ManagementRoute: ManagementRoute,
   MissingCommissionsRoute: MissingCommissionsRoute,
   NotifyOverduePerformanceProgramChecklistItemsRoute:
     NotifyOverduePerformanceProgramChecklistItemsRoute,
   OrgChartRoute: OrgChartRoute,
+  PayrollScenariosRoute: PayrollScenariosRoute,
   ProcessRoute: ProcessRoute,
   ProposedHiresRoute: ProposedHiresRoute,
   ReceiveKeeperTestResultsRoute: ReceiveKeeperTestResultsRoute,
