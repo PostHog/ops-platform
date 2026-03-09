@@ -481,6 +481,13 @@ export const Route = createFileRoute('/runScheduledJobs')({
 
         const jobResults: Array<JobResult> = []
 
+        const overdueNotifications: Array<{
+          type: 'keeper_test' | 'manager_feedback'
+          managerName: string
+          employeeName: string
+          daysSinceCreation: number
+        }> = []
+
         await Promise.allSettled(
           jobs.map(async (job) => {
             try {
@@ -706,28 +713,20 @@ export const Route = createFileRoute('/runScheduledJobs')({
                     (1000 * 60 * 60 * 24),
                 )
                 if (daysSinceCreation >= 3) {
-                  const res = await fetch(
-                    'https://slack.com/api/chat.postMessage',
-                    {
-                      method: 'POST',
-                      headers: {
-                        Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        channel:
-                          process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
-                        text: `${getFullName(employee.firstName, employee.lastName, employee.name)} hasn't submitted manager feedback for ${getFullName(manager.firstName, manager.lastName, manager.name)} within ${daysSinceCreation} days. Please follow up with them.`,
-                      }),
-                    },
-                  )
-                  const body = await res.json()
-
-                  if (res.status !== 200 || !body.ok) {
-                    throw Error(
-                      `Error from Slack API: ${res.status}: ${JSON.stringify(body)}`,
-                    )
-                  }
+                  overdueNotifications.push({
+                    type: 'manager_feedback',
+                    employeeName: getFullName(
+                      employee.firstName,
+                      employee.lastName,
+                      employee.name,
+                    ),
+                    managerName: getFullName(
+                      manager.firstName,
+                      manager.lastName,
+                      manager.name,
+                    ),
+                    daysSinceCreation,
+                  })
                 }
 
                 jobResults.push({
@@ -813,28 +812,20 @@ export const Route = createFileRoute('/runScheduledJobs')({
                     (1000 * 60 * 60 * 24),
                 )
                 if (daysSinceCreation >= 3) {
-                  const res = await fetch(
-                    'https://slack.com/api/chat.postMessage',
-                    {
-                      method: 'POST',
-                      headers: {
-                        Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        channel:
-                          process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
-                        text: `${getFullName(manager.firstName, manager.lastName, manager.name)} hasn't submitted feedback for ${getFullName(employee.firstName, employee.lastName, employee.name)} within ${daysSinceCreation} days. Please follow up with them.`,
-                      }),
-                    },
-                  )
-                  const body = await res.json()
-
-                  if (res.status !== 200 || !body.ok) {
-                    throw Error(
-                      `Error from Slack API: ${res.status}: ${JSON.stringify(body)}`,
-                    )
-                  }
+                  overdueNotifications.push({
+                    type: 'keeper_test',
+                    managerName: getFullName(
+                      manager.firstName,
+                      manager.lastName,
+                      manager.name,
+                    ),
+                    employeeName: getFullName(
+                      employee.firstName,
+                      employee.lastName,
+                      employee.name,
+                    ),
+                    daysSinceCreation,
+                  })
                 }
 
                 jobResults.push({
@@ -857,6 +848,80 @@ export const Route = createFileRoute('/runScheduledJobs')({
             }
           }),
         )
+
+        // Send overdue notifications to the feedback channel
+        if (overdueNotifications.length > 0) {
+          const formatMessage = (
+            notification: (typeof overdueNotifications)[number],
+          ) =>
+            notification.type === 'keeper_test'
+              ? `${notification.managerName} hasn't submitted feedback for ${notification.employeeName} within ${notification.daysSinceCreation} days.`
+              : `${notification.employeeName} hasn't submitted manager feedback for ${notification.managerName} within ${notification.daysSinceCreation} days.`
+
+          const postSlackMessage = async (text: string, threadTs?: string) => {
+            const res = await fetch('https://slack.com/api/chat.postMessage', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                channel: process.env.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID,
+                text,
+                ...(threadTs ? { thread_ts: threadTs } : {}),
+              }),
+            })
+            const body = await res.json()
+
+            if (res.status !== 200 || !body.ok) {
+              throw Error(
+                `Error from Slack API: ${res.status}: ${JSON.stringify(body)}`,
+              )
+            }
+
+            return body
+          }
+
+          if (overdueNotifications.length <= 3) {
+            // Few enough to post individually
+            const results = await Promise.allSettled(
+              overdueNotifications.map((notification) =>
+                postSlackMessage(formatMessage(notification)),
+              ),
+            )
+            for (const result of results) {
+              if (result.status === 'rejected') {
+                console.error(
+                  'Failed to send overdue notification:',
+                  result.reason,
+                )
+              }
+            }
+          } else {
+            // Too many — consolidate into a single message with a thread
+            try {
+              const parentBody = await postSlackMessage(
+                `${overdueNotifications.length} people have not submitted feedback yet. :thread:`,
+              )
+
+              const results = await Promise.allSettled(
+                overdueNotifications.map((notification) =>
+                  postSlackMessage(formatMessage(notification), parentBody.ts),
+                ),
+              )
+              for (const result of results) {
+                if (result.status === 'rejected') {
+                  console.error(
+                    'Failed to send overdue notification:',
+                    result.reason,
+                  )
+                }
+              }
+            } catch (error) {
+              console.error('Failed to send overdue summary to Slack:', error)
+            }
+          }
+        }
 
         await Promise.all(
           jobResults.map(async ({ id, success, data }) => {
