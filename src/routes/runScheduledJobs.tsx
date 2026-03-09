@@ -891,25 +891,48 @@ export const Route = createFileRoute('/runScheduledJobs')({
 
           if (overdueNotifications.length <= 3) {
             // Few enough to post individually
-            await Promise.all(
+            const results = await Promise.allSettled(
               overdueNotifications.map((notification) =>
                 postSlackMessage(formatMessage(notification)),
               ),
             )
+            for (const result of results) {
+              if (result.status === 'rejected') {
+                console.error(
+                  'Failed to send overdue notification:',
+                  result.reason,
+                )
+              }
+            }
           } else {
             // Too many — consolidate into a single message with a thread
-            const parentBody = await postSlackMessage(
-              `${overdueNotifications.length} people have not submitted feedback yet. :thread:`,
-            )
+            try {
+              const parentBody = await postSlackMessage(
+                `${overdueNotifications.length} people have not submitted feedback yet. :thread:`,
+              )
 
-            await Promise.all(
-              overdueNotifications.map((notification) =>
-                postSlackMessage(
-                  formatMessage(notification),
-                  parentBody.ts,
+              const results = await Promise.allSettled(
+                overdueNotifications.map((notification) =>
+                  postSlackMessage(
+                    formatMessage(notification),
+                    parentBody.ts,
+                  ),
                 ),
-              ),
-            )
+              )
+              for (const result of results) {
+                if (result.status === 'rejected') {
+                  console.error(
+                    'Failed to send overdue notification:',
+                    result.reason,
+                  )
+                }
+              }
+            } catch (error) {
+              console.error(
+                'Failed to send overdue summary to Slack:',
+                error,
+              )
+            }
           }
         }
 
