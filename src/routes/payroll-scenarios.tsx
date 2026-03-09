@@ -132,8 +132,7 @@ function RouteComponent() {
     (a, b) => b.currentTotal - a.currentTotal,
   )
 
-  const getLocNewFactor = (key: string) =>
-    parseOverride(locationOverrides[key])
+  const getLocNewFactor = (key: string) => parseOverride(locationOverrides[key])
   const getBenchNewFactor = (key: string) =>
     parseOverride(benchmarkOverrides[key])
 
@@ -171,7 +170,7 @@ function RouteComponent() {
     : benchmarks
 
   return (
-    <div className="flex justify-center px-4 pb-4 pt-14">
+    <div className="flex justify-center px-4 pt-14 pb-4">
       <div className="w-full max-w-5xl">
         <h1 className="mb-4 text-2xl font-bold">Payroll Scenarios</h1>
 
@@ -248,7 +247,7 @@ function RouteComponent() {
                   tableRef.current?.scrollTo({ top: 0 })
                 }}
                 placeholder="Filter locations…"
-                className="w-64 rounded border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-64 rounded border border-gray-300 px-3 py-1.5 text-sm focus:ring-1 focus:ring-blue-400 focus:outline-none"
               />
             </div>
             <ScenarioTable
@@ -277,7 +276,7 @@ function RouteComponent() {
                   tableRef.current?.scrollTo({ top: 0 })
                 }}
                 placeholder="Filter benchmarks…"
-                className="w-64 rounded border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-64 rounded border border-gray-300 px-3 py-1.5 text-sm focus:ring-1 focus:ring-blue-400 focus:outline-none"
               />
             </div>
             <ScenarioTable
@@ -342,14 +341,15 @@ function ScenarioTable({
   tableRef: RefObject<HTMLDivElement | null>
 }) {
   return (
-    <div ref={tableRef} className="max-h-[60vh] overflow-auto rounded-lg border border-gray-200">
+    <div
+      ref={tableRef}
+      className="max-h-[60vh] overflow-auto rounded-lg border border-gray-200"
+    >
       <table className="w-full text-sm">
         <thead className="bg-gray-50 text-xs text-gray-500">
           <tr>
             <th className="px-4 py-3 text-left font-medium">{columnHeader}</th>
-            <th className="px-4 py-3 text-right font-medium">
-              Current Factor
-            </th>
+            <th className="px-4 py-3 text-right font-medium">Current Factor</th>
             <th className="px-4 py-3 text-right font-medium">New Factor</th>
             <th className="px-4 py-3 text-right font-medium">Employees</th>
             <th className="px-4 py-3 text-right font-medium">Current Total</th>
@@ -392,7 +392,7 @@ function ScenarioTable({
                     value={rawInput}
                     onChange={(e) => onOverrideChange(row.key, e.target.value)}
                     placeholder="—"
-                    className={`w-28 rounded border px-2 py-1 text-right text-sm focus:outline-none focus:ring-1 ${
+                    className={`w-28 rounded border px-2 py-1 text-right text-sm focus:ring-1 focus:outline-none ${
                       isInvalid
                         ? 'border-red-400 focus:ring-red-400'
                         : 'border-gray-300 focus:ring-blue-400'
