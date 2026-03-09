@@ -58,6 +58,7 @@ export const Route = createFileRoute('/salaryDeviationChecker')({
                   'active',
                   'onboarding',
                   'onboarding_overdue',
+                  'onboarded',
                   'invited',
                 ].includes(x.hiring_status),
               )[0]
