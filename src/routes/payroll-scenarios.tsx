@@ -339,7 +339,7 @@ function ScenarioTable({
   getNewFactor: (key: string) => number | null
   factorStep: string
   formatFactor: (factor: number) => string
-  tableRef: RefObject<HTMLDivElement>
+  tableRef: RefObject<HTMLDivElement | null>
 }) {
   return (
     <div ref={tableRef} className="max-h-[60vh] overflow-auto rounded-lg border border-gray-200">
