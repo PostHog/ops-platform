@@ -3,35 +3,79 @@ import { useRef, useState, type RefObject } from 'react'
 import prisma from '@/db'
 import { createAdminFn } from '@/lib/auth-middleware'
 import { formatCurrency, sfBenchmark } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
-const getActiveEmployeeSalaries = createAdminFn({ method: 'GET' }).handler(
+const getPayrollScenariosData = createAdminFn({ method: 'GET' }).handler(
   async () => {
-    return await prisma.deelEmployee.findMany({
-      where: { startDate: { lte: new Date() } },
-      include: {
-        employee: {
-          select: {
-            salaries: {
-              orderBy: { timestamp: 'desc' },
-              take: 1,
-              select: {
-                totalSalary: true,
-                locationFactor: true,
-                area: true,
-                country: true,
-                benchmark: true,
+    const [employees, scenarios] = await Promise.all([
+      prisma.deelEmployee.findMany({
+        where: { startDate: { lte: new Date() } },
+        include: {
+          employee: {
+            select: {
+              salaries: {
+                orderBy: { timestamp: 'desc' },
+                take: 1,
+                select: {
+                  totalSalary: true,
+                  locationFactor: true,
+                  area: true,
+                  country: true,
+                  benchmark: true,
+                },
               },
             },
           },
         },
-      },
-    })
+      }),
+      prisma.payrollScenario.findMany({
+        orderBy: { updatedAt: 'desc' },
+        include: { createdBy: { select: { name: true } } },
+      }),
+    ])
+    return { employees, scenarios }
   },
 )
 
+const savePayrollScenario = createAdminFn({ method: 'POST' })
+  .inputValidator(
+    (d: {
+      name: string
+      locationOverrides: Record<string, string>
+      benchmarkOverrides: Record<string, string>
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    return await prisma.payrollScenario.create({
+      data: {
+        name: data.name,
+        locationOverrides: data.locationOverrides,
+        benchmarkOverrides: data.benchmarkOverrides,
+        createdByUserId: context.user.id,
+      },
+      include: { createdBy: { select: { name: true } } },
+    })
+  })
+
+const deletePayrollScenario = createAdminFn({ method: 'POST' })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    return await prisma.payrollScenario.delete({ where: { id: data.id } })
+  })
+
 export const Route = createFileRoute('/payroll-scenarios')({
   component: RouteComponent,
-  loader: async () => await getActiveEmployeeSalaries(),
+  loader: async () => await getPayrollScenariosData(),
 })
 
 type ActiveEmployee = {
@@ -52,14 +96,51 @@ type GroupRow = {
   currentTotal: number
 }
 
+type SavedScenario = {
+  id: string
+  name: string
+  locationOverrides: Record<string, string>
+  benchmarkOverrides: Record<string, string>
+  createdBy: { name: string }
+  createdAt: Date | string
+  updatedAt: Date | string
+}
+
 function parseOverride(raw: string | undefined): number | null {
   if (!raw?.trim()) return null
   const parsed = parseFloat(raw)
   return isNaN(parsed) || parsed <= 0 ? null : parsed
 }
 
+function relativeTime(date: Date | string): string {
+  const ms = Date.now() - new Date(date).getTime()
+  const seconds = Math.floor(ms / 1000)
+  if (seconds < 60) return 'just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`
+  const years = Math.floor(months / 12)
+  return `${years} year${years === 1 ? '' : 's'} ago`
+}
+
+function overridesMatch(
+  a: Record<string, string>,
+  b: Record<string, string>,
+): boolean {
+  const aKeys = Object.keys(a).filter((k) => a[k].trim() !== '')
+  const bKeys = Object.keys(b).filter((k) => b[k].trim() !== '')
+  if (aKeys.length !== bKeys.length) return false
+  return aKeys.every((k) => a[k] === b[k])
+}
+
 function RouteComponent() {
-  const deelEmployees = Route.useLoaderData()
+  const { employees: deelEmployees, scenarios: initialScenarios } =
+    Route.useLoaderData()
 
   const [activeTab, setActiveTab] = useState<'locationFactors' | 'benchmarks'>(
     'locationFactors',
@@ -73,6 +154,15 @@ function RouteComponent() {
   const [locationFilter, setLocationFilter] = useState('')
   const [benchmarkFilter, setBenchmarkFilter] = useState('')
   const tableRef = useRef<HTMLDivElement>(null)
+
+  const [scenarios, setScenarios] = useState<SavedScenario[]>(
+    initialScenarios as SavedScenario[],
+  )
+  const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null)
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [saveName, setSaveName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [panelOpen, setPanelOpen] = useState(initialScenarios.length > 0)
 
   const activeEmployees: ActiveEmployee[] = deelEmployees
     .filter((de) => de.employee?.salaries?.length)
@@ -169,10 +259,132 @@ function RouteComponent() {
       )
     : benchmarks
 
+  async function handleSave() {
+    const name = saveName.trim()
+    if (!name) return
+    setSaving(true)
+    try {
+      const created = await savePayrollScenario({
+        data: { name, locationOverrides, benchmarkOverrides },
+      })
+      setScenarios((prev) => [created as SavedScenario, ...prev])
+      setActiveScenarioId((created as SavedScenario).id)
+      setSaveDialogOpen(false)
+      setSaveName('')
+      setPanelOpen(true)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    await deletePayrollScenario({ data: { id } })
+    setScenarios((prev) => prev.filter((s) => s.id !== id))
+    if (activeScenarioId === id) setActiveScenarioId(null)
+  }
+
+  function handleLoad(scenario: SavedScenario) {
+    setLocationOverrides(scenario.locationOverrides)
+    setBenchmarkOverrides(scenario.benchmarkOverrides)
+    setActiveScenarioId(scenario.id)
+  }
+
+  const activeScenario = scenarios.find((s) => s.id === activeScenarioId)
+  const isModified =
+    activeScenario !== undefined &&
+    (!overridesMatch(locationOverrides, activeScenario.locationOverrides) ||
+      !overridesMatch(benchmarkOverrides, activeScenario.benchmarkOverrides))
+
   return (
     <div className="flex justify-center px-4 pt-14 pb-4">
       <div className="w-full max-w-5xl">
         <h1 className="mb-4 text-2xl font-bold">Payroll Scenarios</h1>
+
+        {/* Saved Scenarios panel */}
+        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50">
+          <button
+            className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
+            onClick={() => setPanelOpen((o) => !o)}
+          >
+            <span>
+              Saved Scenarios{' '}
+              {scenarios.length > 0 && (
+                <span className="ml-1 rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
+                  {scenarios.length}
+                </span>
+              )}
+            </span>
+            <span className="text-gray-400">{panelOpen ? '▲' : '▼'}</span>
+          </button>
+
+          {panelOpen && (
+            <div className="border-t border-gray-200 px-4 pb-4 pt-3">
+              {scenarios.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No scenarios saved yet. Enter some overrides below and click
+                  "Save as…" to save your first scenario.
+                </p>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {scenarios.map((scenario) => {
+                    const isActive = scenario.id === activeScenarioId
+                    return (
+                      <div
+                        key={scenario.id}
+                        className={`flex items-center justify-between py-2.5 ${
+                          isActive ? 'text-blue-700' : 'text-gray-700'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className="font-medium">{scenario.name}</span>
+                          {isActive && isModified && (
+                            <span className="ml-2 rounded bg-yellow-100 px-1.5 py-0.5 text-xs text-yellow-700">
+                              modified
+                            </span>
+                          )}
+                          <span className="ml-2 text-xs text-gray-400">
+                            by {scenario.createdBy.name} ·{' '}
+                            {relativeTime(scenario.updatedAt)}
+                          </span>
+                        </div>
+                        <div className="ml-4 flex shrink-0 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleLoad(scenario)}
+                          >
+                            Load
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(scenario.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <div className="mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSaveName('')
+                    setSaveDialogOpen(true)
+                  }}
+                >
+                  Save as…
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Combined summary bar */}
         <div className="mb-6 grid grid-cols-4 gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
@@ -294,6 +506,39 @@ function RouteComponent() {
           </>
         )}
       </div>
+
+      {/* Save dialog */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save scenario</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3 py-2">
+            <Label htmlFor="scenario-name">Name</Label>
+            <Input
+              id="scenario-name"
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSave()
+              }}
+              placeholder="e.g. Q3 planning — location bump"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button
+              onClick={handleSave}
+              disabled={!saveName.trim() || saving}
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
