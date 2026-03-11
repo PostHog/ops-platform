@@ -7,6 +7,21 @@ export function cn(...inputs: Array<ClassValue>) {
   return twMerge(clsx(inputs))
 }
 
+export function getQuarterOptions(): Array<{ label: string; value: string }> {
+  const now = new Date()
+  const currentQ = Math.ceil((now.getMonth() + 1) / 3)
+  const currentYear = now.getFullYear() % 100
+  const startQ = currentQ - 2
+  const quarters: Array<{ label: string; value: string }> = []
+  for (let i = 0; i < 8; i++) {
+    const q = ((((startQ - 1 + i) % 4) + 4) % 4) + 1
+    const y = currentYear + Math.floor((startQ - 1 + i) / 4)
+    const label = `Q${q} ${y}`
+    quarters.push({ label, value: label })
+  }
+  return quarters
+}
+
 /**
  * Get full name from firstName and lastName, with fallback to email
  */
