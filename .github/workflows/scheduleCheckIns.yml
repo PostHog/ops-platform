@@ -18,6 +18,9 @@ jobs:
           customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
           timeout: 30000
       - name: Show Response
+        env:
+          RESPONSE_STATUS: ${{ steps.scheduleCheckIns.outputs.status }}
+          RESPONSE_BODY: ${{ steps.scheduleCheckIns.outputs.response }}
         run: |
-          echo ${{ steps.scheduleCheckIns.outputs.status }}
-          echo ${{ steps.scheduleCheckIns.outputs.response }}
+          echo "$RESPONSE_STATUS"
+          echo "$RESPONSE_BODY"

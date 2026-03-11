@@ -18,6 +18,9 @@ jobs:
           customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
           timeout: 30000
       - name: Show Response
+        env:
+          RESPONSE_STATUS: ${{ steps.notifyOverduePerformanceProgramChecklistItems.outputs.status }}
+          RESPONSE_BODY: ${{ steps.notifyOverduePerformanceProgramChecklistItems.outputs.response }}
         run: |
-          echo ${{ steps.notifyOverduePerformanceProgramChecklistItems.outputs.status }}
-          echo ${{ steps.notifyOverduePerformanceProgramChecklistItems.outputs.response }}
+          echo "$RESPONSE_STATUS"
+          echo "$RESPONSE_BODY"

@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from './ui/select'
 import { type Department, type Priority, type Prisma } from '@prisma/client'
-import { getFullName } from '@/lib/utils'
+import { getFullName, getQuarterOptions } from '@/lib/utils'
 import OrgChartPanel from './OrgChartPanel'
 import prisma from '@/db'
 import { useMemo, useState } from 'react'
@@ -73,6 +73,7 @@ const addProposedHire = createOrgChartFn({
       priority: Priority
       hiringProfile: string
       department: Department | null
+      quarter: string | null
       quantity: number
     }) => d,
   )
@@ -87,6 +88,7 @@ const addProposedHire = createOrgChartFn({
               priority: data.priority,
               hiringProfile: data.hiringProfile,
               department: data.department ?? undefined,
+              quarter: data.quarter ?? undefined,
               talentPartners: {
                 connect: data.talentPartnerIds.map((id) => ({ id })),
               },
@@ -117,6 +119,7 @@ export const updateProposedHire = createOrgChartFn({
       priority: Priority
       hiringProfile: string
       department: Department | null
+      quarter: string | null
     }) => d,
   )
   .handler(async ({ data }) => {
@@ -128,6 +131,7 @@ export const updateProposedHire = createOrgChartFn({
         priority: data.priority,
         hiringProfile: data.hiringProfile,
         department: data.department ?? null,
+        quarter: data.quarter ?? null,
         talentPartners: {
           set: data.talentPartnerIds.map((id) => ({ id })),
         },
@@ -191,6 +195,7 @@ function AddProposedHirePanel({
           priority: proposedHire.priority,
           hiringProfile: proposedHire.hiringProfile,
           department: proposedHire.department as Department | null,
+          quarter: proposedHire.quarter as string | null,
           quantity: 1,
         }
       : {
@@ -200,6 +205,7 @@ function AddProposedHirePanel({
           priority: 'medium' as Priority,
           hiringProfile: '',
           department: null as Department | null,
+          quarter: null as string | null,
           quantity: 1,
         },
     validators: {
@@ -218,6 +224,7 @@ function AddProposedHirePanel({
         ]),
         hiringProfile: z.string(),
         department: z.enum(['RD', 'SM', 'GA']).nullable(),
+        quarter: z.string().nullable(),
         quantity: z.number().int().min(1, 'Quantity must be at least 1'),
       }),
     },
@@ -238,6 +245,7 @@ function AddProposedHirePanel({
               priority: value.priority,
               hiringProfile: value.hiringProfile,
               department: value.department,
+              quarter: value.quarter,
             },
           })
         : await addProposedHire({
@@ -248,6 +256,7 @@ function AddProposedHirePanel({
               priority: value.priority,
               hiringProfile: value.hiringProfile,
               department: value.department,
+              quarter: value.quarter,
               quantity: value.quantity,
             },
           })
@@ -446,6 +455,32 @@ function AddProposedHirePanel({
                       <SelectItem value="RD">R&amp;D</SelectItem>
                       <SelectItem value="SM">S&amp;M</SelectItem>
                       <SelectItem value="GA">G&amp;A</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FieldInfo field={field} />
+                </div>
+              )}
+            />
+            <form.Field
+              name="quarter"
+              children={(field) => (
+                <div className="col-span-2 grid gap-3">
+                  <Label htmlFor={field.name}>Quarter</Label>
+                  <Select
+                    value={field.state.value ?? ''}
+                    onValueChange={(value) =>
+                      field.handleChange(value === '' ? null : value)
+                    }
+                  >
+                    <SelectTrigger className="h-6 w-full text-xs">
+                      <SelectValue placeholder="Select quarter..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getQuarterOptions().map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FieldInfo field={field} />

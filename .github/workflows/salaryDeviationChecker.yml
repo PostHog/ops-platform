@@ -18,6 +18,9 @@ jobs:
           customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
           timeout: 30000
       - name: Show Response
+        env:
+          RESPONSE_STATUS: ${{ steps.salaryDeviationChecker.outputs.status }}
+          RESPONSE_BODY: ${{ steps.salaryDeviationChecker.outputs.response }}
         run: |
-          echo ${{ steps.salaryDeviationChecker.outputs.status }}
-          echo ${{ steps.salaryDeviationChecker.outputs.response }}
+          echo "$RESPONSE_STATUS"
+          echo "$RESPONSE_BODY"
