@@ -400,8 +400,8 @@ function RouteComponent() {
               : proposedHire.department,
           quarter:
             field === 'quarter'
-              ? ((value as string) || null)
-              : proposedHire.quarter ?? null,
+              ? (value as string) || null
+              : (proposedHire.quarter ?? null),
         },
       })
       // Update the cache in place without refetching to prevent row jumping
@@ -708,11 +708,7 @@ function RouteComponent() {
           <Select
             value={row.original.quarter ?? ''}
             onValueChange={(value) =>
-              table.options.meta?.handleUpdate?.(
-                row.original,
-                'quarter',
-                value,
-              )
+              table.options.meta?.handleUpdate?.(row.original, 'quarter', value)
             }
           >
             <SelectTrigger className="h-auto w-auto border-0 p-0 shadow-none hover:bg-transparent focus:ring-0">

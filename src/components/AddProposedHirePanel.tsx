@@ -469,9 +469,7 @@ function AddProposedHirePanel({
                   <Select
                     value={field.state.value ?? ''}
                     onValueChange={(value) =>
-                      field.handleChange(
-                        value === '' ? null : value,
-                      )
+                      field.handleChange(value === '' ? null : value)
                     }
                   >
                     <SelectTrigger className="h-6 w-full text-xs">
