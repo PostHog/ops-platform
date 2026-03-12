@@ -226,6 +226,76 @@ function RouteComponent() {
   const getBenchNewFactor = (key: string) =>
     parseOverride(benchmarkOverrides[key])
 
+  // Per-row projection helpers — location tab
+  const getLocTabLocProjection = (locationKey: string) => {
+    const row = locationMap.get(locationKey)!
+    const newFactor = getLocNewFactor(locationKey)
+    return newFactor !== null
+      ? row.currentTotal * (newFactor / row.currentFactor)
+      : row.currentTotal
+  }
+  const getLocTabBenchProjection = (locationKey: string) =>
+    activeEmployees
+      .filter((emp) => emp.locationKey === locationKey)
+      .reduce((sum, emp) => {
+        const newBench = getBenchNewFactor(emp.benchmark)
+        return (
+          sum +
+          (newBench !== null && emp.benchmarkSalary !== null
+            ? emp.totalSalary * (newBench / emp.benchmarkSalary)
+            : emp.totalSalary)
+        )
+      }, 0)
+  const getLocTabTotalProjection = (locationKey: string) => {
+    const newLoc = getLocNewFactor(locationKey)
+    return activeEmployees
+      .filter((emp) => emp.locationKey === locationKey)
+      .reduce((sum, emp) => {
+        let s = emp.totalSalary
+        if (newLoc !== null) s *= newLoc / emp.locationFactor
+        const newBench = getBenchNewFactor(emp.benchmark)
+        if (newBench !== null && emp.benchmarkSalary !== null)
+          s *= newBench / emp.benchmarkSalary
+        return sum + s
+      }, 0)
+  }
+
+  // Per-row projection helpers — benchmark tab
+  const getBenchTabLocProjection = (benchmarkKey: string) =>
+    activeEmployees
+      .filter((emp) => emp.benchmark === benchmarkKey)
+      .reduce((sum, emp) => {
+        const newLoc = getLocNewFactor(emp.locationKey)
+        return (
+          sum +
+          (newLoc !== null
+            ? emp.totalSalary * (newLoc / emp.locationFactor)
+            : emp.totalSalary)
+        )
+      }, 0)
+  const getBenchTabBenchProjection = (benchmarkKey: string) => {
+    const row = benchmarkMap.get(benchmarkKey)!
+    const newFactor = getBenchNewFactor(benchmarkKey)
+    return newFactor !== null
+      ? row.currentTotal * (newFactor / row.currentFactor)
+      : row.currentTotal
+  }
+  const getBenchTabTotalProjection = (benchmarkKey: string) => {
+    const newBench = getBenchNewFactor(benchmarkKey)
+    return activeEmployees
+      .filter(
+        (emp) => emp.benchmark === benchmarkKey && emp.benchmarkSalary !== null,
+      )
+      .reduce((sum, emp) => {
+        let s = emp.totalSalary
+        const newLoc = getLocNewFactor(emp.locationKey)
+        if (newLoc !== null) s *= newLoc / emp.locationFactor
+        if (newBench !== null && emp.benchmarkSalary !== null)
+          s *= newBench / emp.benchmarkSalary
+        return sum + s
+      }, 0)
+  }
+
   // Combined summary: apply both override types per-employee
   const totalCurrentPayroll = activeEmployees.reduce(
     (sum, emp) => sum + emp.totalSalary,
@@ -296,14 +366,14 @@ function RouteComponent() {
       !overridesMatch(benchmarkOverrides, activeScenario.benchmarkOverrides))
 
   return (
-    <div className="flex justify-center px-4 pt-14 pb-4">
-      <div className="w-full max-w-5xl">
+    <div className="px-6 pt-14 pb-4">
+      <div className="mx-auto w-full max-w-screen-2xl">
         <h1 className="mb-4 text-2xl font-bold">Payroll Scenarios</h1>
 
         {/* Saved Scenarios panel */}
         <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50">
           <button
-            className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
+            className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
             onClick={() => setPanelOpen((o) => !o)}
           >
             <span>
@@ -318,7 +388,7 @@ function RouteComponent() {
           </button>
 
           {panelOpen && (
-            <div className="border-t border-gray-200 px-4 pb-4 pt-3">
+            <div className="border-t border-gray-200 px-4 pt-3 pb-4">
               {scenarios.length === 0 ? (
                 <p className="text-sm text-gray-500">
                   No scenarios saved yet. Enter some overrides below and click
@@ -470,7 +540,9 @@ function RouteComponent() {
               onOverrideChange={(key, val) =>
                 setLocationOverrides((prev) => ({ ...prev, [key]: val }))
               }
-              getNewFactor={getLocNewFactor}
+              getLocProjection={getLocTabLocProjection}
+              getBenchProjection={getLocTabBenchProjection}
+              getTotalProjection={getLocTabTotalProjection}
               factorStep="0.01"
               formatFactor={(f) => f.toFixed(2)}
             />
@@ -499,7 +571,10 @@ function RouteComponent() {
               onOverrideChange={(key, val) =>
                 setBenchmarkOverrides((prev) => ({ ...prev, [key]: val }))
               }
-              getNewFactor={getBenchNewFactor}
+              getLocProjection={getBenchTabLocProjection}
+              getBenchProjection={getBenchTabBenchProjection}
+              getTotalProjection={getBenchTabTotalProjection}
+              showAvgSalary
               factorStep="1000"
               formatFactor={(f) => formatCurrency(Math.round(f))}
             />
@@ -530,10 +605,7 @@ function RouteComponent() {
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button
-              onClick={handleSave}
-              disabled={!saveName.trim() || saving}
-            >
+            <Button onClick={handleSave} disabled={!saveName.trim() || saving}>
               {saving ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>
@@ -571,18 +643,24 @@ function ScenarioTable({
   columnHeader,
   overrides,
   onOverrideChange,
-  getNewFactor,
+  getLocProjection,
+  getBenchProjection,
+  getTotalProjection,
   factorStep,
   formatFactor,
+  showAvgSalary = false,
   tableRef,
 }: {
   rows: GroupRow[]
   columnHeader: string
   overrides: Record<string, string>
   onOverrideChange: (key: string, value: string) => void
-  getNewFactor: (key: string) => number | null
+  getLocProjection: (key: string) => number
+  getBenchProjection: (key: string) => number
+  getTotalProjection: (key: string) => number
   factorStep: string
   formatFactor: (factor: number) => string
+  showAvgSalary?: boolean
   tableRef: RefObject<HTMLDivElement | null>
 }) {
   return (
@@ -593,43 +671,53 @@ function ScenarioTable({
       <table className="w-full text-sm">
         <thead className="bg-gray-50 text-xs text-gray-500">
           <tr>
-            <th className="px-4 py-3 text-left font-medium">{columnHeader}</th>
-            <th className="px-4 py-3 text-right font-medium">Current Factor</th>
-            <th className="px-4 py-3 text-right font-medium">New Factor</th>
-            <th className="px-4 py-3 text-right font-medium">Employees</th>
-            <th className="px-4 py-3 text-right font-medium">Current Total</th>
-            <th className="px-4 py-3 text-right font-medium">
-              Projected Total
+            <th className="px-3 py-2 text-left font-medium">{columnHeader}</th>
+            <th className="px-3 py-2 text-right font-medium">Current Factor</th>
+            <th className="px-3 py-2 text-right font-medium">New Factor</th>
+            <th className="px-3 py-2 text-right font-medium">Employees</th>
+            <th className="px-3 py-2 text-right font-medium">Current Total</th>
+            {showAvgSalary && (
+              <th className="px-3 py-2 text-right font-medium">Avg. Salary</th>
+            )}
+            <th className="px-3 py-2 text-right font-medium">Proj. Location</th>
+            <th className="px-3 py-2 text-right font-medium">
+              Proj. Benchmark
             </th>
-            <th className="px-4 py-3 text-right font-medium">Change</th>
-            <th className="px-4 py-3 text-right font-medium">Change %</th>
+            <th className="px-3 py-2 text-right font-medium">
+              Total Projection
+            </th>
+            <th className="px-3 py-2 text-right font-medium">Change</th>
+            <th className="px-3 py-2 text-right font-medium">Change %</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
           {rows.map((row) => {
-            const newFactor = getNewFactor(row.key)
-            const hasOverride = newFactor !== null
-            const projectedTotal = hasOverride
-              ? row.currentTotal * (newFactor / row.currentFactor)
-              : row.currentTotal
-            const change = projectedTotal - row.currentTotal
-            const changePct =
-              row.currentTotal !== 0 ? (change / row.currentTotal) * 100 : 0
             const rawInput = overrides[row.key] ?? ''
             const isInvalid =
               rawInput.trim() !== '' &&
               (isNaN(parseFloat(rawInput)) || parseFloat(rawInput) <= 0)
 
+            const locProj = getLocProjection(row.key)
+            const benchProj = getBenchProjection(row.key)
+            const totalProj = getTotalProjection(row.key)
+            const change = totalProj - row.currentTotal
+            const changePct =
+              row.currentTotal !== 0 ? (change / row.currentTotal) * 100 : 0
+
+            const hasLocEffect = Math.abs(locProj - row.currentTotal) > 0.01
+            const hasBenchEffect = Math.abs(benchProj - row.currentTotal) > 0.01
+            const hasAnyEffect = Math.abs(totalProj - row.currentTotal) > 0.01
+
             return (
               <tr
                 key={row.key}
-                className={hasOverride ? 'bg-yellow-50' : undefined}
+                className={hasAnyEffect ? 'bg-yellow-50' : undefined}
               >
-                <td className="px-4 py-3 font-medium">{row.label}</td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-3 py-2 font-medium">{row.label}</td>
+                <td className="px-3 py-2 text-right">
                   {formatFactor(row.currentFactor)}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-3 py-2 text-right">
                   <input
                     type="number"
                     min="0"
@@ -644,20 +732,43 @@ function ScenarioTable({
                     }`}
                   />
                 </td>
-                <td className="px-4 py-3 text-right">{row.employeeCount}</td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-3 py-2 text-right">{row.employeeCount}</td>
+                <td className="px-3 py-2 text-right">
                   {formatCurrency(row.currentTotal)}
                 </td>
-                <td className="px-4 py-3 text-right">
-                  {hasOverride ? (
-                    formatCurrency(projectedTotal)
+                {showAvgSalary && (
+                  <td className="px-3 py-2 text-right">
+                    {formatCurrency(
+                      row.employeeCount > 0
+                        ? row.currentTotal / row.employeeCount
+                        : 0,
+                    )}
+                  </td>
+                )}
+                <td className="px-3 py-2 text-right">
+                  {hasLocEffect ? (
+                    formatCurrency(locProj)
+                  ) : (
+                    <span className="text-gray-400">—</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {hasBenchEffect ? (
+                    formatCurrency(benchProj)
+                  ) : (
+                    <span className="text-gray-400">—</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right font-medium">
+                  {hasAnyEffect ? (
+                    formatCurrency(totalProj)
                   ) : (
                     <span className="text-gray-400">—</span>
                   )}
                 </td>
                 <td
-                  className={`px-4 py-3 text-right font-medium ${
-                    !hasOverride
+                  className={`px-3 py-2 text-right font-medium ${
+                    !hasAnyEffect
                       ? 'text-gray-400'
                       : change > 0
                         ? 'text-green-600'
@@ -666,11 +777,11 @@ function ScenarioTable({
                           : ''
                   }`}
                 >
-                  {hasOverride ? formatCurrency(change) : '—'}
+                  {hasAnyEffect ? formatCurrency(change) : '—'}
                 </td>
                 <td
-                  className={`px-4 py-3 text-right font-medium ${
-                    !hasOverride
+                  className={`px-3 py-2 text-right font-medium ${
+                    !hasAnyEffect
                       ? 'text-gray-400'
                       : changePct > 0
                         ? 'text-green-600'
@@ -679,7 +790,7 @@ function ScenarioTable({
                           : ''
                   }`}
                 >
-                  {hasOverride ? `${changePct.toFixed(2)}%` : '—'}
+                  {hasAnyEffect ? `${changePct.toFixed(2)}%` : '—'}
                 </td>
               </tr>
             )
