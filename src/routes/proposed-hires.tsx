@@ -731,18 +731,20 @@ function RouteComponent() {
       accessorKey: 'hiringProfile',
       header: 'Hiring Profile',
       cell: ({ row, table }) => (
-        <EditableTextCell
-          value={row.original.hiringProfile || ''}
-          onSave={(value) =>
-            table.options.meta?.handleUpdate?.(
-              row.original,
-              'hiringProfile',
-              value,
-            ) ?? Promise.resolve()
-          }
-          multiline
-          placeholder="Enter hiring profile..."
-        />
+        <div className="min-w-[300px]">
+          <EditableTextCell
+            value={row.original.hiringProfile || ''}
+            onSave={(value) =>
+              table.options.meta?.handleUpdate?.(
+                row.original,
+                'hiringProfile',
+                value,
+              ) ?? Promise.resolve()
+            }
+            multiline
+            placeholder="Enter hiring profile..."
+          />
+        </div>
       ),
     },
     {
