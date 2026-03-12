@@ -459,7 +459,7 @@ function AddProposedHirePanel({
             <form.Field
               name="managerId"
               children={(field) => (
-                <div className="min-w-0 grid gap-3">
+                <div className="grid min-w-0 gap-3">
                   <Label htmlFor={field.name}>Manager</Label>
                   <OrgChartPanel
                     employees={employees}
