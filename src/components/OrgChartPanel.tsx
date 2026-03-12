@@ -74,14 +74,14 @@ const OrgChartPanel = ({
   )
 
   return (
-    <div className="flex w-[300px] flex-row gap-4">
+    <div className="flex w-full max-w-[300px] flex-row gap-4">
       <Popover modal={true} open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full min-w-[300px] justify-between"
+            className="w-full justify-between"
           >
             {(() => {
               if (!selectedNode) return 'Search employee...'

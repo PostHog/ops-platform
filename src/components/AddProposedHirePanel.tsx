@@ -305,7 +305,7 @@ function AddProposedHirePanel({
             </Button>
           )}
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>
               {editingExisting ? 'Edit proposed hire' : 'Add proposed hire'}
@@ -316,7 +316,7 @@ function AddProposedHirePanel({
                 : 'Add a proposed hire to the organization chart.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <form.Field
               name="title"
               children={(field) => (
@@ -327,21 +327,6 @@ function AddProposedHirePanel({
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
-                  />
-                  <FieldInfo field={field} />
-                </div>
-              )}
-            />
-            <form.Field
-              name="managerId"
-              children={(field) => (
-                <div className="col-span-2 grid gap-3">
-                  <Label htmlFor={field.name}>Manager</Label>
-                  <OrgChartPanel
-                    employees={employees}
-                    selectedNode={field.state.value}
-                    setSelectedNode={(value) => field.handleChange(value)}
-                    idValue="employeeId"
                   />
                   <FieldInfo field={field} />
                 </div>
@@ -408,9 +393,24 @@ function AddProposedHirePanel({
               )}
             />
             <form.Field
+              name="managerId"
+              children={(field) => (
+                <div className="min-w-0 grid gap-3">
+                  <Label htmlFor={field.name}>Manager</Label>
+                  <OrgChartPanel
+                    employees={employees}
+                    selectedNode={field.state.value}
+                    setSelectedNode={(value) => field.handleChange(value)}
+                    idValue="employeeId"
+                  />
+                  <FieldInfo field={field} />
+                </div>
+              )}
+            />
+            <form.Field
               name="priority"
               children={(field) => (
-                <div className="col-span-2 grid gap-3">
+                <div className="grid gap-3">
                   <Label htmlFor={field.name}>Priority</Label>
                   <Select
                     value={field.state.value.toString()}
@@ -438,7 +438,7 @@ function AddProposedHirePanel({
             <form.Field
               name="department"
               children={(field) => (
-                <div className="col-span-2 grid gap-3">
+                <div className="grid gap-3">
                   <Label htmlFor={field.name}>Department</Label>
                   <Select
                     value={field.state.value ?? ''}
@@ -464,7 +464,7 @@ function AddProposedHirePanel({
             <form.Field
               name="quarter"
               children={(field) => (
-                <div className="col-span-2 grid gap-3">
+                <div className="grid gap-3">
                   <Label htmlFor={field.name}>Quarter</Label>
                   <Select
                     value={field.state.value ?? ''}
@@ -506,7 +506,7 @@ function AddProposedHirePanel({
               <form.Field
                 name="quantity"
                 children={(field) => (
-                  <div className="col-span-2 grid gap-3">
+                  <div className="grid gap-3">
                     <Label htmlFor={field.name}>Quantity</Label>
                     <Input
                       name={field.name}
