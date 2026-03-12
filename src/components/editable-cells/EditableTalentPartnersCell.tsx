@@ -1,14 +1,21 @@
 import { useState, useEffect, useRef } from 'react'
-import { ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronsUpDown, X } from 'lucide-react'
 import { cn, getFullName } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import type { Prisma } from '@prisma/client'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
@@ -63,21 +70,17 @@ export function EditableTalentPartnersCell({
     setOpen(newOpen)
   }
 
-  const handleToggle = (employeeId: string, checked: boolean) => {
-    if (checked) {
-      setLocalIds([...localIds, employeeId])
-    } else {
+  const handleToggle = (employeeId: string) => {
+    if (localIds.includes(employeeId)) {
       setLocalIds(localIds.filter((id) => id !== employeeId))
+    } else {
+      setLocalIds([...localIds, employeeId])
     }
   }
 
-  const displayValue =
-    localIds.length > 0
-      ? employees
-          .filter((e) => e.employee?.id && localIds.includes(e.employee.id))
-          .map((e) => getFullName(e.firstName, e.lastName))
-          .join(', ')
-      : 'None'
+  const handleRemove = (employeeId: string) => {
+    setLocalIds(localIds.filter((id) => id !== employeeId))
+  }
 
   return (
     <Popover modal={true} open={open} onOpenChange={handleOpenChange}>
@@ -92,43 +95,65 @@ export function EditableTalentPartnersCell({
             isSaving && 'opacity-50',
           )}
         >
-          <span className="truncate">{displayValue}</span>
-          <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[250px] p-0">
-        <div className="max-h-[200px] overflow-y-auto p-3">
-          {employees.length === 0 ? (
-            <div className="text-sm text-gray-500">
-              No talent team employees found.
-            </div>
+          {localIds.length === 0 ? (
+            <span className="text-muted-foreground">None</span>
           ) : (
-            <div className="space-y-2">
-              {employees.map((employee) => {
-                const employeeId = employee.employee?.id
-                if (!employeeId) return null
-                const isChecked = localIds.includes(employeeId)
+            <div className="flex flex-wrap gap-1">
+              {localIds.map((id) => {
+                const emp = employees.find((e) => e.employee?.id === id)
+                if (!emp) return null
                 return (
-                  <div key={employeeId} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`tp-${employeeId}`}
-                      checked={isChecked}
-                      onCheckedChange={(checked) =>
-                        handleToggle(employeeId, checked as boolean)
-                      }
-                    />
-                    <Label
-                      htmlFor={`tp-${employeeId}`}
-                      className="cursor-pointer text-sm font-normal"
+                  <Badge key={id} variant="secondary" className="gap-1 text-xs">
+                    {getFullName(emp.firstName, emp.lastName)}
+                    <button
+                      type="button"
+                      className="ring-offset-background focus:ring-ring rounded-full outline-none focus:ring-2 focus:ring-offset-2"
+                      onPointerDown={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleRemove(id)
+                      }}
                     >
-                      {getFullName(employee.firstName, employee.lastName)}
-                    </Label>
-                  </div>
+                      <X className="size-3" />
+                    </button>
+                  </Badge>
                 )
               })}
             </div>
           )}
-        </div>
+          <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[250px] p-0">
+        <Command>
+          <CommandInput placeholder="Search talent partners..." />
+          <CommandList>
+            <CommandEmpty>No talent team employees found.</CommandEmpty>
+            <CommandGroup>
+              {employees.map((employee) => {
+                const employeeId = employee.employee?.id
+                if (!employeeId) return null
+                const isSelected = localIds.includes(employeeId)
+                return (
+                  <CommandItem
+                    key={employeeId}
+                    value={getFullName(employee.firstName, employee.lastName)}
+                    onSelect={() => handleToggle(employeeId)}
+                  >
+                    <Check
+                      className={`size-4 ${isSelected ? 'opacity-100' : 'opacity-0'}`}
+                    />
+                    {getFullName(employee.firstName, employee.lastName)}
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
       </PopoverContent>
     </Popover>
   )

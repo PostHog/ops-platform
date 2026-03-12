@@ -11,7 +11,20 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import { AnyFieldApi, useForm } from '@tanstack/react-form'
 import { createToast } from 'vercel-toast'
 import {
@@ -30,7 +43,7 @@ import { z } from 'zod'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { createOrgChartFn } from '@/lib/auth-middleware'
-import { Pencil } from 'lucide-react'
+import { Check, ChevronsUpDown, Pencil, X } from 'lucide-react'
 
 type DeelEmployee = Prisma.DeelEmployeeGetPayload<{
   include: {
@@ -337,57 +350,108 @@ function AddProposedHirePanel({
               children={(field) => (
                 <div className="col-span-2 grid gap-3">
                   <Label htmlFor={field.name}>Talent Partners</Label>
-                  <div className="max-h-[200px] overflow-y-auto rounded-md border p-3">
-                    {talentTeamEmployees.length === 0 ? (
-                      <div className="text-sm text-gray-500">
-                        No talent team employees found.
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {talentTeamEmployees.map((employee) => {
-                          const employeeId = employee.employee?.id
-                          if (!employeeId) return null
-                          const isChecked =
-                            field.state.value.includes(employeeId)
-                          return (
-                            <div
-                              key={employeeId}
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox
-                                id={`talent-partner-${employeeId}`}
-                                checked={isChecked}
-                                onCheckedChange={(checked) => {
-                                  const currentIds = field.state.value
-                                  if (checked) {
-                                    field.handleChange([
-                                      ...currentIds,
-                                      employeeId,
-                                    ])
-                                  } else {
-                                    field.handleChange(
-                                      currentIds.filter(
-                                        (id) => id !== employeeId,
-                                      ),
-                                    )
-                                  }
-                                }}
-                              />
-                              <Label
-                                htmlFor={`talent-partner-${employeeId}`}
-                                className="cursor-pointer text-sm font-normal"
-                              >
-                                {getFullName(
-                                  employee.firstName,
-                                  employee.lastName,
-                                )}
-                              </Label>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  <Popover modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="h-auto min-h-9 w-full justify-between font-normal"
+                      >
+                        {field.state.value.length === 0 ? (
+                          <span className="text-muted-foreground">
+                            Select talent partners...
+                          </span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {field.state.value.map((id) => {
+                              const emp = talentTeamEmployees.find(
+                                (e) => e.employee?.id === id,
+                              )
+                              if (!emp) return null
+                              return (
+                                <Badge
+                                  key={id}
+                                  variant="secondary"
+                                  className="gap-1"
+                                >
+                                  {getFullName(emp.firstName, emp.lastName)}
+                                  <button
+                                    type="button"
+                                    className="ring-offset-background focus:ring-ring rounded-full outline-none focus:ring-2 focus:ring-offset-2"
+                                    onPointerDown={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                    }}
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      field.handleChange(
+                                        field.state.value.filter(
+                                          (v) => v !== id,
+                                        ),
+                                      )
+                                    }}
+                                  >
+                                    <X className="size-3" />
+                                  </button>
+                                </Badge>
+                              )
+                            })}
+                          </div>
+                        )}
+                        <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search talent partners..." />
+                        <CommandList>
+                          <CommandEmpty>
+                            No talent team employees found.
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {talentTeamEmployees.map((employee) => {
+                              const employeeId = employee.employee?.id
+                              if (!employeeId) return null
+                              const isSelected =
+                                field.state.value.includes(employeeId)
+                              return (
+                                <CommandItem
+                                  key={employeeId}
+                                  value={getFullName(
+                                    employee.firstName,
+                                    employee.lastName,
+                                  )}
+                                  onSelect={() => {
+                                    if (isSelected) {
+                                      field.handleChange(
+                                        field.state.value.filter(
+                                          (id) => id !== employeeId,
+                                        ),
+                                      )
+                                    } else {
+                                      field.handleChange([
+                                        ...field.state.value,
+                                        employeeId,
+                                      ])
+                                    }
+                                  }}
+                                >
+                                  <Check
+                                    className={`size-4 ${isSelected ? 'opacity-100' : 'opacity-0'}`}
+                                  />
+                                  {getFullName(
+                                    employee.firstName,
+                                    employee.lastName,
+                                  )}
+                                </CommandItem>
+                              )
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FieldInfo field={field} />
                 </div>
               )}
