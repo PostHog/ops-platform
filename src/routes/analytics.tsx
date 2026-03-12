@@ -322,22 +322,7 @@ const CustomizedShape = (props: {
   cx: number
   cy: number
   fill: string
-  name: string
 }) => {
-  const { cx, cy, fill, name } = props
-  return (
-    <g>
-      <Dot cx={cx} cy={cy} r={5} fill={fill} />
-      <g transform={`translate(${cx},${cy})`}>
-        <text
-          x={10}
-          y={Math.max(Math.random() * 100) - 50}
-          dy={4}
-          textAnchor="start"
-        >
-          {name}
-        </text>
-      </g>
-    </g>
-  )
+  const { cx, cy, fill } = props
+  return <Dot cx={cx} cy={cy} r={5} fill={fill} />
 }
