@@ -496,6 +496,17 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   job.data as string,
                 ) as KeeperTestJobPayload
 
+                const deelEmployee = await prisma.deelEmployee.findFirst({
+                  where: { workEmail: employee.email },
+                })
+                if (!deelEmployee) {
+                  await prisma.cyclotronJob.update({
+                    where: { id: job.id },
+                    data: { state: 'cancelled', lock_id: null },
+                  })
+                  return
+                }
+
                 const userRes = await fetch(
                   `https://slack.com/api/users.lookupByEmail?email=${manager.email}`,
                   {
@@ -567,6 +578,18 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 const { employee, manager, title } = JSON.parse(
                   job.data as string,
                 ) as KeeperTestJobPayload
+
+                const deelEmployeeForFeedback =
+                  await prisma.deelEmployee.findFirst({
+                    where: { workEmail: employee.email },
+                  })
+                if (!deelEmployeeForFeedback) {
+                  await prisma.cyclotronJob.update({
+                    where: { id: job.id },
+                    data: { state: 'cancelled', lock_id: null },
+                  })
+                  return
+                }
 
                 const userRes = await fetch(
                   `https://slack.com/api/users.lookupByEmail?email=${employee.email}`,
