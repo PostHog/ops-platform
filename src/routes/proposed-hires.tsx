@@ -49,7 +49,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { getFullName, getQuarterOptions } from '@/lib/utils'
+import { getFullName } from '@/lib/utils'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel, {
   updateProposedHire,
@@ -222,7 +222,6 @@ function RouteComponent() {
   const proposedHires = data?.proposedHires || []
   const employees = data?.employees || []
 
-
   const talentTeamEmployees = useMemo(
     () =>
       employees.filter(
@@ -328,10 +327,6 @@ function RouteComponent() {
             field === 'department'
               ? (((value as string) || null) as Department | null)
               : proposedHire.department,
-          quarter:
-            field === 'quarter'
-              ? (value as string) || null
-              : (proposedHire.quarter ?? null),
         },
       })
       // Update the cache in place without refetching to prevent row jumping
@@ -625,56 +620,21 @@ function RouteComponent() {
       },
     },
     {
-      accessorKey: 'quarter',
-      header: 'Quarter',
-      meta: {
-        filterVariant: 'select',
-        filterOptions: getQuarterOptions(),
-      },
-      filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) =>
-        filterValue.includes(row.original.quarter ?? ''),
-      cell: ({ row, table }) => {
-        return (
-          <Select
-            value={row.original.quarter ?? ''}
-            onValueChange={(value) =>
-              table.options.meta?.handleUpdate?.(row.original, 'quarter', value)
-            }
-          >
-            <SelectTrigger className="h-auto w-auto border-0 p-0 shadow-none hover:bg-transparent focus:ring-0">
-              <SelectValue placeholder="—">
-                {row.original.quarter ?? '—'}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {getQuarterOptions().map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )
-      },
-    },
-    {
       accessorKey: 'hiringProfile',
       header: 'Hiring Profile',
       cell: ({ row, table }) => (
-        <div className="min-w-[300px]">
-          <EditableTextCell
-            value={row.original.hiringProfile || ''}
-            onSave={(value) =>
-              table.options.meta?.handleUpdate?.(
-                row.original,
-                'hiringProfile',
-                value,
-              ) ?? Promise.resolve()
-            }
-            multiline
-            placeholder="Enter hiring profile..."
-          />
-        </div>
+        <EditableTextCell
+          value={row.original.hiringProfile || ''}
+          onSave={(value) =>
+            table.options.meta?.handleUpdate?.(
+              row.original,
+              'hiringProfile',
+              value,
+            ) ?? Promise.resolve()
+          }
+          multiline
+          placeholder="Enter hiring profile..."
+        />
       ),
     },
     {
