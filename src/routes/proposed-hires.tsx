@@ -327,6 +327,10 @@ function RouteComponent() {
             field === 'department'
               ? (((value as string) || null) as Department | null)
               : proposedHire.department,
+          quarter:
+            field === 'quarter'
+              ? (value as string) || null
+              : (proposedHire.quarter ?? null),
         },
       })
       // Update the cache in place without refetching to prevent row jumping
@@ -706,6 +710,9 @@ function RouteComponent() {
           if (ph.talentPartners.some((tp) => values.includes(tp.id))) break
           return false
         }
+        case 'quarter':
+          if (!values.includes(ph.quarter ?? '')) return false
+          break
         case 'blitzscaleManager': {
           const tlmId = ph.manager?.deelEmployee?.topLevelManagerId
           if (!tlmId || !values.includes(tlmId)) return false
