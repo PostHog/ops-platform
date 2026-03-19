@@ -33,7 +33,10 @@ type AshbyFeedbackSuccessResponse = {
     id: string
     applicationId: string
     interviewId?: string
-    submittedValues: Record<string, string>
+    submittedValues: {
+      overall_recommendation: string
+      feedback?: string
+    }
     submittedByUser: {
       email: string
       firstName: string
@@ -256,15 +259,7 @@ export const Route = createFileRoute('/syncAshbyInterviewScores')({
                     )
                   }
 
-                  const feedbackText = Object.entries(feedback.submittedValues)
-                    .filter(
-                      ([key, val]) =>
-                        key !== 'overall_recommendation' &&
-                        typeof val === 'string' &&
-                        val.trim().length > 0,
-                    )
-                    .map(([, val]) => val)
-                    .join('\n\n')
+                  const feedbackText = feedback.submittedValues.feedback || ''
                   const submittedAt = new Date(feedback.submittedAt)
 
                   if (isNaN(submittedAt.getTime())) {
