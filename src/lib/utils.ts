@@ -1542,7 +1542,7 @@ export const locationFactor: Array<CompensationCalculatorLocation> = [
   {
     country: 'United Kingdom',
     area: 'Northern Ireland',
-    locationFactor: 0.6,
+    locationFactor: 0.65,
     currency: 'GBP',
   },
   {
@@ -1554,7 +1554,7 @@ export const locationFactor: Array<CompensationCalculatorLocation> = [
   {
     country: 'United Kingdom',
     area: 'Wales',
-    locationFactor: 0.6,
+    locationFactor: 0.65,
     currency: 'GBP',
   },
   {
@@ -1566,7 +1566,7 @@ export const locationFactor: Array<CompensationCalculatorLocation> = [
   {
     country: 'United Kingdom',
     area: 'Bristol, England',
-    locationFactor: 0.6,
+    locationFactor: 0.65,
     currency: 'GBP',
   },
   {
@@ -1578,37 +1578,37 @@ export const locationFactor: Array<CompensationCalculatorLocation> = [
   {
     country: 'United Kingdom',
     area: 'Birmingham, England',
-    locationFactor: 0.6,
+    locationFactor: 0.65,
     currency: 'GBP',
   },
   {
     country: 'United Kingdom',
     area: 'Leeds, England',
-    locationFactor: 0.6,
+    locationFactor: 0.65,
     currency: 'GBP',
   },
   {
     country: 'United Kingdom',
     area: 'Manchester/Liverpool, England',
-    locationFactor: 0.6,
+    locationFactor: 0.65,
     currency: 'GBP',
   },
   {
     country: 'United Kingdom',
     area: 'Everywhere else, England',
-    locationFactor: 0.6,
+    locationFactor: 0.65,
     currency: 'GBP',
   },
   {
     country: 'United Kingdom',
     area: 'Glasgow / Edinburgh, Scotland',
-    locationFactor: 0.6,
+    locationFactor: 0.65,
     currency: 'GBP',
   },
   {
     country: 'United Kingdom',
     area: 'Everywhere else, Scotland',
-    locationFactor: 0.6,
+    locationFactor: 0.65,
     currency: 'GBP',
   },
   {
