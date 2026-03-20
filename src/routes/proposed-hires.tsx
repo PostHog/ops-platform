@@ -49,7 +49,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { getFullName } from '@/lib/utils'
+import { getFullName, getQuarterOptions } from '@/lib/utils'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import AddProposedHirePanel, {
   updateProposedHire,
@@ -618,6 +618,39 @@ function RouteComponent() {
               <SelectItem value="RD">R&amp;D</SelectItem>
               <SelectItem value="SM">S&amp;M</SelectItem>
               <SelectItem value="GA">G&amp;A</SelectItem>
+            </SelectContent>
+          </Select>
+        )
+      },
+    },
+    {
+      accessorKey: 'quarter',
+      header: 'Quarter',
+      meta: {
+        filterVariant: 'select',
+        filterOptions: getQuarterOptions(),
+      },
+      filterFn: (row: Row<ProposedHire>, _: string, filterValue: string[]) =>
+        filterValue.includes(row.original.quarter ?? ''),
+      cell: ({ row, table }) => {
+        return (
+          <Select
+            value={row.original.quarter ?? ''}
+            onValueChange={(value) =>
+              table.options.meta?.handleUpdate?.(row.original, 'quarter', value)
+            }
+          >
+            <SelectTrigger className="h-auto w-auto border-0 p-0 shadow-none hover:bg-transparent focus:ring-0">
+              <SelectValue placeholder="—">
+                {row.original.quarter ?? '—'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {getQuarterOptions().map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         )
