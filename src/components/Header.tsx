@@ -14,8 +14,12 @@ import {
 import { ChevronDownIcon, Settings } from 'lucide-react'
 import { createToast } from 'vercel-toast'
 import { useAtom } from 'jotai'
-import { hideSensitiveDataAtom } from '@/atoms'
+import {
+  hideSensitiveDataAtom,
+  permanentlyShowSensitiveDataAtom,
+} from '@/atoms'
 import { Switch } from './ui/switch'
+import { Checkbox } from './ui/checkbox'
 
 export const getMyEmployeeId = createInternalFn({
   method: 'GET',
@@ -45,6 +49,9 @@ export default function Header() {
   })
   const [hideSensitiveData, setHideSensitiveData] = useAtom(
     hideSensitiveDataAtom,
+  )
+  const [permanentlyShow, setPermanentlyShow] = useAtom(
+    permanentlyShowSensitiveDataAtom,
   )
 
   const handleSignOut = () => {
@@ -208,9 +215,34 @@ export default function Header() {
                   <span>Hide sensitive data</span>
                   <Switch
                     checked={hideSensitiveData}
-                    onCheckedChange={setHideSensitiveData}
+                    onCheckedChange={(checked) => {
+                      setHideSensitiveData(checked)
+                      if (checked) {
+                        setPermanentlyShow(false)
+                      }
+                    }}
                   />
                 </DropdownMenuItem>
+                {!hideSensitiveData && (
+                  <DropdownMenuItem
+                    className="flex items-center gap-2 pl-4 text-xs"
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <Checkbox
+                      id="remember-show"
+                      checked={permanentlyShow}
+                      onCheckedChange={(checked) =>
+                        setPermanentlyShow(checked as boolean)
+                      }
+                    />
+                    <label
+                      htmlFor="remember-show"
+                      className="text-muted-foreground cursor-pointer"
+                    >
+                      Remember across sessions
+                    </label>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             <Button variant="outline" size="sm" onClick={handleSignOut}>
