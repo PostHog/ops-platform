@@ -318,11 +318,7 @@ export const LevelStepSalaryChart = ({
   )
 }
 
-const CustomizedShape = (props: {
-  cx: number
-  cy: number
-  fill: string
-}) => {
+const CustomizedShape = (props: { cx: number; cy: number; fill: string }) => {
   const { cx, cy, fill } = props
   return <Dot cx={cx} cy={cy} r={5} fill={fill} />
 }
