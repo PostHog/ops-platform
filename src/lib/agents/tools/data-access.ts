@@ -22,11 +22,38 @@ export const readEmployees = defineTool({
       .describe('Maximum number of employees to return'),
   }),
   execute: async (params) => {
+    let managerDeelEmployeeId: string | undefined
+    if (params.managerId) {
+      const manager = await prisma.deelEmployee.findFirst({
+        where: {
+          employee: {
+            id: params.managerId,
+          },
+        },
+        select: { id: true },
+      })
+
+      // If no Deel manager record exists for this employee ID, no one can report to them.
+      if (!manager) {
+        return []
+      }
+
+      managerDeelEmployeeId = manager.id
+    }
+
+    const deelEmployeeFilters = {
+      ...(params.team
+        ? { team: { contains: params.team, mode: 'insensitive' as const } }
+        : {}),
+      ...(managerDeelEmployeeId ? { managerId: managerDeelEmployeeId } : {}),
+    }
+
     const findArgs = {
       where: {
-        deelEmployee: params.team
-          ? { team: { contains: params.team, mode: 'insensitive' as const } }
-          : undefined,
+        deelEmployee:
+          Object.keys(deelEmployeeFilters).length > 0
+            ? deelEmployeeFilters
+            : undefined,
       },
       include: {
         deelEmployee: {
