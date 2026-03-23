@@ -2,7 +2,7 @@ name: Notify overdue performance program checklist items
 permissions: {}
 on:
   schedule:
-    - cron: '0 12 * * 1-5' # Runs at 12:00 PM UTC, Monday through Friday
+    - cron: '30 12 * * 1-5' # Runs at 12:30 PM UTC, Monday through Friday (after Deel sync at 12:00)
   workflow_dispatch:
 
 jobs:
