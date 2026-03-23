@@ -442,6 +442,36 @@ export function NewSalaryForm({
                   >
                     {showOverride ? 'Disable' : 'Enable'} salary override
                   </DropdownMenuItem>
+                  {latestSalary && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        const locationFactor =
+                          form.getFieldValue('locationFactor') ?? 0
+                        const level = form.getFieldValue('level') ?? 1
+                        const benchmarkValue =
+                          form.getFieldValue('benchmark') ?? ''
+                        const bf = benchmarkValue?.includes('(old)')
+                          ? (latestSalary.benchmarkFactor ?? 0)
+                          : (sfBenchmark[
+                              benchmarkValue?.replace(
+                                ' (old)',
+                                '',
+                              ) as keyof typeof sfBenchmark
+                            ] ?? 0)
+                        const denominator = locationFactor * level * bf
+                        if (denominator > 0) {
+                          const newStep = Number(
+                            (
+                              latestSalary.totalSalary / denominator
+                            ).toFixed(3),
+                          )
+                          form.setFieldValue('step', newStep)
+                        }
+                      }}
+                    >
+                      Adjust step for no salary change
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button
