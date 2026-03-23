@@ -366,10 +366,6 @@ export function NewSalaryForm({
     (state) => state.values.changeAmount,
   )
   const totalSalary = useStore(form.store, (state) => state.values.totalSalary)
-  const benchmarkFactor = useStore(
-    form.store,
-    (state) => state.values.benchmarkFactor,
-  )
   const area = useStore(form.store, (state) => state.values.area)
   const locationFactorValue = useStore(
     form.store,
@@ -446,6 +442,34 @@ export function NewSalaryForm({
                   >
                     {showOverride ? 'Disable' : 'Enable'} salary override
                   </DropdownMenuItem>
+                  {latestSalary && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        const locationFactor =
+                          form.getFieldValue('locationFactor') ?? 0
+                        const level = form.getFieldValue('level') ?? 1
+                        const benchmarkValue =
+                          form.getFieldValue('benchmark') ?? ''
+                        const bf = benchmarkValue?.includes('(old)')
+                          ? (latestSalary.benchmarkFactor ?? 0)
+                          : (sfBenchmark[
+                              benchmarkValue?.replace(
+                                ' (old)',
+                                '',
+                              ) as keyof typeof sfBenchmark
+                            ] ?? 0)
+                        const denominator = locationFactor * level * bf
+                        if (denominator > 0) {
+                          const newStep = Number(
+                            (latestSalary.totalSalary / denominator).toFixed(3),
+                          )
+                          form.setFieldValue('step', newStep)
+                        }
+                      }}
+                    >
+                      Adjust step for no salary change
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button
@@ -759,7 +783,7 @@ export function NewSalaryForm({
           <div className="mb-4 rounded-lg bg-green-50 p-4">
             <div className="flex items-start justify-between">
               <div>
-                <div className="mb-2 flex items-center gap-2 text-xl">
+                <div className="mb-2 flex items-center gap-2 text-base">
                   <span
                     className={`font-bold ${changePercentage > 0 ? 'text-green-600' : changePercentage < 0 ? 'text-red-600' : ''}`}
                   >
@@ -783,47 +807,68 @@ export function NewSalaryForm({
                       </span>
                     </>
                   )}
-                  <span className="text-gray-400">·</span>
-                  <span className="text-gray-600">
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: localCurrency ?? 'USD',
-                    }).format(totalSalaryLocal)}
-                    {Math.abs(totalSalaryLocal - actualSalaryLocal) > 0.01 && (
-                      <>
-                        {' '}
-                        (
+                  {localCurrency && localCurrency !== 'USD' && (
+                    <>
+                      <span className="text-gray-400">·</span>
+                      <span className="text-gray-600">
                         {new Intl.NumberFormat('en-US', {
                           style: 'currency',
-                          currency: localCurrency ?? 'USD',
-                        }).format(actualSalaryLocal)}
-                        )
-                      </>
-                    )}
-                  </span>
+                          currency: localCurrency,
+                        }).format(totalSalaryLocal)}
+                        {Math.abs(totalSalaryLocal - actualSalaryLocal) >
+                          0.01 && (
+                          <>
+                            {' '}
+                            (
+                            {new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: localCurrency,
+                            }).format(actualSalaryLocal)}
+                            )
+                          </>
+                        )}
+                      </span>
+                    </>
+                  )}
                 </div>
+                {latestSalary && (
+                  <div className="mb-2 text-xs leading-none text-gray-400">
+                    <span>{latestSalary.benchmark}</span>
+                    <span className="ml-1">
+                      <span className="italic">in</span> {latestSalary.area},{' '}
+                      {getCountryFlag(latestSalary.country)}{' '}
+                      {latestSalary.country} ({latestSalary.locationFactor})
+                    </span>
+                    <span className="mx-2">→</span>
+                  </div>
+                )}
                 <div className="mb-2 text-xs leading-none">
-                  <span className="font-semibold">
-                    {benchmark} ({benchmarkFactor})
-                  </span>
+                  <span className="font-semibold">{benchmark}</span>
                   <span className="ml-1 text-gray-600">
                     <span className="italic">in</span> {area},{' '}
                     {getCountryFlag(country)} {country} ({locationFactorValue})
                   </span>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <div>
-                  <div className="text-xl font-bold">
-                    {level === 1 ? '1.0' : level}
-                  </div>
-                  <div className="text-center text-xs text-gray-500">level</div>
-                </div>
-                <div className="text-2xl text-gray-300">/</div>
-                <div>
-                  <div className="text-xl font-bold">{step}</div>
-                  <div className="text-center text-xs text-gray-500">step</div>
-                </div>
+              <div className="flex items-center gap-1">
+                {latestSalary && (
+                  <>
+                    <span className="text-sm text-gray-400">
+                      {latestSalary.level === 1 ? '1.0' : latestSalary.level}
+                    </span>
+                    <span className="text-sm text-gray-300">/</span>
+                    <span className="text-sm text-gray-400">
+                      {latestSalary.step}
+                    </span>
+                    <span className="mx-1 text-sm text-gray-400">→</span>
+                  </>
+                )}
+                <span className="text-sm font-bold">
+                  {level === 1 ? '1.0' : level}
+                </span>
+                <span className="text-sm text-gray-300">/</span>
+                <span className="text-sm font-bold">{step}</span>
+                <span className="ml-1 text-xs text-gray-500">level / step</span>
               </div>
             </div>
           </div>

@@ -38,7 +38,7 @@ export function CommissionBonusTimelineCard({
           <div className="flex justify-between gap-x-4">
             <div className="flex items-center gap-x-4">
               {/* attainment percentage */}
-              <div className="flex items-center gap-2 text-xl">
+              <div className="flex items-center gap-2 text-sm">
                 <Receipt className="h-5 w-5 text-gray-600" />
                 <Tooltip>
                   <TooltipTrigger asChild>
