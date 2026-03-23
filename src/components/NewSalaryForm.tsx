@@ -366,10 +366,6 @@ export function NewSalaryForm({
     (state) => state.values.changeAmount,
   )
   const totalSalary = useStore(form.store, (state) => state.values.totalSalary)
-  const benchmarkFactor = useStore(
-    form.store,
-    (state) => state.values.benchmarkFactor,
-  )
   const area = useStore(form.store, (state) => state.values.area)
   const locationFactorValue = useStore(
     form.store,
