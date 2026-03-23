@@ -14,7 +14,7 @@ import {
 import { ChevronDownIcon, Settings } from 'lucide-react'
 import { createToast } from 'vercel-toast'
 import { useAtom } from 'jotai'
-import { hideSensitiveDataAtom } from '@/atoms'
+import { hideSensitiveDataAtom, defaultHideSensitiveDataAtom } from '@/atoms'
 import { Switch } from './ui/switch'
 
 export const getMyEmployeeId = createInternalFn({
@@ -46,6 +46,7 @@ export default function Header() {
   const [hideSensitiveData, setHideSensitiveData] = useAtom(
     hideSensitiveDataAtom,
   )
+  const [defaultHide, setDefaultHide] = useAtom(defaultHideSensitiveDataAtom)
 
   const handleSignOut = () => {
     signOut()
@@ -205,12 +206,28 @@ export default function Header() {
                   className="flex items-center justify-between"
                   onSelect={(e) => e.preventDefault()}
                 >
-                  <span>Hide sensitive data</span>
+                  <div>
+                    <span>Hide sensitive data</span>
+                    <p className="text-muted-foreground text-xs">
+                      This session only
+                    </p>
+                  </div>
                   <Switch
                     checked={hideSensitiveData}
                     onCheckedChange={setHideSensitiveData}
                   />
                 </DropdownMenuItem>
+                {hideSensitiveData !== defaultHide && (
+                  <DropdownMenuItem
+                    className="text-muted-foreground pl-4 text-xs"
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setDefaultHide(hideSensitiveData)
+                    }}
+                  >
+                    Set as default
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             <Button variant="outline" size="sm" onClick={handleSignOut}>

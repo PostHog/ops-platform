@@ -8,7 +8,22 @@ export const orgChartAutozoomingEnabledAtom = atomWithStorage<boolean>(
   false,
 )
 
-export const hideSensitiveDataAtom = atomWithStorage<boolean>(
-  'settings.hideSensitiveData',
+// Persisted default for "hide sensitive data" across sessions
+export const defaultHideSensitiveDataAtom = atomWithStorage<boolean>(
+  'settings.defaultHideSensitiveData',
   false,
+)
+
+// Session override (null = use persisted default)
+const sessionOverrideAtom = atom<boolean | null>(null)
+
+// Derived atom: uses session override if set, otherwise the persisted default
+export const hideSensitiveDataAtom = atom(
+  (get) => {
+    const override = get(sessionOverrideAtom)
+    return override !== null ? override : get(defaultHideSensitiveDataAtom)
+  },
+  (_get, set, value: boolean) => {
+    set(sessionOverrideAtom, value)
+  },
 )
