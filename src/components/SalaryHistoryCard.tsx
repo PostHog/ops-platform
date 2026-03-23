@@ -45,7 +45,7 @@ export function SalaryHistoryCard({
           <div className="flex justify-between gap-x-4">
             <div className="flex items-center gap-x-4">
               {/* salary change */}
-              <div className="flex items-center gap-2 text-xl">
+              <div className="flex items-center gap-2 text-sm">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span
@@ -165,17 +165,12 @@ export function SalaryHistoryCard({
             {/* level / step */}
             <div className="flex items-start justify-between">
               <div className="flex justify-end gap-2">
-                <div>
-                  <div className="text-xl font-bold">
-                    {salary.level === 1 ? '1.0' : salary.level}
-                  </div>
-                  <div className="text-center text-xs text-gray-500">level</div>
-                </div>
-                <div className="text-2xl text-gray-300">/</div>
-                <div>
-                  <div className="text-xl font-bold">{salary.step}</div>
-                  <div className="text-center text-xs text-gray-500">step</div>
-                </div>
+                <span className="text-sm font-bold">
+                  {salary.level === 1 ? '1.0' : salary.level}
+                </span>
+                <span className="text-sm text-gray-300">/</span>
+                <span className="text-sm font-bold">{salary.step}</span>
+                <span className="ml-1 text-xs text-gray-500">level / step</span>
               </div>
               {isAdmin && isDeletable && onDelete && (
                 <div className="-mr-2">
