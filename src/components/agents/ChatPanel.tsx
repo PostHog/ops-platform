@@ -48,7 +48,8 @@ export function ChatPanel() {
   })
 
   const deleteConversationMutation = useMutation({
-    mutationFn: (id: string) => deleteConversation({ data: { conversationId: id } }),
+    mutationFn: (id: string) =>
+      deleteConversation({ data: { conversationId: id } }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agentConversations'] })
     },
@@ -91,10 +92,9 @@ export function ChatPanel() {
     return 'New conversation'
   }
 
-  const currentTitle =
-    conversations.find((c) => c.id === conversationId)
-      ? getConversationTitle(conversations.find((c) => c.id === conversationId)!)
-      : 'New conversation'
+  const currentTitle = conversations.find((c) => c.id === conversationId)
+    ? getConversationTitle(conversations.find((c) => c.id === conversationId)!)
+    : 'New conversation'
 
   if (!open) return null
 
