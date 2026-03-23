@@ -11,10 +11,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import { ChevronDownIcon, Settings } from 'lucide-react'
+import { ChevronDownIcon, MessageSquare, Settings } from 'lucide-react'
 import { createToast } from 'vercel-toast'
 import { useAtom } from 'jotai'
-import { hideSensitiveDataAtom, defaultHideSensitiveDataAtom } from '@/atoms'
+import {
+  hideSensitiveDataAtom,
+  defaultHideSensitiveDataAtom,
+  chatSidebarOpenAtom,
+} from '@/atoms'
 import { Switch } from './ui/switch'
 
 export const getMyEmployeeId = createInternalFn({
@@ -47,6 +51,7 @@ export default function Header() {
     hideSensitiveDataAtom,
   )
   const [defaultHide, setDefaultHide] = useAtom(defaultHideSensitiveDataAtom)
+  const [chatOpen, setChatOpen] = useAtom(chatSidebarOpenAtom)
 
   const handleSignOut = () => {
     signOut()
@@ -193,6 +198,17 @@ export default function Header() {
                 onClick={handleStopImpersonating}
               >
                 Stop Impersonating
+              </Button>
+            )}
+            {user?.role === ROLES.ADMIN && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setChatOpen(!chatOpen)}
+                title="AI Assistant"
+              >
+                <MessageSquare className="h-4 w-4" />
               </Button>
             )}
             <DropdownMenu>

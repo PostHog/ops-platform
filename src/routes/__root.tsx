@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-router'
 
 import Header from '../components/Header'
+import { ChatPanel } from '../components/agents/ChatPanel'
 
 import appCss from '../styles.css?url'
 
@@ -55,6 +56,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <main className="mt-10 h-[calc(100vh-2.5rem)] overflow-y-auto">
           {children}
         </main>
+        <ChatPanel />
         <Scripts />
       </body>
     </html>
