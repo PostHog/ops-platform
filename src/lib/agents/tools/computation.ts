@@ -202,7 +202,12 @@ export const analyzeTeamCompensation = defineTool({
     for (const emp of employeesWithSalary) {
       const key = groupKey(emp)
       if (!groups[key]) {
-        groups[key] = { count: 0, totalSalary: 0, salaries: [], locationFactors: [] }
+        groups[key] = {
+          count: 0,
+          totalSalary: 0,
+          salaries: [],
+          locationFactors: [],
+        }
       }
       groups[key].count++
       groups[key].totalSalary += emp.salaries[0].totalSalary
@@ -243,7 +248,10 @@ export const analyzeTeamCompensation = defineTool({
       teamFilter: params.team || 'All',
       totalEmployees: employeesWithSalary.length,
       totalCompensation: Math.round(
-        employeesWithSalary.reduce((sum, e) => sum + e.salaries[0].totalSalary, 0),
+        employeesWithSalary.reduce(
+          (sum, e) => sum + e.salaries[0].totalSalary,
+          0,
+        ),
       ),
       groups: analysis,
     }

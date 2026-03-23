@@ -9,9 +9,7 @@ export const createProposedHire = defineTool({
     'Create a new proposed hire record. This adds a planned hiring position to the system. REQUIRES USER CONFIRMATION before executing.',
   parameters: z.object({
     title: z.string().describe('Job title for the proposed hire'),
-    managerId: z
-      .string()
-      .describe('Employee ID of the hiring manager'),
+    managerId: z.string().describe('Employee ID of the hiring manager'),
     talentPartnerIds: z
       .array(z.string())
       .default([])
@@ -123,7 +121,9 @@ export const updateProposedHirePriority = defineTool({
     })
 
     if (!existing) {
-      return { error: `Proposed hire with ID ${params.proposedHireId} not found` }
+      return {
+        error: `Proposed hire with ID ${params.proposedHireId} not found`,
+      }
     }
 
     const oldPriority = existing.priority

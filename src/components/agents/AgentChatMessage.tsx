@@ -12,14 +12,14 @@ export function AgentChatMessage({ message }: AgentChatMessageProps) {
 
   // Extract text from parts array
   const textContent = message.parts
-    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .filter(
+      (part): part is { type: 'text'; text: string } => part.type === 'text',
+    )
     .map((part) => part.text)
     .join('')
 
   return (
-    <div
-      className={cn('flex gap-3', isUser ? 'flex-row-reverse' : 'flex-row')}
-    >
+    <div className={cn('flex gap-3', isUser ? 'flex-row-reverse' : 'flex-row')}>
       {/* Avatar */}
       <div
         className={cn(
@@ -47,7 +47,7 @@ export function AgentChatMessage({ message }: AgentChatMessageProps) {
             <MarkdownComponent>{textContent}</MarkdownComponent>
           </div>
         ) : (
-          <span className="italic text-gray-400">Processing…</span>
+          <span className="text-gray-400 italic">Processing…</span>
         )}
       </div>
     </div>

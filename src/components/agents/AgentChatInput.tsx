@@ -4,7 +4,9 @@ import { useEffect, useRef, type ChangeEvent, FormEvent } from 'react'
 
 interface AgentChatInputProps {
   input?: string
-  onChange: (e: ChangeEvent<HTMLTextAreaElement> | ChangeEvent<HTMLInputElement>) => void
+  onChange: (
+    e: ChangeEvent<HTMLTextAreaElement> | ChangeEvent<HTMLInputElement>,
+  ) => void
   onSubmit: (e: FormEvent) => void
   isLoading: boolean
   disabled?: boolean
@@ -47,7 +49,7 @@ export function AgentChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={isLoading || disabled}
-          className="flex-1 resize-none rounded-lg border border-gray-200 p-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+          className="flex-1 resize-none rounded-lg border border-gray-200 p-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
           rows={1}
           style={{ minHeight: '44px', maxHeight: '120px' }}
         />
