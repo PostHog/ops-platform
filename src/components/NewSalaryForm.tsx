@@ -783,28 +783,46 @@ export function NewSalaryForm({
                       </span>
                     </>
                   )}
-                  <span className="text-gray-400">·</span>
-                  <span className="text-gray-600">
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: localCurrency ?? 'USD',
-                    }).format(totalSalaryLocal)}
-                    {Math.abs(totalSalaryLocal - actualSalaryLocal) > 0.01 && (
-                      <>
-                        {' '}
-                        (
+                  {localCurrency && localCurrency !== 'USD' && (
+                    <>
+                      <span className="text-gray-400">·</span>
+                      <span className="text-gray-600">
                         {new Intl.NumberFormat('en-US', {
                           style: 'currency',
-                          currency: localCurrency ?? 'USD',
-                        }).format(actualSalaryLocal)}
-                        )
-                      </>
-                    )}
-                  </span>
+                          currency: localCurrency,
+                        }).format(totalSalaryLocal)}
+                        {Math.abs(totalSalaryLocal - actualSalaryLocal) > 0.01 && (
+                          <>
+                            {' '}
+                            (
+                            {new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: localCurrency,
+                            }).format(actualSalaryLocal)}
+                            )
+                          </>
+                        )}
+                      </span>
+                    </>
+                  )}
                 </div>
+                {latestSalary && (
+                  <div className="mb-2 text-xs leading-none text-gray-400">
+                    <span>
+                      {latestSalary.benchmark}
+                    </span>
+                    <span className="ml-1">
+                      <span className="italic">in</span>{' '}
+                      {latestSalary.area},{' '}
+                      {getCountryFlag(latestSalary.country)}{' '}
+                      {latestSalary.country} ({latestSalary.locationFactor})
+                    </span>
+                    <span className="mx-2">→</span>
+                  </div>
+                )}
                 <div className="mb-2 text-xs leading-none">
                   <span className="font-semibold">
-                    {benchmark} ({benchmarkFactor})
+                    {benchmark}
                   </span>
                   <span className="ml-1 text-gray-600">
                     <span className="italic">in</span> {area},{' '}
@@ -813,6 +831,30 @@ export function NewSalaryForm({
                 </div>
               </div>
               <div className="flex gap-2">
+                {latestSalary && (
+                  <>
+                    <div className="text-right">
+                      <div className="text-xl text-gray-400">
+                        {latestSalary.level === 1
+                          ? '1.0'
+                          : latestSalary.level}
+                      </div>
+                      <div className="text-center text-xs text-gray-400">
+                        level
+                      </div>
+                    </div>
+                    <div className="text-2xl text-gray-300">/</div>
+                    <div className="text-right">
+                      <div className="text-xl text-gray-400">
+                        {latestSalary.step}
+                      </div>
+                      <div className="text-center text-xs text-gray-400">
+                        step
+                      </div>
+                    </div>
+                    <div className="flex items-center text-gray-400">→</div>
+                  </>
+                )}
                 <div>
                   <div className="text-xl font-bold">
                     {level === 1 ? '1.0' : level}

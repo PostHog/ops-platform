@@ -1764,6 +1764,34 @@ function EmployeeOverview() {
     employee.cartaOptionGrants,
   ])
 
+  const salaryTimelineByMonth = useMemo(() => {
+    return timelineByMonth
+      .map((monthGroup) => ({
+        ...monthGroup,
+        items: monthGroup.items.filter(
+          (item) =>
+            item.type === 'salary' ||
+            item.type === 'option-grant' ||
+            item.type === 'commission-bonus',
+        ),
+      }))
+      .filter((monthGroup) => monthGroup.items.length > 0)
+  }, [timelineByMonth])
+
+  const feedbackTimelineByMonth = useMemo(() => {
+    return timelineByMonth
+      .map((monthGroup) => ({
+        ...monthGroup,
+        items: monthGroup.items.filter(
+          (item) =>
+            item.type === 'feedback' ||
+            item.type === 'performance-program' ||
+            item.type === 'ashby-interview-score',
+        ),
+      }))
+      .filter((monthGroup) => monthGroup.items.length > 0)
+  }, [timelineByMonth])
+
   const handleMoveToNextEmployee = () => {
     const currentIndex = reviewQueue.indexOf(employee.id)
     const nextEmployee = reviewQueue[currentIndex + 1] ?? null
@@ -2239,104 +2267,186 @@ function EmployeeOverview() {
                   Timeline hidden (sensitive data mode enabled)
                 </div>
               ) : timelineByMonth.length > 0 ? (
-                timelineByMonth.map((monthGroup, monthGroupIndex) => (
-                  <div key={`${monthGroup.year}-${monthGroup.month}`}>
-                    <div
-                      className={`flex items-center border border-gray-200 px-4 py-2 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
-                    >
-                      <h3 className="text-lg font-bold">
-                        {months[monthGroup.month]} {monthGroup.year}
-                      </h3>
-                      <span className="mx-2">·</span>
-                      <p className="text-sm text-gray-500">
-                        {(() => {
-                          const now = new Date()
-                          const diffMonths =
-                            (now.getFullYear() - monthGroup.year) * 12 +
-                            (now.getMonth() - monthGroup.month)
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Salary history (left) */}
+                  <div>
+                    {salaryTimelineByMonth.map(
+                      (monthGroup, monthGroupIndex) => (
+                        <div
+                          key={`salary-${monthGroup.year}-${monthGroup.month}`}
+                        >
+                          <div
+                            className={`flex items-center border border-gray-200 px-4 py-2 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
+                          >
+                            <h3 className="text-lg font-bold">
+                              {months[monthGroup.month]} {monthGroup.year}
+                            </h3>
+                            <span className="mx-2">·</span>
+                            <p className="text-sm text-gray-500">
+                              {(() => {
+                                const now = new Date()
+                                const diffMonths =
+                                  (now.getFullYear() - monthGroup.year) * 12 +
+                                  (now.getMonth() - monthGroup.month)
 
-                          if (diffMonths === 0) return 'this month'
-                          if (diffMonths === 1) return '1 month ago'
-                          if (diffMonths < 12) return `${diffMonths} months ago`
+                                if (diffMonths === 0) return 'this month'
+                                if (diffMonths === 1) return '1 month ago'
+                                if (diffMonths < 12)
+                                  return `${diffMonths} months ago`
 
-                          const years = Math.floor(diffMonths / 12)
-                          const remainingMonths = diffMonths % 12
-                          if (remainingMonths === 0) {
-                            return years === 1
-                              ? '1 year ago'
-                              : `${years} years ago`
-                          }
-                          return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} ago`
-                        })()}
-                      </p>
-                    </div>
-                    <div className="w-full">
-                      {monthGroup.items.map((item, itemIndex) => {
-                        const isLastMonth =
-                          monthGroupIndex === timelineByMonth.length - 1
-                        const isLastItemInMonth =
-                          itemIndex === monthGroup.items.length - 1
-                        const lastTableItem = isLastMonth && isLastItemInMonth
+                                const years = Math.floor(diffMonths / 12)
+                                const remainingMonths = diffMonths % 12
+                                if (remainingMonths === 0) {
+                                  return years === 1
+                                    ? '1 year ago'
+                                    : `${years} years ago`
+                                }
+                                return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} ago`
+                              })()}
+                            </p>
+                          </div>
+                          <div className="w-full">
+                            {monthGroup.items.map((item, itemIndex) => {
+                              const isLastMonth =
+                                monthGroupIndex ===
+                                salaryTimelineByMonth.length - 1
+                              const isLastItemInMonth =
+                                itemIndex === monthGroup.items.length - 1
+                              const lastTableItem =
+                                isLastMonth && isLastItemInMonth
 
-                        if (item.type === 'salary') {
-                          return (
-                            <SalaryHistoryCard
-                              key={`salary-${item.data.id}`}
-                              salary={item.data}
-                              isAdmin={user?.role === ROLES.ADMIN}
-                              onDelete={handleDeleteSalary}
-                              lastTableItem={lastTableItem}
-                            />
-                          )
-                        } else if (item.type === 'feedback') {
-                          return (
-                            <FeedbackCard
-                              key={`feedback-${item.data.id}`}
-                              feedback={item.data}
-                              lastTableItem={lastTableItem}
-                            />
-                          )
-                        } else if (item.type === 'performance-program') {
-                          return (
-                            <PerformanceProgramTimelineCard
-                              key={`perf-program-${item.data.program.id}-${item.data.event}-${item.data.checklistItem?.id || item.data.feedback?.id || ''}`}
-                              event={item.data.event}
-                              program={item.data.program}
-                              checklistItem={item.data.checklistItem}
-                              feedback={item.data.feedback}
-                              lastTableItem={lastTableItem}
-                            />
-                          )
-                        } else if (item.type === 'commission-bonus') {
-                          return (
-                            <CommissionBonusTimelineCard
-                              key={`commission-bonus-${item.data.id}`}
-                              bonus={item.data}
-                              lastTableItem={lastTableItem}
-                            />
-                          )
-                        } else if (item.type === 'ashby-interview-score') {
-                          return (
-                            <AshbyInterviewScoreTimelineCard
-                              key={`ashby-interview-score-${item.data.id}`}
-                              score={item.data}
-                              lastTableItem={lastTableItem}
-                            />
-                          )
-                        } else if (item.type === 'option-grant') {
-                          return (
-                            <OptionGrantTimelineCard
-                              key={`option-grant-${item.data.id}`}
-                              grant={item.data}
-                              lastTableItem={lastTableItem}
-                            />
-                          )
-                        }
-                        return null
-                      })}
-                    </div>
+                              if (item.type === 'salary') {
+                                return (
+                                  <SalaryHistoryCard
+                                    key={`salary-${item.data.id}`}
+                                    salary={item.data}
+                                    isAdmin={user?.role === ROLES.ADMIN}
+                                    onDelete={handleDeleteSalary}
+                                    lastTableItem={lastTableItem}
+                                  />
+                                )
+                              } else if (item.type === 'commission-bonus') {
+                                return (
+                                  <CommissionBonusTimelineCard
+                                    key={`commission-bonus-${item.data.id}`}
+                                    bonus={item.data}
+                                    lastTableItem={lastTableItem}
+                                  />
+                                )
+                              } else if (item.type === 'option-grant') {
+                                return (
+                                  <OptionGrantTimelineCard
+                                    key={`option-grant-${item.data.id}`}
+                                    grant={item.data}
+                                    lastTableItem={lastTableItem}
+                                  />
+                                )
+                              }
+                              return null
+                            })}
+                          </div>
+                        </div>
+                      ),
+                    )}
+                    {salaryTimelineByMonth.length === 0 && (
+                      <div className="py-12 text-center text-gray-500">
+                        No salary history available.
+                      </div>
+                    )}
                   </div>
-                ))
+
+                  {/* Feedback (right) */}
+                  <div>
+                    {feedbackTimelineByMonth.map(
+                      (monthGroup, monthGroupIndex) => (
+                        <div
+                          key={`feedback-${monthGroup.year}-${monthGroup.month}`}
+                        >
+                          <div
+                            className={`flex items-center border border-gray-200 px-4 py-2 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
+                          >
+                            <h3 className="text-lg font-bold">
+                              {months[monthGroup.month]} {monthGroup.year}
+                            </h3>
+                            <span className="mx-2">·</span>
+                            <p className="text-sm text-gray-500">
+                              {(() => {
+                                const now = new Date()
+                                const diffMonths =
+                                  (now.getFullYear() - monthGroup.year) * 12 +
+                                  (now.getMonth() - monthGroup.month)
+
+                                if (diffMonths === 0) return 'this month'
+                                if (diffMonths === 1) return '1 month ago'
+                                if (diffMonths < 12)
+                                  return `${diffMonths} months ago`
+
+                                const years = Math.floor(diffMonths / 12)
+                                const remainingMonths = diffMonths % 12
+                                if (remainingMonths === 0) {
+                                  return years === 1
+                                    ? '1 year ago'
+                                    : `${years} years ago`
+                                }
+                                return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} ago`
+                              })()}
+                            </p>
+                          </div>
+                          <div className="w-full">
+                            {monthGroup.items.map((item, itemIndex) => {
+                              const isLastMonth =
+                                monthGroupIndex ===
+                                feedbackTimelineByMonth.length - 1
+                              const isLastItemInMonth =
+                                itemIndex === monthGroup.items.length - 1
+                              const lastTableItem =
+                                isLastMonth && isLastItemInMonth
+
+                              if (item.type === 'feedback') {
+                                return (
+                                  <FeedbackCard
+                                    key={`feedback-${item.data.id}`}
+                                    feedback={item.data}
+                                    lastTableItem={lastTableItem}
+                                  />
+                                )
+                              } else if (
+                                item.type === 'performance-program'
+                              ) {
+                                return (
+                                  <PerformanceProgramTimelineCard
+                                    key={`perf-program-${item.data.program.id}-${item.data.event}-${item.data.checklistItem?.id || item.data.feedback?.id || ''}`}
+                                    event={item.data.event}
+                                    program={item.data.program}
+                                    checklistItem={item.data.checklistItem}
+                                    feedback={item.data.feedback}
+                                    lastTableItem={lastTableItem}
+                                  />
+                                )
+                              } else if (
+                                item.type === 'ashby-interview-score'
+                              ) {
+                                return (
+                                  <AshbyInterviewScoreTimelineCard
+                                    key={`ashby-interview-score-${item.data.id}`}
+                                    score={item.data}
+                                    lastTableItem={lastTableItem}
+                                  />
+                                )
+                              }
+                              return null
+                            })}
+                          </div>
+                        </div>
+                      ),
+                    )}
+                    {feedbackTimelineByMonth.length === 0 && (
+                      <div className="py-12 text-center text-gray-500">
+                        No feedback available.
+                      </div>
+                    )}
+                  </div>
+                </div>
               ) : (
                 <div className="py-12 text-center text-gray-500">
                   No history available.
