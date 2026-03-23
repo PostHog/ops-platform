@@ -461,9 +461,7 @@ export function NewSalaryForm({
                         const denominator = locationFactor * level * bf
                         if (denominator > 0) {
                           const newStep = Number(
-                            (
-                              latestSalary.totalSalary / denominator
-                            ).toFixed(3),
+                            (latestSalary.totalSalary / denominator).toFixed(3),
                           )
                           form.setFieldValue('step', newStep)
                         }
@@ -817,7 +815,8 @@ export function NewSalaryForm({
                           style: 'currency',
                           currency: localCurrency,
                         }).format(totalSalaryLocal)}
-                        {Math.abs(totalSalaryLocal - actualSalaryLocal) > 0.01 && (
+                        {Math.abs(totalSalaryLocal - actualSalaryLocal) >
+                          0.01 && (
                           <>
                             {' '}
                             (
@@ -834,12 +833,9 @@ export function NewSalaryForm({
                 </div>
                 {latestSalary && (
                   <div className="mb-2 text-xs leading-none text-gray-400">
-                    <span>
-                      {latestSalary.benchmark}
-                    </span>
+                    <span>{latestSalary.benchmark}</span>
                     <span className="ml-1">
-                      <span className="italic">in</span>{' '}
-                      {latestSalary.area},{' '}
+                      <span className="italic">in</span> {latestSalary.area},{' '}
                       {getCountryFlag(latestSalary.country)}{' '}
                       {latestSalary.country} ({latestSalary.locationFactor})
                     </span>
@@ -847,9 +843,7 @@ export function NewSalaryForm({
                   </div>
                 )}
                 <div className="mb-2 text-xs leading-none">
-                  <span className="font-semibold">
-                    {benchmark}
-                  </span>
+                  <span className="font-semibold">{benchmark}</span>
                   <span className="ml-1 text-gray-600">
                     <span className="italic">in</span> {area},{' '}
                     {getCountryFlag(country)} {country} ({locationFactorValue})
@@ -860,9 +854,7 @@ export function NewSalaryForm({
                 {latestSalary && (
                   <>
                     <span className="text-sm text-gray-400">
-                      {latestSalary.level === 1
-                        ? '1.0'
-                        : latestSalary.level}
+                      {latestSalary.level === 1 ? '1.0' : latestSalary.level}
                     </span>
                     <span className="text-sm text-gray-300">/</span>
                     <span className="text-sm text-gray-400">

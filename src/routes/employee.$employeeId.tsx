@@ -2410,9 +2410,7 @@ function EmployeeOverview() {
                                     lastTableItem={lastTableItem}
                                   />
                                 )
-                              } else if (
-                                item.type === 'performance-program'
-                              ) {
+                              } else if (item.type === 'performance-program') {
                                 return (
                                   <PerformanceProgramTimelineCard
                                     key={`perf-program-${item.data.program.id}-${item.data.event}-${item.data.checklistItem?.id || item.data.feedback?.id || ''}`}
