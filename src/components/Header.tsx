@@ -208,7 +208,9 @@ export default function Header() {
                 >
                   <div>
                     <span>Hide sensitive data</span>
-                    <p className="text-xs text-muted-foreground">This session only</p>
+                    <p className="text-muted-foreground text-xs">
+                      This session only
+                    </p>
                   </div>
                   <Switch
                     checked={hideSensitiveData}
@@ -217,7 +219,7 @@ export default function Header() {
                 </DropdownMenuItem>
                 {hideSensitiveData !== defaultHide && (
                   <DropdownMenuItem
-                    className="pl-4 text-xs text-muted-foreground"
+                    className="text-muted-foreground pl-4 text-xs"
                     onSelect={(e) => {
                       e.preventDefault()
                       setDefaultHide(hideSensitiveData)
