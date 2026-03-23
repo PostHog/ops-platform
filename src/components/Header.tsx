@@ -14,12 +14,8 @@ import {
 import { ChevronDownIcon, Settings } from 'lucide-react'
 import { createToast } from 'vercel-toast'
 import { useAtom } from 'jotai'
-import {
-  hideSensitiveDataAtom,
-  permanentlyShowSensitiveDataAtom,
-} from '@/atoms'
+import { hideSensitiveDataAtom, defaultHideSensitiveDataAtom } from '@/atoms'
 import { Switch } from './ui/switch'
-import { Checkbox } from './ui/checkbox'
 
 export const getMyEmployeeId = createInternalFn({
   method: 'GET',
@@ -50,9 +46,7 @@ export default function Header() {
   const [hideSensitiveData, setHideSensitiveData] = useAtom(
     hideSensitiveDataAtom,
   )
-  const [permanentlyShow, setPermanentlyShow] = useAtom(
-    permanentlyShowSensitiveDataAtom,
-  )
+  const [defaultHide, setDefaultHide] = useAtom(defaultHideSensitiveDataAtom)
 
   const handleSignOut = () => {
     signOut()
@@ -212,35 +206,24 @@ export default function Header() {
                   className="flex items-center justify-between"
                   onSelect={(e) => e.preventDefault()}
                 >
-                  <span>Hide sensitive data</span>
+                  <div>
+                    <span>Hide sensitive data</span>
+                    <p className="text-xs text-muted-foreground">This session only</p>
+                  </div>
                   <Switch
                     checked={hideSensitiveData}
-                    onCheckedChange={(checked) => {
-                      setHideSensitiveData(checked)
-                      if (checked) {
-                        setPermanentlyShow(false)
-                      }
-                    }}
+                    onCheckedChange={setHideSensitiveData}
                   />
                 </DropdownMenuItem>
-                {!hideSensitiveData && (
+                {hideSensitiveData !== defaultHide && (
                   <DropdownMenuItem
-                    className="flex items-center gap-2 pl-4 text-xs"
-                    onSelect={(e) => e.preventDefault()}
+                    className="pl-4 text-xs text-muted-foreground"
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setDefaultHide(hideSensitiveData)
+                    }}
                   >
-                    <Checkbox
-                      id="remember-show"
-                      checked={permanentlyShow}
-                      onCheckedChange={(checked) =>
-                        setPermanentlyShow(checked as boolean)
-                      }
-                    />
-                    <label
-                      htmlFor="remember-show"
-                      className="text-muted-foreground cursor-pointer"
-                    >
-                      Remember across sessions
-                    </label>
+                    Set as default
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
