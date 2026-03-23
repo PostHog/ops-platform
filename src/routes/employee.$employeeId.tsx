@@ -2276,9 +2276,9 @@ function EmployeeOverview() {
                           key={`salary-${monthGroup.year}-${monthGroup.month}`}
                         >
                           <div
-                            className={`flex items-center border border-gray-200 px-4 py-2 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
+                            className={`flex items-center border border-gray-200 px-3 py-1.5 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
                           >
-                            <h3 className="text-lg font-bold">
+                            <h3 className="text-sm font-bold">
                               {months[monthGroup.month]} {monthGroup.year}
                             </h3>
                             <span className="mx-2">·</span>
@@ -2363,9 +2363,9 @@ function EmployeeOverview() {
                           key={`feedback-${monthGroup.year}-${monthGroup.month}`}
                         >
                           <div
-                            className={`flex items-center border border-gray-200 px-4 py-2 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
+                            className={`flex items-center border border-gray-200 px-3 py-1.5 ${monthGroupIndex !== 0 ? 'border-t-0' : 'rounded-t-md'}`}
                           >
-                            <h3 className="text-lg font-bold">
+                            <h3 className="text-sm font-bold">
                               {months[monthGroup.month]} {monthGroup.year}
                             </h3>
                             <span className="mx-2">·</span>

@@ -755,7 +755,7 @@ export function NewSalaryForm({
           <div className="mb-4 rounded-lg bg-green-50 p-4">
             <div className="flex items-start justify-between">
               <div>
-                <div className="mb-2 flex items-center gap-2 text-xl">
+                <div className="mb-2 flex items-center gap-2 text-base">
                   <span
                     className={`font-bold ${changePercentage > 0 ? 'text-green-600' : changePercentage < 0 ? 'text-red-600' : ''}`}
                   >
@@ -826,42 +826,27 @@ export function NewSalaryForm({
                   </span>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-1">
                 {latestSalary && (
                   <>
-                    <div className="text-right">
-                      <div className="text-xl text-gray-400">
-                        {latestSalary.level === 1
-                          ? '1.0'
-                          : latestSalary.level}
-                      </div>
-                      <div className="text-center text-xs text-gray-400">
-                        level
-                      </div>
-                    </div>
-                    <div className="text-2xl text-gray-300">/</div>
-                    <div className="text-right">
-                      <div className="text-xl text-gray-400">
-                        {latestSalary.step}
-                      </div>
-                      <div className="text-center text-xs text-gray-400">
-                        step
-                      </div>
-                    </div>
-                    <div className="flex items-center text-gray-400">→</div>
+                    <span className="text-sm text-gray-400">
+                      {latestSalary.level === 1
+                        ? '1.0'
+                        : latestSalary.level}
+                    </span>
+                    <span className="text-sm text-gray-300">/</span>
+                    <span className="text-sm text-gray-400">
+                      {latestSalary.step}
+                    </span>
+                    <span className="mx-1 text-sm text-gray-400">→</span>
                   </>
                 )}
-                <div>
-                  <div className="text-xl font-bold">
-                    {level === 1 ? '1.0' : level}
-                  </div>
-                  <div className="text-center text-xs text-gray-500">level</div>
-                </div>
-                <div className="text-2xl text-gray-300">/</div>
-                <div>
-                  <div className="text-xl font-bold">{step}</div>
-                  <div className="text-center text-xs text-gray-500">step</div>
-                </div>
+                <span className="text-sm font-bold">
+                  {level === 1 ? '1.0' : level}
+                </span>
+                <span className="text-sm text-gray-300">/</span>
+                <span className="text-sm font-bold">{step}</span>
+                <span className="ml-1 text-xs text-gray-500">level / step</span>
               </div>
             </div>
           </div>
