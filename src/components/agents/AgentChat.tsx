@@ -114,14 +114,6 @@ export function AgentChat({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="border-b p-4">
-        <h2 className="text-lg font-semibold">{agent.name}</h2>
-        {agent.description && (
-          <p className="text-sm text-gray-500">{agent.description}</p>
-        )}
-      </div>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">
         {agent.initialPrompt && messages.length === 0 && (
