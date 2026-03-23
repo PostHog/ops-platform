@@ -173,7 +173,7 @@ Always be clear and concise in your responses. When using tools, ALWAYS explain 
 
         // Stream the response
         const result = streamText({
-          model: anthropic('claude-sonnet-4-20250514'),
+          model: anthropic('claude-sonnet-4-6-20250514'),
           system: systemPrompt,
           messages: modelMessages,
           tools: aiTools,
