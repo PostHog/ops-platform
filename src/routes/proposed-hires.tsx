@@ -222,77 +222,6 @@ function RouteComponent() {
   const proposedHires = data?.proposedHires || []
   const employees = data?.employees || []
 
-  const openProposedHires = useMemo(() => {
-    const openPriorities = new Set<Priority>(['high', 'medium', 'low'])
-    return proposedHires.filter((ph) => openPriorities.has(ph.priority))
-  }, [proposedHires])
-
-  const openCountsByPriority = useMemo(() => {
-    return openProposedHires.reduce(
-      (acc, ph) => {
-        if (ph.priority === 'high') acc.high += 1
-        if (ph.priority === 'medium') acc.medium += 1
-        if (ph.priority === 'low') acc.low += 1
-        return acc
-      },
-      { high: 0, medium: 0, low: 0 },
-    )
-  }, [openProposedHires])
-
-  const openCountsByDepartment = useMemo(() => {
-    return openProposedHires.reduce(
-      (acc, ph) => {
-        if (ph.department === 'RD') acc.RD += 1
-        if (ph.department === 'SM') acc.SM += 1
-        if (ph.department === 'GA') acc.GA += 1
-        return acc
-      },
-      { RD: 0, SM: 0, GA: 0 },
-    )
-  }, [openProposedHires])
-
-  const openHiresByTalentPartner = useMemo(() => {
-    const counts = new Map<string, { label: string; count: number }>()
-    for (const ph of openProposedHires) {
-      if (!ph.talentPartners.length) {
-        counts.set(UNASSIGNED_TALENT_PARTNER_FILTER, {
-          label: '(Unassigned)',
-          count: (counts.get(UNASSIGNED_TALENT_PARTNER_FILTER)?.count ?? 0) + 1,
-        })
-        continue
-      }
-      for (const tp of ph.talentPartners) {
-        const name =
-          getFullName(tp.deelEmployee?.firstName, tp.deelEmployee?.lastName) ||
-          tp.email
-        const key = tp.id
-        const existing = counts.get(key)
-        counts.set(key, {
-          label: name,
-          count: (existing?.count ?? 0) + 1,
-        })
-      }
-    }
-    return Array.from(counts.entries())
-      .map(([id, v]) => ({ id, ...v }))
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
-  }, [openProposedHires])
-
-  const openHiresByTeam = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const ph of openProposedHires) {
-      const team = ph.manager?.deelEmployee?.team || NO_TEAM_FILTER
-      counts.set(team, (counts.get(team) ?? 0) + 1)
-    }
-    return Array.from(counts.entries())
-      .map(([team, count]) => ({
-        team,
-        label: team === NO_TEAM_FILTER ? '(No team)' : team,
-        count,
-      }))
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
-  }, [openProposedHires])
-
   const talentTeamEmployees = useMemo(
     () =>
       employees.filter(
@@ -731,20 +660,18 @@ function RouteComponent() {
       accessorKey: 'hiringProfile',
       header: 'Hiring Profile',
       cell: ({ row, table }) => (
-        <div className="min-w-[300px]">
-          <EditableTextCell
-            value={row.original.hiringProfile || ''}
-            onSave={(value) =>
-              table.options.meta?.handleUpdate?.(
-                row.original,
-                'hiringProfile',
-                value,
-              ) ?? Promise.resolve()
-            }
-            multiline
-            placeholder="Enter hiring profile..."
-          />
-        </div>
+        <EditableTextCell
+          value={row.original.hiringProfile || ''}
+          onSave={(value) =>
+            table.options.meta?.handleUpdate?.(
+              row.original,
+              'hiringProfile',
+              value,
+            ) ?? Promise.resolve()
+          }
+          multiline
+          placeholder="Enter hiring profile..."
+        />
       ),
     },
     {
@@ -782,6 +709,114 @@ function RouteComponent() {
       handleUpdate,
     },
   })
+
+  const openPriorities = new Set<Priority>(['high', 'medium', 'low'])
+  const filteredOpenHires = proposedHires.filter((ph) => {
+    if (!openPriorities.has(ph.priority)) return false
+    for (const filter of columnFilters) {
+      const values = filter.value as string[]
+      if (!values?.length) continue
+      switch (filter.id) {
+        case 'title':
+          if (!values.includes(ph.title)) return false
+          break
+        case 'priority':
+          if (!values.includes(ph.priority)) return false
+          break
+        case 'department':
+          if (!values.includes(ph.department ?? '')) return false
+          break
+        case 'manager_deelEmployee_firstName': {
+          const managerId = ph.manager?.id
+          if (!managerId || !values.includes(managerId)) return false
+          break
+        }
+        case 'manager_deelEmployee_team': {
+          const team = ph.manager?.deelEmployee?.team
+          if (!team && !values.includes(NO_TEAM_FILTER)) return false
+          if (team && !values.includes(team)) return false
+          break
+        }
+        case 'talentPartners': {
+          const unassigned = values.includes(UNASSIGNED_TALENT_PARTNER_FILTER)
+          if (unassigned && ph.talentPartners.length === 0) break
+          if (ph.talentPartners.some((tp) => values.includes(tp.id))) break
+          return false
+        }
+        case 'quarter':
+          if (!values.includes(ph.quarter ?? '')) return false
+          break
+        case 'blitzscaleManager': {
+          const tlmId = ph.manager?.deelEmployee?.topLevelManagerId
+          if (!tlmId || !values.includes(tlmId)) return false
+          break
+        }
+      }
+    }
+    return true
+  })
+
+  const openCountsByPriority = filteredOpenHires.reduce(
+    (acc, ph) => {
+      if (ph.priority === 'high') acc.high += 1
+      if (ph.priority === 'medium') acc.medium += 1
+      if (ph.priority === 'low') acc.low += 1
+      return acc
+    },
+    { high: 0, medium: 0, low: 0 },
+  )
+
+  const openCountsByDepartment = filteredOpenHires.reduce(
+    (acc, ph) => {
+      if (ph.department === 'RD') acc.RD += 1
+      if (ph.department === 'SM') acc.SM += 1
+      if (ph.department === 'GA') acc.GA += 1
+      return acc
+    },
+    { RD: 0, SM: 0, GA: 0 },
+  )
+
+  const openHiresByTalentPartner = (() => {
+    const counts = new Map<string, { label: string; count: number }>()
+    for (const ph of filteredOpenHires) {
+      if (!ph.talentPartners.length) {
+        counts.set(UNASSIGNED_TALENT_PARTNER_FILTER, {
+          label: '(Unassigned)',
+          count: (counts.get(UNASSIGNED_TALENT_PARTNER_FILTER)?.count ?? 0) + 1,
+        })
+        continue
+      }
+      for (const tp of ph.talentPartners) {
+        const name =
+          getFullName(tp.deelEmployee?.firstName, tp.deelEmployee?.lastName) ||
+          tp.email
+        const key = tp.id
+        const existing = counts.get(key)
+        counts.set(key, {
+          label: name,
+          count: (existing?.count ?? 0) + 1,
+        })
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+  })()
+
+  const openHiresByTeam = (() => {
+    const counts = new Map<string, number>()
+    for (const ph of filteredOpenHires) {
+      const team = ph.manager?.deelEmployee?.team || NO_TEAM_FILTER
+      counts.set(team, (counts.get(team) ?? 0) + 1)
+    }
+    return Array.from(counts.entries())
+      .map(([team, count]) => ({
+        team,
+        label: team === NO_TEAM_FILTER ? '(No team)' : team,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+  })()
 
   const getFilterValues = (id: string): string[] => {
     const current = columnFilters.find((f) => f.id === id)?.value
@@ -860,7 +895,7 @@ function RouteComponent() {
                     >
                       <span>Total</span>
                       <span className="text-foreground font-medium">
-                        {openProposedHires.length}
+                        {filteredOpenHires.length}
                       </span>
                     </button>
                   </div>
