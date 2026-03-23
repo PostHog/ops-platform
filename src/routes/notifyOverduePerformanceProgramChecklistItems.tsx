@@ -19,6 +19,11 @@ export const Route = createFileRoute(
               completed: false,
               dueDate: { lt: new Date() },
               assignedToEmployeeId: { not: null },
+              program: {
+                employee: {
+                  deelEmployee: { isNot: null },
+                },
+              },
             },
             include: {
               assignedTo: {
