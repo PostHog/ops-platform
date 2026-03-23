@@ -1003,7 +1003,7 @@ export const locationFactor: Array<CompensationCalculatorLocation> = [
   {
     country: 'United States',
     area: 'Seattle, Washington',
-    locationFactor: 0.92,
+    locationFactor: 0.94,
     currency: 'USD',
   },
   {
