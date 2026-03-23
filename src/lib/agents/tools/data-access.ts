@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { type Prisma } from '@prisma/client'
 import prisma from '@/db'
 import { defineTool } from '../types'
 
@@ -21,10 +22,10 @@ export const readEmployees = defineTool({
       .describe('Maximum number of employees to return'),
   }),
   execute: async (params) => {
-    const employees = await prisma.employee.findMany({
+    const findArgs = {
       where: {
         deelEmployee: params.team
-          ? { team: { contains: params.team, mode: 'insensitive' } }
+          ? { team: { contains: params.team, mode: 'insensitive' as const } }
           : undefined,
       },
       include: {
@@ -40,12 +41,13 @@ export const readEmployees = defineTool({
           },
         },
         salaries: {
-          orderBy: { timestamp: 'desc' },
+          orderBy: { timestamp: 'desc' as const },
           take: 1,
         },
       },
       take: params.limit,
-    })
+    } satisfies Prisma.EmployeeFindManyArgs
+    const employees = await prisma.employee.findMany(findArgs)
 
     // Filter by salary-level criteria after fetch
     let filtered = employees

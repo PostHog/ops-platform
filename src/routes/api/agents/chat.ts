@@ -4,7 +4,6 @@ import {
   tool,
   convertToModelMessages,
   stepCountIs,
-  type UIMessage,
 } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { auth } from '@/lib/auth'
@@ -96,9 +95,9 @@ Always be clear and concise in your responses. When using tools, ALWAYS explain 
         const userMessageText =
           latestUserMessage?.parts
             ?.filter(
-              (p): p is { type: 'text'; text: string } => p.type === 'text',
+              (p: { type: string; text?: string }): p is { type: 'text'; text: string } => p.type === 'text',
             )
-            ?.map((p) => p.text)
+            ?.map((p: { type: 'text'; text: string }) => p.text)
             ?.join('') ?? ''
 
         if (userMessageText) {
@@ -160,7 +159,7 @@ Always be clear and concise in your responses. When using tools, ALWAYS explain 
             // Keep messages that have parts with actual content
             if (!msg.parts || msg.parts.length === 0) return false
             const hasContent = msg.parts.some(
-              (p) => p.type === 'text' && (p as { text?: string }).text?.trim(),
+              (p: { type: string; text?: string }) => p.type === 'text' && p.text?.trim(),
             )
             return hasContent
           })
