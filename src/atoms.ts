@@ -3,6 +3,8 @@ import { atomWithStorage } from 'jotai/utils'
 
 export const reviewQueueAtom = atom<Array<string>>([])
 
+export const chatSidebarOpenAtom = atom(false)
+
 export const orgChartAutozoomingEnabledAtom = atomWithStorage<boolean>(
   'org-chart.autozoomingEnabled',
   false,

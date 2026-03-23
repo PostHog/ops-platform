@@ -37,6 +37,7 @@ import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmployeeEmployeeIdRouteImport } from './routes/employee.$employeeId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiAgentsChatRouteImport } from './routes/api/agents/chat'
 
 const SyncSalaryUpdatesRoute = SyncSalaryUpdatesRouteImport.update({
   id: '/syncSalaryUpdates',
@@ -182,6 +183,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAgentsChatRoute = ApiAgentsChatRouteImport.update({
+  id: '/api/agents/chat',
+  path: '/api/agents/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
+  '/api/agents/chat': typeof ApiAgentsChatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -241,6 +248,7 @@ export interface FileRoutesByTo {
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
+  '/api/agents/chat': typeof ApiAgentsChatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/syncDeelEmployees': typeof SyncDeelEmployeesRoute
   '/syncSalaryUpdates': typeof SyncSalaryUpdatesRoute
   '/employee/$employeeId': typeof EmployeeEmployeeIdRoute
+  '/api/agents/chat': typeof ApiAgentsChatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -304,6 +313,7 @@ export interface FileRouteTypes {
     | '/syncDeelEmployees'
     | '/syncSalaryUpdates'
     | '/employee/$employeeId'
+    | '/api/agents/chat'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -334,6 +344,7 @@ export interface FileRouteTypes {
     | '/syncDeelEmployees'
     | '/syncSalaryUpdates'
     | '/employee/$employeeId'
+    | '/api/agents/chat'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -364,6 +375,7 @@ export interface FileRouteTypes {
     | '/syncDeelEmployees'
     | '/syncSalaryUpdates'
     | '/employee/$employeeId'
+    | '/api/agents/chat'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -395,6 +407,7 @@ export interface RootRouteChildren {
   SyncDeelEmployeesRoute: typeof SyncDeelEmployeesRoute
   SyncSalaryUpdatesRoute: typeof SyncSalaryUpdatesRoute
   EmployeeEmployeeIdRoute: typeof EmployeeEmployeeIdRoute
+  ApiAgentsChatRoute: typeof ApiAgentsChatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -596,6 +609,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/agents/chat': {
+      id: '/api/agents/chat'
+      path: '/api/agents/chat'
+      fullPath: '/api/agents/chat'
+      preLoaderRoute: typeof ApiAgentsChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -628,6 +648,7 @@ const rootRouteChildren: RootRouteChildren = {
   SyncDeelEmployeesRoute: SyncDeelEmployeesRoute,
   SyncSalaryUpdatesRoute: SyncSalaryUpdatesRoute,
   EmployeeEmployeeIdRoute: EmployeeEmployeeIdRoute,
+  ApiAgentsChatRoute: ApiAgentsChatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
