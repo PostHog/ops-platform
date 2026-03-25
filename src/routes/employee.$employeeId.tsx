@@ -2304,6 +2304,7 @@ function EmployeeOverview() {
             <div className="mb-8">
               {showNewSalaryForm && !isSensitiveHidden && (
                 <NewSalaryForm
+                  key={employee.id}
                   employeeId={employee.id}
                   showOverride={showOverrideMode}
                   setShowOverride={setShowOverrideMode}
