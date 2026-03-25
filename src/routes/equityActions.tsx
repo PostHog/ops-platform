@@ -6,6 +6,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
+import { useLocalStorage } from 'usehooks-ts'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
 import { customFilterFns, months } from './employees'
 import type { Prisma } from '@prisma/client'
@@ -33,6 +34,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { RowSelectionState } from '@tanstack/react-table'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 
 type EquityRefreshSalary = Prisma.SalaryGetPayload<{
   include: {
@@ -99,16 +109,106 @@ const markMultipleAsGranted = createAdminFn({
     })
   })
 
+const updateEquityCommunicated = createAdminFn({
+  method: 'POST',
+})
+  .inputValidator((d: { id: string; communicated: boolean }) => d)
+  .handler(async ({ data }) => {
+    return await prisma.salary.update({
+      where: { id: data.id },
+      data: { communicated: data.communicated },
+    })
+  })
+
+const markMultipleAsCommunicated = createAdminFn({
+  method: 'POST',
+})
+  .inputValidator((d: { ids: string[] }) => d)
+  .handler(async ({ data }) => {
+    return await prisma.salary.updateMany({
+      where: { id: { in: data.ids } },
+      data: { communicated: true },
+    })
+  })
+
 export const Route = createFileRoute('/equityActions')({
   component: App,
   loader: async () => await getEquityRefreshes(),
 })
+
+const defaultEquityTemplate = `Hey {firstName}! I just wanted to let you know that we're giving you an equity refresh of {refreshPercentage}%, which works out to {refreshAmount}. Thanks for the hard work you do for PostHog, and let me know if you have any questions!`
+
+function processEquityTemplate(
+  template: string,
+  salary: EquityRefreshSalary,
+): string {
+  const firstName = salary.employee.deelEmployee?.firstName || ''
+  const name = getFullName(
+    salary.employee.deelEmployee?.firstName,
+    salary.employee.deelEmployee?.lastName,
+  )
+  const refreshPercentage = (salary.equityRefreshPercentage * 100).toFixed(2)
+  const refreshAmount = formatCurrency(salary.equityRefreshAmount)
+  const totalSalary = formatCurrency(salary.actualSalary)
+  const reviewer = getFullName(
+    salary.employee.deelEmployee?.topLevelManager?.firstName,
+    salary.employee.deelEmployee?.topLevelManager?.lastName,
+  )
+  const grantDate = salary.equityRefreshDate
+    ? new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }).format(new Date(salary.equityRefreshDate))
+    : ''
+
+  return template
+    .replace(/\{firstName\}/g, firstName)
+    .replace(/\{name\}/g, name)
+    .replace(/\{refreshPercentage\}/g, refreshPercentage)
+    .replace(/\{refreshAmount\}/g, refreshAmount)
+    .replace(/\{totalSalary\}/g, totalSalary)
+    .replace(/\{reviewer\}/g, reviewer)
+    .replace(/\{grantDate\}/g, grantDate)
+}
 
 function App() {
   const equityRefreshes: Array<EquityRefreshSalary> = Route.useLoaderData()
   const router = useRouter()
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [template, setTemplate] = useLocalStorage<string>(
+    'equity-actions-template-text',
+    defaultEquityTemplate,
+  )
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
+  const [templateInput, setTemplateInput] = useState<string>(template)
+
+  const handleSaveTemplate = () => {
+    setTemplate(templateInput)
+    setIsTemplateDialogOpen(false)
+  }
+
+  const handleMarkSelectedAsCommunicated = async () => {
+    const selectedIds = Object.keys(rowSelection)
+    if (selectedIds.length === 0) return
+
+    try {
+      await markMultipleAsCommunicated({
+        data: { ids: selectedIds },
+      })
+      setRowSelection({})
+      createToast(
+        `Marked ${selectedIds.length} equity refresh${selectedIds.length > 1 ? 'es' : ''} as communicated`,
+      )
+      router.invalidate()
+    } catch (error) {
+      console.error('Error marking as communicated:', error)
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      createToast(`Failed to mark as communicated: ${errorMessage}`)
+    }
+  }
 
   const handleMarkSelectedAsGranted = async () => {
     const selectedIds = Object.keys(rowSelection)
@@ -289,6 +389,45 @@ function App() {
         ),
       },
       {
+        accessorKey: 'communicated',
+        header: 'Communicated',
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'Yes', value: true },
+            { label: 'No', value: false },
+          ],
+        },
+        filterFn: (
+          row: Row<EquityRefreshSalary>,
+          _: string,
+          filterValue: boolean[],
+        ) => {
+          return filterValue.includes(row.original.communicated)
+        },
+        cell: ({ row }) => (
+          <div>
+            <span>{row.original.communicated ? 'Yes' : 'No'}</span>
+            <Button
+              variant="outline"
+              className="ml-2"
+              size="sm"
+              onClick={async () => {
+                await updateEquityCommunicated({
+                  data: {
+                    id: row.original.id,
+                    communicated: !row.original.communicated,
+                  },
+                })
+                router.invalidate()
+              }}
+            >
+              Toggle
+            </Button>
+          </div>
+        ),
+      },
+      {
         id: 'actions',
         header: '',
         enableColumnFilter: false,
@@ -301,6 +440,18 @@ function App() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    processEquityTemplate(template, row.original),
+                  )
+                  createToast('Template text copied to clipboard', {
+                    timeout: 3000,
+                  })
+                }}
+              >
+                Copy template text
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={async () => {
                   await updateEquityGranted({
@@ -329,7 +480,7 @@ function App() {
         ),
       },
     ],
-    [],
+    [template],
   )
 
   const handleExportAsCSV = () => {
@@ -363,6 +514,7 @@ function App() {
             salary.employee.deelEmployee?.topLevelManager?.lastName,
           ),
           notes: salary.notes,
+          communicated: salary.communicated ? 'Yes' : 'No',
         }
       }),
     )
@@ -396,14 +548,33 @@ function App() {
           </div>
           <div className="flex items-center space-x-2">
             {Object.keys(rowSelection).length > 0 && (
-              <Button
-                variant="outline"
-                className="ml-auto"
-                onClick={handleMarkSelectedAsGranted}
-              >
-                Mark selected as granted ({Object.keys(rowSelection).length})
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  className="ml-auto"
+                  onClick={handleMarkSelectedAsCommunicated}
+                >
+                  Mark selected as communicated ({Object.keys(rowSelection).length})
+                </Button>
+                <Button
+                  variant="outline"
+                  className="ml-auto"
+                  onClick={handleMarkSelectedAsGranted}
+                >
+                  Mark selected as granted ({Object.keys(rowSelection).length})
+                </Button>
+              </>
             )}
+            <Button
+              variant="outline"
+              className="ml-auto"
+              onClick={() => {
+                setTemplateInput(template)
+                setIsTemplateDialogOpen(true)
+              }}
+            >
+              Edit template
+            </Button>
             <Button
               variant="outline"
               className="ml-auto"
@@ -465,6 +636,66 @@ function App() {
           </Table>
         </div>
       </div>
+      <Dialog
+        open={isTemplateDialogOpen}
+        onOpenChange={(open) => {
+          setIsTemplateDialogOpen(open)
+          if (!open) setTemplateInput(template)
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="equity-template">Template</Label>
+              <Textarea
+                id="equity-template"
+                value={templateInput}
+                onChange={(e) => setTemplateInput(e.target.value)}
+                placeholder="Enter template text with placeholders..."
+                className="min-h-[200px] font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Available Placeholders</Label>
+              <div className="text-muted-foreground space-y-1 text-sm">
+                <div className="flex flex-wrap gap-1">
+                  {[
+                    { key: 'firstName', label: 'Employee first name' },
+                    { key: 'name', label: 'Employee name' },
+                    { key: 'refreshPercentage', label: 'Refresh %' },
+                    { key: 'refreshAmount', label: 'Refresh amount ($)' },
+                    { key: 'totalSalary', label: 'Total salary ($)' },
+                    { key: 'reviewer', label: 'Reviewer' },
+                    { key: 'grantDate', label: 'Grant date' },
+                  ].map((placeholder) => (
+                    <code
+                      key={placeholder.key}
+                      className="bg-muted rounded px-1 py-0.5"
+                    >
+                      {`{${placeholder.key}}`}
+                    </code>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setTemplateInput(template)
+                setIsTemplateDialogOpen(false)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveTemplate}>Save Template</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
