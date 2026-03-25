@@ -1881,8 +1881,9 @@ function EmployeeOverview() {
 
   const benchmarkUpdated =
     employee.salaries[0] &&
-    sfBenchmark[employee.salaries[0]?.benchmark] !==
-      employee.salaries[0].benchmarkFactor
+    sfBenchmark[
+      employee.salaries[0]?.benchmark.replace(' (old)', '')
+    ] !== employee.salaries[0].benchmarkFactor
 
   // Equity refresh eligibility: employees get a refresh on each work anniversary
   // If they have fewer refreshes than anniversaries passed, they're eligible
@@ -2233,8 +2234,8 @@ function EmployeeOverview() {
                       </AlertTitle>
                       <AlertDescription>
                         You can keep it that way by choosing `
-                        {employee.salaries[0].benchmark} (old)` as the
-                        benchmark, or updated it by choosing `
+                        {employee.salaries[0].benchmark.replace(' (old)', '')}{' '}
+                        (old)` as the benchmark, or update it by choosing `
                         {employee.salaries[0].benchmark.replace(' (old)', '')}`
                         as the benchmark.
                       </AlertDescription>
