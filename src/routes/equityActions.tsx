@@ -554,7 +554,8 @@ function App() {
                   className="ml-auto"
                   onClick={handleMarkSelectedAsCommunicated}
                 >
-                  Mark selected as communicated ({Object.keys(rowSelection).length})
+                  Mark selected as communicated (
+                  {Object.keys(rowSelection).length})
                 </Button>
                 <Button
                   variant="outline"
