@@ -562,7 +562,9 @@ export function NewSalaryForm({
                       {Object.keys(sfBenchmark)
                         .concat(
                           benchmarkUpdated
-                            ? [`${latestSalary?.benchmark.replace(' (old)', '')} (old)`]
+                            ? [
+                                `${latestSalary?.benchmark.replace(' (old)', '')} (old)`,
+                              ]
                             : [],
                         )
                         .map((benchmark) => (

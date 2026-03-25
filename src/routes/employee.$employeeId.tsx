@@ -1881,9 +1881,8 @@ function EmployeeOverview() {
 
   const benchmarkUpdated =
     employee.salaries[0] &&
-    sfBenchmark[
-      employee.salaries[0]?.benchmark.replace(' (old)', '')
-    ] !== employee.salaries[0].benchmarkFactor
+    sfBenchmark[employee.salaries[0]?.benchmark.replace(' (old)', '')] !==
+      employee.salaries[0].benchmarkFactor
 
   // Equity refresh eligibility: employees get a refresh on each work anniversary
   // If they have fewer refreshes than anniversaries passed, they're eligible
