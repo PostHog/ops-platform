@@ -124,7 +124,12 @@ const getEmployeeById = createInternalFn({
         email: true,
         // Admin-only fields
         ...(isAdmin
-          ? { priority: true, reviewed: true, salaryDraft: true }
+          ? {
+              priority: true,
+              reviewed: true,
+              salaryDraft: true,
+              payReviewNote: true,
+            }
           : {}),
         // Keeper tests: available to admin and managers
         // Managers only see tests from the last 12 months
@@ -579,6 +584,24 @@ export const deleteSalary = createAdminFn({
     })
 
     return { success: true }
+  })
+
+export const savePayReviewNote = createAdminFn({ method: 'POST' })
+  .inputValidator((d: { employeeId: string; note: string }) => d)
+  .handler(async ({ data }) => {
+    return await prisma.employee.update({
+      where: { id: data.employeeId },
+      data: { payReviewNote: data.note },
+    })
+  })
+
+export const deletePayReviewNote = createAdminFn({ method: 'POST' })
+  .inputValidator((d: { employeeId: string }) => d)
+  .handler(async ({ data }) => {
+    return await prisma.employee.update({
+      where: { id: data.employeeId },
+      data: { payReviewNote: null },
+    })
   })
 
 export const saveSalaryDraft = createAdminFn({
@@ -1265,6 +1288,13 @@ function EmployeeOverview() {
   const [expandAllCounter, setExpandAllCounter] = useState(0)
   const [showStockOptionsCalculator, setShowStockOptionsCalculator] =
     useLocalStorage<boolean>('employee.showStockOptionsCalculator', true)
+  const [payReviewNoteDraft, setPayReviewNoteDraft] = useState(
+    employee.payReviewNote ?? '',
+  )
+  const [payReviewNoteEditing, setPayReviewNoteEditing] = useState(
+    !employee.payReviewNote,
+  )
+  const [payReviewNoteSaving, setPayReviewNoteSaving] = useState(false)
 
   const [reviewQueue, setReviewQueue] = useAtom(reviewQueueAtom)
   const createProgram = useServerFn(createPerformanceProgram)
@@ -1316,6 +1346,41 @@ function EmployeeOverview() {
         {
           timeout: 3000,
         },
+      )
+    }
+  }
+
+  const handleSavePayReviewNote = async () => {
+    if (!payReviewNoteDraft.trim()) return
+    setPayReviewNoteSaving(true)
+    try {
+      await savePayReviewNote({
+        data: { employeeId: employee.id, note: payReviewNoteDraft.trim() },
+      })
+      createToast('Note saved.', { timeout: 3000 })
+      setPayReviewNoteEditing(false)
+      router.invalidate()
+    } catch (error) {
+      createToast(
+        error instanceof Error ? error.message : 'Failed to save note.',
+        { timeout: 3000 },
+      )
+    } finally {
+      setPayReviewNoteSaving(false)
+    }
+  }
+
+  const handleDeletePayReviewNote = async () => {
+    try {
+      await deletePayReviewNote({ data: { employeeId: employee.id } })
+      createToast('Note deleted.', { timeout: 3000 })
+      setPayReviewNoteDraft('')
+      setPayReviewNoteEditing(true)
+      router.invalidate()
+    } catch (error) {
+      createToast(
+        error instanceof Error ? error.message : 'Failed to delete note.',
+        { timeout: 3000 },
       )
     }
   }
@@ -2261,6 +2326,66 @@ function EmployeeOverview() {
                   nextAnniversaryDate={nextAnniversaryDate?.toDate()}
                   salaryDraft={employee.salaryDraft ?? null}
                 />
+              )}
+              {user?.role === ROLES.ADMIN && !isSensitiveHidden && (
+                <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 px-4 py-3">
+                  <div className="mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">
+                    Pay Review Note
+                  </div>
+                  {payReviewNoteEditing ? (
+                    <div className="flex flex-col gap-2">
+                      <textarea
+                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:border-gray-400 focus:outline-none"
+                        rows={3}
+                        placeholder="Leave a note for the next pay review…"
+                        value={payReviewNoteDraft}
+                        onChange={(e) => setPayReviewNoteDraft(e.target.value)}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          className="rounded-md bg-gray-800 px-3 py-1 text-sm text-white hover:bg-gray-700 disabled:opacity-50"
+                          disabled={
+                            payReviewNoteSaving || !payReviewNoteDraft.trim()
+                          }
+                          onClick={handleSavePayReviewNote}
+                        >
+                          {payReviewNoteSaving ? 'Saving…' : 'Save note'}
+                        </button>
+                        {employee.payReviewNote && (
+                          <button
+                            className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-600 hover:bg-gray-100"
+                            onClick={() => {
+                              setPayReviewNoteDraft(employee.payReviewNote!)
+                              setPayReviewNoteEditing(false)
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start justify-between gap-4">
+                      <p className="text-sm whitespace-pre-line text-gray-700">
+                        {employee.payReviewNote}
+                      </p>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-600 hover:bg-gray-100"
+                          onClick={() => setPayReviewNoteEditing(true)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="rounded-md border border-red-200 bg-white px-3 py-1 text-sm text-red-600 hover:bg-red-50"
+                          onClick={handleDeletePayReviewNote}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
               {isSensitiveHidden ? (
                 <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 px-4 py-12 text-center text-sm text-gray-500">

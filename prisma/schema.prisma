@@ -39,6 +39,7 @@ model Employee {
   ashbyInterviewScoresImported Boolean                           @default(false)
   checklistItemsAssigned       PerformanceProgramChecklistItem[] @relation("ChecklistItemAssignedTo")
   salaryDraft                  SalaryDraft?
+  payReviewNote                String?
 }
 
 enum SalaryDeviationStatus {
