@@ -1308,6 +1308,11 @@ function EmployeeOverview() {
     setShowOverrideMode(Boolean(employee.salaryDraft?.showOverride))
   }, [employee.id, employee.salaryDraft?.showOverride])
 
+  useEffect(() => {
+    setPayReviewNoteDraft(employee.payReviewNote ?? '')
+    setPayReviewNoteEditing(!employee.payReviewNote)
+  }, [employee.id])
+
   const showBonusPercentage =
     employee.salaries.some((salary) => salary.bonusPercentage > 0) ||
     Object.keys(bonusPercentage).includes(benchmark)
