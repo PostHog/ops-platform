@@ -230,12 +230,15 @@ export const roleType: Record<
   'Billing Support Specialist': 'Everyone else',
   'Business Development Representative (OTE)': 'Sales',
   'Content Marketer': 'Everyone else',
+  'Sales Team Lead (OTE)': 'Sales',
   'Community Manager': 'Everyone else',
+  'Context Engineer': 'Engineer',
   'Customer Success Manager (OTE)': 'CS',
   'Data Engineer': 'Engineer',
   'Design Lead': 'Everyone else',
   'Events Manager': 'Everyone else',
   'Finance Manager': 'Everyone else',
+  'Forward Deployed Engineer': 'Engineer',
   'Front End Developer': 'Engineer',
   'Full Stack Engineer': 'Engineer',
   'Graphic Designer': 'Everyone else',
@@ -252,7 +255,9 @@ export const roleType: Record<
   'Site Reliability Engineer': 'Engineer',
   'Support Engineer': 'Everyone else',
   'Talent Partner': 'Everyone else',
+  'Talent Sourcer': 'Everyone else',
   'Video Producer': 'Everyone else',
+  'Legal & Compliance': 'Everyone else',
 }
 
 export const stepModifier: Record<string, Array<number>> = {
