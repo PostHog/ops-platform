@@ -2299,7 +2299,7 @@ function EmployeeOverview() {
                   salaryDraft={employee.salaryDraft ?? null}
                 />
               )}
-              {user?.role === ROLES.ADMIN && (
+              {user?.role === ROLES.ADMIN && !isSensitiveHidden && (
                 <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 px-4 py-3">
                   <div className="mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">
                     Pay Review Note
