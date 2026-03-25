@@ -152,7 +152,7 @@ export const bonusPercentage: Record<string, number> = {
   'Account Executive (OTE)': 0.5,
   'Customer Success Manager (OTE)': 0.2,
   'Business Development Representative (OTE)': 0.0,
-  'Commercial Team Lead (OTE)': 0.4,
+  'Sales Team Lead (OTE)': 0.4,
 }
 
 export const sfBenchmark: Record<string, number> = {
