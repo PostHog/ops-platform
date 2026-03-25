@@ -257,7 +257,7 @@ export const roleType: Record<
   'Talent Partner': 'Everyone else',
   'Talent Sourcer': 'Everyone else',
   'Video Producer': 'Everyone else',
-  // 'Legal & Compliance': 'Everyone else',
+  'Legal & Compliance': 'Everyone else',
 }
 
 export const stepModifier: Record<string, Array<number>> = {
