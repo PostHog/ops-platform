@@ -527,6 +527,12 @@ function App() {
             <TableFilters table={table} />
           </div>
           <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-500">
+              {table.getRowModel().rows.length}
+              {employees && table.getRowModel().rows.length !== employees.length
+                ? ` of ${employees.length}`
+                : ''}
+            </span>
             <Button
               variant="outline"
               className="ml-auto"
