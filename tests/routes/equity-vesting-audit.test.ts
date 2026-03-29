@@ -3,16 +3,25 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 describe('equity-vesting-audit route server functions', () => {
-  const filePath = path.join(process.cwd(), 'src/routes/equity-vesting-audit.tsx')
+  const filePath = path.join(
+    process.cwd(),
+    'src/routes/equity-vesting-audit.tsx',
+  )
   const content = fs.readFileSync(filePath, 'utf-8')
 
   it('imports createAdminFn from auth-middleware', () => {
-    expect(content).toMatch(/import\s*\{[^}]*createAdminFn[^}]*\}\s*from\s*['"]@\/lib\/auth-middleware['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*createAdminFn[^}]*\}\s*from\s*['"]@\/lib\/auth-middleware['"]/,
+    )
   })
 
   it('defines getEmployeesWithGrants as a GET server function', () => {
-    expect(content).toMatch(/const\s+getEmployeesWithGrants\s*=\s*createAdminFn\(\{/)
-    expect(content).toMatch(/getEmployeesWithGrants\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/)
+    expect(content).toMatch(
+      /const\s+getEmployeesWithGrants\s*=\s*createAdminFn\(\{/,
+    )
+    expect(content).toMatch(
+      /getEmployeesWithGrants\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/,
+    )
   })
 
   it('queries prisma.employee.findMany with cartaOptionGrants', () => {
@@ -25,12 +34,16 @@ describe('equity-vesting-audit route server functions', () => {
   })
 
   it('imports and uses calculateVestedQuantity from vesting lib', () => {
-    expect(content).toMatch(/import\s*\{[^}]*calculateVestedQuantity[^}]*\}\s*from\s*['"]@\/lib\/vesting['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*calculateVestedQuantity[^}]*\}\s*from\s*['"]@\/lib\/vesting['"]/,
+    )
     expect(content).toMatch(/calculateVestedQuantity\(grant\)/)
   })
 
   it('computes MATCH or MISMATCH status by comparing db vs calculated vested', () => {
-    expect(content).toMatch(/dbVestedTotal\s*===\s*calculatedVestedTotal\s*\?\s*['"]MATCH['"]\s*:\s*['"]MISMATCH['"]/)
+    expect(content).toMatch(
+      /dbVestedTotal\s*===\s*calculatedVestedTotal\s*\?\s*['"]MATCH['"]\s*:\s*['"]MISMATCH['"]/,
+    )
   })
 
   it('defines EmployeeVestingData type with expected fields', () => {

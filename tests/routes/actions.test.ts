@@ -41,7 +41,9 @@ describe('Actions route server functions', () => {
   // --- Business logic ---
 
   it('filters salaries to last 30 days with non-zero change or non-empty notes', () => {
-    expect(content).toMatch(/new Date\(new Date\(\)\.setDate\(new Date\(\)\.getDate\(\)\s*-\s*30\)\)/)
+    expect(content).toMatch(
+      /new Date\(new Date\(\)\.setDate\(new Date\(\)\.getDate\(\)\s*-\s*30\)\)/,
+    )
     expect(content).toMatch(/changePercentage:\s*\{[\s\S]*?not:\s*0/)
     expect(content).toMatch(/notes:\s*\{[\s\S]*?not:\s*['"]["']/)
   })

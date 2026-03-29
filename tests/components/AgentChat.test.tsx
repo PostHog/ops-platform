@@ -13,12 +13,14 @@ const agentChatContent = fs.readFileSync(
 
 describe('AgentChat (structural)', () => {
   it('imports AgentChatMessages and AgentChatInput', () => {
-    expect(agentChatContent).toContain("import { AgentChatMessages }")
-    expect(agentChatContent).toContain("import { AgentChatInput }")
+    expect(agentChatContent).toContain('import { AgentChatMessages }')
+    expect(agentChatContent).toContain('import { AgentChatInput }')
   })
 
   it('uses useChat hook from ai-sdk', () => {
-    expect(agentChatContent).toContain("import { useChat } from '@ai-sdk/react'")
+    expect(agentChatContent).toContain(
+      "import { useChat } from '@ai-sdk/react'",
+    )
     expect(agentChatContent).toContain('useChat(')
   })
 
@@ -28,7 +30,9 @@ describe('AgentChat (structural)', () => {
   })
 
   it('prevents sending when input is empty or no conversationId', () => {
-    expect(agentChatContent).toContain('if (!input.trim() || !conversationId) return')
+    expect(agentChatContent).toContain(
+      'if (!input.trim() || !conversationId) return',
+    )
   })
 
   it('clears input after sending a message', () => {
@@ -36,7 +40,9 @@ describe('AgentChat (structural)', () => {
   })
 
   it('displays the initial prompt when there are no messages', () => {
-    expect(agentChatContent).toContain('agent.initialPrompt && messages.length === 0')
+    expect(agentChatContent).toContain(
+      'agent.initialPrompt && messages.length === 0',
+    )
   })
 
   it('renders an error display when error is present', () => {
@@ -131,7 +137,9 @@ describe('AgentChatInput', () => {
         isLoading={false}
       />,
     )
-    const form = screen.getByPlaceholderText('Type your message…').closest('form')!
+    const form = screen
+      .getByPlaceholderText('Type your message…')
+      .closest('form')!
     fireEvent.submit(form)
     expect(onSubmit).toHaveBeenCalled()
   })
@@ -145,14 +153,18 @@ describe('AgentChatInput', () => {
         isLoading={false}
       />,
     )
-    expect(screen.getByText('Press Enter to send, Shift+Enter for new line')).toBeDefined()
+    expect(
+      screen.getByText('Press Enter to send, Shift+Enter for new line'),
+    ).toBeDefined()
   })
 })
 
 // ─── AgentChatMessages (renderable with mocks) ──────────────────────────────
 
 vi.mock('@/lib/MarkdownComponent', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <span>{children}</span>
+  ),
 }))
 
 vi.mock('@/lib/utils', () => ({
@@ -170,7 +182,6 @@ const makeMessage = (
   id,
   role,
   parts: [{ type: 'text' as const, text }],
-  createdAt: new Date(),
 })
 
 describe('AgentChatMessages', () => {
@@ -208,6 +219,8 @@ describe('AgentChatMessage (structural)', () => {
   })
 
   it('differentiates user vs assistant styling', () => {
-    expect(agentChatMessageContent).toContain("isUser ? 'flex-row-reverse' : 'flex-row'")
+    expect(agentChatMessageContent).toContain(
+      "isUser ? 'flex-row-reverse' : 'flex-row'",
+    )
   })
 })

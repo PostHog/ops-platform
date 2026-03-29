@@ -22,16 +22,24 @@ describe('Proposed hires route', () => {
   it('imports updateProposedHire and deleteProposedHire from AddProposedHirePanel', () => {
     expect(content).toContain('updateProposedHire')
     expect(content).toContain('deleteProposedHire')
-    expect(content).toMatch(/from\s*['"]@\/components\/AddProposedHirePanel['"]/)
+    expect(content).toMatch(
+      /from\s*['"]@\/components\/AddProposedHirePanel['"]/,
+    )
   })
 
   it('uses react-query for data fetching', () => {
-    expect(content).toMatch(/import.*useQuery.*from\s*['"]@tanstack\/react-query['"]/)
-    expect(content).toMatch(/import.*useQueryClient.*from\s*['"]@tanstack\/react-query['"]/)
+    expect(content).toMatch(
+      /import.*useQuery.*from\s*['"]@tanstack\/react-query['"]/,
+    )
+    expect(content).toMatch(
+      /import.*useQueryClient.*from\s*['"]@tanstack\/react-query['"]/,
+    )
   })
 
   it('fetches employees and proposed hires via react-query', () => {
-    expect(content).toMatch(/queryFn:\s*\(\)\s*=>\s*getDeelEmployeesAndProposedHires\(\)/)
+    expect(content).toMatch(
+      /queryFn:\s*\(\)\s*=>\s*getDeelEmployeesAndProposedHires\(\)/,
+    )
   })
 
   it('defines Prisma types for ProposedHire with manager and talentPartners relations', () => {

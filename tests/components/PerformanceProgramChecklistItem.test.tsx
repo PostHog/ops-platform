@@ -3,7 +3,10 @@ import fs from 'fs'
 import path from 'path'
 
 const content = fs.readFileSync(
-  path.join(process.cwd(), 'src/components/PerformanceProgramChecklistItem.tsx'),
+  path.join(
+    process.cwd(),
+    'src/components/PerformanceProgramChecklistItem.tsx',
+  ),
   'utf-8',
 )
 
@@ -63,7 +66,9 @@ describe('PerformanceProgramChecklistItem', () => {
 
   it('shows overdue status when item is past due date', () => {
     expect(content).toMatch(/isOverdue/)
-    expect(content).toMatch(/!item\.completed && item\.dueDate && new Date\(item\.dueDate\) < new Date\(\)/)
+    expect(content).toMatch(
+      /!item\.completed && item\.dueDate && new Date\(item\.dueDate\) < new Date\(\)/,
+    )
   })
 
   it('separates image and non-image files for display', () => {

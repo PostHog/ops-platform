@@ -2,22 +2,20 @@ import { describe, expect, it, vi } from 'vitest'
 import { calculateVestedQuantity } from '@/lib/vesting'
 import type { CartaOptionGrant } from '@prisma/client'
 
-function createGrant(overrides: Partial<CartaOptionGrant> = {}): CartaOptionGrant {
+function createGrant(
+  overrides: Partial<CartaOptionGrant> = {},
+): CartaOptionGrant {
   return {
     id: 'grant-1',
-    cartaId: 'carta-1',
-    employeeId: 'emp-1',
-    name: 'Test Grant',
+    grantId: 'carta-1',
+    stakeholderId: 'emp-1',
     issuedQuantity: 4800,
     exercisePrice: 1.5,
     vestingStartDate: new Date('2023-01-01'),
     vestingSchedule: '4 years, 1 year cliff',
-    optionType: 'ISO',
-    status: 'Active',
-    expirationDate: null,
-    issuedDate: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    exercisedQuantity: 0,
+    vestedQuantity: 0,
+    expiredQuantity: 0,
     ...overrides,
   }
 }

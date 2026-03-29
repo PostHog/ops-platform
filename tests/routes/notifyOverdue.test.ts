@@ -3,7 +3,10 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 describe('notifyOverduePerformanceProgramChecklistItems route server functions', () => {
-  const filePath = path.join(process.cwd(), 'src/routes/notifyOverduePerformanceProgramChecklistItems.tsx')
+  const filePath = path.join(
+    process.cwd(),
+    'src/routes/notifyOverduePerformanceProgramChecklistItems.tsx',
+  )
   const content = fs.readFileSync(filePath, 'utf-8')
 
   it('uses server handler pattern with POST method', () => {

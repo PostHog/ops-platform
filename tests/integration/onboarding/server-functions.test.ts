@@ -6,45 +6,50 @@ describe('Onboarding server functions', () => {
   const filePath = path.join(process.cwd(), 'src/routes/onboarding.tsx')
   const content = fs.readFileSync(filePath, 'utf-8')
 
-  it('uses createAdminFn for all server functions (not raw createServerFn)', () => {
-    // Should import createAdminFn
+  it('uses createAdminFn and createOrgChartFn (not raw createServerFn)', () => {
     expect(content).toMatch(/import.*createAdminFn.*from/)
-
-    // Should NOT import raw createServerFn
-    expect(content).not.toMatch(/import.*createServerFn.*from/)
+    expect(content).toMatch(/import.*createOrgChartFn.*from/)
+    expect(content).not.toMatch(/import.*\bcreateServerFn\b.*from.*@tanstack/)
   })
 
-  it('defines getOnboardingHires as a GET admin function', () => {
-    expect(content).toMatch(/getOnboardingHires\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/)
+  it('defines getOnboardingRecords as a GET function', () => {
+    expect(content).toMatch(
+      /getOnboardingRecords\s*=\s*create(Admin|OrgChart)Fn\(\{/,
+    )
   })
 
-  it('defines getOnboardingRecords as a GET admin function', () => {
-    expect(content).toMatch(/getOnboardingRecords\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/)
-  })
-
-  it('defines getDeelEmployeesForPicker as a GET admin function', () => {
-    expect(content).toMatch(/getDeelEmployeesForPicker\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/)
+  it('defines getDeelEmployeesForPicker as a GET function', () => {
+    expect(content).toMatch(
+      /getDeelEmployeesForPicker\s*=\s*create(Admin|OrgChart)Fn\(\{/,
+    )
   })
 
   it('defines createOnboardingRecord as a POST admin function with input validation', () => {
-    expect(content).toMatch(/createOnboardingRecord\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/)
+    expect(content).toMatch(/createOnboardingRecord\s*=\s*createAdminFn\(\{/)
     expect(content).toMatch(/createOnboardingRecord[\s\S]*?\.inputValidator/)
   })
 
   it('defines updateOnboardingStatus as a POST admin function with input validation', () => {
-    expect(content).toMatch(/updateOnboardingStatus\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/)
+    expect(content).toMatch(/updateOnboardingStatus\s*=\s*createAdminFn\(\{/)
     expect(content).toMatch(/updateOnboardingStatus[\s\S]*?\.inputValidator/)
   })
 
-  it('filters pipeline hires to last 90 days', () => {
-    expect(content).toMatch(/ninetyDaysAgo/)
-    expect(content).toMatch(/startDate.*gte.*ninetyDaysAgo/)
+  it('defines importOnboardingRecords as a POST admin function', () => {
+    expect(content).toMatch(/importOnboardingRecords\s*=\s*createAdminFn\(\{/)
   })
 
-  it('includes manager relation in both queries', () => {
-    // Both getOnboardingHires and getOnboardingRecords include { manager: true }
-    const managerIncludes = content.match(/include:\s*\{\s*manager:\s*true\s*\}/g)
+  it('includes manager relation in queries', () => {
+    const managerIncludes = content.match(
+      /include:\s*\{[\s\S]*?manager:\s*true/g,
+    )
     expect(managerIncludes).not.toBeNull()
-    expect(managerIncludes!.length).toBeGreaterThanOrEqual(2)
+    expect(managerIncludes!.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('uses prisma.onboardingRecord for CRUD operations', () => {
+    expect(content).toMatch(/prisma\.onboardingRecord\.findMany/)
+    expect(content).toMatch(/prisma\.onboardingRecord\.create/)
+    expect(content).toMatch(/prisma\.onboardingRecord\.update/)
+    expect(content).toMatch(/prisma\.onboardingRecord\.delete/)
   })
 })

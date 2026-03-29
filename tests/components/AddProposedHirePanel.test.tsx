@@ -19,14 +19,18 @@ describe('AddProposedHirePanel', () => {
 
   it('supports both add and edit modes based on proposedHire prop', () => {
     expect(content).toMatch(/const editingExisting = !!proposedHire/)
-    expect(content).toMatch(/editingExisting \? 'Edit proposed hire' : 'Add proposed hire'/)
+    expect(content).toMatch(
+      /editingExisting \? 'Edit proposed hire' : 'Add proposed hire'/,
+    )
   })
 
   it('uses zod validation on form submit', () => {
     expect(content).toMatch(/validators:\s*\{/)
     expect(content).toMatch(/onSubmit:\s*z\.object/)
     expect(content).toMatch(/z\.string\(\)\.min\(1, 'You must enter a title'\)/)
-    expect(content).toMatch(/z\.string\(\)\.min\(1, 'You must select a manager'\)/)
+    expect(content).toMatch(
+      /z\.string\(\)\.min\(1, 'You must select a manager'\)/,
+    )
   })
 
   it('renders form fields for title, priority, department, quarter, and hiring profile', () => {
@@ -50,6 +54,8 @@ describe('AddProposedHirePanel', () => {
 
   it('invalidates router and query client after submit', () => {
     expect(content).toMatch(/router\.invalidate\(\)/)
-    expect(content).toMatch(/queryClient\.invalidateQueries\(\{.*queryKey:.*\['proposedHires'\]/)
+    expect(content).toMatch(
+      /queryClient\.invalidateQueries\(\{.*queryKey:.*\['proposedHires'\]/,
+    )
   })
 })

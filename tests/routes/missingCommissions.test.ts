@@ -7,12 +7,18 @@ describe('missingCommissions route server functions', () => {
   const content = fs.readFileSync(filePath, 'utf-8')
 
   it('imports createAdminFn from auth-middleware', () => {
-    expect(content).toMatch(/import\s*\{[^}]*createAdminFn[^}]*\}\s*from\s*['"]@\/lib\/auth-middleware['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*createAdminFn[^}]*\}\s*from\s*['"]@\/lib\/auth-middleware['"]/,
+    )
   })
 
   it('defines getEmployeesWithMissingCommissions as a GET server function', () => {
-    expect(content).toMatch(/const\s+getEmployeesWithMissingCommissions\s*=\s*createAdminFn\(\{/)
-    expect(content).toMatch(/getEmployeesWithMissingCommissions\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/)
+    expect(content).toMatch(
+      /const\s+getEmployeesWithMissingCommissions\s*=\s*createAdminFn\(\{/,
+    )
+    expect(content).toMatch(
+      /getEmployeesWithMissingCommissions\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/,
+    )
   })
 
   it('queries prisma.employee.findMany with salary and commission includes', () => {
@@ -23,8 +29,12 @@ describe('missingCommissions route server functions', () => {
   })
 
   it('imports commission calculator utilities', () => {
-    expect(content).toMatch(/import\s*\{[^}]*getPreviousQuarter[^}]*\}\s*from\s*['"]@\/lib\/commission-calculator['"]/)
-    expect(content).toMatch(/import\s*\{[^}]*calculateQuarterBreakdown[^}]*\}\s*from\s*['"]@\/lib\/commission-calculator['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*getPreviousQuarter[^}]*\}\s*from\s*['"]@\/lib\/commission-calculator['"]/,
+    )
+    expect(content).toMatch(
+      /import\s*\{[^}]*calculateQuarterBreakdown[^}]*\}\s*from\s*['"]@\/lib\/commission-calculator['"]/,
+    )
   })
 
   it('computes commission eligibility cutoff date', () => {

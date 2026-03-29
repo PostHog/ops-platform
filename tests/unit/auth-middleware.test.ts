@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -51,9 +51,7 @@ describe('auth-middleware', () => {
   it('getManagedEmployeeIds recursively queries deelEmployee', () => {
     expect(content).toMatch(/async function getManagedEmployeeIds/)
     expect(content).toMatch(/getReportEmployeeIds/)
-    expect(content).toMatch(
-      /prisma\.deelEmployee\.findMany/,
-    )
+    expect(content).toMatch(/prisma\.deelEmployee\.findMany/)
   })
 
   it('managerInfoMiddleware looks up user by work email', () => {

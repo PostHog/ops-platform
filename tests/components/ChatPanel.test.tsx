@@ -11,7 +11,9 @@ const chatPanelContent = fs.readFileSync(
 
 describe('ChatPanel (structural)', () => {
   it('imports and uses the chatSidebarOpenAtom', () => {
-    expect(chatPanelContent).toContain("import { chatSidebarOpenAtom } from '@/atoms'")
+    expect(chatPanelContent).toContain(
+      "import { chatSidebarOpenAtom } from '@/atoms'",
+    )
     expect(chatPanelContent).toContain('useAtom(chatSidebarOpenAtom)')
   })
 
@@ -35,7 +37,9 @@ describe('ChatPanel (structural)', () => {
   })
 
   it('renders AgentChat when conversationId is set', () => {
-    expect(chatPanelContent).toContain('<AgentChat agent={DEFAULT_AGENT} conversationId={conversationId} />')
+    expect(chatPanelContent).toContain(
+      '<AgentChat agent={DEFAULT_AGENT} conversationId={conversationId} />',
+    )
   })
 
   it('shows a "Creating conversation" message when no conversationId', () => {

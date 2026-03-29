@@ -30,17 +30,12 @@ function AllProviders({
 }) {
   return (
     <JotaiProvider>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </JotaiProvider>
   )
 }
 
-function customRender(
-  ui: React.ReactElement,
-  options?: CustomRenderOptions,
-) {
+function customRender(ui: React.ReactElement, options?: CustomRenderOptions) {
   const queryClient = options?.queryClient ?? createTestQueryClient()
 
   return render(ui, {

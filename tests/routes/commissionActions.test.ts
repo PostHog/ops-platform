@@ -12,16 +12,24 @@ describe('commissionActions route server functions', () => {
   })
 
   it('defines getCommissionBonuses as a GET admin function', () => {
-    expect(content).toMatch(/getCommissionBonuses\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/)
+    expect(content).toMatch(
+      /getCommissionBonuses\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/,
+    )
   })
 
   it('defines updateCommissionBonusAttainment as a POST admin function with input validation', () => {
-    expect(content).toMatch(/updateCommissionBonusAttainment\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/)
-    expect(content).toMatch(/updateCommissionBonusAttainment[\s\S]*?\.inputValidator/)
+    expect(content).toMatch(
+      /updateCommissionBonusAttainment\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/,
+    )
+    expect(content).toMatch(
+      /updateCommissionBonusAttainment[\s\S]*?\.inputValidator/,
+    )
   })
 
   it('defines exportCommissionBonusesForDeel as a POST admin function', () => {
-    expect(content).toMatch(/exportCommissionBonusesForDeel\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/)
+    expect(content).toMatch(
+      /exportCommissionBonusesForDeel\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/,
+    )
   })
 
   it('queries commissionBonus prisma model with employee and deelEmployee includes', () => {
@@ -31,7 +39,9 @@ describe('commissionActions route server functions', () => {
   })
 
   it('filters commission bonuses to last 30 days', () => {
-    expect(content).toMatch(/new Date\(\)\.setDate\(new Date\(\)\.getDate\(\)\s*-\s*30\)/)
+    expect(content).toMatch(
+      /new Date\(\)\.setDate\(new Date\(\)\.getDate\(\)\s*-\s*30\)/,
+    )
   })
 
   it('updateCommissionBonusAttainment validates bonusId and attainment inputs', () => {

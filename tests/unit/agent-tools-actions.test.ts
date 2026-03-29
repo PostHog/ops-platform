@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import mockPrisma from '../mocks/prisma'
 import {
   createProposedHire,
@@ -49,7 +49,9 @@ describe('createProposedHire', () => {
     )) as Record<string, unknown>
 
     expect(result.success).toBe(true)
-    expect((result.proposedHire as Record<string, unknown>).title).toBe('Senior Engineer')
+    expect((result.proposedHire as Record<string, unknown>).title).toBe(
+      'Senior Engineer',
+    )
   })
 
   it('returns error when manager not found', async () => {
@@ -81,13 +83,23 @@ describe('createProposedHire', () => {
       priority: 'medium',
       hiringProfile: '',
       createdAt: new Date(),
-      manager: { id: 'emp-1', email: 'mgr@posthog.com', deelEmployee: { firstName: 'A', lastName: 'B' } },
+      manager: {
+        id: 'emp-1',
+        email: 'mgr@posthog.com',
+        deelEmployee: { firstName: 'A', lastName: 'B' },
+      },
       talentPartners: [],
     })
     mockPrisma.auditLog.create.mockResolvedValue({ id: 'log-1' })
 
     await createProposedHire.execute(
-      { title: 'T', managerId: 'emp-1', talentPartnerIds: [], priority: 'medium', hiringProfile: '' },
+      {
+        title: 'T',
+        managerId: 'emp-1',
+        talentPartnerIds: [],
+        priority: 'medium',
+        hiringProfile: '',
+      },
       mockContext,
     )
 
@@ -115,13 +127,23 @@ describe('createProposedHire', () => {
       createdAt: new Date(),
       manager: { id: 'emp-1', email: 'mgr@posthog.com', deelEmployee: null },
       talentPartners: [
-        { id: 'tp-1', email: 'tp@posthog.com', deelEmployee: { firstName: 'C', lastName: 'D' } },
+        {
+          id: 'tp-1',
+          email: 'tp@posthog.com',
+          deelEmployee: { firstName: 'C', lastName: 'D' },
+        },
       ],
     })
     mockPrisma.auditLog.create.mockResolvedValue({ id: 'log-1' })
 
     await createProposedHire.execute(
-      { title: 'T', managerId: 'emp-1', talentPartnerIds: ['tp-1'], priority: 'medium', hiringProfile: '' },
+      {
+        title: 'T',
+        managerId: 'emp-1',
+        talentPartnerIds: ['tp-1'],
+        priority: 'medium',
+        hiringProfile: '',
+      },
       mockContext,
     )
 

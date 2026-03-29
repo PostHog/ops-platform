@@ -27,13 +27,17 @@ describe('api/agents/chat route server functions', () => {
   })
 
   it('uses streamText from AI SDK with claude-sonnet model', () => {
-    expect(content).toMatch(/import\s*\{[^}]*streamText[^}]*\}\s*from\s*['"]ai['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*streamText[^}]*\}\s*from\s*['"]ai['"]/,
+    )
     expect(content).toMatch(/streamText\(/)
     expect(content).toMatch(/claude-sonnet/)
   })
 
   it('registers tool definitions from agent tool-registry', () => {
-    expect(content).toMatch(/import\s*\{[^}]*getToolsForAgent[^}]*\}\s*from\s*['"]@\/lib\/agents\/tool-registry['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*getToolsForAgent[^}]*\}\s*from\s*['"]@\/lib\/agents\/tool-registry['"]/,
+    )
     expect(content).toMatch(/getToolsForAgent\(toolNames\)/)
   })
 

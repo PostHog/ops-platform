@@ -3,10 +3,16 @@ import React from 'react'
 import { render, screen } from '../helpers/render'
 
 vi.mock('@/components/ui/tooltip', () => ({
-  TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipContent: ({ children }: { children: React.ReactNode }) => <span data-testid="tooltip">{children}</span>,
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    <span data-testid="tooltip">{children}</span>
+  ),
 }))
 
 vi.mock('lucide-react', () => ({
@@ -58,12 +64,14 @@ describe('CommissionBonusTimelineCard', () => {
   it('renders local currency amount when calculatedAmountLocal is set', () => {
     render(
       <CommissionBonusTimelineCard
-        bonus={makeBonus({
-          calculatedAmountLocal: 3500,
-          localCurrency: 'EUR',
-          exchangeRate: 0.9,
-          amountHeld: 0,
-        }) as any}
+        bonus={
+          makeBonus({
+            calculatedAmountLocal: 3500,
+            localCurrency: 'EUR',
+            exchangeRate: 0.9,
+            amountHeld: 0,
+          }) as any
+        }
       />,
     )
     // (3500 - 0 * 0.9) in EUR
@@ -72,7 +80,10 @@ describe('CommissionBonusTimelineCard', () => {
 
   it('applies rounded-b-md when lastTableItem is true', () => {
     const { container } = render(
-      <CommissionBonusTimelineCard bonus={makeBonus() as any} lastTableItem={true} />,
+      <CommissionBonusTimelineCard
+        bonus={makeBonus() as any}
+        lastTableItem={true}
+      />,
     )
     const outerDiv = container.firstChild as HTMLElement
     expect(outerDiv.className).toContain('rounded-b-md')
@@ -83,11 +94,13 @@ describe('CommissionBonusTimelineCard', () => {
     // (1.1 - 1) / (1.2 - 1) * 100 = 0.1 / 0.2 * 100 = 50.0%
     render(
       <CommissionBonusTimelineCard
-        bonus={makeBonus({
-          attainment: 1.1,
-          quota: 1.2,
-          commissionType: 'Customer Success Manager (OTE)',
-        }) as any}
+        bonus={
+          makeBonus({
+            attainment: 1.1,
+            quota: 1.2,
+            commissionType: 'Customer Success Manager (OTE)',
+          }) as any
+        }
       />,
     )
     expect(screen.getByText('50.0% attainment')).toBeTruthy()

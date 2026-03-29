@@ -3,7 +3,10 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 describe('receiveKeeperTestResults route', () => {
-  const filePath = path.join(process.cwd(), 'src/routes/receiveKeeperTestResults.tsx')
+  const filePath = path.join(
+    process.cwd(),
+    'src/routes/receiveKeeperTestResults.tsx',
+  )
   const content = fs.readFileSync(filePath, 'utf-8')
 
   it('uses raw server handlers instead of createAdminFn (webhook endpoint)', () => {
@@ -48,7 +51,9 @@ describe('receiveKeeperTestResults route', () => {
   it('posts notification to Slack via chat.postMessage API', () => {
     expect(content).toMatch(/https:\/\/slack\.com\/api\/chat\.postMessage/)
     expect(content).toMatch(/process\.env\.SLACK_TOKEN/)
-    expect(content).toMatch(/process\.env\.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID/)
+    expect(content).toMatch(
+      /process\.env\.SLACK_FEEDBACK_NOTIFICATION_CHANNEL_ID/,
+    )
   })
 
   it('implements flag logic with red/yellow/green/star indicators', () => {

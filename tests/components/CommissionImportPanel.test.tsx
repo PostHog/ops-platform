@@ -20,7 +20,9 @@ describe('CommissionImportPanel', () => {
   it('validates file type to CSV and Excel formats', () => {
     expect(content).toMatch(/text\/csv/)
     expect(content).toMatch(/application\/vnd\.ms-excel/)
-    expect(content).toMatch(/application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet/)
+    expect(content).toMatch(
+      /application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet/,
+    )
     expect(content).toMatch(/\.csv.*\.xls.*\.xlsx/)
   })
 
@@ -33,7 +35,9 @@ describe('CommissionImportPanel', () => {
     expect(content).toMatch(/'email' in firstRow/)
     expect(content).toMatch(/'quota' in firstRow/)
     expect(content).toMatch(/'attainment' in firstRow/)
-    expect(content).toMatch(/File must contain columns: email, quota, and attainment/)
+    expect(content).toMatch(
+      /File must contain columns: email, quota, and attainment/,
+    )
   })
 
   it('uses commission calculator utilities for processing rows', () => {

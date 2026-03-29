@@ -4,10 +4,19 @@ import { render, screen } from '../helpers/render'
 
 // Mock shadcn primitives
 vi.mock('@/components/ui/tooltip', () => ({
-  TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children, asChild, ...props }: { children: React.ReactNode; asChild?: boolean }) => <>{children}</>,
-  TooltipContent: ({ children }: { children: React.ReactNode }) => <span data-testid="tooltip">{children}</span>,
+  TooltipTrigger: ({
+    children,
+  }: {
+    children: React.ReactNode
+    asChild?: boolean
+  }) => <>{children}</>,
+  TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    <span data-testid="tooltip">{children}</span>
+  ),
 }))
 
 vi.mock('lucide-react', () => ({
@@ -54,7 +63,11 @@ describe('FeedbackCard', () => {
   it('falls back to email when deelEmployee is null', () => {
     render(
       <FeedbackCard
-        feedback={makeFeedback({ manager: { email: 'mgr@example.com', deelEmployee: null } }) as any}
+        feedback={
+          makeFeedback({
+            manager: { email: 'mgr@example.com', deelEmployee: null },
+          }) as any
+        }
       />,
     )
     expect(screen.getByText(/mgr@example.com/)).toBeTruthy()
@@ -102,16 +115,16 @@ describe('FeedbackCard', () => {
 
   it('renders trait badges and optional fields for non-manager feedback', () => {
     render(<FeedbackCard feedback={makeFeedback() as any} />)
-    expect(screen.getByText('What makes them so valuable to your team and PostHog?')).toBeTruthy()
+    expect(
+      screen.getByText('What makes them so valuable to your team and PostHog?'),
+    ).toBeTruthy()
     expect(screen.getByText('Areas to watch:')).toBeTruthy()
     expect(screen.getByText('Recommendation:')).toBeTruthy()
   })
 
   it('does not render OptionalField when value is null', () => {
     render(
-      <FeedbackCard
-        feedback={makeFeedback({ recommendation: null }) as any}
-      />,
+      <FeedbackCard feedback={makeFeedback({ recommendation: null }) as any} />,
     )
     expect(screen.queryByText('Recommendation:')).toBeNull()
   })

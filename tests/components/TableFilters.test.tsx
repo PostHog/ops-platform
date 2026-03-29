@@ -33,7 +33,9 @@ describe('TableFilters', () => {
   })
 
   it('implements multi-select filter with search when options exceed 8', () => {
-    expect(content).toMatch(/const showSearch = \(filter\.options\?\.length \?\? 0\) > 8/)
+    expect(content).toMatch(
+      /const showSearch = \(filter\.options\?\.length \?\? 0\) > 8/,
+    )
     expect(content).toMatch(/multiSelectSearch/)
     expect(content).toMatch(/toggleValue/)
   })

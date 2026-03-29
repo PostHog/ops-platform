@@ -3,7 +3,10 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 describe('salaryDeviationChecker route server functions', () => {
-  const filePath = path.join(process.cwd(), 'src/routes/salaryDeviationChecker.tsx')
+  const filePath = path.join(
+    process.cwd(),
+    'src/routes/salaryDeviationChecker.tsx',
+  )
   const content = fs.readFileSync(filePath, 'utf-8')
 
   it('uses server handler pattern with POST method', () => {
@@ -21,12 +24,18 @@ describe('salaryDeviationChecker route server functions', () => {
   })
 
   it('imports fetchDeelEmployee from syncDeelEmployees', () => {
-    expect(content).toMatch(/import\s*\{[^}]*fetchDeelEmployee[^}]*\}\s*from\s*['"]\.\/syncDeelEmployees['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*fetchDeelEmployee[^}]*\}\s*from\s*['"]\.\/syncDeelEmployees['"]/,
+    )
   })
 
   it('imports BambooHR utilities for US employees', () => {
-    expect(content).toMatch(/import\s*\{[^}]*getBambooCompTable[^}]*\}\s*from\s*['"]\.\/syncSalaryUpdates['"]/)
-    expect(content).toMatch(/import\s*\{[^}]*getBambooEmployees[^}]*\}\s*from\s*['"]\.\/syncSalaryUpdates['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*getBambooCompTable[^}]*\}\s*from\s*['"]\.\/syncSalaryUpdates['"]/,
+    )
+    expect(content).toMatch(
+      /import\s*\{[^}]*getBambooEmployees[^}]*\}\s*from\s*['"]\.\/syncSalaryUpdates['"]/,
+    )
   })
 
   it('handles annual vs monthly salary scales from Deel', () => {

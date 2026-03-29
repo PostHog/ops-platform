@@ -4,21 +4,45 @@ import { render, screen } from '../helpers/render'
 
 // Mock shadcn primitives
 vi.mock('@/components/ui/badge', () => ({
-  Badge: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <span data-testid="badge" className={className}>{children}</span>
+  Badge: ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode
+    className?: string
+  }) => (
+    <span data-testid="badge" className={className}>
+      {children}
+    </span>
   ),
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-  TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipContent: ({ children }: { children: React.ReactNode }) => <span data-testid="tooltip">{children}</span>,
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    <span data-testid="tooltip">{children}</span>
+  ),
 }))
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, ...props }: { children: React.ReactNode; to: string; [key: string]: unknown }) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    children,
+    to,
+    ...props
+  }: {
+    children: React.ReactNode
+    to: string
+    [key: string]: unknown
+  }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }))
 
@@ -135,7 +159,9 @@ describe('LevelStepDisplay', () => {
   })
 
   it('uses small text with size="sm"', () => {
-    const { container } = render(<LevelStepDisplay level={2} step={1} size="sm" />)
+    const { container } = render(
+      <LevelStepDisplay level={2} step={1} size="sm" />,
+    )
     expect(container.innerHTML).toContain('text-base')
   })
 })

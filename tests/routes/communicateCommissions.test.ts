@@ -3,7 +3,10 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 describe('communicateCommissionBonuses route server functions', () => {
-  const filePath = path.join(process.cwd(), 'src/routes/communicateCommissionBonuses.tsx')
+  const filePath = path.join(
+    process.cwd(),
+    'src/routes/communicateCommissionBonuses.tsx',
+  )
   const content = fs.readFileSync(filePath, 'utf-8')
 
   it('uses server handler pattern with POST method', () => {
@@ -21,12 +24,16 @@ describe('communicateCommissionBonuses route server functions', () => {
   })
 
   it('imports and uses sendEmail from email-service', () => {
-    expect(content).toMatch(/import\s*\{[^}]*sendEmail[^}]*\}\s*from\s*['"]@\/lib\/email-service['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*sendEmail[^}]*\}\s*from\s*['"]@\/lib\/email-service['"]/,
+    )
     expect(content).toMatch(/sendEmail\(/)
   })
 
   it('imports and uses generateCommissionBonusEmail from email-templates', () => {
-    expect(content).toMatch(/import\s*\{[^}]*generateCommissionBonusEmail[^}]*\}\s*from\s*['"]@\/lib\/email-templates['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*generateCommissionBonusEmail[^}]*\}\s*from\s*['"]@\/lib\/email-templates['"]/,
+    )
     expect(content).toMatch(/generateCommissionBonusEmail\(/)
   })
 
@@ -42,7 +49,11 @@ describe('communicateCommissionBonuses route server functions', () => {
   })
 
   it('imports commission calculator utilities for attainment and quarter breakdown', () => {
-    expect(content).toMatch(/import\s*\{[^}]*calculateAttainmentPercentage[^}]*\}\s*from\s*['"]@\/lib\/commission-calculator['"]/)
-    expect(content).toMatch(/import\s*\{[^}]*calculateQuarterBreakdown[^}]*\}\s*from\s*['"]@\/lib\/commission-calculator['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*calculateAttainmentPercentage[^}]*\}\s*from\s*['"]@\/lib\/commission-calculator['"]/,
+    )
+    expect(content).toMatch(
+      /import\s*\{[^}]*calculateQuarterBreakdown[^}]*\}\s*from\s*['"]@\/lib\/commission-calculator['"]/,
+    )
   })
 })

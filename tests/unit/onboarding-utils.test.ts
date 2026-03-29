@@ -1,5 +1,10 @@
-import { describe, expect, it, vi } from 'vitest'
-import { getPhase, formatDate, STATUS_CONFIG, STATUS_OPTIONS } from '@/lib/onboarding-utils'
+import { describe, expect, it } from 'vitest'
+import {
+  getPhase,
+  formatDate,
+  STATUS_CONFIG,
+  STATUS_OPTIONS,
+} from '@/lib/onboarding-utils'
 
 // ─── getPhase ────────────────────────────────────────────────────────────────
 
@@ -47,9 +52,9 @@ describe('getPhase', () => {
 
   it('assigns ascending sortOrder across all phases', () => {
     const phases = [
-      getPhase(daysFromToday(14)),  // Pre-start
-      getPhase(daysFromToday(0)),   // First Day
-      getPhase(daysFromToday(-3)),  // First Week
+      getPhase(daysFromToday(14)), // Pre-start
+      getPhase(daysFromToday(0)), // First Day
+      getPhase(daysFromToday(-3)), // First Week
       getPhase(daysFromToday(-15)), // First 30 Days
       getPhase(daysFromToday(-60)), // First 90 Days
     ]

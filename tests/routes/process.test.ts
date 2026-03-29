@@ -7,17 +7,27 @@ describe('process route server functions', () => {
   const content = fs.readFileSync(filePath, 'utf-8')
 
   it('imports createAdminFn from auth-middleware', () => {
-    expect(content).toMatch(/import\s*\{[^}]*createAdminFn[^}]*\}\s*from\s*['"]@\/lib\/auth-middleware['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*createAdminFn[^}]*\}\s*from\s*['"]@\/lib\/auth-middleware['"]/,
+    )
   })
 
   it('defines getProcessDocument as a GET server function', () => {
-    expect(content).toMatch(/const\s+getProcessDocument\s*=\s*createAdminFn\(\{/)
-    expect(content).toMatch(/getProcessDocument\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/)
+    expect(content).toMatch(
+      /const\s+getProcessDocument\s*=\s*createAdminFn\(\{/,
+    )
+    expect(content).toMatch(
+      /getProcessDocument\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/,
+    )
   })
 
   it('defines saveProcessDocument as a POST server function with inputValidator', () => {
-    expect(content).toMatch(/const\s+saveProcessDocument\s*=\s*createAdminFn\(\{/)
-    expect(content).toMatch(/saveProcessDocument\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/)
+    expect(content).toMatch(
+      /const\s+saveProcessDocument\s*=\s*createAdminFn\(\{/,
+    )
+    expect(content).toMatch(
+      /saveProcessDocument\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/,
+    )
     expect(content).toMatch(/saveProcessDocument[\s\S]*?\.inputValidator\(/)
   })
 

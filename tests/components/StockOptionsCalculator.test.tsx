@@ -17,7 +17,9 @@ describe('StockOptionsCalculator', () => {
   })
 
   it('returns null when option grants are empty', () => {
-    expect(content).toMatch(/if \(optionGrants\.length === 0\)\s*\{[\s\S]*?return null/)
+    expect(content).toMatch(
+      /if \(optionGrants\.length === 0\)\s*\{[\s\S]*?return null/,
+    )
   })
 
   it('returns null when valuation data is unavailable', () => {
@@ -41,7 +43,9 @@ describe('StockOptionsCalculator', () => {
   })
 
   it('calculates net value after exercise', () => {
-    expect(content).toMatch(/const netValue = currentValue - totalCostToExercise/)
+    expect(content).toMatch(
+      /const netValue = currentValue - totalCostToExercise/,
+    )
     expect(content).toMatch(/Net value after exercise/)
   })
 

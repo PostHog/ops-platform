@@ -13,7 +13,9 @@ describe('org-chart route server functions', () => {
   })
 
   it('defines getDeelEmployeesAndProposedHires as a GET internal function', () => {
-    expect(content).toMatch(/getDeelEmployeesAndProposedHires\s*=\s*createInternalFn\(\{\s*method:\s*['"]GET['"]/)
+    expect(content).toMatch(
+      /getDeelEmployeesAndProposedHires\s*=\s*createInternalFn\(\{\s*method:\s*['"]GET['"]/,
+    )
   })
 
   it('exports getDeelEmployeesAndProposedHires for use by other modules', () => {
@@ -40,7 +42,9 @@ describe('org-chart route server functions', () => {
   })
 
   it('returns employees, proposedHires, managerDeelEmployeeId, and managedEmployeeIds', () => {
-    expect(content).toMatch(/return\s*\{\s*employees,\s*proposedHires,\s*managerDeelEmployeeId,\s*managedEmployeeIds\s*\}/)
+    expect(content).toMatch(
+      /return\s*\{\s*employees,\s*proposedHires,\s*managerDeelEmployeeId,\s*managedEmployeeIds\s*\}/,
+    )
   })
 
   it('uses managerInfo from context for scoping visibility', () => {
@@ -65,6 +69,8 @@ describe('org-chart route server functions', () => {
   })
 
   it('supports manager and team view modes', () => {
-    expect(content).toMatch(/export type OrgChartMode\s*=\s*'manager'\s*\|\s*'team'/)
+    expect(content).toMatch(
+      /export type OrgChartMode\s*=\s*'manager'\s*\|\s*'team'/,
+    )
   })
 })

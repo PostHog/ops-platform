@@ -121,12 +121,22 @@ describe('calculateCommissionBonus', () => {
   }
 
   it('calculates full post-ramp-up bonus at 100% attainment', () => {
-    const result = calculateCommissionBonus(100000, 100000, 30000, fullPostRampUp)
+    const result = calculateCommissionBonus(
+      100000,
+      100000,
+      30000,
+      fullPostRampUp,
+    )
     expect(result).toBeCloseTo(30000)
   })
 
   it('calculates full post-ramp-up bonus at 50% attainment', () => {
-    const result = calculateCommissionBonus(50000, 100000, 30000, fullPostRampUp)
+    const result = calculateCommissionBonus(
+      50000,
+      100000,
+      30000,
+      fullPostRampUp,
+    )
     expect(result).toBeCloseTo(15000)
   })
 
@@ -137,7 +147,12 @@ describe('calculateCommissionBonus', () => {
 
   it('handles mixed ramp-up with not-employed months', () => {
     // 1 month not employed, 2 months ramp-up at 100% OTE
-    const result = calculateCommissionBonus(50000, 100000, 30000, mixedBreakdown)
+    const result = calculateCommissionBonus(
+      50000,
+      100000,
+      30000,
+      mixedBreakdown,
+    )
     expect(result).toBeCloseTo(20000) // 2/3 * 30000
   })
 

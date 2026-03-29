@@ -38,9 +38,7 @@ function createEmployeeWithSalary(overrides: Record<string, unknown> = {}) {
 
 describe('calculateCompScenario', () => {
   it('calculates location_factor_floor scenario', async () => {
-    mockPrisma.employee.findMany.mockResolvedValue([
-      createEmployeeWithSalary(),
-    ])
+    mockPrisma.employee.findMany.mockResolvedValue([createEmployeeWithSalary()])
 
     const result = (await calculateCompScenario.execute(
       { scenario: 'location_factor_floor', newLocationFactorFloor: 0.8 },
@@ -70,7 +68,9 @@ describe('calculateCompScenario', () => {
       createEmployeeWithSalary({ id: 'emp-1' }),
       createEmployeeWithSalary({
         id: 'emp-2',
-        salaries: [{ ...createEmployeeWithSalary().salaries[0], locationFactor: 0.9 }],
+        salaries: [
+          { ...createEmployeeWithSalary().salaries[0], locationFactor: 0.9 },
+        ],
       }),
     ])
 
@@ -88,12 +88,21 @@ describe('calculateCompScenario', () => {
       createEmployeeWithSalary(),
       createEmployeeWithSalary({
         id: 'emp-2',
-        salaries: [{ ...createEmployeeWithSalary().salaries[0], benchmark: 'Data Engineer' }],
+        salaries: [
+          {
+            ...createEmployeeWithSalary().salaries[0],
+            benchmark: 'Data Engineer',
+          },
+        ],
       }),
     ])
 
     const result = (await calculateCompScenario.execute(
-      { scenario: 'location_factor_floor', newLocationFactorFloor: 0.8, targetBenchmark: 'Product' },
+      {
+        scenario: 'location_factor_floor',
+        newLocationFactorFloor: 0.8,
+        targetBenchmark: 'Product',
+      },
       mockContext,
     )) as Record<string, unknown>
 
@@ -106,12 +115,21 @@ describe('calculateCompScenario', () => {
       createEmployeeWithSalary(),
       createEmployeeWithSalary({
         id: 'emp-2',
-        salaries: [{ ...createEmployeeWithSalary().salaries[0], country: 'United States' }],
+        salaries: [
+          {
+            ...createEmployeeWithSalary().salaries[0],
+            country: 'United States',
+          },
+        ],
       }),
     ])
 
     const result = (await calculateCompScenario.execute(
-      { scenario: 'location_factor_floor', newLocationFactorFloor: 0.8, targetCountry: 'Germany' },
+      {
+        scenario: 'location_factor_floor',
+        newLocationFactorFloor: 0.8,
+        targetCountry: 'Germany',
+      },
       mockContext,
     )) as Record<string, unknown>
 
@@ -121,7 +139,12 @@ describe('calculateCompScenario', () => {
 
   it('skips employees without salaries', async () => {
     mockPrisma.employee.findMany.mockResolvedValue([
-      { id: 'emp-no-sal', email: 'x@posthog.com', deelEmployee: null, salaries: [] },
+      {
+        id: 'emp-no-sal',
+        email: 'x@posthog.com',
+        deelEmployee: null,
+        salaries: [],
+      },
       createEmployeeWithSalary(),
     ])
 
@@ -149,11 +172,15 @@ describe('calculateCompScenario', () => {
     mockPrisma.employee.findMany.mockResolvedValue([
       createEmployeeWithSalary({
         id: 'emp-low',
-        salaries: [{ ...createEmployeeWithSalary().salaries[0], locationFactor: 0.5 }],
+        salaries: [
+          { ...createEmployeeWithSalary().salaries[0], locationFactor: 0.5 },
+        ],
       }),
       createEmployeeWithSalary({
         id: 'emp-mid',
-        salaries: [{ ...createEmployeeWithSalary().salaries[0], locationFactor: 0.7 }],
+        salaries: [
+          { ...createEmployeeWithSalary().salaries[0], locationFactor: 0.7 },
+        ],
       }),
     ])
 
@@ -175,8 +202,14 @@ describe('analyzeTeamCompensation', () => {
       createEmployeeWithSalary(),
       createEmployeeWithSalary({
         id: 'emp-2',
-        deelEmployee: { firstName: 'Bob', lastName: 'B', team: 'Infrastructure' },
-        salaries: [{ ...createEmployeeWithSalary().salaries[0], totalSalary: 200000 }],
+        deelEmployee: {
+          firstName: 'Bob',
+          lastName: 'B',
+          team: 'Infrastructure',
+        },
+        salaries: [
+          { ...createEmployeeWithSalary().salaries[0], totalSalary: 200000 },
+        ],
       }),
     ])
 
@@ -191,9 +224,7 @@ describe('analyzeTeamCompensation', () => {
   })
 
   it('groups by level', async () => {
-    mockPrisma.employee.findMany.mockResolvedValue([
-      createEmployeeWithSalary(),
-    ])
+    mockPrisma.employee.findMany.mockResolvedValue([createEmployeeWithSalary()])
 
     const result = (await analyzeTeamCompensation.execute(
       { groupBy: 'level' },
@@ -205,9 +236,7 @@ describe('analyzeTeamCompensation', () => {
   })
 
   it('groups by location', async () => {
-    mockPrisma.employee.findMany.mockResolvedValue([
-      createEmployeeWithSalary(),
-    ])
+    mockPrisma.employee.findMany.mockResolvedValue([createEmployeeWithSalary()])
 
     const result = (await analyzeTeamCompensation.execute(
       { groupBy: 'location' },
@@ -219,9 +248,7 @@ describe('analyzeTeamCompensation', () => {
   })
 
   it('groups by benchmark', async () => {
-    mockPrisma.employee.findMany.mockResolvedValue([
-      createEmployeeWithSalary(),
-    ])
+    mockPrisma.employee.findMany.mockResolvedValue([createEmployeeWithSalary()])
 
     const result = (await analyzeTeamCompensation.execute(
       { groupBy: 'benchmark' },
@@ -234,8 +261,17 @@ describe('analyzeTeamCompensation', () => {
 
   it('calculates correct statistics per group', async () => {
     mockPrisma.employee.findMany.mockResolvedValue([
-      createEmployeeWithSalary({ salaries: [{ ...createEmployeeWithSalary().salaries[0], totalSalary: 100000 }] }),
-      createEmployeeWithSalary({ id: 'emp-2', salaries: [{ ...createEmployeeWithSalary().salaries[0], totalSalary: 200000 }] }),
+      createEmployeeWithSalary({
+        salaries: [
+          { ...createEmployeeWithSalary().salaries[0], totalSalary: 100000 },
+        ],
+      }),
+      createEmployeeWithSalary({
+        id: 'emp-2',
+        salaries: [
+          { ...createEmployeeWithSalary().salaries[0], totalSalary: 200000 },
+        ],
+      }),
     ])
 
     const result = (await analyzeTeamCompensation.execute(
@@ -272,7 +308,12 @@ describe('analyzeTeamCompensation', () => {
 
   it('skips employees without salaries', async () => {
     mockPrisma.employee.findMany.mockResolvedValue([
-      { id: 'emp-no-sal', email: 'x@posthog.com', deelEmployee: null, salaries: [] },
+      {
+        id: 'emp-no-sal',
+        email: 'x@posthog.com',
+        deelEmployee: null,
+        salaries: [],
+      },
       createEmployeeWithSalary(),
     ])
 
@@ -288,12 +329,16 @@ describe('analyzeTeamCompensation', () => {
     mockPrisma.employee.findMany.mockResolvedValue([
       createEmployeeWithSalary({
         deelEmployee: { firstName: 'A', lastName: 'A', team: 'Small' },
-        salaries: [{ ...createEmployeeWithSalary().salaries[0], totalSalary: 50000 }],
+        salaries: [
+          { ...createEmployeeWithSalary().salaries[0], totalSalary: 50000 },
+        ],
       }),
       createEmployeeWithSalary({
         id: 'emp-2',
         deelEmployee: { firstName: 'B', lastName: 'B', team: 'Big' },
-        salaries: [{ ...createEmployeeWithSalary().salaries[0], totalSalary: 300000 }],
+        salaries: [
+          { ...createEmployeeWithSalary().salaries[0], totalSalary: 300000 },
+        ],
       }),
     ])
 
@@ -303,6 +348,8 @@ describe('analyzeTeamCompensation', () => {
     )) as Record<string, unknown>
 
     const groups = result.groups as Array<Record<string, unknown>>
-    expect((groups[0].totalCompensation as number)).toBeGreaterThan(groups[1].totalCompensation as number)
+    expect(groups[0].totalCompensation as number).toBeGreaterThan(
+      groups[1].totalCompensation as number,
+    )
   })
 })

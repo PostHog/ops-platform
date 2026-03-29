@@ -31,7 +31,9 @@ describe('scheduleCheckIns route server functions', () => {
   })
 
   it('imports KeeperTestJobPayload type from runScheduledJobs', () => {
-    expect(content).toMatch(/import\s*\{[^}]*KeeperTestJobPayload[^}]*\}\s*from\s*['"]\.\/runScheduledJobs['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*KeeperTestJobPayload[^}]*\}\s*from\s*['"]\.\/runScheduledJobs['"]/,
+    )
   })
 
   it('marks employees as scheduled after creating jobs', () => {

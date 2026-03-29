@@ -50,9 +50,7 @@ describe('auth databaseHooks', () => {
   })
 
   it('rejects non-posthog emails', async () => {
-    await expect(
-      createBefore({ email: 'alice@gmail.com' }),
-    ).rejects.toThrow()
+    await expect(createBefore({ email: 'alice@gmail.com' })).rejects.toThrow()
   })
 
   it('allows posthog.com emails', async () => {
@@ -64,9 +62,7 @@ describe('auth databaseHooks', () => {
 
   it('gives dev@posthog.com admin role in dev mode', async () => {
     const result = await createBefore({ email: 'dev@posthog.com' })
-    expect(result.data).toEqual(
-      expect.objectContaining({ role: 'admin' }),
-    )
+    expect(result.data).toEqual(expect.objectContaining({ role: 'admin' }))
   })
 
   it('does not give admin role to other posthog emails', async () => {

@@ -1,27 +1,43 @@
 import { describe, expect, it, vi } from 'vitest'
 import React from 'react'
-import { render, screen, fireEvent } from '../helpers/render'
+import { render, screen } from '../helpers/render'
 
 vi.mock('@/components/ui/tooltip', () => ({
-  TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipContent: ({ children }: { children: React.ReactNode }) => <span data-testid="tooltip">{children}</span>,
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    <span data-testid="tooltip">{children}</span>
+  ),
 }))
 
 vi.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, ...props }: any) => (
-    <button onClick={onClick} {...props}>{children}</button>
+    <button onClick={onClick} {...props}>
+      {children}
+    </button>
   ),
 }))
 
 vi.mock('@/components/ui/dropdown-menu', () => ({
-  DropdownMenu: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div data-testid="dropdown-content">{children}</div>,
-  DropdownMenuItem: ({ children, onClick, ...props }: any) => (
-    <button data-testid="dropdown-item" onClick={onClick} {...props}>{children}</button>
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
   ),
-  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dropdown-content">{children}</div>
+  ),
+  DropdownMenuItem: ({ children, onClick, ...props }: any) => (
+    <button data-testid="dropdown-item" onClick={onClick} {...props}>
+      {children}
+    </button>
+  ),
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }))
 
 vi.mock('lucide-react', () => ({
@@ -57,9 +73,7 @@ function makeSalary(overrides: Record<string, unknown> = {}) {
 
 describe('SalaryHistoryCard', () => {
   it('renders positive change percentage in green', () => {
-    const { container } = render(
-      <SalaryHistoryCard salary={makeSalary() as any} isAdmin={false} />,
-    )
+    render(<SalaryHistoryCard salary={makeSalary() as any} isAdmin={false} />)
     const changeSpan = screen.getByText('+5.00%')
     expect(changeSpan.className).toContain('text-green-600')
   })
@@ -76,25 +90,24 @@ describe('SalaryHistoryCard', () => {
   })
 
   it('renders benchmark and location info', () => {
-    render(
-      <SalaryHistoryCard salary={makeSalary() as any} isAdmin={false} />,
-    )
+    render(<SalaryHistoryCard salary={makeSalary() as any} isAdmin={false} />)
     expect(screen.getByText(/Engineering/)).toBeTruthy()
     expect(screen.getByText(/San Francisco/)).toBeTruthy()
     expect(screen.getByText(/United States/)).toBeTruthy()
   })
 
   it('renders level and step', () => {
-    render(
-      <SalaryHistoryCard salary={makeSalary() as any} isAdmin={false} />,
-    )
+    render(<SalaryHistoryCard salary={makeSalary() as any} isAdmin={false} />)
     expect(screen.getByText('2')).toBeTruthy() // step
     expect(screen.getByText('level / step')).toBeTruthy()
   })
 
   it('renders level 1 as "1.0"', () => {
     render(
-      <SalaryHistoryCard salary={makeSalary({ level: 1 }) as any} isAdmin={false} />,
+      <SalaryHistoryCard
+        salary={makeSalary({ level: 1 }) as any}
+        isAdmin={false}
+      />,
     )
     expect(screen.getByText('1.0')).toBeTruthy()
   })

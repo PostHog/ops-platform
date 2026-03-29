@@ -7,7 +7,9 @@ describe('runScheduledJobs route server functions', () => {
   const content = fs.readFileSync(filePath, 'utf-8')
 
   it('uses createFileRoute (not createAdminFn) since this is a raw POST handler', () => {
-    expect(content).toMatch(/import.*createFileRoute.*from.*@tanstack\/react-router/)
+    expect(content).toMatch(
+      /import.*createFileRoute.*from.*@tanstack\/react-router/,
+    )
     // This route does NOT use createAdminFn — it authenticates via Authorization header
     expect(content).not.toMatch(/import.*createAdminFn.*from/)
   })

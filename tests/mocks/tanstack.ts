@@ -2,7 +2,7 @@ import { vi } from 'vitest'
 
 // Stores the last handler registered via the builder chain
 let lastRegisteredHandler: ((...args: unknown[]) => unknown) | null = null
-let lastRegisteredValidator: ((data: unknown) => unknown) | null = null
+let _lastRegisteredValidator: ((data: unknown) => unknown) | null = null
 
 export function getLastRegisteredHandler() {
   return lastRegisteredHandler
@@ -10,7 +10,7 @@ export function getLastRegisteredHandler() {
 
 export function resetHandlerCapture() {
   lastRegisteredHandler = null
-  lastRegisteredValidator = null
+  _lastRegisteredValidator = null
 }
 
 // Builder chain that mimics createServerFn().middleware([...]).inputValidator(...).handler(...)
@@ -18,7 +18,7 @@ function createBuilderChain() {
   const chain = {
     middleware: () => chain,
     inputValidator: (validator: (data: unknown) => unknown) => {
-      lastRegisteredValidator = validator
+      _lastRegisteredValidator = validator
       return chain
     },
     handler: (fn: (...args: unknown[]) => unknown) => {

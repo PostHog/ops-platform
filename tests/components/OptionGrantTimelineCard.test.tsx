@@ -3,10 +3,16 @@ import React from 'react'
 import { render, screen } from '../helpers/render'
 
 vi.mock('@/components/ui/tooltip', () => ({
-  TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipContent: ({ children }: { children: React.ReactNode }) => <span data-testid="tooltip">{children}</span>,
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    <span data-testid="tooltip">{children}</span>
+  ),
 }))
 
 vi.mock('lucide-react', () => ({
@@ -34,7 +40,11 @@ function makeGrant(overrides: Record<string, unknown> = {}) {
 
 describe('OptionGrantTimelineCard', () => {
   it('renders issued quantity formatted with commas', () => {
-    render(<OptionGrantTimelineCard grant={makeGrant({ issuedQuantity: 10000 }) as any} />)
+    render(
+      <OptionGrantTimelineCard
+        grant={makeGrant({ issuedQuantity: 10000 }) as any}
+      />,
+    )
     expect(screen.getByText('10,000 options')).toBeTruthy()
   })
 
@@ -55,7 +65,10 @@ describe('OptionGrantTimelineCard', () => {
 
   it('applies rounded-b-md when lastTableItem is true', () => {
     const { container } = render(
-      <OptionGrantTimelineCard grant={makeGrant() as any} lastTableItem={true} />,
+      <OptionGrantTimelineCard
+        grant={makeGrant() as any}
+        lastTableItem={true}
+      />,
     )
     const outerDiv = container.firstChild as HTMLElement
     expect(outerDiv.className).toContain('rounded-b-md')

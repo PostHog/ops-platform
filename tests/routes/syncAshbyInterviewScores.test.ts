@@ -3,7 +3,10 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 describe('syncAshbyInterviewScores route server functions', () => {
-  const filePath = path.join(process.cwd(), 'src/routes/syncAshbyInterviewScores.tsx')
+  const filePath = path.join(
+    process.cwd(),
+    'src/routes/syncAshbyInterviewScores.tsx',
+  )
   const content = fs.readFileSync(filePath, 'utf-8')
 
   it('uses server handler pattern with POST method', () => {
@@ -25,7 +28,9 @@ describe('syncAshbyInterviewScores route server functions', () => {
   })
 
   it('calls Ashby applicationFeedback.list API', () => {
-    expect(content).toMatch(/https:\/\/api\.ashbyhq\.com\/applicationFeedback\.list/)
+    expect(content).toMatch(
+      /https:\/\/api\.ashbyhq\.com\/applicationFeedback\.list/,
+    )
   })
 
   it('calls Ashby interview.info API', () => {

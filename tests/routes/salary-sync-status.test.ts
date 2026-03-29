@@ -7,12 +7,18 @@ describe('salary-sync-status route server functions', () => {
   const content = fs.readFileSync(filePath, 'utf-8')
 
   it('imports createAdminFn from auth-middleware', () => {
-    expect(content).toMatch(/import\s*\{[^}]*createAdminFn[^}]*\}\s*from\s*['"]@\/lib\/auth-middleware['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*createAdminFn[^}]*\}\s*from\s*['"]@\/lib\/auth-middleware['"]/,
+    )
   })
 
   it('defines getSalarySyncStatus as a GET server function', () => {
-    expect(content).toMatch(/const\s+getSalarySyncStatus\s*=\s*createAdminFn\(\{/)
-    expect(content).toMatch(/getSalarySyncStatus\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/)
+    expect(content).toMatch(
+      /const\s+getSalarySyncStatus\s*=\s*createAdminFn\(\{/,
+    )
+    expect(content).toMatch(
+      /getSalarySyncStatus\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/,
+    )
   })
 
   it('queries prisma.employee.findMany with salaries and deelEmployee included', () => {
@@ -22,7 +28,9 @@ describe('salary-sync-status route server functions', () => {
   })
 
   it('takes only the most recent salary record', () => {
-    expect(content).toMatch(/salaries:\s*\{[\s\S]*?orderBy:\s*\{[\s\S]*?timestamp:\s*['"]desc['"]/)
+    expect(content).toMatch(
+      /salaries:\s*\{[\s\S]*?orderBy:\s*\{[\s\S]*?timestamp:\s*['"]desc['"]/,
+    )
     expect(content).toMatch(/take:\s*1/)
   })
 
@@ -47,13 +55,19 @@ describe('salary-sync-status route server functions', () => {
   })
 
   it('imports formatCurrency and getFullName utility functions', () => {
-    expect(content).toMatch(/import\s*\{[^}]*formatCurrency[^}]*\}\s*from\s*['"]@\/lib\/utils['"]/)
-    expect(content).toMatch(/import\s*\{[^}]*getFullName[^}]*\}\s*from\s*['"]@\/lib\/utils['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*formatCurrency[^}]*\}\s*from\s*['"]@\/lib\/utils['"]/,
+    )
+    expect(content).toMatch(
+      /import\s*\{[^}]*getFullName[^}]*\}\s*from\s*['"]@\/lib\/utils['"]/,
+    )
   })
 
   it('uses dayjs with relativeTime plugin for timestamp display', () => {
     expect(content).toMatch(/import\s+dayjs\s+from\s*['"]dayjs['"]/)
-    expect(content).toMatch(/import\s+relativeTime\s+from\s*['"]dayjs\/plugin\/relativeTime['"]/)
+    expect(content).toMatch(
+      /import\s+relativeTime\s+from\s*['"]dayjs\/plugin\/relativeTime['"]/,
+    )
     expect(content).toMatch(/dayjs\.extend\(relativeTime\)/)
   })
 })

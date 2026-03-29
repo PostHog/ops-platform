@@ -1,10 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import React from 'react'
 import { render, screen, fireEvent, waitFor } from '../helpers/render'
 
 vi.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, disabled, ...props }: any) => (
-    <button onClick={onClick} disabled={disabled} {...props}>{children}</button>
+    <button onClick={onClick} disabled={disabled} {...props}>
+      {children}
+    </button>
   ),
 }))
 

@@ -1,14 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import React from 'react'
 import { render, screen, fireEvent } from '../helpers/render'
-import { atom } from 'jotai'
 
 const mockNavigate = vi.fn()
 const mockInvalidate = vi.fn()
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, to, params, ...props }: any) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
   useRouter: vi.fn(() => ({
     navigate: mockNavigate,
@@ -48,15 +48,25 @@ vi.mock('vercel-toast', () => ({
 
 vi.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, ...props }: any) => (
-    <button onClick={onClick} {...props}>{children}</button>
+    <button onClick={onClick} {...props}>
+      {children}
+    </button>
   ),
 }))
 
 vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }: any) => <>{children}</>,
   DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
-  DropdownMenuItem: ({ children, onClick, onSelect, asChild, ...props }: any) => (
-    <div data-testid="dropdown-item" onClick={onClick || onSelect} {...props}>{children}</div>
+  DropdownMenuItem: ({
+    children,
+    onClick,
+    onSelect,
+    asChild,
+    ...props
+  }: any) => (
+    <div data-testid="dropdown-item" onClick={onClick || onSelect} {...props}>
+      {children}
+    </div>
   ),
   DropdownMenuTrigger: ({ children }: any) => <>{children}</>,
 }))

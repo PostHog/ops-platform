@@ -167,9 +167,7 @@ describe('Employee route server functions', () => {
   })
 
   it('restricts updateProgramFeedback to the original author only', () => {
-    expect(content).toMatch(
-      /existing\.givenByUserId\s*!==\s*context\.user\.id/,
-    )
+    expect(content).toMatch(/existing\.givenByUserId\s*!==\s*context\.user\.id/)
   })
 
   it('requires all checklist items completed before resolving a performance program', () => {

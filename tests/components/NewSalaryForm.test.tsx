@@ -62,7 +62,9 @@ describe('NewSalaryForm', () => {
   })
 
   it('disables save button when step is out of range or submitting', () => {
-    expect(content).toMatch(/disabled=\{isSubmitting \|\| step < 0\.85 \|\| step > 1\.2\}/)
+    expect(content).toMatch(
+      /disabled=\{isSubmitting \|\| step < 0\.85 \|\| step > 1\.2\}/,
+    )
   })
 
   it('shows a toast on successful submission', () => {

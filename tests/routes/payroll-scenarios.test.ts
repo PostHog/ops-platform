@@ -12,16 +12,22 @@ describe('payroll-scenarios route server functions', () => {
   })
 
   it('defines getPayrollScenariosData as a GET admin function', () => {
-    expect(content).toMatch(/getPayrollScenariosData\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/)
+    expect(content).toMatch(
+      /getPayrollScenariosData\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/,
+    )
   })
 
   it('defines savePayrollScenario as a POST admin function with input validation', () => {
-    expect(content).toMatch(/savePayrollScenario\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/)
+    expect(content).toMatch(
+      /savePayrollScenario\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/,
+    )
     expect(content).toMatch(/savePayrollScenario[\s\S]*?\.inputValidator/)
   })
 
   it('defines deletePayrollScenario as a POST admin function with input validation', () => {
-    expect(content).toMatch(/deletePayrollScenario\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/)
+    expect(content).toMatch(
+      /deletePayrollScenario\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/,
+    )
     expect(content).toMatch(/deletePayrollScenario[\s\S]*?\.inputValidator/)
   })
 
@@ -50,7 +56,9 @@ describe('payroll-scenarios route server functions', () => {
   })
 
   it('deletePayrollScenario input accepts an id', () => {
-    expect(content).toMatch(/deletePayrollScenario[\s\S]*?inputValidator[\s\S]*?\{\s*id:\s*string\s*\}/)
+    expect(content).toMatch(
+      /deletePayrollScenario[\s\S]*?inputValidator[\s\S]*?\{\s*id:\s*string\s*\}/,
+    )
   })
 
   it('uses sfBenchmark utility for benchmark salary calculations', () => {

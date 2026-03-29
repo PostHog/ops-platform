@@ -19,7 +19,9 @@ describe('CartaImportPanel', () => {
 
   it('validates file type and enforces 10MB size limit', () => {
     expect(content).toMatch(/text\/csv/)
-    expect(content).toMatch(/application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet/)
+    expect(content).toMatch(
+      /application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet/,
+    )
     expect(content).toMatch(/10 \* 1024 \* 1024/)
     expect(content).toMatch(/File size exceeds 10MB limit/)
   })
@@ -38,7 +40,9 @@ describe('CartaImportPanel', () => {
 
   it('matches employees by work email or personal email', () => {
     expect(content).toMatch(/emp\.email\.toLowerCase\(\) === normalizedEmail/)
-    expect(content).toMatch(/emp\.deelEmployee\?\.personalEmail\?\.toLowerCase\(\)/)
+    expect(content).toMatch(
+      /emp\.deelEmployee\?\.personalEmail\?\.toLowerCase\(\)/,
+    )
   })
 
   it('renders preview table with valid and error row counts', () => {

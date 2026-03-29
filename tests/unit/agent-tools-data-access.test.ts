@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import mockPrisma from '../mocks/prisma'
 import {
   readEmployees,
@@ -24,12 +24,28 @@ describe('readEmployees', () => {
       {
         id: 'emp-1',
         email: 'alice@posthog.com',
-        deelEmployee: { firstName: 'Alice', lastName: 'Smith', title: 'Engineer', team: 'Product', startDate: new Date(), managerId: null },
-        salaries: [{
-          totalSalary: 150000, locationFactor: 1.0, country: 'US', area: 'SF',
-          level: 1, step: 1, benchmark: 'Product Engineer', benchmarkFactor: 1,
-          localCurrency: 'USD', totalSalaryLocal: 150000,
-        }],
+        deelEmployee: {
+          firstName: 'Alice',
+          lastName: 'Smith',
+          title: 'Engineer',
+          team: 'Product',
+          startDate: new Date(),
+          managerId: null,
+        },
+        salaries: [
+          {
+            totalSalary: 150000,
+            locationFactor: 1.0,
+            country: 'US',
+            area: 'SF',
+            level: 1,
+            step: 1,
+            benchmark: 'Product Engineer',
+            benchmarkFactor: 1,
+            localCurrency: 'USD',
+            totalSalaryLocal: 150000,
+          },
+        ],
       },
     ])
 
@@ -47,10 +63,18 @@ describe('readEmployees', () => {
 
   it('uses email as name when no deelEmployee', async () => {
     mockPrisma.employee.findMany.mockResolvedValue([
-      { id: 'emp-2', email: 'bob@posthog.com', deelEmployee: null, salaries: [] },
+      {
+        id: 'emp-2',
+        email: 'bob@posthog.com',
+        deelEmployee: null,
+        salaries: [],
+      },
     ])
 
-    const result = await readEmployees.execute({ limit: 50 }, mockContext) as Array<Record<string, unknown>>
+    const result = (await readEmployees.execute(
+      { limit: 50 },
+      mockContext,
+    )) as Array<Record<string, unknown>>
     expect(result[0].name).toBe('bob@posthog.com')
   })
 
@@ -72,28 +96,57 @@ describe('readEmployees', () => {
 
   it('filters by benchmark after fetch', async () => {
     mockPrisma.employee.findMany.mockResolvedValue([
-      { id: 'emp-1', email: 'a@posthog.com', deelEmployee: null, salaries: [{ benchmark: 'Product Engineer', country: 'US' }] },
-      { id: 'emp-2', email: 'b@posthog.com', deelEmployee: null, salaries: [{ benchmark: 'Data Engineer', country: 'US' }] },
+      {
+        id: 'emp-1',
+        email: 'a@posthog.com',
+        deelEmployee: null,
+        salaries: [{ benchmark: 'Product Engineer', country: 'US' }],
+      },
+      {
+        id: 'emp-2',
+        email: 'b@posthog.com',
+        deelEmployee: null,
+        salaries: [{ benchmark: 'Data Engineer', country: 'US' }],
+      },
     ])
 
-    const result = await readEmployees.execute({ benchmark: 'Product', limit: 50 }, mockContext) as unknown[]
+    const result = (await readEmployees.execute(
+      { benchmark: 'Product', limit: 50 },
+      mockContext,
+    )) as unknown[]
     expect(result).toHaveLength(1)
   })
 
   it('filters by country after fetch', async () => {
     mockPrisma.employee.findMany.mockResolvedValue([
-      { id: 'emp-1', email: 'a@posthog.com', deelEmployee: null, salaries: [{ benchmark: 'Engineer', country: 'United States' }] },
-      { id: 'emp-2', email: 'b@posthog.com', deelEmployee: null, salaries: [{ benchmark: 'Engineer', country: 'Germany' }] },
+      {
+        id: 'emp-1',
+        email: 'a@posthog.com',
+        deelEmployee: null,
+        salaries: [{ benchmark: 'Engineer', country: 'United States' }],
+      },
+      {
+        id: 'emp-2',
+        email: 'b@posthog.com',
+        deelEmployee: null,
+        salaries: [{ benchmark: 'Engineer', country: 'Germany' }],
+      },
     ])
 
-    const result = await readEmployees.execute({ country: 'germany', limit: 50 }, mockContext) as unknown[]
+    const result = (await readEmployees.execute(
+      { country: 'germany', limit: 50 },
+      mockContext,
+    )) as unknown[]
     expect(result).toHaveLength(1)
   })
 
   it('returns empty array when managerId has no deel record', async () => {
     mockPrisma.deelEmployee.findFirst.mockResolvedValue(null)
 
-    const result = await readEmployees.execute({ managerId: 'emp-99', limit: 50 }, mockContext)
+    const result = await readEmployees.execute(
+      { managerId: 'emp-99', limit: 50 },
+      mockContext,
+    )
     expect(result).toEqual([])
   })
 
@@ -119,7 +172,10 @@ describe('readEmployees', () => {
       { id: 'emp-1', email: 'a@posthog.com', deelEmployee: null, salaries: [] },
     ])
 
-    const result = await readEmployees.execute({ limit: 50 }, mockContext) as Array<Record<string, unknown>>
+    const result = (await readEmployees.execute(
+      { limit: 50 },
+      mockContext,
+    )) as Array<Record<string, unknown>>
     expect(result[0].latestSalary).toBeNull()
   })
 })
@@ -151,10 +207,10 @@ describe('readSalaryHistory', () => {
       },
     ])
 
-    const result = await readSalaryHistory.execute(
+    const result = (await readSalaryHistory.execute(
       { employeeId: 'emp-1', limit: 10 },
       mockContext,
-    ) as Record<string, unknown>
+    )) as Record<string, unknown>
 
     expect(result.employee).toEqual(
       expect.objectContaining({ name: 'Alice Smith' }),
@@ -165,10 +221,10 @@ describe('readSalaryHistory', () => {
   it('returns error when no salary records found', async () => {
     mockPrisma.salary.findMany.mockResolvedValue([])
 
-    const result = await readSalaryHistory.execute(
+    const result = (await readSalaryHistory.execute(
       { employeeId: 'emp-99', limit: 10 },
       mockContext,
-    ) as Record<string, unknown>
+    )) as Record<string, unknown>
 
     expect(result.error).toBe('No salary records found for this employee')
   })
@@ -200,13 +256,18 @@ describe('readProposedHires', () => {
       },
     ])
 
-    const result = await readProposedHires.execute({ limit: 20 }, mockContext) as Array<Record<string, unknown>>
+    const result = (await readProposedHires.execute(
+      { limit: 20 },
+      mockContext,
+    )) as Array<Record<string, unknown>>
 
     expect(result).toHaveLength(1)
     expect(result[0].manager).toEqual(
       expect.objectContaining({ name: 'Bob Jones', team: 'Eng' }),
     )
-    expect((result[0].talentPartners as Array<Record<string, unknown>>)[0].name).toBe('Carol Lee')
+    expect(
+      (result[0].talentPartners as Array<Record<string, unknown>>)[0].name,
+    ).toBe('Carol Lee')
   })
 
   it('filters by managerId and priority', async () => {
@@ -239,13 +300,19 @@ describe('readOrgStructure', () => {
           title: 'CEO',
           team: 'Exec',
           startDate: new Date(),
-          employee: { id: 'emp-1', salaries: [{ totalSalary: 300000, locationFactor: 1.0 }] },
+          employee: {
+            id: 'emp-1',
+            salaries: [{ totalSalary: 300000, locationFactor: 1.0 }],
+          },
         },
       ])
       // Direct reports of deel-1 at depth 1
       .mockResolvedValueOnce([])
 
-    const result = await readOrgStructure.execute({ depth: 2 }, mockContext) as Array<Record<string, unknown>>
+    const result = (await readOrgStructure.execute(
+      { depth: 2 },
+      mockContext,
+    )) as Array<Record<string, unknown>>
 
     expect(result).toHaveLength(1)
     expect(result[0].name).toBe('Alice CEO')
@@ -270,7 +337,10 @@ describe('readOrgStructure', () => {
     // build at depth 0 but not recurse to depth 1
     mockPrisma.deelEmployee.findMany.mockResolvedValueOnce([])
 
-    const result = await readOrgStructure.execute({ depth: 0, rootManagerId: undefined }, mockContext) as unknown[]
+    const result = (await readOrgStructure.execute(
+      { depth: 0, rootManagerId: undefined },
+      mockContext,
+    )) as unknown[]
 
     expect(result).toHaveLength(1)
   })
@@ -280,7 +350,10 @@ describe('readOrgStructure', () => {
 
 describe('readCompensationBenchmarks', () => {
   it('returns benchmark data without filters', async () => {
-    const result = await readCompensationBenchmarks.execute({}, mockContext) as Record<string, unknown>
+    const result = (await readCompensationBenchmarks.execute(
+      {},
+      mockContext,
+    )) as Record<string, unknown>
 
     expect(result.benchmarks).toBeDefined()
     expect((result.benchmarks as unknown[]).length).toBeGreaterThan(0)
@@ -291,10 +364,10 @@ describe('readCompensationBenchmarks', () => {
   })
 
   it('filters benchmarks by name', async () => {
-    const result = await readCompensationBenchmarks.execute(
+    const result = (await readCompensationBenchmarks.execute(
       { benchmark: 'product engineer' },
       mockContext,
-    ) as Record<string, unknown>
+    )) as Record<string, unknown>
 
     const benchmarks = result.benchmarks as Array<Record<string, unknown>>
     expect(benchmarks.length).toBeGreaterThan(0)
@@ -304,10 +377,10 @@ describe('readCompensationBenchmarks', () => {
   })
 
   it('filters location factors by country', async () => {
-    const result = await readCompensationBenchmarks.execute(
+    const result = (await readCompensationBenchmarks.execute(
       { country: 'germany' },
       mockContext,
-    ) as Record<string, unknown>
+    )) as Record<string, unknown>
 
     const locations = result.locationFactors as Array<Record<string, unknown>>
     for (const l of locations) {
@@ -316,10 +389,10 @@ describe('readCompensationBenchmarks', () => {
   })
 
   it('limits location factors to 50 entries', async () => {
-    const result = await readCompensationBenchmarks.execute(
+    const result = (await readCompensationBenchmarks.execute(
       { country: 'united states' },
       mockContext,
-    ) as Record<string, unknown>
+    )) as Record<string, unknown>
 
     expect((result.locationFactors as unknown[]).length).toBeLessThanOrEqual(50)
   })

@@ -7,12 +7,16 @@ describe('analytics route server functions', () => {
   const content = fs.readFileSync(filePath, 'utf-8')
 
   it('imports createAdminFn from auth-middleware', () => {
-    expect(content).toMatch(/import\s*\{[^}]*createAdminFn[^}]*\}\s*from\s*['"]@\/lib\/auth-middleware['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*createAdminFn[^}]*\}\s*from\s*['"]@\/lib\/auth-middleware['"]/,
+    )
   })
 
   it('defines getEmployees as a GET server function', () => {
     expect(content).toMatch(/const\s+getEmployees\s*=\s*createAdminFn\(\{/)
-    expect(content).toMatch(/getEmployees\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/)
+    expect(content).toMatch(
+      /getEmployees\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/,
+    )
   })
 
   it('queries prisma.deelEmployee.findMany with employee and salaries included', () => {
@@ -30,15 +34,21 @@ describe('analytics route server functions', () => {
   })
 
   it('uses getEmployees as route loader', () => {
-    expect(content).toMatch(/loader:\s*async\s*\(\)\s*=>\s*await\s+getEmployees\(\)/)
+    expect(content).toMatch(
+      /loader:\s*async\s*\(\)\s*=>\s*await\s+getEmployees\(\)/,
+    )
   })
 
   it('imports getReferenceEmployees from employee route for comparison data', () => {
-    expect(content).toMatch(/import\s*\{[^}]*getReferenceEmployees[^}]*\}\s*from\s*['"]\.\/employee\.\$employeeId['"]/)
+    expect(content).toMatch(
+      /import\s*\{[^}]*getReferenceEmployees[^}]*\}\s*from\s*['"]\.\/employee\.\$employeeId['"]/,
+    )
   })
 
   it('uses useQuery to fetch referenceEmployees with filter parameters', () => {
-    expect(content).toMatch(/useQuery\(\{[\s\S]*?queryKey:\s*\[[\s\S]*?['"]referenceEmployees['"]/)
+    expect(content).toMatch(
+      /useQuery\(\{[\s\S]*?queryKey:\s*\[[\s\S]*?['"]referenceEmployees['"]/,
+    )
     expect(content).toMatch(/getReferenceEmployees\(\{/)
     expect(content).toMatch(/filterByExec/)
     expect(content).toMatch(/filterByLevel/)
