@@ -8,10 +8,23 @@ import {
   getExpandedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import type { ColumnDef, SortingState, ColumnFiltersState } from '@tanstack/react-table'
+import type {
+  ColumnDef,
+  SortingState,
+  ColumnFiltersState,
+} from '@tanstack/react-table'
 import type { OnboardingStatus, Prisma } from '@prisma/client'
 import { useState, useEffect, useCallback } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, Plus, ChevronRight, ChevronDown, MoreHorizontal, Upload } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Plus,
+  ChevronRight,
+  ChevronDown,
+  MoreHorizontal,
+  Upload,
+} from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -48,8 +61,16 @@ import { OnboardingTaskPanel } from '@/components/OnboardingTaskPanel'
 import { OnboardingImportPanel } from '@/components/OnboardingImportPanel'
 import { createAdminFn, createOrgChartFn } from '@/lib/auth-middleware'
 import { getQuarterOptions, getFullName } from '@/lib/utils'
-import { getPhase, formatDate, STATUS_CONFIG, STATUS_OPTIONS } from '@/lib/onboarding-utils'
-import { generateOnboardingTasks, syncTasksToStatus } from '@/lib/onboarding-task-generation'
+import {
+  getPhase,
+  formatDate,
+  STATUS_CONFIG,
+  STATUS_OPTIONS,
+} from '@/lib/onboarding-utils'
+import {
+  generateOnboardingTasks,
+  syncTasksToStatus,
+} from '@/lib/onboarding-task-generation'
 import { createToast } from 'vercel-toast'
 import prisma from '@/db'
 
@@ -64,7 +85,10 @@ export const Route = createFileRoute('/onboarding')({
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type OnboardingRecord = Prisma.OnboardingRecordGetPayload<{
-  include: { manager: true; tasks: { select: { id: true; completed: true; dueDate: true } } }
+  include: {
+    manager: true
+    tasks: { select: { id: true; completed: true; dueDate: true } }
+  }
 }>
 
 // ─── Server functions ─────────────────────────────────────────────────────────
@@ -86,7 +110,13 @@ const getDeelManagersForPicker = createOrgChartFn({
 }).handler(async () => {
   return await prisma.deelEmployee.findMany({
     where: { directReports: { some: {} } },
-    select: { id: true, firstName: true, lastName: true, title: true, team: true },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      title: true,
+      team: true,
+    },
     orderBy: { firstName: 'asc' },
   })
 })
@@ -106,7 +136,13 @@ const getDeelEmployeesForPicker = createOrgChartFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.deelEmployee.findMany({
-    select: { id: true, firstName: true, lastName: true, title: true, team: true },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      title: true,
+      team: true,
+    },
     orderBy: { firstName: 'asc' },
   })
 })
@@ -135,7 +171,9 @@ const createOnboardingRecord = createAdminFn({
         name: data.name,
         role: data.role,
         team: data.team,
-        startDate: data.startDate ? new Date(`${data.startDate}T12:00:00`) : undefined,
+        startDate: data.startDate
+          ? new Date(`${data.startDate}T12:00:00`)
+          : undefined,
         location: data.location || undefined,
         quarter: data.quarter || undefined,
         referral: data.referral,
@@ -292,7 +330,9 @@ const importOnboardingRecords = createAdminFn({
         let managerId: string | null = null
         if (item.managerName) {
           const manager = await prisma.deelEmployee.findFirst({
-            where: { firstName: { equals: item.managerName, mode: 'insensitive' } },
+            where: {
+              firstName: { equals: item.managerName, mode: 'insensitive' },
+            },
             select: { id: true },
           })
           managerId = manager?.id ?? null
@@ -310,15 +350,19 @@ const importOnboardingRecords = createAdminFn({
           name: item.name.trim(),
           role: item.role,
           team: item.team,
-          startDate: item.startDate ? new Date(`${item.startDate}T12:00:00`) : null,
+          startDate: item.startDate
+            ? new Date(`${item.startDate}T12:00:00`)
+            : null,
           location: item.location || null,
           quarter: item.quarter || null,
           referral: item.referral,
-          referredBy: item.referral ? (item.referredBy || null) : null,
+          referredBy: item.referral ? item.referredBy || null : null,
           contractType: item.contractType || null,
           status,
           laptopStatus: item.laptopStatus || 'Need to order',
-          welcomeCallDate: item.welcomeCallDate ? new Date(`${item.welcomeCallDate}T12:00:00`) : null,
+          welcomeCallDate: item.welcomeCallDate
+            ? new Date(`${item.welcomeCallDate}T12:00:00`)
+            : null,
           managerId,
           notes: item.notes || null,
         }
@@ -340,7 +384,11 @@ const importOnboardingRecords = createAdminFn({
             startDate: record.startDate,
             managerId: record.managerId,
           })
-          if (status === 'contract_signed' || status === 'provisioned' || status === 'started') {
+          if (
+            status === 'contract_signed' ||
+            status === 'provisioned' ||
+            status === 'started'
+          ) {
             await generateOnboardingTasks(record.id, 'contract_signed', {
               role: record.role,
               location: record.location,
@@ -351,7 +399,9 @@ const importOnboardingRecords = createAdminFn({
           created++
         }
       } catch (error) {
-        errors.push(`${item.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        errors.push(
+          `${item.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
       }
     }
 
@@ -376,7 +426,13 @@ function SortableHeader({
       onClick={() => column.toggleSorting(sorted === 'asc')}
     >
       {label}
-      {sorted === 'asc' ? <ArrowUp className="h-3 w-3" /> : sorted === 'desc' ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+      {sorted === 'asc' ? (
+        <ArrowUp className="h-3 w-3" />
+      ) : sorted === 'desc' ? (
+        <ArrowDown className="h-3 w-3" />
+      ) : (
+        <ArrowUpDown className="h-3 w-3 opacity-40" />
+      )}
     </button>
   )
 }
@@ -392,10 +448,11 @@ const columns: ColumnDef<OnboardingRecord>[] = [
         className="flex items-center hover:opacity-70"
         onClick={() => row.toggleExpanded()}
       >
-        {row.getIsExpanded()
-          ? <ChevronDown className="h-4 w-4 text-gray-500" />
-          : <ChevronRight className="h-4 w-4 text-gray-500" />
-        }
+        {row.getIsExpanded() ? (
+          <ChevronDown className="h-4 w-4 text-gray-500" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-gray-500" />
+        )}
       </button>
     ),
     size: 32,
@@ -404,49 +461,77 @@ const columns: ColumnDef<OnboardingRecord>[] = [
     id: 'name',
     header: ({ column }) => <SortableHeader column={column} label="Name" />,
     accessorKey: 'name',
-    cell: ({ row, getValue }) => <span className={row.getIsExpanded() ? '' : 'font-medium'}>{getValue() as string}</span>,
+    cell: ({ row, getValue }) => (
+      <span className={row.getIsExpanded() ? '' : 'font-medium'}>
+        {getValue() as string}
+      </span>
+    ),
   },
   {
     accessorKey: 'startDate',
-    header: ({ column }) => <SortableHeader column={column} label="Start Date" />,
+    header: ({ column }) => (
+      <SortableHeader column={column} label="Start Date" />
+    ),
     cell: ({ getValue }) => formatDate(getValue() as Date | null),
     sortingFn: 'datetime',
   },
   {
     accessorKey: 'team',
     header: ({ column }) => <SortableHeader column={column} label="Team" />,
-    cell: ({ row, getValue }) => <span className={row.getIsExpanded() ? '' : 'text-gray-700'}>{getValue() as string}</span>,
+    cell: ({ row, getValue }) => (
+      <span className={row.getIsExpanded() ? '' : 'text-gray-700'}>
+        {getValue() as string}
+      </span>
+    ),
     filterFn: 'equals',
   },
   {
     accessorKey: 'role',
     header: ({ column }) => <SortableHeader column={column} label="Role" />,
-    cell: ({ row, getValue }) => <span className={row.getIsExpanded() ? '' : 'text-gray-700'}>{getValue() as string}</span>,
+    cell: ({ row, getValue }) => (
+      <span className={row.getIsExpanded() ? '' : 'text-gray-700'}>
+        {getValue() as string}
+      </span>
+    ),
   },
   {
     id: 'manager',
     header: 'Manager',
-    accessorFn: (row) => row.manager ? getFullName(row.manager.firstName, row.manager.lastName) : '—',
-    cell: ({ row, getValue }) => <span className={row.getIsExpanded() ? '' : 'text-gray-700'}>{getValue() as string}</span>,
+    accessorFn: (row) =>
+      row.manager
+        ? getFullName(row.manager.firstName, row.manager.lastName)
+        : '—',
+    cell: ({ row, getValue }) => (
+      <span className={row.getIsExpanded() ? '' : 'text-gray-700'}>
+        {getValue() as string}
+      </span>
+    ),
   },
   {
     id: 'phase',
     header: ({ column }) => <SortableHeader column={column} label="Phase" />,
-    accessorFn: (row) => row.startDate ? getPhase(row.startDate).label : '',
+    accessorFn: (row) => (row.startDate ? getPhase(row.startDate).label : ''),
     cell: ({ row }) => {
-      if (!row.original.startDate) return <span className="text-gray-400 text-xs">—</span>
+      if (!row.original.startDate)
+        return <span className="text-xs text-gray-400">—</span>
       const phase = getPhase(row.original.startDate)
       const expanded = row.getIsExpanded()
       return (
-        <span className={`inline-flex items-center rounded-full ${expanded ? 'px-3 py-1 text-sm' : 'px-2.5 py-0.5 text-xs'} ${phase.badgeClass}`}>
+        <span
+          className={`inline-flex items-center rounded-full ${expanded ? 'px-3 py-1 text-sm' : 'px-2.5 py-0.5 text-xs'} ${phase.badgeClass}`}
+        >
           {phase.label}
         </span>
       )
     },
     filterFn: 'equals',
     sortingFn: (rowA, rowB) => {
-      const a = rowA.original.startDate ? getPhase(rowA.original.startDate).sortOrder : 99
-      const b = rowB.original.startDate ? getPhase(rowB.original.startDate).sortOrder : 99
+      const a = rowA.original.startDate
+        ? getPhase(rowA.original.startDate).sortOrder
+        : 99
+      const b = rowB.original.startDate
+        ? getPhase(rowB.original.startDate).sortOrder
+        : 99
       return a - b
     },
   },
@@ -460,11 +545,19 @@ const columns: ColumnDef<OnboardingRecord>[] = [
 
 // ─── Expanded row detail ─────────────────────────────────────────────────────
 
-function ReadOnlyField({ label, value }: { label: string; value: string | null | undefined }) {
+function ReadOnlyField({
+  label,
+  value,
+}: {
+  label: string
+  value: string | null | undefined
+}) {
   return (
     <div>
       <span className="text-gray-500">{label}</span>
-      <div className="mt-1 rounded-md bg-white px-3 py-1.5 text-sm text-gray-800">{value || '—'}</div>
+      <div className="mt-1 rounded-md bg-white px-3 py-1.5 text-sm text-gray-800">
+        {value || '—'}
+      </div>
     </div>
   )
 }
@@ -484,24 +577,32 @@ function ExpandedRowDetail({
     name: record.name,
     role: record.role,
     team: record.team,
-    startDate: record.startDate ? new Date(record.startDate).toISOString().split('T')[0] : '',
+    startDate: record.startDate
+      ? new Date(record.startDate).toISOString().split('T')[0]
+      : '',
     location: record.location ?? '',
     contractType: record.contractType ?? '',
     quarter: record.quarter ?? '',
     referral: record.referral,
     referredBy: record.referredBy ?? '',
     laptopStatus: record.laptopStatus ?? '',
-    laptopEta: record.laptopEta ? new Date(record.laptopEta).toISOString().split('T')[0] : '',
-    welcomeCallDate: record.welcomeCallDate ? new Date(record.welcomeCallDate).toISOString().split('T')[0] : '',
+    laptopEta: record.laptopEta
+      ? new Date(record.laptopEta).toISOString().split('T')[0]
+      : '',
+    welcomeCallDate: record.welcomeCallDate
+      ? new Date(record.welcomeCallDate).toISOString().split('T')[0]
+      : '',
     notes: record.notes ?? '',
   })
 
-  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setDraft((d) => ({ ...d, [field]: e.target.value }))
+  const set =
+    (field: string) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setDraft((d) => ({ ...d, [field]: e.target.value }))
 
   if (!editing) {
     return (
-      <div className="grid grid-cols-2 gap-x-8 gap-y-3 px-10 py-4 text-sm md:grid-cols-4 [&_input]:bg-white [&_button[role=combobox]]:bg-white">
+      <div className="grid grid-cols-2 gap-x-8 gap-y-3 px-10 py-4 text-sm md:grid-cols-4 [&_button[role=combobox]]:bg-white [&_input]:bg-white">
         <ReadOnlyField label="Contract type" value={record.contractType} />
         <ReadOnlyField label="Location" value={record.location} />
         <ReadOnlyField label="Quarter offered" value={record.quarter} />
@@ -509,10 +610,12 @@ function ExpandedRowDetail({
           <span className="text-gray-500">Referral</span>
           <div className="mt-1 rounded-md bg-white px-3 py-1.5 text-sm text-gray-800">
             {record.referral ? (
-              <span className="text-green-700 font-medium">
+              <span className="font-medium text-green-700">
                 Yes{record.referredBy ? ` (${record.referredBy})` : ''}
               </span>
-            ) : 'No'}
+            ) : (
+              'No'
+            )}
           </div>
         </div>
         <div>
@@ -522,15 +625,23 @@ function ExpandedRowDetail({
               <div className="mt-1">
                 <Select
                   value={record.laptopStatus ?? ''}
-                  onValueChange={(v) => onSave(record.id, { laptopStatus: v || null })}
+                  onValueChange={(v) =>
+                    onSave(record.id, { laptopStatus: v || null })
+                  }
                 >
                   <SelectTrigger className="h-8 w-36 text-xs">
                     <SelectValue placeholder="—" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Need to order" className="text-xs">Need to order</SelectItem>
-                    <SelectItem value="Ordered" className="text-xs">Ordered</SelectItem>
-                    <SelectItem value="Delivered" className="text-xs">Delivered</SelectItem>
+                    <SelectItem value="Need to order" className="text-xs">
+                      Need to order
+                    </SelectItem>
+                    <SelectItem value="Ordered" className="text-xs">
+                      Ordered
+                    </SelectItem>
+                    <SelectItem value="Delivered" className="text-xs">
+                      Delivered
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -541,10 +652,17 @@ function ExpandedRowDetail({
                 <Input
                   type="date"
                   className="h-8 w-36 text-xs"
-                  defaultValue={record.laptopEta ? new Date(record.laptopEta).toISOString().split('T')[0] : ''}
+                  defaultValue={
+                    record.laptopEta
+                      ? new Date(record.laptopEta).toISOString().split('T')[0]
+                      : ''
+                  }
                   onBlur={(e) => {
-                    const current = record.laptopEta ? new Date(record.laptopEta).toISOString().split('T')[0] : ''
-                    if (e.target.value !== current) onSave(record.id, { laptopEta: e.target.value || null })
+                    const current = record.laptopEta
+                      ? new Date(record.laptopEta).toISOString().split('T')[0]
+                      : ''
+                    if (e.target.value !== current)
+                      onSave(record.id, { laptopEta: e.target.value || null })
                   }}
                 />
               </div>
@@ -557,10 +675,17 @@ function ExpandedRowDetail({
             <Input
               type="date"
               className="h-8 w-36 text-xs"
-              defaultValue={record.welcomeCallDate ? new Date(record.welcomeCallDate).toISOString().split('T')[0] : ''}
+              defaultValue={
+                record.welcomeCallDate
+                  ? new Date(record.welcomeCallDate).toISOString().split('T')[0]
+                  : ''
+              }
               onBlur={(e) => {
-                const current = record.welcomeCallDate ? new Date(record.welcomeCallDate).toISOString().split('T')[0] : ''
-                if (e.target.value !== current) onSave(record.id, { welcomeCallDate: e.target.value || null })
+                const current = record.welcomeCallDate
+                  ? new Date(record.welcomeCallDate).toISOString().split('T')[0]
+                  : ''
+                if (e.target.value !== current)
+                  onSave(record.id, { welcomeCallDate: e.target.value || null })
               }}
             />
           </div>
@@ -568,7 +693,9 @@ function ExpandedRowDetail({
         {record.notes && (
           <div className="col-span-full">
             <span className="text-gray-500">Notes</span>
-            <div className="mt-1 rounded-md bg-white px-3 py-1.5 text-sm text-gray-800">{record.notes}</div>
+            <div className="mt-1 rounded-md bg-white px-3 py-1.5 text-sm text-gray-800">
+              {record.notes}
+            </div>
           </div>
         )}
       </div>
@@ -576,31 +703,56 @@ function ExpandedRowDetail({
   }
 
   return (
-    <div className="px-10 py-4 text-sm [&_input]:bg-white [&_textarea]:bg-white [&_button[role=combobox]]:bg-white">
+    <div className="px-10 py-4 text-sm [&_button[role=combobox]]:bg-white [&_input]:bg-white [&_textarea]:bg-white">
       <div className="grid grid-cols-3 gap-x-6 gap-y-4">
         <div>
           <Label className="text-xs text-gray-500">Name</Label>
-          <Input className="mt-1 h-9" value={draft.name} onChange={set('name')} />
+          <Input
+            className="mt-1 h-9"
+            value={draft.name}
+            onChange={set('name')}
+          />
         </div>
         <div>
           <Label className="text-xs text-gray-500">Role</Label>
-          <Input className="mt-1 h-9" value={draft.role} onChange={set('role')} />
+          <Input
+            className="mt-1 h-9"
+            value={draft.role}
+            onChange={set('role')}
+          />
         </div>
         <div>
           <Label className="text-xs text-gray-500">Team</Label>
-          <Input className="mt-1 h-9" value={draft.team} onChange={set('team')} />
+          <Input
+            className="mt-1 h-9"
+            value={draft.team}
+            onChange={set('team')}
+          />
         </div>
         <div>
           <Label className="text-xs text-gray-500">Start date</Label>
-          <Input type="date" className="mt-1 h-9" value={draft.startDate} onChange={set('startDate')} />
+          <Input
+            type="date"
+            className="mt-1 h-9"
+            value={draft.startDate}
+            onChange={set('startDate')}
+          />
         </div>
         <div>
           <Label className="text-xs text-gray-500">Location</Label>
-          <Input className="mt-1 h-9" value={draft.location} onChange={set('location')} placeholder="e.g. London, UK (GMT)" />
+          <Input
+            className="mt-1 h-9"
+            value={draft.location}
+            onChange={set('location')}
+            placeholder="e.g. London, UK (GMT)"
+          />
         </div>
         <div>
           <Label className="text-xs text-gray-500">Contract type</Label>
-          <Select value={draft.contractType} onValueChange={(v) => setDraft((d) => ({ ...d, contractType: v }))}>
+          <Select
+            value={draft.contractType}
+            onValueChange={(v) => setDraft((d) => ({ ...d, contractType: v }))}
+          >
             <SelectTrigger className="mt-1 h-9">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
@@ -613,12 +765,25 @@ function ExpandedRowDetail({
         </div>
         <div>
           <Label className="text-xs text-gray-500">Quarter offered</Label>
-          <Input className="mt-1 h-9" value={draft.quarter} onChange={set('quarter')} />
+          <Input
+            className="mt-1 h-9"
+            value={draft.quarter}
+            onChange={set('quarter')}
+          />
         </div>
         <div>
           <Label className="text-xs text-gray-500">Referral</Label>
           <div className="mt-1 flex items-center gap-2">
-            <Select value={draft.referral ? 'yes' : 'no'} onValueChange={(v) => setDraft((d) => ({ ...d, referral: v === 'yes', referredBy: v === 'no' ? '' : d.referredBy }))}>
+            <Select
+              value={draft.referral ? 'yes' : 'no'}
+              onValueChange={(v) =>
+                setDraft((d) => ({
+                  ...d,
+                  referral: v === 'yes',
+                  referredBy: v === 'no' ? '' : d.referredBy,
+                }))
+              }
+            >
               <SelectTrigger className="h-9 w-24">
                 <SelectValue />
               </SelectTrigger>
@@ -628,14 +793,24 @@ function ExpandedRowDetail({
               </SelectContent>
             </Select>
             {draft.referral && (
-              <Input className="h-9 flex-1" placeholder="Referred by" value={draft.referredBy} onChange={set('referredBy')} />
+              <Input
+                className="h-9 flex-1"
+                placeholder="Referred by"
+                value={draft.referredBy}
+                onChange={set('referredBy')}
+              />
             )}
           </div>
         </div>
         <div>
           <Label className="text-xs text-gray-500">Laptop</Label>
           <div className="mt-1 flex items-center gap-2">
-            <Select value={draft.laptopStatus} onValueChange={(v) => setDraft((d) => ({ ...d, laptopStatus: v }))}>
+            <Select
+              value={draft.laptopStatus}
+              onValueChange={(v) =>
+                setDraft((d) => ({ ...d, laptopStatus: v }))
+              }
+            >
               <SelectTrigger className="h-9 w-40">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
@@ -645,12 +820,23 @@ function ExpandedRowDetail({
                 <SelectItem value="Delivered">Delivered</SelectItem>
               </SelectContent>
             </Select>
-            <Input type="date" className="h-9 flex-1" value={draft.laptopEta} onChange={set('laptopEta')} title="ETA" />
+            <Input
+              type="date"
+              className="h-9 flex-1"
+              value={draft.laptopEta}
+              onChange={set('laptopEta')}
+              title="ETA"
+            />
           </div>
         </div>
         <div>
           <Label className="text-xs text-gray-500">Welcome call</Label>
-          <Input type="date" className="mt-1 h-9" value={draft.welcomeCallDate} onChange={set('welcomeCallDate')} />
+          <Input
+            type="date"
+            className="mt-1 h-9"
+            value={draft.welcomeCallDate}
+            onChange={set('welcomeCallDate')}
+          />
         </div>
         <div className="col-span-full">
           <Label className="text-xs text-gray-500">Notes</Label>
@@ -663,24 +849,29 @@ function ExpandedRowDetail({
         </div>
       </div>
       <div className="mt-4 flex justify-end gap-2 border-t pt-3">
-        <Button variant="outline" size="sm" onClick={onCancel}>Cancel</Button>
-        <Button size="sm" onClick={() => {
-          onSave(record.id, {
-            name: draft.name,
-            role: draft.role,
-            team: draft.team,
-            startDate: draft.startDate || null,
-            location: draft.location || null,
-            contractType: draft.contractType || null,
-            quarter: draft.quarter || null,
-            referral: draft.referral,
-            referredBy: draft.referral ? (draft.referredBy || null) : null,
-            laptopStatus: draft.laptopStatus || null,
-            laptopEta: draft.laptopEta || null,
-            welcomeCallDate: draft.welcomeCallDate || null,
-            notes: draft.notes || null,
-          })
-        }}>
+        <Button variant="outline" size="sm" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => {
+            onSave(record.id, {
+              name: draft.name,
+              role: draft.role,
+              team: draft.team,
+              startDate: draft.startDate || null,
+              location: draft.location || null,
+              contractType: draft.contractType || null,
+              quarter: draft.quarter || null,
+              referral: draft.referral,
+              referredBy: draft.referral ? draft.referredBy || null : null,
+              laptopStatus: draft.laptopStatus || null,
+              laptopEta: draft.laptopEta || null,
+              welcomeCallDate: draft.welcomeCallDate || null,
+              notes: draft.notes || null,
+            })
+          }}
+        >
           Save changes
         </Button>
       </div>
@@ -697,7 +888,11 @@ function getCurrentQuarter(): string {
   return `Q${q} ${y}`
 }
 
-function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => void }) {
+function AddHireDialog({
+  onSuccess,
+}: {
+  onSuccess: (newRecordId?: string) => void
+}) {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [referral, setReferral] = useState(false)
@@ -736,13 +931,18 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
     notes: '',
   })
 
-  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm((f) => ({ ...f, [field]: e.target.value }))
+  const set =
+    (field: string) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((f) => ({ ...f, [field]: e.target.value }))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name || !form.role || !form.team) {
-      createToast('Name, role, and team are required', { type: 'error', timeout: 4000 })
+      createToast('Name, role, and team are required', {
+        type: 'error',
+        timeout: 4000,
+      })
       return
     }
     setSaving(true)
@@ -754,16 +954,33 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
           referredBy: referral ? form.referredBy : undefined,
         },
       })
-      createToast(`${form.name} added to onboarding`, { type: 'success', timeout: 3000 })
+      createToast(`${form.name} added to onboarding`, {
+        type: 'success',
+        timeout: 3000,
+      })
       setOpen(false)
-      setForm({ name: '', role: '', team: '', startDate: '', location: '', quarter: getCurrentQuarter(), referredBy: '', managerId: '', contractType: '', notes: '' })
+      setForm({
+        name: '',
+        role: '',
+        team: '',
+        startDate: '',
+        location: '',
+        quarter: getCurrentQuarter(),
+        referredBy: '',
+        managerId: '',
+        contractType: '',
+        notes: '',
+      })
       setReferral(false)
       setReferralSearch('')
       setManagerSearch('')
       setTeamSearch('')
       onSuccess(newRecord?.id)
     } catch {
-      createToast('Failed to save — please try again', { type: 'error', timeout: 4000 })
+      createToast('Failed to save — please try again', {
+        type: 'error',
+        timeout: 4000,
+      })
     } finally {
       setSaving(false)
     }
@@ -787,11 +1004,19 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Full name *</Label>
-                <Input placeholder="e.g. Sofia Reyes" value={form.name} onChange={set('name')} />
+                <Input
+                  placeholder="e.g. Sofia Reyes"
+                  value={form.name}
+                  onChange={set('name')}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Role *</Label>
-                <Input placeholder="e.g. Product Engineer" value={form.role} onChange={set('role')} />
+                <Input
+                  placeholder="e.g. Product Engineer"
+                  value={form.role}
+                  onChange={set('role')}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Team *</Label>
@@ -807,7 +1032,9 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
                   {teamSearch && (
                     <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border bg-white shadow-lg">
                       {deelTeams
-                        .filter((t) => t.toLowerCase().includes(teamSearch.toLowerCase()))
+                        .filter((t) =>
+                          t.toLowerCase().includes(teamSearch.toLowerCase()),
+                        )
                         .slice(0, 10)
                         .map((t) => (
                           <button
@@ -822,8 +1049,12 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
                             {t}
                           </button>
                         ))}
-                      {deelTeams.filter((t) => t.toLowerCase().includes(teamSearch.toLowerCase())).length === 0 && (
-                        <p className="px-3 py-2 text-sm text-gray-400">No matches — custom value will be used</p>
+                      {deelTeams.filter((t) =>
+                        t.toLowerCase().includes(teamSearch.toLowerCase()),
+                      ).length === 0 && (
+                        <p className="px-3 py-2 text-sm text-gray-400">
+                          No matches — custom value will be used
+                        </p>
                       )}
                     </div>
                   )}
@@ -831,21 +1062,34 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
               </div>
               <div className="space-y-1.5">
                 <Label>Start date</Label>
-                <Input type="date" value={form.startDate} onChange={set('startDate')} />
+                <Input
+                  type="date"
+                  value={form.startDate}
+                  onChange={set('startDate')}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Location / Timezone</Label>
-                <Input placeholder="e.g. London, UK (GMT)" value={form.location} onChange={set('location')} />
+                <Input
+                  placeholder="e.g. London, UK (GMT)"
+                  value={form.location}
+                  onChange={set('location')}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Quarter offered</Label>
-                <Select value={form.quarter} onValueChange={(v) => setForm((f) => ({ ...f, quarter: v }))}>
+                <Select
+                  value={form.quarter}
+                  onValueChange={(v) => setForm((f) => ({ ...f, quarter: v }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select quarter" />
                   </SelectTrigger>
                   <SelectContent>
                     {quarterOptions.map((q) => (
-                      <SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>
+                      <SelectItem key={q.value} value={q.value}>
+                        {q.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -855,20 +1099,31 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
                 <div className="relative">
                   <Input
                     placeholder="Type to search managers…"
-                    value={managerSearch || (form.managerId ? getFullName(
-                      managers.find((m) => m.id === form.managerId)?.firstName,
-                      managers.find((m) => m.id === form.managerId)?.lastName,
-                    ) : '')}
+                    value={
+                      managerSearch ||
+                      (form.managerId
+                        ? getFullName(
+                            managers.find((m) => m.id === form.managerId)
+                              ?.firstName,
+                            managers.find((m) => m.id === form.managerId)
+                              ?.lastName,
+                          )
+                        : '')
+                    }
                     onChange={(e) => {
                       setManagerSearch(e.target.value)
-                      if (!e.target.value) setForm((f) => ({ ...f, managerId: '' }))
+                      if (!e.target.value)
+                        setForm((f) => ({ ...f, managerId: '' }))
                     }}
                   />
                   {managerSearch && !form.managerId && (
                     <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border bg-white shadow-lg">
                       {managers
                         .filter((m) => {
-                          const name = getFullName(m.firstName, m.lastName).toLowerCase()
+                          const name = getFullName(
+                            m.firstName,
+                            m.lastName,
+                          ).toLowerCase()
                           return name.includes(managerSearch.toLowerCase())
                         })
                         .slice(0, 10)
@@ -888,8 +1143,14 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
                             </button>
                           )
                         })}
-                      {managers.filter((m) => getFullName(m.firstName, m.lastName).toLowerCase().includes(managerSearch.toLowerCase())).length === 0 && (
-                        <p className="px-3 py-2 text-sm text-gray-400">No matches</p>
+                      {managers.filter((m) =>
+                        getFullName(m.firstName, m.lastName)
+                          .toLowerCase()
+                          .includes(managerSearch.toLowerCase()),
+                      ).length === 0 && (
+                        <p className="px-3 py-2 text-sm text-gray-400">
+                          No matches
+                        </p>
                       )}
                     </div>
                   )}
@@ -897,12 +1158,19 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
               </div>
               <div className="space-y-1.5">
                 <Label>Contract type</Label>
-                <Select value={form.contractType} onValueChange={(v) => setForm((f) => ({ ...f, contractType: v }))}>
+                <Select
+                  value={form.contractType}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, contractType: v }))
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Direct Employee">Direct Employee</SelectItem>
+                    <SelectItem value="Direct Employee">
+                      Direct Employee
+                    </SelectItem>
                     <SelectItem value="EOR">EOR</SelectItem>
                     <SelectItem value="Contractor">Contractor</SelectItem>
                   </SelectContent>
@@ -910,7 +1178,10 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
               </div>
               <div className="space-y-1.5">
                 <Label>Referral?</Label>
-                <Select value={referral ? 'yes' : 'no'} onValueChange={(v) => setReferral(v === 'yes')}>
+                <Select
+                  value={referral ? 'yes' : 'no'}
+                  onValueChange={(v) => setReferral(v === 'yes')}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -931,14 +1202,18 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
                     value={referralSearch || form.referredBy}
                     onChange={(e) => {
                       setReferralSearch(e.target.value)
-                      if (!e.target.value) setForm((f) => ({ ...f, referredBy: '' }))
+                      if (!e.target.value)
+                        setForm((f) => ({ ...f, referredBy: '' }))
                     }}
                   />
                   {referralSearch && !form.referredBy && (
                     <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border bg-white shadow-lg">
                       {allEmployees
                         .filter((e) => {
-                          const name = getFullName(e.firstName, e.lastName).toLowerCase()
+                          const name = getFullName(
+                            e.firstName,
+                            e.lastName,
+                          ).toLowerCase()
                           return name.includes(referralSearch.toLowerCase())
                         })
                         .slice(0, 10)
@@ -958,8 +1233,14 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
                             </button>
                           )
                         })}
-                      {allEmployees.filter((e) => getFullName(e.firstName, e.lastName).toLowerCase().includes(referralSearch.toLowerCase())).length === 0 && (
-                        <p className="px-3 py-2 text-sm text-gray-400">No matches</p>
+                      {allEmployees.filter((e) =>
+                        getFullName(e.firstName, e.lastName)
+                          .toLowerCase()
+                          .includes(referralSearch.toLowerCase()),
+                      ).length === 0 && (
+                        <p className="px-3 py-2 text-sm text-gray-400">
+                          No matches
+                        </p>
                       )}
                     </div>
                   )}
@@ -979,7 +1260,9 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
 
             <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="outline">Cancel</Button>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
               </DialogClose>
               <Button type="submit" disabled={saving}>
                 {saving ? 'Saving…' : 'Add hire'}
@@ -997,10 +1280,30 @@ function AddHireDialog({ onSuccess }: { onSuccess: (newRecordId?: string) => voi
 type ExpandColors = { bg: string; border: string; text: string; bgHalf: string }
 
 const SECTION_EXPAND_COLORS: Record<string, ExpandColors> = {
-  '#006FDC': { bg: 'bg-blue-50', border: 'border-l-blue-500', text: 'text-blue-500', bgHalf: 'bg-blue-50/50' },
-  '#FF4E00': { bg: 'bg-orange-50', border: 'border-l-orange-500', text: 'text-orange-500', bgHalf: 'bg-orange-50/50' },
-  '#F99B00': { bg: 'bg-amber-50', border: 'border-l-amber-500', text: 'text-amber-600', bgHalf: 'bg-amber-50/50' },
-  '#78A700': { bg: 'bg-lime-50', border: 'border-l-lime-600', text: 'text-lime-700', bgHalf: 'bg-lime-50/50' },
+  '#006FDC': {
+    bg: 'bg-blue-50',
+    border: 'border-l-blue-500',
+    text: 'text-blue-500',
+    bgHalf: 'bg-blue-50/50',
+  },
+  '#FF4E00': {
+    bg: 'bg-orange-50',
+    border: 'border-l-orange-500',
+    text: 'text-orange-500',
+    bgHalf: 'bg-orange-50/50',
+  },
+  '#F99B00': {
+    bg: 'bg-amber-50',
+    border: 'border-l-amber-500',
+    text: 'text-amber-600',
+    bgHalf: 'bg-amber-50/50',
+  },
+  '#78A700': {
+    bg: 'bg-lime-50',
+    border: 'border-l-lime-600',
+    text: 'text-lime-700',
+    bgHalf: 'bg-lime-50/50',
+  },
 }
 
 function OnboardingSection({
@@ -1033,7 +1336,9 @@ function OnboardingSection({
   onOpenTasks: (id: string, name: string) => void
 }) {
   const ec = SECTION_EXPAND_COLORS[color] ?? SECTION_EXPAND_COLORS['#006FDC']
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'startDate', desc: false }])
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'startDate', desc: false },
+  ])
 
   const table = useReactTable({
     data,
@@ -1062,35 +1367,69 @@ function OnboardingSection({
           {title}
           <span className="ml-2 text-sm font-normal text-gray-500">(0)</span>
         </h2>
-        <p className="text-muted-foreground rounded-md py-6 text-center text-sm" style={{ border: `1px solid ${color}33` }}>No hires in this phase</p>
+        <p
+          className="text-muted-foreground rounded-md py-6 text-center text-sm"
+          style={{ border: `1px solid ${color}33` }}
+        >
+          No hires in this phase
+        </p>
       </div>
     )
   }
 
   const widths: Record<string, string> = {
-    expand: '3%', name: '15%', startDate: '10%', team: '12%',
-    role: '15%', manager: '13%', phase: '10%',
+    expand: '3%',
+    name: '15%',
+    startDate: '10%',
+    team: '12%',
+    role: '15%',
+    manager: '13%',
+    phase: '10%',
   }
 
   return (
     <div>
       <h2 className="mb-2 text-lg font-semibold" style={{ color }}>
         {title}
-        <span className="ml-2 text-sm font-normal text-gray-500">({data.length})</span>
+        <span className="ml-2 text-sm font-normal text-gray-500">
+          ({data.length})
+        </span>
       </h2>
       <div className="rounded-md" style={{ border: `1px solid ${color}33` }}>
         <Table style={{ tableLayout: 'fixed' }}>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id} className="font-bold text-base" style={{ backgroundColor: `${color}1A` }}>
+              <TableRow
+                key={hg.id}
+                className="text-base font-bold"
+                style={{ backgroundColor: `${color}1A` }}
+              >
                 {hg.headers.map((h) => (
                   <>
-                    <TableHead key={h.id} style={{ width: widths[h.column.id] }}>
-                      {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
+                    <TableHead
+                      key={h.id}
+                      style={{ width: widths[h.column.id] }}
+                    >
+                      {h.isPlaceholder
+                        ? null
+                        : flexRender(h.column.columnDef.header, h.getContext())}
                     </TableHead>
-                    {h.column.id === 'manager' && <TableHead key="status-header" style={{ width: '13%' }}>Status</TableHead>}
-                    {h.column.id === 'phase' && SHOW_TASKS && <TableHead key="tasks-header" style={{ width: '5%' }}>Tasks</TableHead>}
-                    {h.column.id === 'phase' && <TableHead key="actions-header" style={{ width: SHOW_TASKS ? '4%' : '9%' }}></TableHead>}
+                    {h.column.id === 'manager' && (
+                      <TableHead key="status-header" style={{ width: '13%' }}>
+                        Status
+                      </TableHead>
+                    )}
+                    {h.column.id === 'phase' && SHOW_TASKS && (
+                      <TableHead key="tasks-header" style={{ width: '5%' }}>
+                        Tasks
+                      </TableHead>
+                    )}
+                    {h.column.id === 'phase' && (
+                      <TableHead
+                        key="actions-header"
+                        style={{ width: SHOW_TASKS ? '4%' : '9%' }}
+                      ></TableHead>
+                    )}
                   </>
                 ))}
               </TableRow>
@@ -1102,10 +1441,11 @@ function OnboardingSection({
                 <TableRow
                   key={row.id}
                   className={`cursor-pointer !transition-none ${
-                    highlightedRecordId === row.original.id && !row.getIsExpanded()
+                    highlightedRecordId === row.original.id &&
+                    !row.getIsExpanded()
                       ? `${ec.bg} border-l-4 ${ec.border}`
                       : ''
-                  } ${row.getIsExpanded() ? (editingRecordId === row.original.id ? 'bg-amber-50 hover:bg-amber-50 border-l-4 border-l-amber-400 font-bold text-base text-amber-700 [&_td]:bg-amber-50' : `${ec.bg} hover:${ec.bg} border-l-4 ${ec.border} font-bold text-base ${ec.text} [&_td]:${ec.bg}`) : ''}`}
+                  } ${row.getIsExpanded() ? (editingRecordId === row.original.id ? 'border-l-4 border-l-amber-400 bg-amber-50 text-base font-bold text-amber-700 hover:bg-amber-50 [&_td]:bg-amber-50' : `${ec.bg} hover:${ec.bg} border-l-4 ${ec.border} text-base font-bold ${ec.text} [&_td]:${ec.bg}`) : ''}`}
                   onClick={() => {
                     const wasExpanded = row.getIsExpanded()
                     onExpandRecord(wasExpanded ? null : row.original.id)
@@ -1114,20 +1454,43 @@ function OnboardingSection({
                   {row.getVisibleCells().map((cell) => (
                     <>
                       <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
                       </TableCell>
                       {cell.column.id === 'manager' && (
-                        <TableCell key={`${cell.id}-status`} onClick={(e) => e.stopPropagation()}>
+                        <TableCell
+                          key={`${cell.id}-status`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Select
                             value={row.original.status}
-                            onValueChange={(v) => onStatusChange(row.original.id, v as OnboardingStatus)}
+                            onValueChange={(v) =>
+                              onStatusChange(
+                                row.original.id,
+                                v as OnboardingStatus,
+                              )
+                            }
                           >
-                            <SelectTrigger className={row.getIsExpanded() ? 'h-8 w-44 text-sm' : 'h-7 w-40 text-xs'}>
+                            <SelectTrigger
+                              className={
+                                row.getIsExpanded()
+                                  ? 'h-8 w-44 text-sm'
+                                  : 'h-7 w-40 text-xs'
+                              }
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               {STATUS_OPTIONS.map((s) => (
-                                <SelectItem key={s} value={s} className={row.getIsExpanded() ? 'text-sm' : 'text-xs'}>
+                                <SelectItem
+                                  key={s}
+                                  value={s}
+                                  className={
+                                    row.getIsExpanded() ? 'text-sm' : 'text-xs'
+                                  }
+                                >
                                   {STATUS_CONFIG[s].label}
                                 </SelectItem>
                               ))}
@@ -1136,19 +1499,47 @@ function OnboardingSection({
                         </TableCell>
                       )}
                       {cell.column.id === 'phase' && SHOW_TASKS && (
-                        <TableCell key={`${cell.id}-tasks`} onClick={(e) => e.stopPropagation()}>
+                        <TableCell
+                          key={`${cell.id}-tasks`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {(() => {
                             const tasks = row.original.tasks
                             const expanded = row.getIsExpanded()
-                            if (!tasks || tasks.length === 0) return <span className={expanded ? 'text-gray-400 text-sm' : 'text-gray-400 text-xs'}>—</span>
+                            if (!tasks || tasks.length === 0)
+                              return (
+                                <span
+                                  className={
+                                    expanded
+                                      ? 'text-sm text-gray-400'
+                                      : 'text-xs text-gray-400'
+                                  }
+                                >
+                                  —
+                                </span>
+                              )
                             const done = tasks.filter((t) => t.completed).length
                             const total = tasks.length
-                            const overdue = tasks.filter((t) => !t.completed && new Date(t.dueDate) < new Date()).length
-                            const cls = done === total ? 'bg-green-100 text-green-800' : overdue > 0 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                            const overdue = tasks.filter(
+                              (t) =>
+                                !t.completed &&
+                                new Date(t.dueDate) < new Date(),
+                            ).length
+                            const cls =
+                              done === total
+                                ? 'bg-green-100 text-green-800'
+                                : overdue > 0
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-yellow-100 text-yellow-800'
                             return (
                               <button
                                 className={`inline-flex items-center rounded-full font-medium hover:opacity-80 ${expanded ? 'px-3 py-1 text-sm' : 'px-2.5 py-0.5 text-xs'} ${cls}`}
-                                onClick={() => onOpenTasks(row.original.id, row.original.name)}
+                                onClick={() =>
+                                  onOpenTasks(
+                                    row.original.id,
+                                    row.original.name,
+                                  )
+                                }
                               >
                                 {done}/{total}
                               </button>
@@ -1157,7 +1548,10 @@ function OnboardingSection({
                         </TableCell>
                       )}
                       {cell.column.id === 'phase' && (
-                        <TableCell key={`${cell.id}-actions`} onClick={(e) => e.stopPropagation()}>
+                        <TableCell
+                          key={`${cell.id}-actions`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0">
@@ -1165,15 +1559,22 @@ function OnboardingSection({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => {
-                                onExpandRecord(row.original.id)
-                                onEditRecord(row.original.id)
-                              }}>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  onExpandRecord(row.original.id)
+                                  onEditRecord(row.original.id)
+                                }}
+                              >
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-600"
-                                onClick={() => onDeleteRecord(row.original.id, row.original.name)}
+                                onClick={() =>
+                                  onDeleteRecord(
+                                    row.original.id,
+                                    row.original.name,
+                                  )
+                                }
                               >
                                 Delete
                               </DropdownMenuItem>
@@ -1187,7 +1588,11 @@ function OnboardingSection({
                 {row.getIsExpanded() && (
                   <TableRow
                     key={`${row.id}-detail`}
-                    className={editingRecordId === row.original.id ? 'bg-amber-50 hover:bg-amber-50 border-l-4 border-l-amber-400' : `${ec.bgHalf} hover:${ec.bgHalf} border-l-4 ${ec.border}`}
+                    className={
+                      editingRecordId === row.original.id
+                        ? 'border-l-4 border-l-amber-400 bg-amber-50 hover:bg-amber-50'
+                        : `${ec.bgHalf} hover:${ec.bgHalf} border-l-4 ${ec.border}`
+                    }
                   >
                     <TableCell colSpan={columns.length + 3} className="p-0">
                       <ExpandedRowDetail
@@ -1219,8 +1624,13 @@ function OnboardingPage() {
 
   const [globalFilter, setGlobalFilter] = useState('')
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [taskPanelRecord, setTaskPanelRecord] = useState<{ id: string; name: string } | null>(null)
-  const [highlightedRecordId, setHighlightedRecordId] = useState<string | null>(null)
+  const [taskPanelRecord, setTaskPanelRecord] = useState<{
+    id: string
+    name: string
+  } | null>(null)
+  const [highlightedRecordId, setHighlightedRecordId] = useState<string | null>(
+    null,
+  )
   const [expandedRecordId, setExpandedRecordId] = useState<string | null>(null)
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
@@ -1244,7 +1654,9 @@ function OnboardingPage() {
     globalFilterFn: 'includesString',
   })
 
-  const filteredRecords = filterTable.getFilteredRowModel().rows.map((r) => r.original)
+  const filteredRecords = filterTable
+    .getFilteredRowModel()
+    .rows.map((r) => r.original)
 
   const handleStatusChange = async (id: string, status: OnboardingStatus) => {
     try {
@@ -1255,7 +1667,10 @@ function OnboardingPage() {
     }
   }
 
-  const handleSaveRecord = async (id: string, updates: Record<string, unknown>) => {
+  const handleSaveRecord = async (
+    id: string,
+    updates: Record<string, unknown>,
+  ) => {
     try {
       await updateOnboardingRecord({ data: { id, ...updates } })
       await queryClient.invalidateQueries({ queryKey: ['onboarding-records'] })
@@ -1267,7 +1682,10 @@ function OnboardingPage() {
   }
 
   const handleDeleteRecord = async (id: string, name: string) => {
-    if (!window.confirm(`Delete ${name}? This will also remove all their tasks.`)) return
+    if (
+      !window.confirm(`Delete ${name}? This will also remove all their tasks.`)
+    )
+      return
     try {
       await deleteOnboardingRecord({ data: { id } })
       await queryClient.invalidateQueries({ queryKey: ['onboarding-records'] })
@@ -1282,18 +1700,24 @@ function OnboardingPage() {
     if (!id) setEditingRecordId(null)
   }, [])
 
-  const refresh = useCallback((newRecordId?: string) => {
-    if (newRecordId) setHighlightedRecordId(newRecordId)
-    queryClient.invalidateQueries({ queryKey: ['onboarding-records'] })
-  }, [queryClient])
+  const refresh = useCallback(
+    (newRecordId?: string) => {
+      if (newRecordId) setHighlightedRecordId(newRecordId)
+      queryClient.invalidateQueries({ queryKey: ['onboarding-records'] })
+    },
+    [queryClient],
+  )
 
   // Phase summary counts
-  const phaseCounts = records.reduce((acc, record) => {
-    if (!record.startDate) return acc
-    const phase = getPhase(record.startDate).label
-    acc[phase] = (acc[phase] ?? 0) + 1
-    return acc
-  }, {} as Record<string, number>)
+  const phaseCounts = records.reduce(
+    (acc, record) => {
+      if (!record.startDate) return acc
+      const phase = getPhase(record.startDate).label
+      acc[phase] = (acc[phase] ?? 0) + 1
+      return acc
+    },
+    {} as Record<string, number>,
+  )
 
   return (
     <div className="p-6">
@@ -1306,19 +1730,42 @@ function OnboardingPage() {
 
       <div className="mb-4 flex flex-wrap gap-2">
         {[
-          { label: 'Pre-start', badgeClass: 'bg-[#006FDC]/15 text-[#006FDC] font-semibold' },
-          { label: 'First Day', badgeClass: 'bg-[#FF4E00]/15 text-[#FF4E00] font-semibold' },
-          { label: 'First Week', badgeClass: 'bg-[#F99B00]/15 text-[#F99B00] font-semibold' },
-          { label: 'First 30 Days', badgeClass: 'bg-yellow-100 text-yellow-800 font-semibold' },
-          { label: 'First 60 Days', badgeClass: 'bg-orange-100 text-orange-800 font-semibold' },
-          { label: 'First 90 Days', badgeClass: 'bg-purple-100 text-purple-800 font-semibold' },
+          {
+            label: 'Pre-start',
+            badgeClass: 'bg-[#006FDC]/15 text-[#006FDC] font-semibold',
+          },
+          {
+            label: 'First Day',
+            badgeClass: 'bg-[#FF4E00]/15 text-[#FF4E00] font-semibold',
+          },
+          {
+            label: 'First Week',
+            badgeClass: 'bg-[#F99B00]/15 text-[#F99B00] font-semibold',
+          },
+          {
+            label: 'First 30 Days',
+            badgeClass: 'bg-yellow-100 text-yellow-800 font-semibold',
+          },
+          {
+            label: 'First 60 Days',
+            badgeClass: 'bg-orange-100 text-orange-800 font-semibold',
+          },
+          {
+            label: 'First 90 Days',
+            badgeClass: 'bg-purple-100 text-purple-800 font-semibold',
+          },
         ].map(({ label, badgeClass }) => {
           const count = phaseCounts[label] ?? 0
           if (count === 0) return null
           return (
-            <span key={label} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm ${badgeClass}`}>
+            <span
+              key={label}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm ${badgeClass}`}
+            >
               {label}
-              <span className="rounded-full bg-white/60 px-1.5 py-0.5 text-xs font-semibold">{count}</span>
+              <span className="rounded-full bg-white/60 px-1.5 py-0.5 text-xs font-semibold">
+                {count}
+              </span>
             </span>
           )
         })}
@@ -1333,7 +1780,10 @@ function OnboardingPage() {
             className="w-72"
           />
           <Select
-            value={(columnFilters.find((f) => f.id === 'team')?.value as string) ?? 'all'}
+            value={
+              (columnFilters.find((f) => f.id === 'team')?.value as string) ??
+              'all'
+            }
             onValueChange={(v) => {
               setColumnFilters((prev) => [
                 ...prev.filter((f) => f.id !== 'team'),
@@ -1345,14 +1795,21 @@ function OnboardingPage() {
               <SelectValue placeholder="All teams" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all" className="text-xs">All teams</SelectItem>
+              <SelectItem value="all" className="text-xs">
+                All teams
+              </SelectItem>
               {[...new Set(records.map((r) => r.team))].sort().map((t) => (
-                <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+                <SelectItem key={t} value={t} className="text-xs">
+                  {t}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select
-            value={(columnFilters.find((f) => f.id === 'phase')?.value as string) ?? 'all'}
+            value={
+              (columnFilters.find((f) => f.id === 'phase')?.value as string) ??
+              'all'
+            }
             onValueChange={(v) => {
               setColumnFilters((prev) => [
                 ...prev.filter((f) => f.id !== 'phase'),
@@ -1364,17 +1821,34 @@ function OnboardingPage() {
               <SelectValue placeholder="All phases" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all" className="text-xs">All phases</SelectItem>
-              <SelectItem value="Pre-start" className="text-xs">Pre-start</SelectItem>
-              <SelectItem value="First Day" className="text-xs">First Day</SelectItem>
-              <SelectItem value="First Week" className="text-xs">First Week</SelectItem>
-              <SelectItem value="First 30 Days" className="text-xs">First 30 Days</SelectItem>
-              <SelectItem value="First 60 Days" className="text-xs">First 60 Days</SelectItem>
-              <SelectItem value="First 90 Days" className="text-xs">First 90 Days</SelectItem>
+              <SelectItem value="all" className="text-xs">
+                All phases
+              </SelectItem>
+              <SelectItem value="Pre-start" className="text-xs">
+                Pre-start
+              </SelectItem>
+              <SelectItem value="First Day" className="text-xs">
+                First Day
+              </SelectItem>
+              <SelectItem value="First Week" className="text-xs">
+                First Week
+              </SelectItem>
+              <SelectItem value="First 30 Days" className="text-xs">
+                First 30 Days
+              </SelectItem>
+              <SelectItem value="First 60 Days" className="text-xs">
+                First 60 Days
+              </SelectItem>
+              <SelectItem value="First 90 Days" className="text-xs">
+                First 90 Days
+              </SelectItem>
             </SelectContent>
           </Select>
           <Select
-            value={(columnFilters.find((f) => f.id === 'statusFilter')?.value as string) ?? 'all'}
+            value={
+              (columnFilters.find((f) => f.id === 'statusFilter')
+                ?.value as string) ?? 'all'
+            }
             onValueChange={(v) => {
               setColumnFilters((prev) => [
                 ...prev.filter((f) => f.id !== 'statusFilter'),
@@ -1386,9 +1860,13 @@ function OnboardingPage() {
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all" className="text-xs">All statuses</SelectItem>
+              <SelectItem value="all" className="text-xs">
+                All statuses
+              </SelectItem>
               {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} value={s} className="text-xs">{STATUS_CONFIG[s].label}</SelectItem>
+                <SelectItem key={s} value={s} className="text-xs">
+                  {STATUS_CONFIG[s].label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -1420,7 +1898,9 @@ function OnboardingPage() {
       </div>
 
       {isLoading ? (
-        <div className="text-muted-foreground py-12 text-center text-sm">Loading…</div>
+        <div className="text-muted-foreground py-12 text-center text-sm">
+          Loading…
+        </div>
       ) : (
         <div className="space-y-8">
           {[
@@ -1454,7 +1934,11 @@ function OnboardingPage() {
               data: filteredRecords.filter((r) => {
                 if (!r.startDate) return false
                 const phase = getPhase(r.startDate).label
-                return phase === 'First 30 Days' || phase === 'First 60 Days' || phase === 'First 90 Days'
+                return (
+                  phase === 'First 30 Days' ||
+                  phase === 'First 60 Days' ||
+                  phase === 'First 90 Days'
+                )
               }),
             },
           ].map((section) => (
@@ -1484,7 +1968,9 @@ function OnboardingPage() {
       {SHOW_TASKS && taskPanelRecord && (
         <OnboardingTaskPanel
           open={!!taskPanelRecord}
-          onOpenChange={(open) => { if (!open) setTaskPanelRecord(null) }}
+          onOpenChange={(open) => {
+            if (!open) setTaskPanelRecord(null)
+          }}
           recordId={taskPanelRecord.id}
           recordName={taskPanelRecord.name}
           getOnboardingTasks={getOnboardingTasks}

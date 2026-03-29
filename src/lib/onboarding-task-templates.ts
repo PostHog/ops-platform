@@ -32,7 +32,8 @@ const OFFER_ACCEPTED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'ops-send-ciia-us',
-    description: 'Send Confidential Information and Invention Assignment via DocuSign (US only)',
+    description:
+      'Send Confidential Information and Invention Assignment via DocuSign (US only)',
     assigneeType: 'ops',
     daysFromStart: -28,
     triggerStatus: 'offer_accepted',
@@ -47,14 +48,16 @@ const OFFER_ACCEPTED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'ops-deel-onboarding',
-    description: 'Onboard to Deel with all relevant docs including PostHog email',
+    description:
+      'Onboard to Deel with all relevant docs including PostHog email',
     assigneeType: 'ops',
     daysFromStart: -21,
     triggerStatus: 'offer_accepted',
   },
   {
     id: 'ops-zluri-birthright',
-    description: 'Complete Zluri Birth-Right onboarding: Google/Email, Slack, Brex, onboarding channel, GitHub issue',
+    description:
+      'Complete Zluri Birth-Right onboarding: Google/Email, Slack, Brex, onboarding channel, GitHub issue',
     assigneeType: 'ops',
     daysFromStart: -14,
     triggerStatus: 'offer_accepted',
@@ -77,7 +80,8 @@ const OFFER_ACCEPTED_TASKS: OnboardingTaskTemplate[] = [
   // ── Manager: upon offer acceptance ──
   {
     id: 'manager-welcome-message',
-    description: 'Post welcome message in team channel with introduction and proposed in-person onboarding schedule',
+    description:
+      'Post welcome message in team channel with introduction and proposed in-person onboarding schedule',
     assigneeType: 'manager',
     daysFromStart: -14,
     triggerStatus: 'offer_accepted',
@@ -91,7 +95,8 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   // ── Ops: week before start ──
   {
     id: 'ops-engineer-pm-call',
-    description: 'Schedule onboarding call with a PM on how to be a product engineer (engineers only)',
+    description:
+      'Schedule onboarding call with a PM on how to be a product engineer (engineers only)',
     assigneeType: 'ops',
     daysFromStart: -7,
     triggerStatus: 'contract_signed',
@@ -122,7 +127,8 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'ops-slack-equipment-reminder',
-    description: 'Slack team member reminding them to purchase additional equipment (prioritize YubiKey)',
+    description:
+      'Slack team member reminding them to purchase additional equipment (prioritize YubiKey)',
     assigneeType: 'ops',
     daysFromStart: -7,
     triggerStatus: 'contract_signed',
@@ -143,7 +149,8 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'ops-small-team-page',
-    description: 'Add new hire to relevant small team page on website (Friday before)',
+    description:
+      'Add new hire to relevant small team page on website (Friday before)',
     assigneeType: 'ops',
     daysFromStart: -3,
     triggerStatus: 'contract_signed',
@@ -152,14 +159,15 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   // ── Kendal ──
   {
     id: 'kendal-merch-pack',
-    description: 'Send merch pack via Micromerch (backpack, 3x vert stickers, mug, socks)',
+    description:
+      'Send merch pack via Micromerch (backpack, 3x vert stickers, mug, socks)',
     assigneeType: 'kendal',
     daysFromStart: -7,
     triggerStatus: 'contract_signed',
   },
   {
     id: 'kendal-hedgehog',
-    description: 'Sponsor a hedgehog on new hire\'s behalf',
+    description: "Sponsor a hedgehog on new hire's behalf",
     assigneeType: 'kendal',
     daysFromStart: -7,
     triggerStatus: 'contract_signed',
@@ -168,7 +176,7 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   // ── Hector ──
   {
     id: 'hector-share-options',
-    description: 'Add team member\'s share options to the share options sheet',
+    description: "Add team member's share options to the share options sheet",
     assigneeType: 'hector',
     daysFromStart: -7,
     triggerStatus: 'contract_signed',
@@ -193,14 +201,16 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'manager-in-person-calendar',
-    description: 'Add in-person onboarding to the onboarding calendar and announce in Slack',
+    description:
+      'Add in-person onboarding to the onboarding calendar and announce in Slack',
     assigneeType: 'manager',
     daysFromStart: -7,
     triggerStatus: 'contract_signed',
   },
   {
     id: 'manager-user-interviews',
-    description: 'Schedule user interviews for first week (product engineers only)',
+    description:
+      'Schedule user interviews for first week (product engineers only)',
     assigneeType: 'manager',
     daysFromStart: -7,
     triggerStatus: 'contract_signed',
@@ -247,7 +257,8 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'ops-drata-removal',
-    description: 'Remove background check requirements from Drata for non-US team members',
+    description:
+      'Remove background check requirements from Drata for non-US team members',
     assigneeType: 'ops',
     daysFromStart: 0,
     triggerStatus: 'contract_signed',
@@ -263,7 +274,8 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'manager-interview-feedback',
-    description: 'Share high-level interview feedback with new hire (not raw scores)',
+    description:
+      'Share high-level interview feedback with new hire (not raw scores)',
     assigneeType: 'manager',
     daysFromStart: 1,
     triggerStatus: 'contract_signed',
@@ -277,7 +289,7 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'manager-slack-group',
-    description: 'Add new hire to their team\'s Slack group',
+    description: "Add new hire to their team's Slack group",
     assigneeType: 'manager',
     daysFromStart: 3,
     triggerStatus: 'contract_signed',
@@ -294,7 +306,8 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'ops-us-i9',
-    description: 'Complete employer section of I-9 and run E-Verify within first 3 days (US only)',
+    description:
+      'Complete employer section of I-9 and run E-Verify within first 3 days (US only)',
     assigneeType: 'ops',
     daysFromStart: 1,
     triggerStatus: 'contract_signed',
@@ -360,7 +373,7 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'newhire-team-handbook',
-    description: 'Read your team\'s section of the Handbook',
+    description: "Read your team's section of the Handbook",
     assigneeType: 'new_hire',
     daysFromStart: 5,
     triggerStatus: 'contract_signed',
@@ -411,21 +424,24 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'newhire-community-profile',
-    description: 'Reset community profile password, fill out bio and special moderator fields',
+    description:
+      'Reset community profile password, fill out bio and special moderator fields',
     assigneeType: 'new_hire',
     daysFromStart: 5,
     triggerStatus: 'contract_signed',
   },
   {
     id: 'newhire-yubikeys',
-    description: 'Install YubiKeys (locked out of Google after 30 days without)',
+    description:
+      'Install YubiKeys (locked out of Google after 30 days without)',
     assigneeType: 'new_hire',
     daysFromStart: 3,
     triggerStatus: 'contract_signed',
   },
   {
     id: 'newhire-slack-profile',
-    description: 'Fill out Slack profile: timezone, team, start date, community profile link, full name',
+    description:
+      'Fill out Slack profile: timezone, team, start date, community profile link, full name',
     assigneeType: 'new_hire',
     daysFromStart: 1,
     triggerStatus: 'contract_signed',
@@ -453,7 +469,8 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'newhire-incident-handling',
-    description: 'Read incident handling docs and watch the video (engineers only)',
+    description:
+      'Read incident handling docs and watch the video (engineers only)',
     assigneeType: 'new_hire',
     daysFromStart: 5,
     triggerStatus: 'contract_signed',
@@ -548,7 +565,8 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'newhire-github-profile',
-    description: 'Set actual name on GitHub profile and optionally add profile picture',
+    description:
+      'Set actual name on GitHub profile and optionally add profile picture',
     assigneeType: 'new_hire',
     daysFromStart: 7,
     triggerStatus: 'contract_signed',
@@ -562,14 +580,16 @@ const CONTRACT_SIGNED_TASKS: OnboardingTaskTemplate[] = [
   },
   {
     id: 'newhire-illustrated-photo',
-    description: 'Submit photo for illustration via Slack workflow (for team page)',
+    description:
+      'Submit photo for illustration via Slack workflow (for team page)',
     assigneeType: 'new_hire',
     daysFromStart: 14,
     triggerStatus: 'contract_signed',
   },
   {
     id: 'newhire-support-shadowing',
-    description: 'Schedule 30-min shadowing session with nearest support engineer',
+    description:
+      'Schedule 30-min shadowing session with nearest support engineer',
     assigneeType: 'new_hire',
     daysFromStart: 21,
     triggerStatus: 'contract_signed',
@@ -609,13 +629,17 @@ export function getApplicableTemplates(
 
     if (t.roleConditions?.length) {
       const roleLower = role.toLowerCase()
-      if (!t.roleConditions.some((rc) => roleLower.includes(rc.toLowerCase()))) return false
+      if (!t.roleConditions.some((rc) => roleLower.includes(rc.toLowerCase())))
+        return false
     }
 
     if (t.countryConditions?.length) {
       if (!location) return false
       const locLower = location.toLowerCase()
-      if (!t.countryConditions.some((cc) => locLower.includes(cc.toLowerCase()))) return false
+      if (
+        !t.countryConditions.some((cc) => locLower.includes(cc.toLowerCase()))
+      )
+        return false
     }
 
     return true

@@ -126,7 +126,9 @@ async function main() {
     update: {},
     create: FAKE_MANAGER,
   })
-  console.log(`✓ Fake manager: ${FAKE_MANAGER.firstName} ${FAKE_MANAGER.lastName}\n`)
+  console.log(
+    `✓ Fake manager: ${FAKE_MANAGER.firstName} ${FAKE_MANAGER.lastName}\n`,
+  )
 
   // ── Create onboarding records ─────────────────────────────────────────────
 
@@ -152,7 +154,10 @@ async function main() {
     return result
   }
 
-  const STATUS_TRIGGERS: Record<string, ('offer_accepted' | 'contract_signed')[]> = {
+  const STATUS_TRIGGERS: Record<
+    string,
+    ('offer_accepted' | 'contract_signed')[]
+  > = {
     offer_accepted: ['offer_accepted'],
     contract_sent: ['offer_accepted'],
     contract_signed: ['offer_accepted', 'contract_signed'],
@@ -166,7 +171,11 @@ async function main() {
     let recordTasks = 0
 
     for (const trigger of triggers) {
-      const templates = getApplicableTemplates(trigger, record.role, record.location ?? null)
+      const templates = getApplicableTemplates(
+        trigger,
+        record.role,
+        record.location ?? null,
+      )
       const tasks = templates.map((t) => ({
         onboardingRecordId: record.id,
         templateId: t.id,
@@ -191,7 +200,10 @@ async function main() {
         select: { id: true },
       })
       if (overdueTasks.length > 0) {
-        const toComplete = overdueTasks.slice(0, Math.ceil(overdueTasks.length * 0.75))
+        const toComplete = overdueTasks.slice(
+          0,
+          Math.ceil(overdueTasks.length * 0.75),
+        )
         await prisma.onboardingTask.updateMany({
           where: { id: { in: toComplete.map((t) => t.id) } },
           data: { completed: true, completedAt: new Date() },

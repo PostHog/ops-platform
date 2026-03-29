@@ -22,8 +22,12 @@ import { createToast } from 'vercel-toast'
 
 // ─── Parsing helpers ─────────────────────────────────────────────────────────
 
-function parseReferral(value: string | undefined): { referral: boolean; referredBy: string | null } {
-  if (!value || value.toLowerCase() === 'no') return { referral: false, referredBy: null }
+function parseReferral(value: string | undefined): {
+  referral: boolean
+  referredBy: string | null
+} {
+  if (!value || value.toLowerCase() === 'no')
+    return { referral: false, referredBy: null }
   const lower = value.toLowerCase().trim()
   if (!lower.startsWith('yes')) return { referral: false, referredBy: null }
 
@@ -48,7 +52,12 @@ function parseLaptopStatus(value: string | undefined): string {
   if (!value) return 'Need to order'
   const lower = value.toLowerCase().trim()
   if (lower.includes('delivered')) return 'Delivered'
-  if (lower.includes('ordered') || lower.includes('assigned') || lower.includes('shipped')) return 'Ordered'
+  if (
+    lower.includes('ordered') ||
+    lower.includes('assigned') ||
+    lower.includes('shipped')
+  )
+    return 'Ordered'
   return 'Need to order'
 }
 
@@ -86,7 +95,10 @@ function parseDate(value: string | undefined): string | null {
   return null
 }
 
-function parseQuarter(value: string | undefined, startDate: string | null): string | null {
+function parseQuarter(
+  value: string | undefined,
+  startDate: string | null,
+): string | null {
   if (!value) return null
   const q = value.trim().toUpperCase()
   if (!q.match(/^Q[1-4]/)) return null
@@ -125,7 +137,10 @@ function normalizeHeader(header: string): string {
   return header.toLowerCase().trim()
 }
 
-function parseCSVRow(row: Record<string, string>, existingNames: Set<string>): ParsedRow | null {
+function parseCSVRow(
+  row: Record<string, string>,
+  existingNames: Set<string>,
+): ParsedRow | null {
   // Find values by normalized header matching
   const get = (patterns: string[]): string | undefined => {
     for (const [key, val] of Object.entries(row)) {
@@ -138,13 +153,20 @@ function parseCSVRow(row: Record<string, string>, existingNames: Set<string>): P
   const name = get(['name']) || ''
 
   // Skip section headers, empty rows, and referral table rows
-  if (!name || name.toLowerCase() === 'name' || name.toLowerCase().includes('started recently') || name.toLowerCase().includes('referral')) return null
+  if (
+    !name ||
+    name.toLowerCase() === 'name' ||
+    name.toLowerCase().includes('started recently') ||
+    name.toLowerCase().includes('referral')
+  )
+    return null
 
   const role = get(['role']) || ''
   const team = get(['team']) || ''
   const startDateRaw = get(['start date', 'start_date'])
   const manager = get(['manager']) || null
-  const location = get(['time zone', 'timezone', 'time_zone', 'location']) || null
+  const location =
+    get(['time zone', 'timezone', 'time_zone', 'location']) || null
   const quarterRaw = get(['quarter'])
   const contractType = get(['contract type', 'contract_type']) || null
   const referralRaw = get(['referral'])
@@ -176,11 +198,23 @@ function parseCSVRow(row: Record<string, string>, existingNames: Set<string>): P
   const isUpdate = existingNames.has(name.toLowerCase().trim())
 
   return {
-    name, role, team, startDate, location, quarter,
-    referral, referredBy, contractType, status,
-    laptopStatus, welcomeCallDate,
-    managerName: manager, notes,
-    isValid, validationError, isUpdate,
+    name,
+    role,
+    team,
+    startDate,
+    location,
+    quarter,
+    referral,
+    referredBy,
+    contractType,
+    status,
+    laptopStatus,
+    welcomeCallDate,
+    managerName: manager,
+    notes,
+    isValid,
+    validationError,
+    isUpdate,
   }
 }
 
@@ -196,7 +230,9 @@ export function OnboardingImportPanel({
   open: boolean
   onOpenChange: (open: boolean) => void
   existingNames: string[]
-  importFn: (args: { data: { items: any[] } }) => Promise<{ created: number; updated: number; errors: string[] }>
+  importFn: (args: {
+    data: { items: any[] }
+  }) => Promise<{ created: number; updated: number; errors: string[] }>
   onSuccess: () => void
 }) {
   const [rows, setRows] = useState<ParsedRow[]>([])
@@ -227,11 +263,17 @@ export function OnboardingImportPanel({
         setRows(parsed)
 
         if (parsed.length === 0) {
-          createToast('No valid rows found in CSV', { type: 'error', timeout: 4000 })
+          createToast('No valid rows found in CSV', {
+            type: 'error',
+            timeout: 4000,
+          })
         }
       },
       error: (err) => {
-        createToast(`Failed to parse CSV: ${err.message}`, { type: 'error', timeout: 4000 })
+        createToast(`Failed to parse CSV: ${err.message}`, {
+          type: 'error',
+          timeout: 4000,
+        })
       },
     })
   }
@@ -266,7 +308,10 @@ export function OnboardingImportPanel({
       })
 
       const msg = `Import complete: ${result.created} created, ${result.updated} updated${result.errors.length > 0 ? `, ${result.errors.length} errors` : ''}`
-      createToast(msg, { type: result.errors.length > 0 ? 'error' : 'success', timeout: 5000 })
+      createToast(msg, {
+        type: result.errors.length > 0 ? 'error' : 'success',
+        timeout: 5000,
+      })
 
       if (result.errors.length > 0) {
         console.error('Import errors:', result.errors)
@@ -277,15 +322,27 @@ export function OnboardingImportPanel({
       setRows([])
       setFileName(null)
     } catch {
-      createToast('Import failed — please try again', { type: 'error', timeout: 4000 })
+      createToast('Import failed — please try again', {
+        type: 'error',
+        timeout: 4000,
+      })
     } finally {
       setImporting(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setRows([]); setFileName(null) } }}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        onOpenChange(v)
+        if (!v) {
+          setRows([])
+          setFileName(null)
+        }
+      }}
+    >
+      <DialogContent className="max-h-[85vh] max-w-5xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Import onboarding records from CSV</DialogTitle>
         </DialogHeader>
@@ -293,7 +350,9 @@ export function OnboardingImportPanel({
         <div className="space-y-4 py-2">
           <div>
             <p className="text-muted-foreground mb-2 text-sm">
-              Export your Google Sheet as CSV and upload it here. Records are matched by name — existing records will be updated, new ones created.
+              Export your Google Sheet as CSV and upload it here. Records are
+              matched by name — existing records will be updated, new ones
+              created.
             </p>
             <Input
               type="file"
@@ -301,21 +360,31 @@ export function OnboardingImportPanel({
               onChange={handleFile}
               className="max-w-sm"
             />
-            {fileName && <p className="text-muted-foreground mt-1 text-xs">File: {fileName}</p>}
+            {fileName && (
+              <p className="text-muted-foreground mt-1 text-xs">
+                File: {fileName}
+              </p>
+            )}
           </div>
 
           {rows.length > 0 && (
             <>
               <div className="flex items-center gap-4 text-sm">
                 <span>{rows.length} rows parsed</span>
-                <span className="text-green-600 font-medium">{newCount} new</span>
-                <span className="text-amber-600 font-medium">{updateCount} updates</span>
+                <span className="font-medium text-green-600">
+                  {newCount} new
+                </span>
+                <span className="font-medium text-amber-600">
+                  {updateCount} updates
+                </span>
                 {rows.filter((r) => !r.isValid).length > 0 && (
-                  <span className="text-red-600 font-medium">{rows.filter((r) => !r.isValid).length} invalid</span>
+                  <span className="font-medium text-red-600">
+                    {rows.filter((r) => !r.isValid).length} invalid
+                  </span>
                 )}
               </div>
 
-              <div className="rounded-md border max-h-[50vh] overflow-auto">
+              <div className="max-h-[50vh] overflow-auto rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow className="text-xs">
@@ -332,23 +401,52 @@ export function OnboardingImportPanel({
                   </TableHeader>
                   <TableBody>
                     {rows.map((row, i) => (
-                      <TableRow key={i} className={!row.isValid ? 'bg-red-50' : row.isUpdate ? 'bg-amber-50' : ''}>
+                      <TableRow
+                        key={i}
+                        className={
+                          !row.isValid
+                            ? 'bg-red-50'
+                            : row.isUpdate
+                              ? 'bg-amber-50'
+                              : ''
+                        }
+                      >
                         <TableCell className="text-xs">
                           {!row.isValid ? (
-                            <span className="text-red-600 font-medium">Invalid</span>
+                            <span className="font-medium text-red-600">
+                              Invalid
+                            </span>
                           ) : row.isUpdate ? (
-                            <span className="text-amber-600 font-medium">Update</span>
+                            <span className="font-medium text-amber-600">
+                              Update
+                            </span>
                           ) : (
-                            <span className="text-green-600 font-medium">New</span>
+                            <span className="font-medium text-green-600">
+                              New
+                            </span>
                           )}
                         </TableCell>
-                        <TableCell className="text-xs font-medium">{row.name || '—'}</TableCell>
-                        <TableCell className="text-xs">{row.role || '—'}</TableCell>
-                        <TableCell className="text-xs">{row.team || '—'}</TableCell>
-                        <TableCell className="text-xs">{row.startDate || '—'}</TableCell>
-                        <TableCell className="text-xs">{row.managerName || '—'}</TableCell>
-                        <TableCell className="text-xs">{row.location || '—'}</TableCell>
-                        <TableCell className="text-xs">{row.contractType || '—'}</TableCell>
+                        <TableCell className="text-xs font-medium">
+                          {row.name || '—'}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {row.role || '—'}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {row.team || '—'}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {row.startDate || '—'}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {row.managerName || '—'}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {row.location || '—'}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {row.contractType || '—'}
+                        </TableCell>
                         <TableCell className="text-xs">{row.status}</TableCell>
                       </TableRow>
                     ))}
@@ -361,7 +459,9 @@ export function OnboardingImportPanel({
 
         <DialogFooter>
           <DialogClose asChild>
-            <Button type="button" variant="outline">Cancel</Button>
+            <Button type="button" variant="outline">
+              Cancel
+            </Button>
           </DialogClose>
           <Button
             onClick={handleImport}

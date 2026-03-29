@@ -13,7 +13,10 @@ export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
         const notificationEmail = process.env.ONBOARDING_NOTIFICATION_EMAIL
         if (!notificationEmail) {
           return new Response(
-            JSON.stringify({ success: false, error: 'ONBOARDING_NOTIFICATION_EMAIL not configured' }),
+            JSON.stringify({
+              success: false,
+              error: 'ONBOARDING_NOTIFICATION_EMAIL not configured',
+            }),
             { status: 500 },
           )
         }
@@ -34,11 +37,20 @@ export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
         })
 
         if (tasks.length === 0) {
-          return new Response(JSON.stringify({ success: true, message: 'No upcoming tasks', sent: 0 }))
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: 'No upcoming tasks',
+              sent: 0,
+            }),
+          )
         }
 
         // Group tasks by onboarding record
-        const byRecord = new Map<string, { record: typeof tasks[0]['onboardingRecord']; tasks: typeof tasks }>()
+        const byRecord = new Map<
+          string,
+          { record: (typeof tasks)[0]['onboardingRecord']; tasks: typeof tasks }
+        >()
         for (const task of tasks) {
           const existing = byRecord.get(task.onboardingRecordId)
           if (existing) {
@@ -62,9 +74,15 @@ export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
         const userBody = await userRes.json()
 
         if (userRes.status !== 200 || !userBody.ok) {
-          console.error(`Error looking up Slack user for ${notificationEmail}:`, JSON.stringify(userBody))
+          console.error(
+            `Error looking up Slack user for ${notificationEmail}:`,
+            JSON.stringify(userBody),
+          )
           return new Response(
-            JSON.stringify({ success: false, error: 'Failed to look up Slack user' }),
+            JSON.stringify({
+              success: false,
+              error: 'Failed to look up Slack user',
+            }),
             { status: 500 },
           )
         }
@@ -86,12 +104,18 @@ export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
 
         for (const [, { record, tasks: recordTasks }] of byRecord) {
           const startDateStr = record.startDate
-            ? new Date(record.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+            ? new Date(record.startDate).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+              })
             : 'No start date'
 
           const taskLines = recordTasks.map((t) => {
             const dueDate = new Date(t.dueDate)
-            const dueDateStr = dueDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+            const dueDateStr = dueDate.toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+            })
             const overdue = dueDate < now
             const prefix = overdue ? ':red_circle:' : ':large_yellow_circle:'
             return `${prefix} ${t.description} _(due ${dueDateStr})_`
@@ -113,7 +137,11 @@ export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
             elements: [
               {
                 type: 'button',
-                text: { type: 'plain_text', text: 'View Onboarding Dashboard', emoji: true },
+                text: {
+                  type: 'plain_text',
+                  text: 'View Onboarding Dashboard',
+                  emoji: true,
+                },
                 url: `${process.env.VITE_APP_BETTER_AUTH_URL}/onboarding`,
                 action_id: 'view_onboarding',
               },
@@ -140,7 +168,10 @@ export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
         if (msgRes.status !== 200 || !msgBody.ok) {
           console.error('Error sending Slack digest:', JSON.stringify(msgBody))
           return new Response(
-            JSON.stringify({ success: false, error: 'Failed to send Slack message' }),
+            JSON.stringify({
+              success: false,
+              error: 'Failed to send Slack message',
+            }),
             { status: 500 },
           )
         }

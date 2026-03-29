@@ -18,12 +18,18 @@ const ASSIGNEE_LABELS: Record<OnboardingTaskAssigneeType, string> = {
 }
 
 const ASSIGNEE_ORDER: OnboardingTaskAssigneeType[] = [
-  'ops', 'manager', 'kendal', 'hector', 'scott', 'new_hire',
+  'ops',
+  'manager',
+  'kendal',
+  'hector',
+  'scott',
+  'new_hire',
 ]
 
 function formatTaskDate(date: Date | string) {
   return new Date(date).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short',
+    day: 'numeric',
+    month: 'short',
   })
 }
 
@@ -43,8 +49,12 @@ export function OnboardingTaskPanel({
   onOpenChange: (open: boolean) => void
   recordId: string
   recordName: string
-  getOnboardingTasks: (args: { data: { recordId: string } }) => Promise<OnboardingTask[]>
-  completeOnboardingTask: (args: { data: { taskId: string; completed: boolean } }) => Promise<OnboardingTask>
+  getOnboardingTasks: (args: {
+    data: { recordId: string }
+  }) => Promise<OnboardingTask[]>
+  completeOnboardingTask: (args: {
+    data: { taskId: string; completed: boolean }
+  }) => Promise<OnboardingTask>
 }) {
   const queryClient = useQueryClient()
 
@@ -59,7 +69,9 @@ export function OnboardingTaskPanel({
       await completeOnboardingTask({
         data: { taskId, completed: !currentCompleted },
       })
-      await queryClient.invalidateQueries({ queryKey: ['onboarding-tasks', recordId] })
+      await queryClient.invalidateQueries({
+        queryKey: ['onboarding-tasks', recordId],
+      })
       await queryClient.invalidateQueries({ queryKey: ['onboarding-records'] })
     } catch {
       createToast('Failed to update task', { type: 'error', timeout: 4000 })
@@ -67,20 +79,18 @@ export function OnboardingTaskPanel({
   }
 
   // Group tasks by assignee type
-  const grouped = ASSIGNEE_ORDER
-    .map((type) => ({
-      type,
-      label: ASSIGNEE_LABELS[type],
-      tasks: tasks.filter((t) => t.assigneeType === type),
-    }))
-    .filter((g) => g.tasks.length > 0)
+  const grouped = ASSIGNEE_ORDER.map((type) => ({
+    type,
+    label: ASSIGNEE_LABELS[type],
+    tasks: tasks.filter((t) => t.assigneeType === type),
+  })).filter((g) => g.tasks.length > 0)
 
   const completed = tasks.filter((t) => t.completed).length
   const total = tasks.length
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             Tasks for {recordName}
@@ -93,10 +103,13 @@ export function OnboardingTaskPanel({
         </DialogHeader>
 
         {isLoading ? (
-          <p className="text-muted-foreground py-8 text-center text-sm">Loading tasks...</p>
+          <p className="text-muted-foreground py-8 text-center text-sm">
+            Loading tasks...
+          </p>
         ) : tasks.length === 0 ? (
           <p className="text-muted-foreground py-8 text-center text-sm">
-            No tasks generated yet. Tasks are created when a hire has a start date.
+            No tasks generated yet. Tasks are created when a hire has a start
+            date.
           </p>
         ) : (
           <div className="space-y-6 py-2">
@@ -105,7 +118,8 @@ export function OnboardingTaskPanel({
                 <h3 className="mb-2 text-sm font-semibold text-gray-900">
                   {group.label}
                   <span className="ml-1.5 text-xs font-normal text-gray-400">
-                    ({group.tasks.filter((t) => t.completed).length}/{group.tasks.length})
+                    ({group.tasks.filter((t) => t.completed).length}/
+                    {group.tasks.length})
                   </span>
                 </h3>
                 <div className="space-y-1">
@@ -124,7 +138,9 @@ export function OnboardingTaskPanel({
                           onChange={() => handleToggle(task.id, task.completed)}
                           className="mt-0.5 h-4 w-4 rounded border-gray-300"
                         />
-                        <span className={`flex-1 text-sm ${task.completed ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                        <span
+                          className={`flex-1 text-sm ${task.completed ? 'text-gray-400 line-through' : 'text-gray-800'}`}
+                        >
                           {task.description}
                         </span>
                         <span

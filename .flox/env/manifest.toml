@@ -6,7 +6,7 @@
 ##
 ## -------------------------------------------------------------------
 # Flox manifest version managed by Flox CLI
-version = 1
+schema-version = "1.11.0"
 
 
 ## Install Packages --------------------------------------------------
@@ -16,7 +16,9 @@ version = 1
 ## -------------------------------------------------------------------
 [install]
 nodejs.pkg-path = "nodejs"
+nodejs.outputs = "all"
 postgresql.pkg-path = "postgresql"
+postgresql.outputs = "all"
 gum.pkg-path = "gum"
 
 

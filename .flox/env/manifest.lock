@@ -1,16 +1,18 @@
 {
   "lockfile-version": 1,
   "manifest": {
-    "version": 1,
+    "schema-version": "1.11.0",
     "install": {
       "gum": {
         "pkg-path": "gum"
       },
       "nodejs": {
-        "pkg-path": "nodejs"
+        "pkg-path": "nodejs",
+        "outputs": "all"
       },
       "postgresql": {
-        "pkg-path": "postgresql"
+        "pkg-path": "postgresql",
+        "outputs": "all"
       }
     },
     "vars": {
