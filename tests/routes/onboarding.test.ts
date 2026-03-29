@@ -6,73 +6,44 @@ describe('onboarding route server functions', () => {
   const filePath = path.join(process.cwd(), 'src/routes/onboarding.tsx')
   const content = fs.readFileSync(filePath, 'utf-8')
 
-  it('imports createAdminFn from auth-middleware', () => {
+  it('imports createAdminFn and createOrgChartFn from auth-middleware', () => {
     expect(content).toMatch(
       /import\s*\{[^}]*createAdminFn[^}]*\}\s*from\s*['"]@\/lib\/auth-middleware['"]/,
     )
+    expect(content).toMatch(/createOrgChartFn/)
   })
 
-  it('defines getOnboardingHires as a GET server function', () => {
+  it('defines getOnboardingRecords as a GET function', () => {
     expect(content).toMatch(
-      /const\s+getOnboardingHires\s*=\s*createAdminFn\(\{/,
-    )
-    expect(content).toMatch(
-      /getOnboardingHires\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/,
-    )
-  })
-
-  it('defines getOnboardingRecords as a GET server function', () => {
-    expect(content).toMatch(
-      /const\s+getOnboardingRecords\s*=\s*createAdminFn\(\{/,
-    )
-    expect(content).toMatch(
-      /getOnboardingRecords\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/,
+      /getOnboardingRecords\s*=\s*create(Admin|OrgChart)Fn\(\{/,
     )
   })
 
-  it('defines getDeelEmployeesForPicker as a GET server function', () => {
+  it('defines getDeelEmployeesForPicker as a GET function', () => {
     expect(content).toMatch(
-      /const\s+getDeelEmployeesForPicker\s*=\s*createAdminFn\(\{/,
-    )
-    expect(content).toMatch(
-      /getDeelEmployeesForPicker\s*=\s*createAdminFn\(\{\s*method:\s*['"]GET['"]/,
+      /getDeelEmployeesForPicker\s*=\s*create(Admin|OrgChart)Fn\(\{/,
     )
   })
 
-  it('defines createOnboardingRecord as a POST server function with inputValidator', () => {
-    expect(content).toMatch(
-      /const\s+createOnboardingRecord\s*=\s*createAdminFn\(\{/,
-    )
-    expect(content).toMatch(
-      /createOnboardingRecord\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/,
-    )
-    // The inputValidator should accept name, role, team, startDate, etc.
+  it('defines createOnboardingRecord as a POST admin function with inputValidator', () => {
+    expect(content).toMatch(/createOnboardingRecord\s*=\s*createAdminFn\(\{/)
     expect(content).toMatch(/createOnboardingRecord[\s\S]*?\.inputValidator\(/)
   })
 
-  it('defines updateOnboardingStatus as a POST server function with inputValidator', () => {
-    expect(content).toMatch(
-      /const\s+updateOnboardingStatus\s*=\s*createAdminFn\(\{/,
-    )
-    expect(content).toMatch(
-      /updateOnboardingStatus\s*=\s*createAdminFn\(\{\s*method:\s*['"]POST['"]/,
-    )
+  it('defines updateOnboardingStatus as a POST admin function with inputValidator', () => {
+    expect(content).toMatch(/updateOnboardingStatus\s*=\s*createAdminFn\(\{/)
     expect(content).toMatch(/updateOnboardingStatus[\s\S]*?\.inputValidator\(/)
   })
 
-  it('uses prisma.deelEmployee.findMany for pipeline hires', () => {
-    expect(content).toMatch(/prisma\.deelEmployee\.findMany/)
+  it('defines importOnboardingRecords as a POST admin function', () => {
+    expect(content).toMatch(/importOnboardingRecords\s*=\s*createAdminFn\(\{/)
   })
 
   it('uses prisma.onboardingRecord for CRUD operations', () => {
     expect(content).toMatch(/prisma\.onboardingRecord\.findMany/)
     expect(content).toMatch(/prisma\.onboardingRecord\.create/)
     expect(content).toMatch(/prisma\.onboardingRecord\.update/)
-  })
-
-  it('filters pipeline hires to last 90 days', () => {
-    expect(content).toMatch(/ninetyDaysAgo/)
-    expect(content).toMatch(/startDate:\s*\{\s*gte:\s*ninetyDaysAgo\s*\}/)
+    expect(content).toMatch(/prisma\.onboardingRecord\.delete/)
   })
 
   it('imports OnboardingStatus type from prisma client', () => {

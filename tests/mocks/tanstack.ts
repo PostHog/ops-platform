@@ -17,7 +17,7 @@ export function resetHandlerCapture() {
 function createBuilderChain() {
   const chain = {
     middleware: () => chain,
-    inputValidator: (validator: (data: unknown) => unknown) => {
+    inputValidator: (_validator: (data: unknown) => unknown) => {
       // validator captured
       return chain
     },
