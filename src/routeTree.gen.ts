@@ -21,6 +21,8 @@ import { Route as ProposedHiresRouteImport } from './routes/proposed-hires'
 import { Route as ProcessRouteImport } from './routes/process'
 import { Route as PayrollScenariosRouteImport } from './routes/payroll-scenarios'
 import { Route as OrgChartRouteImport } from './routes/org-chart'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as NotifyUpcomingOnboardingTasksRouteImport } from './routes/notifyUpcomingOnboardingTasks'
 import { Route as NotifyOverduePerformanceProgramChecklistItemsRouteImport } from './routes/notifyOverduePerformanceProgramChecklistItems'
 import { Route as MissingCommissionsRouteImport } from './routes/missingCommissions'
 import { Route as ManagementRouteImport } from './routes/management'
@@ -101,6 +103,17 @@ const OrgChartRoute = OrgChartRouteImport.update({
   path: '/org-chart',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotifyUpcomingOnboardingTasksRoute =
+  NotifyUpcomingOnboardingTasksRouteImport.update({
+    id: '/notifyUpcomingOnboardingTasks',
+    path: '/notifyUpcomingOnboardingTasks',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const NotifyOverduePerformanceProgramChecklistItemsRoute =
   NotifyOverduePerformanceProgramChecklistItemsRouteImport.update({
     id: '/notifyOverduePerformanceProgramChecklistItems',
@@ -204,6 +217,8 @@ export interface FileRoutesByFullPath {
   '/management': typeof ManagementRoute
   '/missingCommissions': typeof MissingCommissionsRoute
   '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
+  '/notifyUpcomingOnboardingTasks': typeof NotifyUpcomingOnboardingTasksRoute
+  '/onboarding': typeof OnboardingRoute
   '/org-chart': typeof OrgChartRoute
   '/payroll-scenarios': typeof PayrollScenariosRoute
   '/process': typeof ProcessRoute
@@ -235,6 +250,8 @@ export interface FileRoutesByTo {
   '/management': typeof ManagementRoute
   '/missingCommissions': typeof MissingCommissionsRoute
   '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
+  '/notifyUpcomingOnboardingTasks': typeof NotifyUpcomingOnboardingTasksRoute
+  '/onboarding': typeof OnboardingRoute
   '/org-chart': typeof OrgChartRoute
   '/payroll-scenarios': typeof PayrollScenariosRoute
   '/process': typeof ProcessRoute
@@ -267,6 +284,8 @@ export interface FileRoutesById {
   '/management': typeof ManagementRoute
   '/missingCommissions': typeof MissingCommissionsRoute
   '/notifyOverduePerformanceProgramChecklistItems': typeof NotifyOverduePerformanceProgramChecklistItemsRoute
+  '/notifyUpcomingOnboardingTasks': typeof NotifyUpcomingOnboardingTasksRoute
+  '/onboarding': typeof OnboardingRoute
   '/org-chart': typeof OrgChartRoute
   '/payroll-scenarios': typeof PayrollScenariosRoute
   '/process': typeof ProcessRoute
@@ -300,6 +319,8 @@ export interface FileRouteTypes {
     | '/management'
     | '/missingCommissions'
     | '/notifyOverduePerformanceProgramChecklistItems'
+    | '/notifyUpcomingOnboardingTasks'
+    | '/onboarding'
     | '/org-chart'
     | '/payroll-scenarios'
     | '/process'
@@ -331,6 +352,8 @@ export interface FileRouteTypes {
     | '/management'
     | '/missingCommissions'
     | '/notifyOverduePerformanceProgramChecklistItems'
+    | '/notifyUpcomingOnboardingTasks'
+    | '/onboarding'
     | '/org-chart'
     | '/payroll-scenarios'
     | '/process'
@@ -362,6 +385,8 @@ export interface FileRouteTypes {
     | '/management'
     | '/missingCommissions'
     | '/notifyOverduePerformanceProgramChecklistItems'
+    | '/notifyUpcomingOnboardingTasks'
+    | '/onboarding'
     | '/org-chart'
     | '/payroll-scenarios'
     | '/process'
@@ -394,6 +419,8 @@ export interface RootRouteChildren {
   ManagementRoute: typeof ManagementRoute
   MissingCommissionsRoute: typeof MissingCommissionsRoute
   NotifyOverduePerformanceProgramChecklistItemsRoute: typeof NotifyOverduePerformanceProgramChecklistItemsRoute
+  NotifyUpcomingOnboardingTasksRoute: typeof NotifyUpcomingOnboardingTasksRoute
+  OnboardingRoute: typeof OnboardingRoute
   OrgChartRoute: typeof OrgChartRoute
   PayrollScenariosRoute: typeof PayrollScenariosRoute
   ProcessRoute: typeof ProcessRoute
@@ -495,6 +522,20 @@ declare module '@tanstack/react-router' {
       path: '/org-chart'
       fullPath: '/org-chart'
       preLoaderRoute: typeof OrgChartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifyUpcomingOnboardingTasks': {
+      id: '/notifyUpcomingOnboardingTasks'
+      path: '/notifyUpcomingOnboardingTasks'
+      fullPath: '/notifyUpcomingOnboardingTasks'
+      preLoaderRoute: typeof NotifyUpcomingOnboardingTasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifyOverduePerformanceProgramChecklistItems': {
@@ -635,6 +676,8 @@ const rootRouteChildren: RootRouteChildren = {
   MissingCommissionsRoute: MissingCommissionsRoute,
   NotifyOverduePerformanceProgramChecklistItemsRoute:
     NotifyOverduePerformanceProgramChecklistItemsRoute,
+  NotifyUpcomingOnboardingTasksRoute: NotifyUpcomingOnboardingTasksRoute,
+  OnboardingRoute: OnboardingRoute,
   OrgChartRoute: OrgChartRoute,
   PayrollScenariosRoute: PayrollScenariosRoute,
   ProcessRoute: ProcessRoute,

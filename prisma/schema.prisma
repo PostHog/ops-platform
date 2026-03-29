@@ -63,6 +63,7 @@ model DeelEmployee {
   topLevelDirectReports DeelEmployee[] @relation("topLevelManager")
   employee              Employee?      @relation(fields: [workEmail], references: [email])
   startDate             DateTime
+  onboardingRecords     OnboardingRecord[] @relation("OnboardingManager")
 }
 
 enum Priority {
@@ -188,6 +189,7 @@ model User {
   auditLogsCreated           AuditLog[]                        @relation("AuditLogActor")
   payrollScenarios           PayrollScenario[]                 @relation("PayrollScenarioCreatedBy")
   agentConversations         AgentConversation[]               @relation("UserConversations")
+  onboardingTasksCompleted   OnboardingTask[]                  @relation("OnboardingTaskCompletedBy")
 
   @@unique([email])
   @@map("user")
@@ -480,4 +482,70 @@ enum AgentMessageRole {
   assistant
   system
   tool
+}
+
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+
+enum OnboardingStatus {
+  offer_accepted
+  contract_sent
+  contract_signed
+  provisioned
+  started
+}
+
+model OnboardingRecord {
+  id          String            @id @default(cuid())
+  name        String
+  role        String
+  team        String
+  startDate   DateTime?
+  location    String?
+  quarter     String?
+  referral    Boolean           @default(false)
+  referredBy  String?
+  status          OnboardingStatus  @default(offer_accepted)
+  contractType    String?
+  laptopStatus    String?           @default("Need to order")
+  laptopEta       DateTime?
+  welcomeCallDate DateTime?
+  notes           String?
+  managerId       String?
+  manager     DeelEmployee?     @relation("OnboardingManager", fields: [managerId], references: [id])
+  tasks       OnboardingTask[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @default(now()) @updatedAt
+}
+
+enum OnboardingTaskAssigneeType {
+  ops
+  manager
+  kendal
+  hector
+  scott
+  new_hire
+}
+
+model OnboardingTask {
+  id                     String                      @id @default(cuid())
+  onboardingRecordId     String
+  onboardingRecord       OnboardingRecord            @relation(fields: [onboardingRecordId], references: [id], onDelete: Cascade)
+  templateId             String
+  description            String
+  assigneeType           OnboardingTaskAssigneeType
+  assigneeEmail          String?
+  dueDate                DateTime
+  completed              Boolean                     @default(false)
+  completedAt            DateTime?
+  completedByUserId      String?
+  completedBy            User?                       @relation("OnboardingTaskCompletedBy", fields: [completedByUserId], references: [id])
+  lastNotificationSentAt DateTime?
+  slackThreadId          String?
+  notes                  String?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @default(now()) @updatedAt
+
+  @@index([onboardingRecordId])
+  @@index([assigneeEmail, completed])
+  @@index([dueDate, completed])
 }
