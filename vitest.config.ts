@@ -8,6 +8,9 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
+    env: {
+      DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'json'],
