@@ -44,9 +44,15 @@ describe('getPhase', () => {
     expect(getPhase(daysFromToday(-30)).label).toBe('First 30 Days')
   })
 
-  it('returns First 90 Days for 31+ days ago', () => {
-    expect(getPhase(daysFromToday(-31)).label).toBe('First 90 Days')
-    expect(getPhase(daysFromToday(-60)).label).toBe('First 90 Days')
+  it('returns First 60 Days for 31-60 days ago', () => {
+    expect(getPhase(daysFromToday(-31)).label).toBe('First 60 Days')
+    expect(getPhase(daysFromToday(-45)).label).toBe('First 60 Days')
+    expect(getPhase(daysFromToday(-60)).label).toBe('First 60 Days')
+  })
+
+  it('returns First 90 Days for 61+ days ago', () => {
+    expect(getPhase(daysFromToday(-61)).label).toBe('First 90 Days')
+    expect(getPhase(daysFromToday(-75)).label).toBe('First 90 Days')
     expect(getPhase(daysFromToday(-90)).label).toBe('First 90 Days')
   })
 
@@ -56,7 +62,8 @@ describe('getPhase', () => {
       getPhase(daysFromToday(0)), // First Day
       getPhase(daysFromToday(-3)), // First Week
       getPhase(daysFromToday(-15)), // First 30 Days
-      getPhase(daysFromToday(-60)), // First 90 Days
+      getPhase(daysFromToday(-45)), // First 60 Days
+      getPhase(daysFromToday(-75)), // First 90 Days
     ]
     for (let i = 1; i < phases.length; i++) {
       expect(phases[i].sortOrder).toBeGreaterThan(phases[i - 1].sortOrder)
@@ -69,7 +76,8 @@ describe('getPhase', () => {
       getPhase(daysFromToday(0)),
       getPhase(daysFromToday(-3)),
       getPhase(daysFromToday(-15)),
-      getPhase(daysFromToday(-60)),
+      getPhase(daysFromToday(-45)),
+      getPhase(daysFromToday(-75)),
     ]
     phases.forEach((phase) => {
       expect(phase.badgeClass).toBeTruthy()
