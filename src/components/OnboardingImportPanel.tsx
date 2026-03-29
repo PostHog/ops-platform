@@ -19,7 +19,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { createToast } from 'vercel-toast'
-import { Upload } from 'lucide-react'
 
 // ─── Parsing helpers ─────────────────────────────────────────────────────────
 
