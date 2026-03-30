@@ -354,11 +354,6 @@ const getEmployeeById = createInternalFn({
       throw new Error('Unauthorized')
     }
 
-    // Blitzscale users cannot view their own profile
-    if (isBlitzscale && employee?.email === context.user.email) {
-      throw new Error('Unauthorized')
-    }
-
     return employee
   })
 
