@@ -21,11 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import {
-  formatCurrency,
-  getFullName,
-  getGrantType,
-} from '@/lib/utils'
+import { formatCurrency, getFullName, getGrantType } from '@/lib/utils'
 import { createAdminFn } from '@/lib/auth-middleware'
 import { TableFilters } from '@/components/TableFilters'
 import { createToast } from 'vercel-toast'
