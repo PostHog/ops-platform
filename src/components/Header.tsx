@@ -103,6 +103,10 @@ export default function Header() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        ) : user?.role === ROLES.BLITZSCALE ? (
+          <div className="px-2 font-bold">
+            <Link to="/employees">Employees</Link>
+          </div>
         ) : null}
         {user &&
         (user?.role === ROLES.ADMIN || user?.role === ROLES.ORG_CHART) ? (
@@ -167,7 +171,7 @@ export default function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
-        {myEmployeeId ? (
+        {myEmployeeId && user?.role !== ROLES.BLITZSCALE ? (
           <div className="px-2 font-bold">
             <Link
               to="/employee/$employeeId"

@@ -41,7 +41,8 @@ import {
 } from '@/components/ui/select'
 import 'vercel-toast/dist/vercel-toast.css'
 import { reviewQueueAtom } from '@/atoms'
-import { createAdminFn } from '@/lib/auth-middleware'
+import { createAdminFn, createPayReviewFn } from '@/lib/auth-middleware'
+import { ROLES } from '@/lib/consts'
 import { EmployeeNameCell } from '@/components/EmployeeNameCell'
 import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
 import { LevelStepDisplay } from '@/components/LevelStepDisplay'
@@ -94,9 +95,12 @@ export const months = [
   'December',
 ]
 
-const getEmployees = createAdminFn({
+const getEmployees = createPayReviewFn({
   method: 'GET',
-}).handler(async () => {
+}).handler(async ({ context }) => {
+  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+  const { managedEmployeeIds } = context.managerInfo
+
   return await prisma.employee.findMany({
     include: {
       salaries: {
@@ -118,6 +122,12 @@ const getEmployees = createAdminFn({
           lte: new Date(),
         },
       },
+      ...(isBlitzscale
+        ? {
+            id: { in: managedEmployeeIds },
+            NOT: { email: context.user.email },
+          }
+        : {}),
     },
     orderBy: {
       deelEmployee: {
