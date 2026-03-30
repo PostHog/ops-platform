@@ -74,11 +74,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import prisma from '@/db'
-import {
-  createAdminFn,
-  createInternalFn,
-  createPayReviewFn,
-} from '@/lib/auth-middleware'
+import { createAdminFn, createInternalFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
