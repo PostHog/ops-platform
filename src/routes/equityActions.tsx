@@ -25,7 +25,6 @@ import {
   formatCurrency,
   getFullName,
   getGrantType,
-  SHARE_PRICE,
 } from '@/lib/utils'
 import { createAdminFn } from '@/lib/auth-middleware'
 import { TableFilters } from '@/components/TableFilters'
@@ -66,7 +65,7 @@ type EquityRefreshSalary = Prisma.SalaryGetPayload<{
 const getEquityRefreshes = createAdminFn({
   method: 'GET',
 }).handler(async () => {
-  return await prisma.salary.findMany({
+  const salaries = await prisma.salary.findMany({
     where: {
       equityRefreshAmount: {
         gt: 0,
@@ -90,6 +89,12 @@ const getEquityRefreshes = createAdminFn({
       timestamp: 'desc',
     },
   })
+
+  const sharePrice =
+    Number(process.env.CURRENT_VALUATION) /
+    Number(process.env.FULLY_DILUTED_SHARES)
+
+  return { salaries, sharePrice }
 })
 
 const updateEquityGranted = createAdminFn({
@@ -178,7 +183,10 @@ function processEquityTemplate(
 }
 
 function App() {
-  const equityRefreshes: Array<EquityRefreshSalary> = Route.useLoaderData()
+  const { salaries: equityRefreshes, sharePrice } = Route.useLoaderData() as {
+    salaries: Array<EquityRefreshSalary>
+    sharePrice: number
+  }
   const router = useRouter()
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -365,7 +373,7 @@ function App() {
         enableColumnFilter: false,
         cell: ({ row }) => {
           const amount = row.original.equityRefreshAmount
-          const options = amount ? Math.round(amount / SHARE_PRICE) : 0
+          const options = amount ? Math.round(amount / sharePrice) : 0
           return <div>{options.toLocaleString()}</div>
         },
       },
@@ -554,7 +562,7 @@ function App() {
           refreshAmount: formatCurrency(salary.equityRefreshAmount),
           country: salary.country,
           numberOfOptions: salary.equityRefreshAmount
-            ? Math.round(salary.equityRefreshAmount / SHARE_PRICE)
+            ? Math.round(salary.equityRefreshAmount / sharePrice)
             : 0,
           grantType: getGrantType(salary.country),
           totalSalary: formatCurrency(salary.actualSalary),

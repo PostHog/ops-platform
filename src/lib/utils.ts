@@ -148,9 +148,6 @@ export const currencyData: Record<string, number> = {
   COP: 4925,
 }
 
-// Share price used to calculate number of options from equity refresh amount
-export const SHARE_PRICE = 53.9
-
 // Grant type based on employee country
 export const GRANT_TYPES = {
   US: 'ISO',
