@@ -27,7 +27,8 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { getFullName } from '@/lib/utils'
-import { createAdminFn } from '@/lib/auth-middleware'
+import { createPayReviewFn } from '@/lib/auth-middleware'
+import { ROLES } from '@/lib/consts'
 import { TableFilters } from '@/components/TableFilters'
 import { fetchDeelEmployee } from './syncDeelEmployees'
 import { createToast } from 'vercel-toast'
@@ -108,14 +109,18 @@ type CommissionBonus = Prisma.CommissionBonusGetPayload<{
   }
 }>
 
-const getCommissionBonuses = createAdminFn({
+const getCommissionBonuses = createPayReviewFn({
   method: 'GET',
-}).handler(async () => {
+}).handler(async ({ context }) => {
+  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+  const { managedEmployeeIds } = context.managerInfo
+
   return await prisma.commissionBonus.findMany({
     where: {
       createdAt: {
         gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
       },
+      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
     },
     include: {
       employee: {
@@ -130,11 +135,11 @@ const getCommissionBonuses = createAdminFn({
   })
 })
 
-const updateCommissionBonusAttainment = createAdminFn({
+const updateCommissionBonusAttainment = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((data: { bonusId: string; attainment: number }) => data)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { bonusId, attainment } = data
 
     // Get the existing bonus to calculate derived values
@@ -144,6 +149,15 @@ const updateCommissionBonusAttainment = createAdminFn({
 
     if (!existingBonus) {
       throw new Error('Commission bonus not found')
+    }
+
+    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+    const { managedEmployeeIds } = context.managerInfo
+    if (
+      isBlitzscale &&
+      !managedEmployeeIds.includes(existingBonus.employeeId)
+    ) {
+      throw new Error('Unauthorized')
     }
 
     // Recalculate derived values based on commission type
@@ -178,14 +192,18 @@ const updateCommissionBonusAttainment = createAdminFn({
     })
   })
 
-const exportCommissionBonusesForDeel = createAdminFn({
+const exportCommissionBonusesForDeel = createPayReviewFn({
   method: 'POST',
-}).handler(async () => {
+}).handler(async ({ context }) => {
+  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+  const { managedEmployeeIds } = context.managerInfo
+
   const bonuses = await prisma.commissionBonus.findMany({
     where: {
       createdAt: {
         gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
       },
+      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
     },
     include: {
       employee: {

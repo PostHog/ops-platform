@@ -158,10 +158,32 @@ const managerInfoMiddleware = createMiddleware({
   })
 })
 
+const payReviewCheckMiddleware = createMiddleware({
+  type: 'function',
+}).server(async ({ next, context }) => {
+  const user = (context as unknown as { user?: { role?: string } })?.user
+
+  if (user?.role !== ROLES.ADMIN && user?.role !== ROLES.BLITZSCALE) {
+    throw redirect({
+      to: '/error',
+      search: { message: 'You are not authorized to access this page' },
+    })
+  } else {
+    return await next()
+  }
+})
+
 // only admins will be able to access this function
 export const createAdminFn = createServerFn().middleware([
   authMiddleware,
   adminCheckMiddleware,
+])
+
+// admin and blitzscale users will be able to access this function (includes manager info)
+export const createPayReviewFn = createServerFn().middleware([
+  authMiddleware,
+  payReviewCheckMiddleware,
+  managerInfoMiddleware,
 ])
 
 // org chart and admin users will be able to access this function
