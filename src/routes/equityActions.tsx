@@ -21,7 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { formatCurrency, getFullName } from '@/lib/utils'
+import { formatCurrency, getFullName, getGrantType } from '@/lib/utils'
 import { createAdminFn } from '@/lib/auth-middleware'
 import { TableFilters } from '@/components/TableFilters'
 import { createToast } from 'vercel-toast'
@@ -61,7 +61,7 @@ type EquityRefreshSalary = Prisma.SalaryGetPayload<{
 const getEquityRefreshes = createAdminFn({
   method: 'GET',
 }).handler(async () => {
-  return await prisma.salary.findMany({
+  const salaries = await prisma.salary.findMany({
     where: {
       equityRefreshAmount: {
         gt: 0,
@@ -85,6 +85,12 @@ const getEquityRefreshes = createAdminFn({
       timestamp: 'desc',
     },
   })
+
+  const sharePrice =
+    Number(process.env.CURRENT_VALUATION) /
+    Number(process.env.FULLY_DILUTED_SHARES)
+
+  return { salaries, sharePrice }
 })
 
 const updateEquityGranted = createAdminFn({
@@ -173,7 +179,10 @@ function processEquityTemplate(
 }
 
 function App() {
-  const equityRefreshes: Array<EquityRefreshSalary> = Route.useLoaderData()
+  const { salaries: equityRefreshes, sharePrice } = Route.useLoaderData() as {
+    salaries: Array<EquityRefreshSalary>
+    sharePrice: number
+  }
   const router = useRouter()
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -345,6 +354,45 @@ function App() {
         ),
       },
       {
+        accessorKey: 'country',
+        header: 'Country',
+        filterFn: (
+          row: Row<EquityRefreshSalary>,
+          _: string,
+          filterValue: string,
+        ) => customFilterFns.containsText(row.original.country, _, filterValue),
+        cell: ({ row }) => <div>{row.original.country || '-'}</div>,
+      },
+      {
+        id: 'numberOfOptions',
+        header: '# Options',
+        enableColumnFilter: false,
+        cell: ({ row }) => {
+          const amount = row.original.equityRefreshAmount
+          const options = amount ? Math.round(amount / sharePrice) : 0
+          return <div>{options.toLocaleString()}</div>
+        },
+      },
+      {
+        id: 'grantType',
+        header: 'Grant Type',
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'ISO', value: 'ISO' },
+            { label: 'EMI', value: 'EMI' },
+            { label: 'NSO', value: 'NSO' },
+          ],
+        },
+        accessorFn: (row) => getGrantType(row.country),
+        filterFn: (
+          row: Row<EquityRefreshSalary>,
+          _: string,
+          filterValue: string[],
+        ) => filterValue.includes(getGrantType(row.original.country)),
+        cell: ({ row }) => <div>{getGrantType(row.original.country)}</div>,
+      },
+      {
         accessorKey: 'actualSalary',
         header: 'Total Salary ($)',
         meta: {
@@ -508,6 +556,11 @@ function App() {
             : '',
           refreshPercentage: `${(salary.equityRefreshPercentage * 100).toFixed(2)}%`,
           refreshAmount: formatCurrency(salary.equityRefreshAmount),
+          country: salary.country,
+          numberOfOptions: salary.equityRefreshAmount
+            ? Math.round(salary.equityRefreshAmount / sharePrice)
+            : 0,
+          grantType: getGrantType(salary.country),
           totalSalary: formatCurrency(salary.actualSalary),
           reviewer: getFullName(
             salary.employee.deelEmployee?.topLevelManager?.firstName,
