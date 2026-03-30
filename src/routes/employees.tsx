@@ -98,7 +98,7 @@ export const months = [
 const getEmployees = createPayReviewFn({
   method: 'GET',
 }).handler(async ({ context }) => {
-  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+  const isAdmin = context.user.role === ROLES.ADMIN
   const { managedEmployeeIds } = context.managerInfo
 
   return await prisma.employee.findMany({
@@ -122,7 +122,7 @@ const getEmployees = createPayReviewFn({
           lte: new Date(),
         },
       },
-      ...(isBlitzscale
+      ...(!isAdmin
         ? {
             id: { in: managedEmployeeIds },
             NOT: { email: context.user.email },
