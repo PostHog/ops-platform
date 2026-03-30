@@ -653,15 +653,10 @@ export const createPerformanceProgram = createInternalFn({
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
-    const isBlitzscaleManager =
-      isBlitzscale && managedEmployeeIds.includes(data.employeeId)
-    const hasAdminAccess = isAdmin || isBlitzscaleManager
-    const isManager =
-      !isAdmin && !isBlitzscale && managedEmployeeIds.includes(data.employeeId)
+    const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
 
-    if (!hasAdminAccess && !isManager) {
+    if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
     const existingProgram = await prisma.performanceProgram.findFirst({
@@ -800,7 +795,6 @@ export const updateChecklistItem = createInternalFn({
   )
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const checklistItem =
@@ -815,16 +809,10 @@ export const updateChecklistItem = createInternalFn({
       throw new Error('Checklist item not found')
     }
 
-    // Check authorization: admins/blitzscale can update checklist items for their scope, managers for their reports
-    const isBlitzscaleManager =
-      isBlitzscale &&
-      managedEmployeeIds.includes(checklistItem.program.employeeId)
-    const hasAdminAccess = isAdmin || isBlitzscaleManager
+    // Check authorization: admins can update any checklist item, managers can only update items for their reports
     const isManager =
-      !isAdmin &&
-      !isBlitzscale &&
-      managedEmployeeIds.includes(checklistItem.program.employeeId)
-    if (!hasAdminAccess && !isManager) {
+      !isAdmin && managedEmployeeIds.includes(checklistItem.program.employeeId)
+    if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
 
@@ -873,7 +861,6 @@ export const addProgramFeedback = createInternalFn({
   )
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const program = await prisma.performanceProgram.findUnique({
@@ -884,15 +871,10 @@ export const addProgramFeedback = createInternalFn({
       throw new Error('Performance program not found')
     }
 
-    // Check authorization: admins/blitzscale can add feedback to programs in their scope, managers for their reports
-    const isBlitzscaleManager =
-      isBlitzscale && managedEmployeeIds.includes(program.employeeId)
-    const hasAdminAccess = isAdmin || isBlitzscaleManager
+    // Check authorization: admins can add feedback to any program, managers can only add feedback to programs for their reports
     const isManager =
-      !isAdmin &&
-      !isBlitzscale &&
-      managedEmployeeIds.includes(program.employeeId)
-    if (!hasAdminAccess && !isManager) {
+      !isAdmin && managedEmployeeIds.includes(program.employeeId)
+    if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
 
@@ -958,7 +940,6 @@ export const resolvePerformanceProgram = createInternalFn({
   .inputValidator((d: { programId: string }) => d)
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const program = await prisma.performanceProgram.findUnique({
@@ -972,15 +953,10 @@ export const resolvePerformanceProgram = createInternalFn({
       throw new Error('Performance program not found')
     }
 
-    // Check authorization: admins/blitzscale can resolve programs in their scope, managers for their reports
-    const isBlitzscaleManager =
-      isBlitzscale && managedEmployeeIds.includes(program.employeeId)
-    const hasAdminAccess = isAdmin || isBlitzscaleManager
+    // Check authorization: admins can resolve any program, managers can only resolve programs for their reports
     const isManager =
-      !isAdmin &&
-      !isBlitzscale &&
-      managedEmployeeIds.includes(program.employeeId)
-    if (!hasAdminAccess && !isManager) {
+      !isAdmin && managedEmployeeIds.includes(program.employeeId)
+    if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
 
@@ -1052,7 +1028,6 @@ export const getProofFileUploadUrl = createInternalFn({
   )
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     if (!data.checklistItemId && !data.programId) {
@@ -1120,15 +1095,9 @@ export const getProofFileUploadUrl = createInternalFn({
       fileKey = `performance-programs/${programId}/feedback/${timestamp}-${sanitizedFileName}`
     }
 
-    // Check authorization: admins/blitzscale can upload files for programs in their scope, managers for their reports
-    const isBlitzscaleManager =
-      isBlitzscale && managedEmployeeIds.includes(programEmployeeId)
-    const hasAdminAccess = isAdmin || isBlitzscaleManager
-    const isManager =
-      !isAdmin &&
-      !isBlitzscale &&
-      managedEmployeeIds.includes(programEmployeeId)
-    if (!hasAdminAccess && !isManager) {
+    // Check authorization: admins can upload files for any program, managers can only upload files for programs for their reports
+    const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
+    if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
 
@@ -1161,7 +1130,6 @@ export const createProofFileRecord = createInternalFn({
   )
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     if (!data.checklistItemId && !data.feedbackId) {
@@ -1191,15 +1159,9 @@ export const createProofFileRecord = createInternalFn({
       programEmployeeId = feedback.program.employeeId
     }
 
-    // Check authorization: admins/blitzscale can create file records for programs in their scope, managers for their reports
-    const isBlitzscaleManager =
-      isBlitzscale && managedEmployeeIds.includes(programEmployeeId)
-    const hasAdminAccess = isAdmin || isBlitzscaleManager
-    const isManager =
-      !isAdmin &&
-      !isBlitzscale &&
-      managedEmployeeIds.includes(programEmployeeId)
-    if (!hasAdminAccess && !isManager) {
+    // Check authorization: admins can create file records for any program, managers can only create records for programs for their reports
+    const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
+    if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
 
@@ -1225,7 +1187,6 @@ export const getProofFileUrl = createInternalFn({
   .inputValidator((d: { proofFileId: string }) => d)
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const proofFile = await prisma.file.findUnique({
@@ -1255,15 +1216,9 @@ export const getProofFileUrl = createInternalFn({
       throw new Error('Unable to determine program employee')
     }
 
-    // Check authorization: admins/blitzscale for their scope, managers for their reports
-    const isBlitzscaleManager =
-      isBlitzscale && managedEmployeeIds.includes(programEmployeeId)
-    const hasAdminAccess = isAdmin || isBlitzscaleManager
-    const isManager =
-      !isAdmin &&
-      !isBlitzscale &&
-      managedEmployeeIds.includes(programEmployeeId)
-    if (!hasAdminAccess && !isManager) {
+    // Check authorization: admins can get file URLs for any program, managers can only get URLs for programs for their reports
+    const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
+    if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
 
@@ -1280,7 +1235,6 @@ export const deleteProofFile = createInternalFn({
   .inputValidator((d: { proofFileId: string }) => d)
   .handler(async ({ data, context }) => {
     const isAdmin = context.user.role === ROLES.ADMIN
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const proofFile = await prisma.file.findUnique({
@@ -1310,15 +1264,9 @@ export const deleteProofFile = createInternalFn({
       throw new Error('Unable to determine program employee')
     }
 
-    // Check authorization: admins/blitzscale for their scope, managers for their reports
-    const isBlitzscaleManager =
-      isBlitzscale && managedEmployeeIds.includes(programEmployeeId)
-    const hasAdminAccess = isAdmin || isBlitzscaleManager
-    const isManager =
-      !isAdmin &&
-      !isBlitzscale &&
-      managedEmployeeIds.includes(programEmployeeId)
-    if (!hasAdminAccess && !isManager) {
+    // Check authorization: admins can delete files for any program, managers can only delete files for programs for their reports
+    const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
+    if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
 
