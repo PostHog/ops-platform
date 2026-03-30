@@ -121,16 +121,12 @@ const getEmployeeById = createInternalFn({
       isBlitzscale && managedEmployeeIds.includes(data.employeeId)
     const hasAdminAccess = isAdmin || isBlitzscaleManager
     const isManager =
-      !isAdmin &&
-      !isBlitzscale &&
-      managedEmployeeIds.includes(data.employeeId)
+      !isAdmin && !isBlitzscale && managedEmployeeIds.includes(data.employeeId)
 
     const employee = await prisma.employee.findUnique({
       where: {
         id: data.employeeId,
-        ...(!hasAdminAccess && !isManager
-          ? { email: context.user.email }
-          : {}),
+        ...(!hasAdminAccess && !isManager ? { email: context.user.email } : {}),
       },
       select: {
         id: true,
@@ -668,9 +664,7 @@ export const createPerformanceProgram = createInternalFn({
       isBlitzscale && managedEmployeeIds.includes(data.employeeId)
     const hasAdminAccess = isAdmin || isBlitzscaleManager
     const isManager =
-      !isAdmin &&
-      !isBlitzscale &&
-      managedEmployeeIds.includes(data.employeeId)
+      !isAdmin && !isBlitzscale && managedEmployeeIds.includes(data.employeeId)
 
     if (!hasAdminAccess && !isManager) {
       throw new Error('Unauthorized')
@@ -1987,8 +1981,7 @@ function EmployeeOverview() {
 
   const isManager =
     (deelEmployeesAndProposedHiresData?.managedEmployeeIds?.length ?? 0) > 0
-  const showEmployeeTree =
-    managerHierarchy && (hasPayReviewAccess || isManager)
+  const showEmployeeTree = managerHierarchy && (hasPayReviewAccess || isManager)
 
   return (
     <div className="flex h-full flex-col items-center gap-5 overflow-hidden pt-4">
