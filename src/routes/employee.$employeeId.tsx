@@ -1427,7 +1427,7 @@ function EmployeeOverview() {
     placeholderData: (prevData, prevQuery) => {
       if (prevQuery?.queryKey[1] === employee.id) return prevData
     },
-    enabled: !!level && !!step && !!benchmark && hasPayReviewAccess,
+    enabled: !!level && !!step && !!benchmark && user?.role === ROLES.ADMIN,
   })
 
   const { data: deelEmployeesAndProposedHiresData } = useQuery({
