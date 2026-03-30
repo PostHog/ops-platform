@@ -30,7 +30,7 @@ function RouteComponent() {
       if (user.role === ROLES.ADMIN) {
         router.navigate({ to: '/org-chart' })
       } else if (user.role === ROLES.BLITZSCALE) {
-        router.navigate({ to: '/employees' })
+        router.navigate({ to: '/org-chart' })
       } else if (user.role === ROLES.ORG_CHART) {
         router.navigate({ to: '/org-chart' })
       } else if (myEmployeeId) {
