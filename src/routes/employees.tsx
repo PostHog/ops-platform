@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/select'
 import 'vercel-toast/dist/vercel-toast.css'
 import { reviewQueueAtom } from '@/atoms'
-import { createAdminFn, createPayReviewFn } from '@/lib/auth-middleware'
+import { createPayReviewFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
 import { EmployeeNameCell } from '@/components/EmployeeNameCell'
 import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
@@ -137,12 +137,17 @@ const getEmployees = createPayReviewFn({
   })
 })
 
-const updateEmployeePriority = createAdminFn({
+const updateEmployeePriority = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { employeeId: string; priority: string }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     if (!data.priority) return
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
+      throw new Error('Unauthorized')
+    }
     return await prisma.employee.update({
       where: { id: data.employeeId },
       data: { priority: data.priority as Priority },

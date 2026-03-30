@@ -74,7 +74,11 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import prisma from '@/db'
-import { createAdminFn, createInternalFn } from '@/lib/auth-middleware'
+import {
+  createAdminFn,
+  createInternalFn,
+  createPayReviewFn,
+} from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
@@ -595,18 +599,28 @@ export const deleteSalary = createAdminFn({
     return { success: true }
   })
 
-export const savePayReviewNote = createAdminFn({ method: 'POST' })
+export const savePayReviewNote = createPayReviewFn({ method: 'POST' })
   .inputValidator((d: { employeeId: string; note: string }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
+      throw new Error('Unauthorized')
+    }
     return await prisma.employee.update({
       where: { id: data.employeeId },
       data: { payReviewNote: data.note },
     })
   })
 
-export const deletePayReviewNote = createAdminFn({ method: 'POST' })
+export const deletePayReviewNote = createPayReviewFn({ method: 'POST' })
   .inputValidator((d: { employeeId: string }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
+      throw new Error('Unauthorized')
+    }
     return await prisma.employee.update({
       where: { id: data.employeeId },
       data: { payReviewNote: null },
