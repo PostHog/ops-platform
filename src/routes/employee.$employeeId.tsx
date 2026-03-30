@@ -448,7 +448,7 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
-export const getReferenceEmployees = createPayReviewFn({
+export const getReferenceEmployees = createAdminFn({
   method: 'GET',
 })
   .inputValidator(
