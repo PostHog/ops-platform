@@ -171,7 +171,7 @@ export default function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
-        {myEmployeeId && user?.role !== ROLES.BLITZSCALE ? (
+        {myEmployeeId ? (
           <div className="px-2 font-bold">
             <Link
               to="/employee/$employeeId"
