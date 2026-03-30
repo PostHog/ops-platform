@@ -21,7 +21,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { formatCurrency, getFullName } from '@/lib/utils'
+import {
+  formatCurrency,
+  getFullName,
+  getGrantType,
+  SHARE_PRICE,
+} from '@/lib/utils'
 import { createAdminFn } from '@/lib/auth-middleware'
 import { TableFilters } from '@/components/TableFilters'
 import { createToast } from 'vercel-toast'
@@ -345,6 +350,45 @@ function App() {
         ),
       },
       {
+        accessorKey: 'country',
+        header: 'Country',
+        filterFn: (
+          row: Row<EquityRefreshSalary>,
+          _: string,
+          filterValue: string,
+        ) => customFilterFns.containsText(row.original.country, _, filterValue),
+        cell: ({ row }) => <div>{row.original.country || '-'}</div>,
+      },
+      {
+        id: 'numberOfOptions',
+        header: '# Options',
+        enableColumnFilter: false,
+        cell: ({ row }) => {
+          const amount = row.original.equityRefreshAmount
+          const options = amount ? Math.round(amount / SHARE_PRICE) : 0
+          return <div>{options.toLocaleString()}</div>
+        },
+      },
+      {
+        id: 'grantType',
+        header: 'Grant Type',
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'ISO', value: 'ISO' },
+            { label: 'EMI', value: 'EMI' },
+            { label: 'NSO', value: 'NSO' },
+          ],
+        },
+        accessorFn: (row) => getGrantType(row.country),
+        filterFn: (
+          row: Row<EquityRefreshSalary>,
+          _: string,
+          filterValue: string[],
+        ) => filterValue.includes(getGrantType(row.original.country)),
+        cell: ({ row }) => <div>{getGrantType(row.original.country)}</div>,
+      },
+      {
         accessorKey: 'actualSalary',
         header: 'Total Salary ($)',
         meta: {
@@ -508,6 +552,11 @@ function App() {
             : '',
           refreshPercentage: `${(salary.equityRefreshPercentage * 100).toFixed(2)}%`,
           refreshAmount: formatCurrency(salary.equityRefreshAmount),
+          country: salary.country,
+          numberOfOptions: salary.equityRefreshAmount
+            ? Math.round(salary.equityRefreshAmount / SHARE_PRICE)
+            : 0,
+          grantType: getGrantType(salary.country),
           totalSalary: formatCurrency(salary.actualSalary),
           reviewer: getFullName(
             salary.employee.deelEmployee?.topLevelManager?.firstName,

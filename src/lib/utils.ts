@@ -148,6 +148,22 @@ export const currencyData: Record<string, number> = {
   COP: 4925,
 }
 
+// Share price used to calculate number of options from equity refresh amount
+export const SHARE_PRICE = 53.9
+
+// Grant type based on employee country
+export const GRANT_TYPES = {
+  US: 'ISO',
+  GB: 'EMI',
+  DEFAULT: 'NSO',
+} as const
+
+export function getGrantType(country: string): string {
+  if (country === 'United States' || country === 'US') return GRANT_TYPES.US
+  if (country === 'United Kingdom' || country === 'GB') return GRANT_TYPES.GB
+  return GRANT_TYPES.DEFAULT
+}
+
 export const bonusPercentage: Record<string, number> = {
   'Account Executive (OTE)': 0.5,
   'Customer Success Manager (OTE)': 0.2,
