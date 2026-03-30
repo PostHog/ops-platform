@@ -120,9 +120,7 @@ const getCommissionBonuses = createPayReviewFn({
       createdAt: {
         gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
       },
-      ...(isBlitzscale
-        ? { employeeId: { in: managedEmployeeIds } }
-        : {}),
+      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
     },
     include: {
       employee: {
@@ -155,7 +153,10 @@ const updateCommissionBonusAttainment = createPayReviewFn({
 
     const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
-    if (isBlitzscale && !managedEmployeeIds.includes(existingBonus.employeeId)) {
+    if (
+      isBlitzscale &&
+      !managedEmployeeIds.includes(existingBonus.employeeId)
+    ) {
       throw new Error('Unauthorized')
     }
 
@@ -202,9 +203,7 @@ const exportCommissionBonusesForDeel = createPayReviewFn({
       createdAt: {
         gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
       },
-      ...(isBlitzscale
-        ? { employeeId: { in: managedEmployeeIds } }
-        : {}),
+      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
     },
     include: {
       employee: {

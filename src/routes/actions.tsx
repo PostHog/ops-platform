@@ -93,9 +93,7 @@ const getUpdatedSalaries = createPayReviewFn({
           },
         },
       ],
-      ...(isBlitzscale
-        ? { employeeId: { in: managedEmployeeIds } }
-        : {}),
+      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
     },
     include: {
       employee: {

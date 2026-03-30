@@ -73,9 +73,7 @@ const getEquityRefreshes = createPayReviewFn({
       timestamp: {
         gte: new Date(new Date().setMonth(new Date().getMonth() - 3)),
       },
-      ...(isBlitzscale
-        ? { employeeId: { in: managedEmployeeIds } }
-        : {}),
+      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
     },
     include: {
       employee: {
