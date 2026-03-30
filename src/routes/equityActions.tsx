@@ -22,7 +22,8 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, getFullName } from '@/lib/utils'
-import { createAdminFn } from '@/lib/auth-middleware'
+import { createPayReviewFn } from '@/lib/auth-middleware'
+import { ROLES } from '@/lib/consts'
 import { TableFilters } from '@/components/TableFilters'
 import { createToast } from 'vercel-toast'
 import { MoreHorizontal, ExternalLink } from 'lucide-react'
@@ -58,9 +59,12 @@ type EquityRefreshSalary = Prisma.SalaryGetPayload<{
   }
 }>
 
-const getEquityRefreshes = createAdminFn({
+const getEquityRefreshes = createPayReviewFn({
   method: 'GET',
-}).handler(async () => {
+}).handler(async ({ context }) => {
+  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+  const { managedEmployeeIds } = context.managerInfo
+
   return await prisma.salary.findMany({
     where: {
       equityRefreshAmount: {
@@ -69,6 +73,9 @@ const getEquityRefreshes = createAdminFn({
       timestamp: {
         gte: new Date(new Date().setMonth(new Date().getMonth() - 3)),
       },
+      ...(isBlitzscale
+        ? { employeeId: { in: managedEmployeeIds } }
+        : {}),
     },
     include: {
       employee: {
@@ -87,44 +94,96 @@ const getEquityRefreshes = createAdminFn({
   })
 })
 
-const updateEquityGranted = createAdminFn({
+const updateEquityGranted = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; granted: boolean }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+    const { managedEmployeeIds } = context.managerInfo
+
+    if (isBlitzscale) {
+      const salary = await prisma.salary.findUnique({
+        where: { id: data.id },
+        select: { employeeId: true },
+      })
+      if (!salary || !managedEmployeeIds.includes(salary.employeeId)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     return await prisma.salary.update({
       where: { id: data.id },
       data: { equityRefreshGranted: data.granted },
     })
   })
 
-const markMultipleAsGranted = createAdminFn({
+const markMultipleAsGranted = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { ids: string[] }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+    const { managedEmployeeIds } = context.managerInfo
+
+    if (isBlitzscale) {
+      const salaries = await prisma.salary.findMany({
+        where: { id: { in: data.ids } },
+        select: { employeeId: true },
+      })
+      if (salaries.some((s) => !managedEmployeeIds.includes(s.employeeId))) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     return await prisma.salary.updateMany({
       where: { id: { in: data.ids } },
       data: { equityRefreshGranted: true },
     })
   })
 
-const updateEquityCommunicated = createAdminFn({
+const updateEquityCommunicated = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; communicated: boolean }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+    const { managedEmployeeIds } = context.managerInfo
+
+    if (isBlitzscale) {
+      const salary = await prisma.salary.findUnique({
+        where: { id: data.id },
+        select: { employeeId: true },
+      })
+      if (!salary || !managedEmployeeIds.includes(salary.employeeId)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     return await prisma.salary.update({
       where: { id: data.id },
       data: { communicated: data.communicated },
     })
   })
 
-const markMultipleAsCommunicated = createAdminFn({
+const markMultipleAsCommunicated = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { ids: string[] }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+    const { managedEmployeeIds } = context.managerInfo
+
+    if (isBlitzscale) {
+      const salaries = await prisma.salary.findMany({
+        where: { id: { in: data.ids } },
+        select: { employeeId: true },
+      })
+      if (salaries.some((s) => !managedEmployeeIds.includes(s.employeeId))) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     return await prisma.salary.updateMany({
       where: { id: { in: data.ids } },
       data: { communicated: true },

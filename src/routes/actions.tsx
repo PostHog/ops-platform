@@ -34,7 +34,8 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, getFullName } from '@/lib/utils'
-import { createAdminFn } from '@/lib/auth-middleware'
+import { createPayReviewFn } from '@/lib/auth-middleware'
+import { ROLES } from '@/lib/consts'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
@@ -69,9 +70,12 @@ type Salary = Prisma.SalaryGetPayload<{
   }
 }>
 
-const getUpdatedSalaries = createAdminFn({
+const getUpdatedSalaries = createPayReviewFn({
   method: 'GET',
-}).handler(async () => {
+}).handler(async ({ context }) => {
+  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+  const { managedEmployeeIds } = context.managerInfo
+
   return await prisma.salary.findMany({
     where: {
       timestamp: {
@@ -89,6 +93,9 @@ const getUpdatedSalaries = createAdminFn({
           },
         },
       ],
+      ...(isBlitzscale
+        ? { employeeId: { in: managedEmployeeIds } }
+        : {}),
     },
     include: {
       employee: {
@@ -108,11 +115,24 @@ const getUpdatedSalaries = createAdminFn({
   })
 })
 
-const updateCommunicated = createAdminFn({
+const updateCommunicated = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; communicated: boolean }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+    const { managedEmployeeIds } = context.managerInfo
+
+    if (isBlitzscale) {
+      const salary = await prisma.salary.findUnique({
+        where: { id: data.id },
+        select: { employeeId: true },
+      })
+      if (!salary || !managedEmployeeIds.includes(salary.employeeId)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     return await prisma.salary.update({
       where: { id: data.id },
       data: { communicated: data.communicated },
