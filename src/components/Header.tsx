@@ -77,7 +77,7 @@ export default function Header() {
   return (
     <header className="fixed top-0 right-0 left-0 flex h-10 justify-between gap-2 border-b border-gray-200 bg-white p-2 text-black">
       <nav className="flex flex-row items-center gap-2">
-        {user?.role === ROLES.ADMIN ? (
+        {user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">
@@ -103,10 +103,6 @@ export default function Header() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        ) : user?.role === ROLES.BLITZSCALE ? (
-          <div className="px-2 font-bold">
-            <Link to="/employees">Employees</Link>
-          </div>
         ) : null}
         {user &&
         (user?.role === ROLES.ADMIN || user?.role === ROLES.ORG_CHART) ? (
