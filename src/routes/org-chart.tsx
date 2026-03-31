@@ -413,7 +413,7 @@ const getInitialEdges = (
 }
 
 export default function OrgChart() {
-  const { employees, proposedHires } = Route.useLoaderData()
+  const { employees, proposedHires, managedEmployeeIds } = Route.useLoaderData()
   const { data: session } = useSession()
   const canEditOrgChart =
     session?.user?.role === ROLES.ADMIN ||
@@ -821,6 +821,7 @@ export default function OrgChart() {
           selectedNode={selectedNode}
           employees={employees}
           proposedHires={proposedHires}
+          managedEmployeeIds={managedEmployeeIds}
         />
       </ReactFlow>
     </div>
