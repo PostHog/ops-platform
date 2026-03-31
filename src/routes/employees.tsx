@@ -1,4 +1,4 @@
-import { InputHTMLAttributes, useEffect, useState } from 'react'
+import { InputHTMLAttributes, useEffect, useMemo, useState } from 'react'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import {
   flexRender,
@@ -8,7 +8,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useServerFn } from '@tanstack/react-start'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createToast } from 'vercel-toast'
 import { useAtom } from 'jotai'
 import type {
@@ -192,6 +192,44 @@ export const customFilterFns = {
   },
 }
 
+function PriorityCell({ row }: { row: Row<Employee> }) {
+  const queryClient = useQueryClient()
+
+  const handlePriorityChange = async (value: string) => {
+    await updateEmployeePriority({
+      data: { employeeId: row.original.id, priority: value },
+    })
+    queryClient.invalidateQueries({ queryKey: ['employees'] })
+    createToast('Priority updated successfully.', {
+      timeout: 3000,
+    })
+  }
+
+  return (
+    <Select
+      value={row.original.priority}
+      onValueChange={handlePriorityChange}
+    >
+      <SelectTrigger className="h-auto w-24 border-0 p-0 shadow-none hover:bg-transparent focus:ring-0">
+        <SelectValue>
+          <PriorityBadge priority={row.original.priority} />
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="low">
+          <PriorityBadge priority="low" />
+        </SelectItem>
+        <SelectItem value="medium">
+          <PriorityBadge priority="medium" />
+        </SelectItem>
+        <SelectItem value="high">
+          <PriorityBadge priority="high" />
+        </SelectItem>
+      </SelectContent>
+    </Select>
+  )
+}
+
 function App() {
   const router = useRouter()
   const [sorting, setSorting] = useState<SortingState>([])
@@ -205,301 +243,281 @@ function App() {
 
   const {
     data: employees,
-    refetch,
     isFetching,
   } = useQuery({
     queryKey: ['employees'],
     queryFn: () => getEmployeesFn(),
   })
 
-  const columns: Array<ColumnDef<Employee>> = [
-    {
-      id: 'name',
-      accessorFn: (row) =>
-        getFullName(row.deelEmployee?.firstName, row.deelEmployee?.lastName),
-      header: 'Employee',
-      filterFn: (row: Row<Employee>, _: string, filterValue: string) => {
-        const fullName = getFullName(
-          row.original.deelEmployee?.firstName,
-          row.original.deelEmployee?.lastName,
-        )
-        return (
-          (fullName &&
-            customFilterFns.containsText(fullName, _, filterValue)) ||
-          customFilterFns.containsText(row.original.email, _, filterValue) ||
-          customFilterFns.containsText(
-            row.original.salaries?.[0]?.notes ?? '',
-            _,
-            filterValue,
-          )
-        )
-      },
-      cell: ({ row }) => (
-        <EmployeeNameCell
-          name={getFullName(
+  const locationFilterOptions = useMemo(
+    () =>
+      [
+        ...new Map(
+          (employees ?? [])
+            .filter((e) => e.salaries?.[0]?.area)
+            .map((e) => {
+              const area = e.salaries[0].area
+              const country = e.salaries[0].country
+              const value = country ? `${area} (${country})` : area
+              return [value, { label: value, value }] as const
+            }),
+        ).values(),
+      ].sort((a, b) => a.label.localeCompare(b.label)),
+    [employees],
+  )
+
+  const columns: Array<ColumnDef<Employee>> = useMemo(
+    () => [
+      {
+        id: 'name',
+        accessorFn: (row) =>
+          getFullName(row.deelEmployee?.firstName, row.deelEmployee?.lastName),
+        header: 'Employee',
+        filterFn: (row: Row<Employee>, _: string, filterValue: string) => {
+          const fullName = getFullName(
             row.original.deelEmployee?.firstName,
             row.original.deelEmployee?.lastName,
-            row.original.email,
-          )}
-          notes={row.original.salaries?.[0]?.notes}
-        />
-      ),
-    },
-    {
-      id: 'startDate',
-      accessorFn: (row) =>
-        row.deelEmployee?.startDate
-          ? new Date(row.deelEmployee.startDate).getTime()
-          : 0,
-      header: 'Start Date',
-      cell: ({ row }) => {
-        const startDate = row.original.deelEmployee?.startDate
-        if (!startDate) return null
-        return (
-          <span className="text-gray-600">
-            {new Date(startDate).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-            })}
-          </span>
-        )
-      },
-    },
-    {
-      id: 'lastChange',
-      accessorFn: (row) =>
-        row.salaries?.[0]?.timestamp
-          ? new Date(row.salaries[0].timestamp).getTime()
-          : 0,
-      header: 'Last Change',
-      meta: {
-        filterVariant: 'dateRange',
-        filterLabel: 'Last Change (date)',
-      },
-      filterFn: customFilterFns.inDateRange,
-      enableColumnFilter: true,
-      cell: ({ row }) => {
-        const salary = row.original.salaries?.[0]
-        if (!salary) return null
-        return (
-          <SalaryChangeDisplay
-            changePercentage={salary.changePercentage}
-            changeAmount={salary.changeAmount}
-            totalSalary={salary.totalSalary}
-            timestamp={new Date(salary.timestamp)}
-            showDate={true}
-            size="sm"
-            benchmarkFactor={salary.benchmarkFactor}
-            locationFactor={salary.locationFactor}
-            level={salary.level}
-            step={salary.step}
-            totalSalaryLocal={salary.totalSalaryLocal}
-            actualSalaryLocal={salary.actualSalaryLocal}
-            localCurrency={salary.localCurrency}
+          )
+          return (
+            (fullName &&
+              customFilterFns.containsText(fullName, _, filterValue)) ||
+            customFilterFns.containsText(row.original.email, _, filterValue) ||
+            customFilterFns.containsText(
+              row.original.salaries?.[0]?.notes ?? '',
+              _,
+              filterValue,
+            )
+          )
+        },
+        cell: ({ row }) => (
+          <EmployeeNameCell
+            name={getFullName(
+              row.original.deelEmployee?.firstName,
+              row.original.deelEmployee?.lastName,
+              row.original.email,
+            )}
+            notes={row.original.salaries?.[0]?.notes}
           />
-        )
-      },
-    },
-    {
-      id: 'level',
-      accessorFn: (row) => row.salaries?.[0]?.level,
-      enableColumnFilter: true,
-      enableHiding: false,
-      meta: {
-        filterVariant: 'select',
-        filterOptions: SALARY_LEVEL_OPTIONS.map((level) => ({
-          label: `${level.name} (${level.value})`,
-          value: level.value,
-        })),
-      },
-      filterFn: (row: Row<Employee>, _: string, filterValue: number[]) => {
-        const level = row.original.salaries?.[0]?.level
-        if (!level) return false
-        return filterValue.includes(level)
-      },
-    },
-    {
-      id: 'levelStep',
-      accessorFn: (row) =>
-        Number(row.salaries?.[0]?.step) * Number(row.salaries?.[0]?.level),
-      header: 'Level / Step',
-      meta: {
-        filterLabel: 'Step',
-        filterVariant: 'range',
-      },
-      cell: ({ row }) => {
-        const salary = row.original.salaries?.[0]
-        if (!salary) return null
-        return (
-          <LevelStepDisplay level={salary.level} step={salary.step} size="sm" />
-        )
-      },
-    },
-    {
-      accessorKey: 'priority',
-      header: 'Priority',
-      meta: {
-        filterVariant: 'select',
-        filterOptions: [
-          { label: 'Low', value: 'low' },
-          { label: 'Medium', value: 'medium' },
-          { label: 'High', value: 'high' },
-        ],
-      },
-      filterFn: (row: Row<Employee>, _: string, filterValue: string[]) => {
-        return filterValue.includes(row.original.priority)
-      },
-      sortingFn: (rowA, rowB) => {
-        const priorityOrder = ['high', 'medium', 'low']
-        return (
-          priorityOrder.indexOf(rowA.original.priority) -
-          priorityOrder.indexOf(rowB.original.priority)
-        )
-      },
-      cell: ({ row }) => {
-        const handlePriorityChange = async (value: string) => {
-          await updateEmployeePriority({
-            data: { employeeId: row.original.id, priority: value },
-          })
-          refetch()
-          createToast('Priority updated successfully.', {
-            timeout: 3000,
-          })
-        }
-
-        return (
-          <Select
-            value={row.original.priority}
-            onValueChange={handlePriorityChange}
-          >
-            <SelectTrigger className="h-auto w-24 border-0 p-0 shadow-none hover:bg-transparent focus:ring-0">
-              <SelectValue>
-                <PriorityBadge priority={row.original.priority} />
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">
-                <PriorityBadge priority="low" />
-              </SelectItem>
-              <SelectItem value="medium">
-                <PriorityBadge priority="medium" />
-              </SelectItem>
-              <SelectItem value="high">
-                <PriorityBadge priority="high" />
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        )
-      },
-    },
-    {
-      id: 'reviewer',
-      accessorFn: (row) =>
-        getFullName(
-          row.deelEmployee?.topLevelManager?.firstName,
-          row.deelEmployee?.topLevelManager?.lastName,
         ),
-      header: 'Reviewer',
-      filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
-        customFilterFns.containsText(
+      },
+      {
+        id: 'startDate',
+        accessorFn: (row) =>
+          row.deelEmployee?.startDate
+            ? new Date(row.deelEmployee.startDate).getTime()
+            : 0,
+        header: 'Start Date',
+        cell: ({ row }) => {
+          const startDate = row.original.deelEmployee?.startDate
+          if (!startDate) return null
+          return (
+            <span className="text-gray-600">
+              {new Date(startDate).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              })}
+            </span>
+          )
+        },
+      },
+      {
+        id: 'lastChange',
+        accessorFn: (row) =>
+          row.salaries?.[0]?.timestamp
+            ? new Date(row.salaries[0].timestamp).getTime()
+            : 0,
+        header: 'Last Change',
+        meta: {
+          filterVariant: 'dateRange',
+          filterLabel: 'Last Change (date)',
+        },
+        filterFn: customFilterFns.inDateRange,
+        enableColumnFilter: true,
+        cell: ({ row }) => {
+          const salary = row.original.salaries?.[0]
+          if (!salary) return null
+          return (
+            <SalaryChangeDisplay
+              changePercentage={salary.changePercentage}
+              changeAmount={salary.changeAmount}
+              totalSalary={salary.totalSalary}
+              timestamp={new Date(salary.timestamp)}
+              showDate={true}
+              size="sm"
+              benchmarkFactor={salary.benchmarkFactor}
+              locationFactor={salary.locationFactor}
+              level={salary.level}
+              step={salary.step}
+              totalSalaryLocal={salary.totalSalaryLocal}
+              actualSalaryLocal={salary.actualSalaryLocal}
+              localCurrency={salary.localCurrency}
+            />
+          )
+        },
+      },
+      {
+        id: 'level',
+        accessorFn: (row) => row.salaries?.[0]?.level,
+        enableColumnFilter: true,
+        enableHiding: false,
+        meta: {
+          filterVariant: 'select',
+          filterOptions: SALARY_LEVEL_OPTIONS.map((level) => ({
+            label: `${level.name} (${level.value})`,
+            value: level.value,
+          })),
+        },
+        filterFn: (row: Row<Employee>, _: string, filterValue: number[]) => {
+          const level = row.original.salaries?.[0]?.level
+          if (!level) return false
+          return filterValue.includes(level)
+        },
+      },
+      {
+        id: 'levelStep',
+        accessorFn: (row) =>
+          Number(row.salaries?.[0]?.step) * Number(row.salaries?.[0]?.level),
+        header: 'Level / Step',
+        meta: {
+          filterLabel: 'Step',
+          filterVariant: 'range',
+        },
+        cell: ({ row }) => {
+          const salary = row.original.salaries?.[0]
+          if (!salary) return null
+          return (
+            <LevelStepDisplay
+              level={salary.level}
+              step={salary.step}
+              size="sm"
+            />
+          )
+        },
+      },
+      {
+        accessorKey: 'priority',
+        header: 'Priority',
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'Low', value: 'low' },
+            { label: 'Medium', value: 'medium' },
+            { label: 'High', value: 'high' },
+          ],
+        },
+        filterFn: (row: Row<Employee>, _: string, filterValue: string[]) => {
+          return filterValue.includes(row.original.priority)
+        },
+        sortingFn: (rowA, rowB) => {
+          const priorityOrder = ['high', 'medium', 'low']
+          return (
+            priorityOrder.indexOf(rowA.original.priority) -
+            priorityOrder.indexOf(rowB.original.priority)
+          )
+        },
+        cell: ({ row }) => {
+          return <PriorityCell row={row} />
+        },
+      },
+      {
+        id: 'reviewer',
+        accessorFn: (row) =>
           getFullName(
+            row.deelEmployee?.topLevelManager?.firstName,
+            row.deelEmployee?.topLevelManager?.lastName,
+          ),
+        header: 'Reviewer',
+        filterFn: (row: Row<Employee>, _: string, filterValue: string) =>
+          customFilterFns.containsText(
+            getFullName(
+              row.original.deelEmployee?.topLevelManager?.firstName,
+              row.original.deelEmployee?.topLevelManager?.lastName,
+            ),
+            _,
+            filterValue,
+          ),
+        cell: ({ row }) => {
+          const reviewerName = getFullName(
             row.original.deelEmployee?.topLevelManager?.firstName,
             row.original.deelEmployee?.topLevelManager?.lastName,
-          ),
-          _,
-          filterValue,
+          )
+          if (!reviewerName) return null
+          return <ReviewerAvatar name={reviewerName} />
+        },
+      },
+      {
+        id: 'team',
+        accessorKey: 'deelEmployee.team',
+        header: 'Team',
+        enableColumnFilter: true,
+        enableHiding: false,
+      },
+      {
+        id: 'role',
+        accessorKey: 'salaries.0.benchmark',
+        header: 'Role',
+        enableColumnFilter: true,
+        enableHiding: false,
+      },
+      {
+        accessorKey: 'reviewed',
+        header: 'Status',
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'Reviewed', value: true },
+            { label: 'Needs Review', value: false },
+          ],
+        },
+        filterFn: (row: Row<Employee>, _: string, filterValue: boolean[]) => {
+          return filterValue.includes(row.original.reviewed)
+        },
+        cell: ({ row }) => (
+          <StatusCell
+            reviewed={row.original.reviewed}
+            employeeId={row.original.id}
+          />
         ),
-      cell: ({ row }) => {
-        const reviewerName = getFullName(
-          row.original.deelEmployee?.topLevelManager?.firstName,
-          row.original.deelEmployee?.topLevelManager?.lastName,
-        )
-        if (!reviewerName) return null
-        return <ReviewerAvatar name={reviewerName} />
       },
-    },
-    {
-      id: 'team',
-      accessorKey: 'deelEmployee.team',
-      header: 'Team',
-      enableColumnFilter: true,
-      enableHiding: false,
-    },
-    {
-      id: 'role',
-      accessorKey: 'salaries.0.benchmark',
-      header: 'Role',
-      enableColumnFilter: true,
-      enableHiding: false,
-    },
-    {
-      accessorKey: 'reviewed',
-      header: 'Status',
-      meta: {
-        filterVariant: 'select',
-        filterOptions: [
-          { label: 'Reviewed', value: true },
-          { label: 'Needs Review', value: false },
-        ],
+      {
+        id: 'changePercentage',
+        accessorFn: (row) => row.salaries?.[0]?.changePercentage,
+        enableColumnFilter: true,
+        enableHiding: false,
+        meta: {
+          filterLabel: 'Change (%)',
+          filterVariant: 'range',
+        },
       },
-      filterFn: (row: Row<Employee>, _: string, filterValue: boolean[]) => {
-        return filterValue.includes(row.original.reviewed)
+      {
+        id: 'location',
+        accessorFn: (row) => {
+          const salary = row.salaries?.[0]
+          if (!salary?.area) return undefined
+          return salary.country
+            ? `${salary.area} (${salary.country})`
+            : salary.area
+        },
+        enableColumnFilter: true,
+        enableHiding: false,
+        meta: {
+          filterVariant: 'select',
+          filterLabel: 'Location',
+          filterOptions: locationFilterOptions,
+        },
+        filterFn: (row: Row<Employee>, _: string, filterValue: string[]) => {
+          const salary = row.original.salaries?.[0]
+          if (!salary?.area) return false
+          const location = salary.country
+            ? `${salary.area} (${salary.country})`
+            : salary.area
+          return filterValue.includes(location)
+        },
       },
-      cell: ({ row }) => (
-        <StatusCell
-          reviewed={row.original.reviewed}
-          employeeId={row.original.id}
-        />
-      ),
-    },
-    {
-      id: 'changePercentage',
-      accessorFn: (row) => row.salaries?.[0]?.changePercentage,
-      enableColumnFilter: true,
-      enableHiding: false,
-      meta: {
-        filterLabel: 'Change (%)',
-        filterVariant: 'range',
-      },
-    },
-    {
-      id: 'location',
-      accessorFn: (row) => {
-        const salary = row.salaries?.[0]
-        if (!salary?.area) return undefined
-        return salary.country
-          ? `${salary.area} (${salary.country})`
-          : salary.area
-      },
-      enableColumnFilter: true,
-      enableHiding: false,
-      meta: {
-        filterVariant: 'select',
-        filterLabel: 'Location',
-        filterOptions: [
-          ...new Map(
-            (employees ?? [])
-              .filter((e) => e.salaries?.[0]?.area)
-              .map((e) => {
-                const area = e.salaries[0].area
-                const country = e.salaries[0].country
-                const value = country ? `${area} (${country})` : area
-                return [value, { label: value, value }] as const
-              }),
-          ).values(),
-        ].sort((a, b) => a.label.localeCompare(b.label)),
-      },
-      filterFn: (row: Row<Employee>, _: string, filterValue: string[]) => {
-        const salary = row.original.salaries?.[0]
-        if (!salary?.area) return false
-        const location = salary.country
-          ? `${salary.area} (${salary.country})`
-          : salary.area
-        return filterValue.includes(location)
-      },
-    },
-  ]
+    ],
+    [locationFilterOptions],
+  )
 
   const table = useReactTable({
     data: employees || [],
@@ -593,12 +611,6 @@ function App() {
                             </div>
                           </>
                         )}
-                        {header.column.getCanFilter() ? (
-                          <div className="hidden">
-                            {/* for some reason removing the filters cause infinite re-renders */}
-                            <Filter column={header.column} />
-                          </div>
-                        ) : null}
                       </TableHead>
                     )
                   })}
