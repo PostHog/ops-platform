@@ -20,7 +20,7 @@ import type {
   SortingState,
 } from '@tanstack/react-table'
 import type { Priority, Prisma } from '@prisma/client'
-import { useLocalStorage } from 'usehooks-ts'
+import { useCallback } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -230,8 +230,24 @@ function PriorityCell({ row }: { row: Row<Employee> }) {
 function App() {
   const router = useRouter()
   const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useLocalStorage<ColumnFiltersState>(
-    'employees.table',
+  const [columnFilters, setColumnFiltersRaw] = useState<ColumnFiltersState>(
+    () => {
+      try {
+        const stored = localStorage.getItem('employees.table')
+        return stored ? JSON.parse(stored) : []
+      } catch {
+        return []
+      }
+    },
+  )
+  const setColumnFilters = useCallback<typeof setColumnFiltersRaw>(
+    (updater) => {
+      setColumnFiltersRaw((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater
+        localStorage.setItem('employees.table', JSON.stringify(next))
+        return next
+      })
+    },
     [],
   )
   const [_, setReviewQueue] = useAtom(reviewQueueAtom)
