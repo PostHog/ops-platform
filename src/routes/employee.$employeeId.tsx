@@ -2185,13 +2185,12 @@ function EmployeeOverview() {
             </div>
           ) : null}
 
-          {(showNewSalaryForm ||
-            (hasPayReviewAccess && !isSensitiveHidden) ||
+          {(hasPayReviewAccess ||
             (employee.cartaOptionGrants &&
               employee.cartaOptionGrants.length > 0)) && (
             <div className="mt-2 flex flex-row items-center justify-between gap-2">
               <div className="flex gap-2">
-                {showNewSalaryForm || hasPayReviewAccess ? (
+                {hasPayReviewAccess && !isSensitiveHidden ? (
                   <Button
                     type="button"
                     variant="outline"
@@ -2316,7 +2315,8 @@ function EmployeeOverview() {
               )
             })()}
 
-          {(showNewSalaryForm || hasPayReviewAccess) &&
+          {hasPayReviewAccess &&
+          !isSensitiveHidden &&
           showReferenceEmployees ? (
             <ReferenceEmployeesTable
               referenceEmployees={combinedReferenceEmployees}
