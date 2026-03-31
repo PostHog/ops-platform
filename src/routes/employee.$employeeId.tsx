@@ -94,13 +94,34 @@ import {
 } from '@/components/ui/select'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import { Skeleton } from '@/components/ui/skeleton'
 import StockOptionsCalculator from '@/components/StockOptionsCalculator'
 import { OptionGrantTimelineCard } from '@/components/OptionGrantTimelineCard'
 
 dayjs.extend(relativeTime)
 
+function EmployeeOverviewSkeleton() {
+  return (
+    <div className="flex w-full min-w-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-4">
+      <Skeleton className="h-8 w-40" />
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-7 w-64" />
+        <Skeleton className="h-4 w-96" />
+      </div>
+      <div className="flex gap-2">
+        <Skeleton className="h-9 w-48" />
+        <Skeleton className="h-9 w-36" />
+        <Skeleton className="h-9 w-56" />
+      </div>
+      <Skeleton className="h-64 w-full rounded-lg" />
+      <Skeleton className="h-96 w-full rounded-lg" />
+    </div>
+  )
+}
+
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
+  pendingComponent: EmployeeOverviewSkeleton,
   loader: async ({ params }) =>
     await getEmployeeById({ data: { employeeId: params.employeeId } }),
 })
