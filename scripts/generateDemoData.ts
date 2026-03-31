@@ -70,7 +70,9 @@ const usedEmails = new Set<string>(['dev@posthog.com'])
 function generateUniqueEmail(): string {
   let email: string
   do {
-    email = faker.internet.email().toLowerCase()
+    const first = faker.person.firstName().toLowerCase()
+    const last = faker.person.lastName().toLowerCase()
+    email = `${first}.${last}@posthog.com`
   } while (usedEmails.has(email))
   usedEmails.add(email)
   return email
