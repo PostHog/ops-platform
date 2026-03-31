@@ -206,10 +206,7 @@ function PriorityCell({ row }: { row: Row<Employee> }) {
   }
 
   return (
-    <Select
-      value={row.original.priority}
-      onValueChange={handlePriorityChange}
-    >
+    <Select value={row.original.priority} onValueChange={handlePriorityChange}>
       <SelectTrigger className="h-auto w-24 border-0 p-0 shadow-none hover:bg-transparent focus:ring-0">
         <SelectValue>
           <PriorityBadge priority={row.original.priority} />
@@ -241,10 +238,7 @@ function App() {
 
   const getEmployeesFn = useServerFn(getEmployees)
 
-  const {
-    data: employees,
-    isFetching,
-  } = useQuery({
+  const { data: employees, isFetching } = useQuery({
     queryKey: ['employees'],
     queryFn: () => getEmployeesFn(),
   })
