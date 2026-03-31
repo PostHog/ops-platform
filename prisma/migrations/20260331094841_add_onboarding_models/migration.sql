@@ -23,7 +23,7 @@ CREATE TABLE "OnboardingRecord" (
     "notes" TEXT,
     "managerId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "OnboardingRecord_pkey" PRIMARY KEY ("id")
 );
@@ -44,7 +44,7 @@ CREATE TABLE "OnboardingTask" (
     "slackThreadId" TEXT,
     "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "OnboardingTask_pkey" PRIMARY KEY ("id")
 );
@@ -59,7 +59,7 @@ CREATE INDEX "OnboardingTask_assigneeEmail_completed_idx" ON "OnboardingTask"("a
 CREATE INDEX "OnboardingTask_dueDate_completed_idx" ON "OnboardingTask"("dueDate", "completed");
 
 -- AddForeignKey
-ALTER TABLE "OnboardingRecord" ADD CONSTRAINT "OnboardingRecord_managerId_fkey" FOREIGN KEY ("managerId") REFERENCES "DeelEmployee"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "OnboardingRecord" ADD CONSTRAINT "OnboardingRecord_managerId_fkey" FOREIGN KEY ("managerId") REFERENCES "Employee"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "OnboardingTask" ADD CONSTRAINT "OnboardingTask_onboardingRecordId_fkey" FOREIGN KEY ("onboardingRecordId") REFERENCES "OnboardingRecord"("id") ON DELETE CASCADE ON UPDATE CASCADE;
