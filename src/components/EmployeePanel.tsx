@@ -53,15 +53,19 @@ const EmployeePanel = ({
   selectedNode,
   employees,
   proposedHires,
+  managedEmployeeIds,
 }: {
   selectedNode: string | null
   employees: Array<DeelEmployee>
   proposedHires: Array<ProposedHire>
+  managedEmployeeIds: Array<string>
 }) => {
   const { data: session } = useSession()
   const user = session?.user
   const canEdit = user?.role === ROLES.ADMIN || user?.role === ROLES.ORG_CHART
   const employee = employees.find((employee) => employee.id === selectedNode)
+  const isManagerOfEmployee =
+    !!employee?.employee?.id && managedEmployeeIds.includes(employee.employee.id)
   const proposedHire = proposedHires.find(
     (proposedHire) => proposedHire.id === selectedNode,
   )
@@ -196,7 +200,7 @@ const EmployeePanel = ({
             </div>
           </div>
           <div className="mt-2 flex flex-col gap-2">
-            {employee && user?.role === ROLES.ADMIN ? (
+            {employee && (user?.role === ROLES.ADMIN || isManagerOfEmployee) ? (
               <Link
                 to="/employee/$employeeId"
                 params={{ employeeId: employee.employee?.id ?? '' }}
