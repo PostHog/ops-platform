@@ -990,7 +990,10 @@ async function generateOnboardingRecords() {
     },
   ]
 
-  const STATUS_TRIGGERS: Record<string, ('offer_accepted' | 'contract_signed')[]> = {
+  const STATUS_TRIGGERS: Record<
+    string,
+    ('offer_accepted' | 'contract_signed')[]
+  > = {
     offer_accepted: ['offer_accepted'],
     contract_sent: ['offer_accepted'],
     contract_signed: ['offer_accepted', 'contract_signed'],
@@ -1015,7 +1018,11 @@ async function generateOnboardingRecords() {
     let recordTasks = 0
 
     for (const trigger of triggers) {
-      const templates = getApplicableTemplates(trigger, data.role, data.location)
+      const templates = getApplicableTemplates(
+        trigger,
+        data.role,
+        data.location,
+      )
       const tasks = templates.map((t) => ({
         onboardingRecordId: record.id,
         templateId: t.id,
@@ -1037,7 +1044,10 @@ async function generateOnboardingRecords() {
         select: { id: true },
       })
       if (overdueTasks.length > 0) {
-        const toComplete = overdueTasks.slice(0, Math.ceil(overdueTasks.length * 0.75))
+        const toComplete = overdueTasks.slice(
+          0,
+          Math.ceil(overdueTasks.length * 0.75),
+        )
         await prisma.onboardingTask.updateMany({
           where: { id: { in: toComplete.map((t) => t.id) } },
           data: { completed: true, completedAt: new Date() },
@@ -1048,7 +1058,9 @@ async function generateOnboardingRecords() {
     totalTasks += recordTasks
   }
 
-  console.log(`Generated ${ONBOARDING_RECORDS.length} onboarding records with ${totalTasks} tasks.`)
+  console.log(
+    `Generated ${ONBOARDING_RECORDS.length} onboarding records with ${totalTasks} tasks.`,
+  )
 }
 
 async function generateDemoData() {

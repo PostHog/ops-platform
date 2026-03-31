@@ -388,7 +388,7 @@ const importOnboardingRecords = createAdminFn({
     for (const item of data.items) {
       try {
         const managerId = item.managerName
-          ? managerIdByName.get(item.managerName.trim().toLowerCase()) ?? null
+          ? (managerIdByName.get(item.managerName.trim().toLowerCase()) ?? null)
           : null
 
         // Map status string to enum
@@ -584,7 +584,10 @@ const columns: ColumnDef<OnboardingRecord>[] = [
     header: 'Manager',
     accessorFn: (row) =>
       row.manager?.deelEmployee
-        ? getFullName(row.manager.deelEmployee.firstName, row.manager.deelEmployee.lastName)
+        ? getFullName(
+            row.manager.deelEmployee.firstName,
+            row.manager.deelEmployee.lastName,
+          )
         : '—',
     cell: ({ row, getValue }) => (
       <span className={row.getIsExpanded() ? '' : 'text-gray-700'}>
@@ -966,7 +969,6 @@ function ExpandedRowDetail({
 
 // ─── Add hire dialog ──────────────────────────────────────────────────────────
 
-
 function AddHireDialog({
   onSuccess,
 }: {
@@ -1182,10 +1184,12 @@ function AddHireDialog({
                       managerSearch ||
                       (form.managerId
                         ? getFullName(
-                            managers.find((m) => m.employee?.id === form.managerId)
-                              ?.firstName,
-                            managers.find((m) => m.employee?.id === form.managerId)
-                              ?.lastName,
+                            managers.find(
+                              (m) => m.employee?.id === form.managerId,
+                            )?.firstName,
+                            managers.find(
+                              (m) => m.employee?.id === form.managerId,
+                            )?.lastName,
                           )
                         : '')
                     }
@@ -1215,7 +1219,10 @@ function AddHireDialog({
                               type="button"
                               className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
                               onClick={() => {
-                                setForm((f) => ({ ...f, managerId: m.employee!.id }))
+                                setForm((f) => ({
+                                  ...f,
+                                  managerId: m.employee!.id,
+                                }))
                                 setManagerSearch('')
                               }}
                             >
@@ -1223,11 +1230,12 @@ function AddHireDialog({
                             </button>
                           )
                         })}
-                      {managers.filter((m) =>
-                        m.employee?.id &&
-                        getFullName(m.firstName, m.lastName)
-                          .toLowerCase()
-                          .includes(managerSearch.toLowerCase()),
+                      {managers.filter(
+                        (m) =>
+                          m.employee?.id &&
+                          getFullName(m.firstName, m.lastName)
+                            .toLowerCase()
+                            .includes(managerSearch.toLowerCase()),
                       ).length === 0 && (
                         <p className="px-3 py-2 text-sm text-gray-400">
                           No matches
@@ -1482,7 +1490,8 @@ function OnboardingSection({
       <h2 className="mb-2 text-lg font-semibold" style={{ color }}>
         {title}
         <span className="ml-2 text-sm font-normal text-gray-500">
-          ({filteredRowCount}{filteredRowCount !== data.length ? ` of ${data.length}` : ''})
+          ({filteredRowCount}
+          {filteredRowCount !== data.length ? ` of ${data.length}` : ''})
         </span>
       </h2>
       <div className="rounded-md" style={{ border: `1px solid ${color}33` }}>
@@ -1496,9 +1505,7 @@ function OnboardingSection({
               >
                 {hg.headers.map((h) => (
                   <Fragment key={h.id}>
-                    <TableHead
-                      style={{ width: widths[h.column.id] }}
-                    >
+                    <TableHead style={{ width: widths[h.column.id] }}>
                       {h.isPlaceholder
                         ? null
                         : flexRender(h.column.columnDef.header, h.getContext())}
@@ -1728,7 +1735,6 @@ function OnboardingPage() {
     const timer = setTimeout(() => setHighlightedRecordId(null), 5000)
     return () => clearTimeout(timer)
   }, [highlightedRecordId])
-
 
   const handleStatusChange = async (id: string, status: OnboardingStatus) => {
     try {
