@@ -137,6 +137,21 @@ export default function Header() {
             <Link to="/org-chart">Org chart</Link>
           </div>
         ) : null}
+        {user?.role === ROLES.ADMIN || user?.role === ROLES.ORG_CHART ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">
+                Onboarding
+                <ChevronDownIcon className="h-3 w-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem asChild>
+                <Link to="/onboarding">Pipeline</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
         {user?.role === ROLES.ADMIN ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
