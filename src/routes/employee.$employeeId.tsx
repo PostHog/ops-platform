@@ -2259,20 +2259,13 @@ function EmployeeOverview() {
                       <Alert variant="default">
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>
-                          This employee is currently on an old benchmark
-                          factor.
+                          This employee is currently on an old benchmark factor.
                         </AlertTitle>
                         <AlertDescription>
                           You can keep it that way by choosing `
-                          {employee.salaries[0].benchmark.replace(
-                            ' (old)',
-                            '',
-                          )}{' '}
+                          {employee.salaries[0].benchmark.replace(' (old)', '')}{' '}
                           (old)` as the benchmark, or update it by choosing `
-                          {employee.salaries[0].benchmark.replace(
-                            ' (old)',
-                            '',
-                          )}
+                          {employee.salaries[0].benchmark.replace(' (old)', '')}
                           ` as the benchmark.
                         </AlertDescription>
                       </Alert>
@@ -2284,12 +2277,11 @@ function EmployeeOverview() {
                       <Alert variant="default">
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>
-                          This employee is currently on an old location
-                          factor.
+                          This employee is currently on an old location factor.
                         </AlertTitle>
                         <AlertDescription>
-                          The location factor will be updated on the next
-                          salary update.
+                          The location factor will be updated on the next salary
+                          update.
                         </AlertDescription>
                       </Alert>
                     )}
@@ -2312,16 +2304,16 @@ function EmployeeOverview() {
                           ) : (
                             <>
                               They have {equityRefreshesReceived} refresh
-                              {equityRefreshesReceived > 1 ? 'es' : ''}{' '}
-                              recorded but {yearsSinceStart} anniversary
+                              {equityRefreshesReceived > 1 ? 'es' : ''} recorded
+                              but {yearsSinceStart} anniversary
                               {yearsSinceStart > 1 ? 'ies have' : ' has'}{' '}
                               passed. Next refresh due:{' '}
                               {nextAnniversaryDate?.format('MMM D, YYYY')}.
                             </>
                           )}{' '}
-                          Enter an equity refresh percentage in the next
-                          salary update. In the majority of cases, this will
-                          be between 18% and 25%.
+                          Enter an equity refresh percentage in the next salary
+                          update. In the majority of cases, this will be between
+                          18% and 25%.
                         </AlertDescription>
                       </Alert>
                     )}
