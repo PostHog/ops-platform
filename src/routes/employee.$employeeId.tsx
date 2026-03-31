@@ -448,7 +448,7 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
-export const getReferenceEmployees = createAdminFn({
+export const getReferenceEmployees = createPayReviewFn({
   method: 'GET',
 })
   .inputValidator(
@@ -1441,7 +1441,7 @@ function EmployeeOverview() {
     placeholderData: (prevData, prevQuery) => {
       if (prevQuery?.queryKey[1] === employee.id) return prevData
     },
-    enabled: !!level && !!step && !!benchmark && user?.role === ROLES.ADMIN,
+    enabled: !!level && !!step && !!benchmark && hasPayReviewAccess,
   })
 
   const { data: deelEmployeesAndProposedHiresData } = useQuery({
@@ -2191,7 +2191,7 @@ function EmployeeOverview() {
               employee.cartaOptionGrants.length > 0)) && (
             <div className="mt-2 flex flex-row items-center justify-between gap-2">
               <div className="flex gap-2">
-                {showNewSalaryForm ? (
+                {showNewSalaryForm || hasPayReviewAccess ? (
                   <Button
                     type="button"
                     variant="outline"
@@ -2316,7 +2316,8 @@ function EmployeeOverview() {
               )
             })()}
 
-          {showNewSalaryForm && showReferenceEmployees ? (
+          {(showNewSalaryForm || hasPayReviewAccess) &&
+          showReferenceEmployees ? (
             <ReferenceEmployeesTable
               referenceEmployees={combinedReferenceEmployees}
               currentEmployee={employee}
