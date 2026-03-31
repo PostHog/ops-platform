@@ -65,7 +65,8 @@ const EmployeePanel = ({
   const canEdit = user?.role === ROLES.ADMIN || user?.role === ROLES.ORG_CHART
   const employee = employees.find((employee) => employee.id === selectedNode)
   const isManagerOfEmployee =
-    !!employee?.employee?.id && managedEmployeeIds.includes(employee.employee.id)
+    !!employee?.employee?.id &&
+    managedEmployeeIds.includes(employee.employee.id)
   const proposedHire = proposedHires.find(
     (proposedHire) => proposedHire.id === selectedNode,
   )

@@ -413,8 +413,7 @@ const getInitialEdges = (
 }
 
 export default function OrgChart() {
-  const { employees, proposedHires, managedEmployeeIds } =
-    Route.useLoaderData()
+  const { employees, proposedHires, managedEmployeeIds } = Route.useLoaderData()
   const { data: session } = useSession()
   const canEditOrgChart =
     session?.user?.role === ROLES.ADMIN ||
