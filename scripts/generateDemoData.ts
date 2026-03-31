@@ -118,14 +118,25 @@ async function clearExistingData(): Promise<void> {
 
   await prisma.onboardingTask.deleteMany()
   await prisma.onboardingRecord.deleteMany()
+  await prisma.performanceProgramFeedback.deleteMany()
+  await prisma.file.deleteMany()
+  await prisma.performanceProgramChecklistItem.deleteMany()
+  await prisma.performanceProgram.deleteMany()
   await prisma.commissionBonus.deleteMany()
   await prisma.ashbyInterviewScore.deleteMany()
   await prisma.keeperTestFeedback.deleteMany()
   await prisma.proposedHire.deleteMany()
+  await prisma.salaryDraft.deleteMany()
   await prisma.salary.deleteMany()
   await prisma.cartaOptionGrant.deleteMany()
   await prisma.deelEmployee.deleteMany()
   await prisma.employee.deleteMany()
+
+  // Tables referencing User
+  await prisma.agentMessage.deleteMany()
+  await prisma.agentConversation.deleteMany()
+  await prisma.payrollScenario.deleteMany()
+  await prisma.auditLog.deleteMany()
 
   // Auth tables - dev user will be recreated on sign up
   await prisma.session.deleteMany()
