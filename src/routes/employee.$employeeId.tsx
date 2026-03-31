@@ -74,10 +74,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import prisma from '@/db'
-import {
-  createInternalFn,
-  createPayReviewFn,
-} from '@/lib/auth-middleware'
+import { createInternalFn, createPayReviewFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
@@ -1298,9 +1295,7 @@ function EmployeeOverview() {
   const isSensitiveHidden = useSensitiveDataHidden()
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
-  const [showNewSalaryForm, setShowNewSalaryForm] = useState(
-    hasPayReviewAccess,
-  )
+  const [showNewSalaryForm, setShowNewSalaryForm] = useState(hasPayReviewAccess)
   const [showOverrideMode, setShowOverrideMode] = useState(
     Boolean(employee.salaryDraft?.showOverride),
   )
