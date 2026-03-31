@@ -514,7 +514,7 @@ model OnboardingRecord {
   manager     Employee?         @relation("OnboardingManager", fields: [managerId], references: [id])
   tasks       OnboardingTask[]
   createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @default(now()) @updatedAt
+  updatedAt   DateTime          @updatedAt
 }
 
 enum OnboardingTaskAssigneeType {
@@ -543,7 +543,7 @@ model OnboardingTask {
   slackThreadId          String?
   notes                  String?
   createdAt              DateTime                    @default(now())
-  updatedAt              DateTime                    @default(now()) @updatedAt
+  updatedAt              DateTime                    @updatedAt
 
   @@index([onboardingRecordId])
   @@index([assigneeEmail, completed])
