@@ -1330,6 +1330,8 @@ function OnboardingSection({
   title,
   color,
   data,
+  globalFilter,
+  columnFilters,
   highlightedRecordId,
   editingRecordId,
   expandedRecordId,
@@ -1344,6 +1346,8 @@ function OnboardingSection({
   title: string
   color: string
   data: OnboardingRecord[]
+  globalFilter: string
+  columnFilters: ColumnFiltersState
   highlightedRecordId: string | null
   editingRecordId: string | null
   expandedRecordId: string | null
@@ -1363,13 +1367,15 @@ function OnboardingSection({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting },
+    state: { sorting, globalFilter, columnFilters },
     onSortingChange: setSorting,
     initialState: { columnVisibility: { statusFilter: false } },
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: () => true,
+    globalFilterFn: 'includesString',
   })
 
   // Sync expanded state from parent
@@ -1380,6 +1386,8 @@ function OnboardingSection({
       if (row.getIsExpanded() !== shouldExpand) row.toggleExpanded()
     })
   }, [expandedRecordId, data])
+
+  const filteredRowCount = table.getFilteredRowModel().rows.length
 
   if (data.length === 0) {
     return (
@@ -1413,7 +1421,7 @@ function OnboardingSection({
       <h2 className="mb-2 text-lg font-semibold" style={{ color }}>
         {title}
         <span className="ml-2 text-sm font-normal text-gray-500">
-          ({data.length})
+          ({filteredRowCount}{filteredRowCount !== data.length ? ` of ${data.length}` : ''})
         </span>
       </h2>
       <div className="rounded-md" style={{ border: `1px solid ${color}33` }}>
@@ -1660,22 +1668,6 @@ function OnboardingPage() {
     return () => clearTimeout(timer)
   }, [highlightedRecordId])
 
-  // Use a hidden table just for global + column filtering
-  const filterTable = useReactTable({
-    data: records,
-    columns,
-    state: { globalFilter, columnFilters },
-    onGlobalFilterChange: setGlobalFilter,
-    onColumnFiltersChange: setColumnFilters,
-    initialState: { columnVisibility: { statusFilter: false } },
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    globalFilterFn: 'includesString',
-  })
-
-  const filteredRecords = filterTable
-    .getFilteredRowModel()
-    .rows.map((r) => r.original)
 
   const handleStatusChange = async (id: string, status: OnboardingStatus) => {
     try {
@@ -1926,7 +1918,7 @@ function OnboardingPage() {
             {
               title: 'Active Onboardings',
               color: '#006FDC',
-              data: filteredRecords.filter((r) => {
+              data: records.filter((r) => {
                 if (!r.startDate) return true
                 return getPhase(r.startDate).label === 'Pre-start'
               }),
@@ -1934,7 +1926,7 @@ function OnboardingPage() {
             {
               title: 'First Day',
               color: '#FF4E00',
-              data: filteredRecords.filter((r) => {
+              data: records.filter((r) => {
                 if (!r.startDate) return false
                 return getPhase(r.startDate).label === 'First Day'
               }),
@@ -1942,7 +1934,7 @@ function OnboardingPage() {
             {
               title: 'First Week',
               color: '#F99B00',
-              data: filteredRecords.filter((r) => {
+              data: records.filter((r) => {
                 if (!r.startDate) return false
                 return getPhase(r.startDate).label === 'First Week'
               }),
@@ -1950,7 +1942,7 @@ function OnboardingPage() {
             {
               title: 'Started',
               color: '#78A700',
-              data: filteredRecords.filter((r) => {
+              data: records.filter((r) => {
                 if (!r.startDate) return false
                 const phase = getPhase(r.startDate).label
                 return (
@@ -1966,6 +1958,8 @@ function OnboardingPage() {
               title={section.title}
               color={section.color}
               data={section.data}
+              globalFilter={globalFilter}
+              columnFilters={columnFilters}
               highlightedRecordId={highlightedRecordId}
               editingRecordId={editingRecordId}
               expandedRecordId={expandedRecordId}
@@ -1978,9 +1972,6 @@ function OnboardingPage() {
               onOpenTasks={(id, name) => setTaskPanelRecord({ id, name })}
             />
           ))}
-          <p className="text-muted-foreground text-xs">
-            {filteredRecords.length} of {records.length} hires shown
-          </p>
         </div>
       )}
 
