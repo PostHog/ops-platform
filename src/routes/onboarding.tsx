@@ -326,16 +326,37 @@ const importOnboardingRecords = createAdminFn({
 
     for (const item of data.items) {
       try {
-        // Look up manager by first name
+        // Look up manager by name (full name if provided, first name as fallback)
         let managerId: string | null = null
         if (item.managerName) {
-          const manager = await prisma.deelEmployee.findFirst({
-            where: {
-              firstName: { equals: item.managerName, mode: 'insensitive' },
-            },
-            select: { id: true },
-          })
-          managerId = manager?.id ?? null
+          const parts = item.managerName.trim().split(/\s+/)
+          const manager =
+            parts.length >= 2
+              ? await prisma.deelEmployee.findFirst({
+                  where: {
+                    firstName: { equals: parts[0], mode: 'insensitive' },
+                    lastName: {
+                      equals: parts.slice(1).join(' '),
+                      mode: 'insensitive',
+                    },
+                  },
+                  select: { id: true },
+                })
+              : null
+          // Fall back to first-name-only match if full name didn't match
+          const fallback =
+            !manager
+              ? await prisma.deelEmployee.findFirst({
+                  where: {
+                    firstName: {
+                      equals: parts[0],
+                      mode: 'insensitive',
+                    },
+                  },
+                  select: { id: true },
+                })
+              : null
+          managerId = manager?.id ?? fallback?.id ?? null
         }
 
         // Map status string to enum
