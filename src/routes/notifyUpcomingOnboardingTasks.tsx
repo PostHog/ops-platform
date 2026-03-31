@@ -1,5 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
+import type { Prisma } from '@prisma/client'
 import prisma from '@/db'
+
+type TaskWithRecord = Prisma.OnboardingTaskGetPayload<{
+  include: { onboardingRecord: true }
+}>
 
 export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
   server: {
@@ -29,7 +34,7 @@ export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
         const oneDayAgo = new Date()
         oneDayAgo.setDate(oneDayAgo.getDate() - 1)
 
-        const tasks = await prisma.onboardingTask.findMany({
+        const tasks = (await prisma.onboardingTask.findMany({
           where: {
             completed: false,
             dueDate: { lte: sevenDaysFromNow },
@@ -42,7 +47,7 @@ export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
             onboardingRecord: true,
           },
           orderBy: { dueDate: 'asc' },
-        })
+        })) as TaskWithRecord[]
 
         if (tasks.length === 0) {
           return new Response(
