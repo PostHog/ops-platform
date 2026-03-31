@@ -60,16 +60,12 @@ export default function StockOptionsCalculator({
   const [newValuation, setNewValuation] = useState('')
   const isSensitiveHidden = useSensitiveDataHidden()
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['valuationAndShares'],
     queryFn: getValuationAndShares,
   })
 
-  if (
-    !data?.FULLY_DILUTED_SHARES ||
-    !data?.CURRENT_VALUATION ||
-    !data?.DILUTION_PER_ROUND
-  ) {
+  if (isLoading) {
     return (
       <>
         <div className="mt-2 flex flex-row items-center justify-between gap-2">
@@ -89,6 +85,14 @@ export default function StockOptionsCalculator({
         </div>
       </>
     )
+  }
+
+  if (
+    !data?.FULLY_DILUTED_SHARES ||
+    !data?.CURRENT_VALUATION ||
+    !data?.DILUTION_PER_ROUND
+  ) {
+    return null
   }
 
   const averageDilutionPerRound =
