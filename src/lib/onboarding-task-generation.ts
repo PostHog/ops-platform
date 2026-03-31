@@ -16,21 +16,28 @@ const ASSIGNEE_EMAILS: Partial<
   scott: process.env.SCOTT_EMAIL,
 }
 
-async function resolveAssigneeEmail(
-  assigneeType: OnboardingTaskAssigneeType,
+async function resolveAssigneeEmails(
+  assigneeTypes: OnboardingTaskAssigneeType[],
   managerId: string | null,
-): Promise<string | null> {
-  if (assigneeType === 'new_hire') return null
+): Promise<Map<OnboardingTaskAssigneeType, string | null>> {
+  const unique = [...new Set(assigneeTypes)]
+  const result = new Map<OnboardingTaskAssigneeType, string | null>()
 
-  if (assigneeType === 'manager' && managerId) {
-    const manager = await prisma.employee.findUnique({
-      where: { id: managerId },
-      select: { email: true },
-    })
-    return manager?.email ?? null
+  for (const type of unique) {
+    if (type === 'new_hire') {
+      result.set(type, null)
+    } else if (type === 'manager' && managerId) {
+      const manager = await prisma.employee.findUnique({
+        where: { id: managerId },
+        select: { email: true },
+      })
+      result.set(type, manager?.email ?? null)
+    } else {
+      result.set(type, ASSIGNEE_EMAILS[type] ?? null)
+    }
   }
 
-  return ASSIGNEE_EMAILS[assigneeType] ?? null
+  return result
 }
 
 // ─── Due date calculation ────────────────────────────────────────────────────
@@ -55,6 +62,7 @@ export async function generateOnboardingTasks(
   },
 ): Promise<number> {
   if (!record.startDate) return 0
+  const startDate = record.startDate
 
   const templates = getApplicableTemplates(
     triggerStatus,
@@ -69,24 +77,21 @@ export async function generateOnboardingTasks(
   })
   const existingIds = new Set(existing.map((e) => e.templateId))
 
-  const newTasks = []
-  for (const t of templates) {
-    if (existingIds.has(t.id)) continue
+  const templatesToCreate = templates.filter((t) => !existingIds.has(t.id))
 
-    const assigneeEmail = await resolveAssigneeEmail(
-      t.assigneeType,
-      record.managerId,
-    )
+  const emailMap = await resolveAssigneeEmails(
+    templatesToCreate.map((t) => t.assigneeType),
+    record.managerId,
+  )
 
-    newTasks.push({
-      onboardingRecordId: recordId,
-      templateId: t.id,
-      description: t.description,
-      assigneeType: t.assigneeType,
-      assigneeEmail,
-      dueDate: addDays(record.startDate, t.daysFromStart),
-    })
-  }
+  const newTasks = templatesToCreate.map((t) => ({
+    onboardingRecordId: recordId,
+    templateId: t.id,
+    description: t.description,
+    assigneeType: t.assigneeType,
+    assigneeEmail: emailMap.get(t.assigneeType) ?? null,
+    dueDate: addDays(startDate, t.daysFromStart),
+  }))
 
   if (newTasks.length > 0) {
     await prisma.onboardingTask.createMany({ data: newTasks })
@@ -177,17 +182,26 @@ export async function recalculateTaskDueDates(
 
   const templateMap = new Map(ONBOARDING_TASK_TEMPLATES.map((t) => [t.id, t]))
 
-  let updated = 0
+  // Group task IDs by daysFromStart so we can batch updates
+  const byOffset = new Map<number, string[]>()
   for (const task of tasks) {
     const template = templateMap.get(task.templateId)
     if (!template) continue
-
-    await prisma.onboardingTask.update({
-      where: { id: task.id },
-      data: { dueDate: addDays(newStartDate, template.daysFromStart) },
-    })
-    updated++
+    const ids = byOffset.get(template.daysFromStart) ?? []
+    ids.push(task.id)
+    byOffset.set(template.daysFromStart, ids)
   }
+
+  let updated = 0
+  await prisma.$transaction(
+    [...byOffset.entries()].map(([offset, ids]) => {
+      updated += ids.length
+      return prisma.onboardingTask.updateMany({
+        where: { id: { in: ids } },
+        data: { dueDate: addDays(newStartDate, offset) },
+      })
+    }),
+  )
 
   return updated
 }
