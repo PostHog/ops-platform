@@ -14,7 +14,7 @@ import type {
   ColumnFiltersState,
 } from '@tanstack/react-table'
 import type { OnboardingStatus, Prisma } from '@prisma/client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import {
   ArrowDown,
   ArrowUp,
@@ -1406,9 +1406,8 @@ function OnboardingSection({
                 style={{ backgroundColor: `${color}1A` }}
               >
                 {hg.headers.map((h) => (
-                  <>
+                  <Fragment key={h.id}>
                     <TableHead
-                      key={h.id}
                       style={{ width: widths[h.column.id] }}
                     >
                       {h.isPlaceholder
@@ -1431,16 +1430,15 @@ function OnboardingSection({
                         style={{ width: SHOW_TASKS ? '4%' : '9%' }}
                       ></TableHead>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.map((row) => (
-              <>
+              <Fragment key={row.id}>
                 <TableRow
-                  key={row.id}
                   className={`cursor-pointer !transition-none ${
                     highlightedRecordId === row.original.id &&
                     !row.getIsExpanded()
@@ -1453,8 +1451,8 @@ function OnboardingSection({
                   }}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <>
-                      <TableCell key={cell.id}>
+                    <Fragment key={cell.id}>
+                      <TableCell>
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
@@ -1583,7 +1581,7 @@ function OnboardingSection({
                           </DropdownMenu>
                         </TableCell>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </TableRow>
                 {row.getIsExpanded() && (
@@ -1605,7 +1603,7 @@ function OnboardingSection({
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </Fragment>
             ))}
           </TableBody>
         </Table>
