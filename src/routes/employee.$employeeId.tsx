@@ -94,15 +94,22 @@ import {
 } from '@/components/ui/select'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import StockOptionsCalculator from '@/components/StockOptionsCalculator'
+import StockOptionsCalculator, {
+  getValuationAndShares,
+} from '@/components/StockOptionsCalculator'
 import { OptionGrantTimelineCard } from '@/components/OptionGrantTimelineCard'
 
 dayjs.extend(relativeTime)
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
-  loader: async ({ params }) =>
-    await getEmployeeById({ data: { employeeId: params.employeeId } }),
+  loader: async ({ params, context }) => {
+    context.queryClient.prefetchQuery({
+      queryKey: ['valuationAndShares'],
+      queryFn: getValuationAndShares,
+    })
+    return await getEmployeeById({ data: { employeeId: params.employeeId } })
+  },
 })
 
 const getEmployeeById = createInternalFn({

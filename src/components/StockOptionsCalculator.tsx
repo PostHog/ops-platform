@@ -21,7 +21,7 @@ interface StockOptionsCalculatorProps {
   optionGrants: CartaOptionGrant[]
 }
 
-const getValuationAndShares = createInternalFn({
+export const getValuationAndShares = createInternalFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   if (!context.user.email.endsWith('@posthog.com')) {
