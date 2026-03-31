@@ -550,7 +550,12 @@ export const updateSalary = createPayReviewFn({
       >,
     ) => d,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
+      throw new Error('Unauthorized')
+    }
     const [salary] = await prisma.$transaction([
       prisma.salary.create({
         data: {
@@ -573,13 +578,19 @@ export const deleteSalary = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const existingSalary = await prisma.salary.findUnique({
       where: { id: data.id },
     })
 
     if (!existingSalary) {
       throw new Error('Salary not found')
+    }
+
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+    if (!isAdmin && !managedEmployeeIds.includes(existingSalary.employeeId)) {
+      throw new Error('Unauthorized')
     }
 
     const hoursSinceCreation =
@@ -644,7 +655,12 @@ export const saveSalaryDraft = createPayReviewFn({
       bonusPercentageOverride?: number
     }) => d,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isAdmin = context.user.role === ROLES.ADMIN
+    const { managedEmployeeIds } = context.managerInfo
+    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
+      throw new Error('Unauthorized')
+    }
     const { employeeId, ...draftData } = data
     return await prisma.salaryDraft.upsert({
       where: { employeeId },
