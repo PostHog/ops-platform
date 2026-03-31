@@ -533,7 +533,6 @@ model OnboardingTask {
   templateId             String
   description            String
   assigneeType           OnboardingTaskAssigneeType
-  assigneeEmail          String?
   dueDate                DateTime
   completed              Boolean                     @default(false)
   completedAt            DateTime?
@@ -546,6 +545,5 @@ model OnboardingTask {
   updatedAt              DateTime                    @updatedAt
 
   @@index([onboardingRecordId])
-  @@index([assigneeEmail, completed])
   @@index([dueDate, completed])
 }

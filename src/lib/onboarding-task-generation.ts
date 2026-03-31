@@ -3,42 +3,6 @@ import {
   getApplicableTemplates,
   ONBOARDING_TASK_TEMPLATES,
 } from './onboarding-task-templates'
-import type { OnboardingTaskAssigneeType } from '@prisma/client'
-
-// ─── Assignee email resolution ───────────────────────────────────────────────
-
-const ASSIGNEE_EMAILS: Partial<
-  Record<OnboardingTaskAssigneeType, string | undefined>
-> = {
-  ops: process.env.OPS_EMAIL,
-  kendal: process.env.KENDAL_EMAIL,
-  hector: process.env.HECTOR_EMAIL,
-  scott: process.env.SCOTT_EMAIL,
-}
-
-async function resolveAssigneeEmails(
-  assigneeTypes: OnboardingTaskAssigneeType[],
-  managerId: string | null,
-): Promise<Map<OnboardingTaskAssigneeType, string | null>> {
-  const unique = [...new Set(assigneeTypes)]
-  const result = new Map<OnboardingTaskAssigneeType, string | null>()
-
-  for (const type of unique) {
-    if (type === 'new_hire') {
-      result.set(type, null)
-    } else if (type === 'manager' && managerId) {
-      const manager = await prisma.employee.findUnique({
-        where: { id: managerId },
-        select: { email: true },
-      })
-      result.set(type, manager?.email ?? null)
-    } else {
-      result.set(type, ASSIGNEE_EMAILS[type] ?? null)
-    }
-  }
-
-  return result
-}
 
 // ─── Due date calculation ────────────────────────────────────────────────────
 
@@ -58,7 +22,6 @@ export async function generateOnboardingTasks(
     role: string
     location: string | null
     startDate: Date | null
-    managerId: string | null
   },
 ): Promise<number> {
   if (!record.startDate) return 0
@@ -79,17 +42,11 @@ export async function generateOnboardingTasks(
 
   const templatesToCreate = templates.filter((t) => !existingIds.has(t.id))
 
-  const emailMap = await resolveAssigneeEmails(
-    templatesToCreate.map((t) => t.assigneeType),
-    record.managerId,
-  )
-
   const newTasks = templatesToCreate.map((t) => ({
     onboardingRecordId: recordId,
     templateId: t.id,
     description: t.description,
     assigneeType: t.assigneeType,
-    assigneeEmail: emailMap.get(t.assigneeType) ?? null,
     dueDate: addDays(startDate, t.daysFromStart),
   }))
 
@@ -146,7 +103,6 @@ export async function syncTasksToStatus(
     role: string
     location: string | null
     startDate: Date | null
-    managerId: string | null
   },
 ): Promise<{ generated: number; removed: number }> {
   const applicableTriggers = STATUS_TRIGGERS[newStatus] ?? ['offer_accepted']

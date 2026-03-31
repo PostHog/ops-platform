@@ -193,7 +193,6 @@ const createOnboardingRecord = createAdminFn({
       role: record.role,
       location: record.location,
       startDate: record.startDate,
-      managerId: record.managerId,
     })
 
     return record
@@ -213,7 +212,6 @@ const updateOnboardingStatus = createAdminFn({
       role: record.role,
       location: record.location,
       startDate: record.startDate,
-      managerId: record.managerId,
     })
 
     return record
@@ -404,7 +402,6 @@ const importOnboardingRecords = createAdminFn({
             role: record.role,
             location: record.location,
             startDate: record.startDate,
-            managerId: record.managerId,
           })
           if (
             status === 'contract_signed' ||
@@ -415,7 +412,6 @@ const importOnboardingRecords = createAdminFn({
               role: record.role,
               location: record.location,
               startDate: record.startDate,
-              managerId: record.managerId,
             })
           }
           created++

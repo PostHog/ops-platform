@@ -35,7 +35,6 @@ CREATE TABLE "OnboardingTask" (
     "templateId" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "assigneeType" "OnboardingTaskAssigneeType" NOT NULL,
-    "assigneeEmail" TEXT,
     "dueDate" TIMESTAMP(3) NOT NULL,
     "completed" BOOLEAN NOT NULL DEFAULT false,
     "completedAt" TIMESTAMP(3),
@@ -51,9 +50,6 @@ CREATE TABLE "OnboardingTask" (
 
 -- CreateIndex
 CREATE INDEX "OnboardingTask_onboardingRecordId_idx" ON "OnboardingTask"("onboardingRecordId");
-
--- CreateIndex
-CREATE INDEX "OnboardingTask_assigneeEmail_completed_idx" ON "OnboardingTask"("assigneeEmail", "completed");
 
 -- CreateIndex
 CREATE INDEX "OnboardingTask_dueDate_completed_idx" ON "OnboardingTask"("dueDate", "completed");
