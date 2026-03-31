@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import type { OnboardingTask, OnboardingTaskAssigneeType } from '@prisma/client'
+import type { OnboardingTask } from '@prisma/client'
+import type { OnboardingTaskAssigneeType } from '@/lib/onboarding-task-templates'
 import {
   Dialog,
   DialogContent,

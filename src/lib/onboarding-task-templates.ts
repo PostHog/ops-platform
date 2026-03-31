@@ -1,4 +1,10 @@
-import type { OnboardingTaskAssigneeType } from '@prisma/client'
+export type OnboardingTaskAssigneeType =
+  | 'ops'
+  | 'manager'
+  | 'kendal'
+  | 'hector'
+  | 'scott'
+  | 'new_hire'
 
 export type OnboardingTaskTemplate = {
   id: string

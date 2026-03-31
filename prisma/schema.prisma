@@ -517,22 +517,13 @@ model OnboardingRecord {
   updatedAt   DateTime          @updatedAt
 }
 
-enum OnboardingTaskAssigneeType {
-  ops
-  manager
-  kendal
-  hector
-  scott
-  new_hire
-}
-
 model OnboardingTask {
-  id                     String                      @id @default(cuid())
+  id                     String           @id @default(cuid())
   onboardingRecordId     String
-  onboardingRecord       OnboardingRecord            @relation(fields: [onboardingRecordId], references: [id], onDelete: Cascade)
+  onboardingRecord       OnboardingRecord @relation(fields: [onboardingRecordId], references: [id], onDelete: Cascade)
   templateId             String
   description            String
-  assigneeType           OnboardingTaskAssigneeType
+  assigneeType           String
   dueDate                DateTime
   completed              Boolean                     @default(false)
   completedAt            DateTime?

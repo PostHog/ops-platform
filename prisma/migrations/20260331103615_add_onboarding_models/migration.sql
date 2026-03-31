@@ -1,9 +1,6 @@
 -- CreateEnum
 CREATE TYPE "OnboardingStatus" AS ENUM ('offer_accepted', 'contract_sent', 'contract_signed', 'provisioned', 'started');
 
--- CreateEnum
-CREATE TYPE "OnboardingTaskAssigneeType" AS ENUM ('ops', 'manager', 'kendal', 'hector', 'scott', 'new_hire');
-
 -- CreateTable
 CREATE TABLE "OnboardingRecord" (
     "id" TEXT NOT NULL,
@@ -34,7 +31,7 @@ CREATE TABLE "OnboardingTask" (
     "onboardingRecordId" TEXT NOT NULL,
     "templateId" TEXT NOT NULL,
     "description" TEXT NOT NULL,
-    "assigneeType" "OnboardingTaskAssigneeType" NOT NULL,
+    "assigneeType" TEXT NOT NULL,
     "dueDate" TIMESTAMP(3) NOT NULL,
     "completed" BOOLEAN NOT NULL DEFAULT false,
     "completedAt" TIMESTAMP(3),

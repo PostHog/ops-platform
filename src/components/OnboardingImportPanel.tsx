@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Papa from 'papaparse'
 import { formatQuarter } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -240,7 +240,10 @@ export function OnboardingImportPanel({
   const [importing, setImporting] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
 
-  const existingSet = new Set(existingNames.map((n) => n.toLowerCase().trim()))
+  const existingSet = useMemo(
+    () => new Set(existingNames.map((n) => n.toLowerCase().trim())),
+    [existingNames],
+  )
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

@@ -80,9 +80,24 @@ export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
             headers: { Authorization: `Bearer ${process.env.SLACK_TOKEN}` },
           },
         )
-        const userBody = await userRes.json()
 
-        if (userRes.status !== 200 || !userBody.ok) {
+        let userBody: any
+        try {
+          userBody = await userRes.json()
+        } catch {
+          console.error(
+            `Failed to parse Slack response (status ${userRes.status})`,
+          )
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: `Slack API returned status ${userRes.status}`,
+            }),
+            { status: 502 },
+          )
+        }
+
+        if (!userBody.ok) {
           console.error(
             `Error looking up Slack user for ${notificationEmail}:`,
             JSON.stringify(userBody),
@@ -172,9 +187,23 @@ export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
           }),
         })
 
-        const msgBody = await msgRes.json()
+        let msgBody: any
+        try {
+          msgBody = await msgRes.json()
+        } catch {
+          console.error(
+            `Failed to parse Slack message response (status ${msgRes.status})`,
+          )
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: `Slack API returned status ${msgRes.status}`,
+            }),
+            { status: 502 },
+          )
+        }
 
-        if (msgRes.status !== 200 || !msgBody.ok) {
+        if (!msgBody.ok) {
           console.error('Error sending Slack digest:', JSON.stringify(msgBody))
           return new Response(
             JSON.stringify({

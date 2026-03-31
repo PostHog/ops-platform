@@ -138,6 +138,7 @@ const getEmployeesForPicker = createOrgChartFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.deelEmployee.findMany({
+    where: { firstName: { not: '' } },
     select: {
       id: true,
       firstName: true,
@@ -146,6 +147,7 @@ const getEmployeesForPicker = createOrgChartFn({
       team: true,
     },
     orderBy: { firstName: 'asc' },
+    take: 500,
   })
 })
 
@@ -340,48 +342,57 @@ const importOnboardingRecords = createAdminFn({
     let updated = 0
     const errors: string[] = []
 
+    // Batch-resolve all unique manager names upfront
+    const uniqueManagerNames = [
+      ...new Set(
+        data.items
+          .map((i) => i.managerName?.trim())
+          .filter((n): n is string => !!n),
+      ),
+    ]
+    const managerIdByName = new Map<string, string | null>()
+    if (uniqueManagerNames.length > 0) {
+      const deelEmployees = await prisma.deelEmployee.findMany({
+        select: {
+          firstName: true,
+          lastName: true,
+          employee: { select: { id: true } },
+        },
+      })
+      for (const name of uniqueManagerNames) {
+        const parts = name.split(/\s+/)
+        const fullMatch =
+          parts.length >= 2
+            ? deelEmployees.find(
+                (d) =>
+                  d.employee?.id &&
+                  d.firstName.toLowerCase() === parts[0].toLowerCase() &&
+                  d.lastName.toLowerCase() ===
+                    parts.slice(1).join(' ').toLowerCase(),
+              )
+            : null
+        const firstNameMatch = !fullMatch
+          ? deelEmployees.find(
+              (d) =>
+                d.employee?.id &&
+                d.firstName.toLowerCase() === parts[0].toLowerCase(),
+            )
+          : null
+        managerIdByName.set(
+          name.toLowerCase(),
+          fullMatch?.employee?.id ?? firstNameMatch?.employee?.id ?? null,
+        )
+      }
+    }
+
     for (const item of data.items) {
       try {
-        // Look up manager by name → resolve to Employee ID
-        let managerId: string | null = null
-        if (item.managerName) {
-          const parts = item.managerName.trim().split(/\s+/)
-          const deelMatch =
-            parts.length >= 2
-              ? await prisma.deelEmployee.findFirst({
-                  where: {
-                    firstName: { equals: parts[0], mode: 'insensitive' },
-                    lastName: {
-                      equals: parts.slice(1).join(' '),
-                      mode: 'insensitive',
-                    },
-                  },
-                  select: { employee: { select: { id: true } } },
-                })
-              : null
-          // Fall back to first-name-only match if full name didn't match
-          const fallback =
-            !deelMatch?.employee
-              ? await prisma.deelEmployee.findFirst({
-                  where: {
-                    firstName: {
-                      equals: parts[0],
-                      mode: 'insensitive',
-                    },
-                  },
-                  select: { employee: { select: { id: true } } },
-                })
-              : null
-          managerId = deelMatch?.employee?.id ?? fallback?.employee?.id ?? null
-        }
+        const managerId = item.managerName
+          ? managerIdByName.get(item.managerName.trim().toLowerCase()) ?? null
+          : null
 
         // Map status string to enum
         const status = (item.status as OnboardingStatus) ?? 'offer_accepted'
-
-        // Check for existing record by name (idempotent)
-        const existing = await prisma.onboardingRecord.findFirst({
-          where: { name: { equals: item.name.trim(), mode: 'insensitive' } },
-        })
 
         const recordData = {
           name: item.name.trim(),
@@ -404,31 +415,55 @@ const importOnboardingRecords = createAdminFn({
           notes: item.notes || null,
         }
 
-        if (existing) {
-          const updatedRecord = await prisma.onboardingRecord.update({
-            where: { id: existing.id },
-            data: recordData,
+        // Use a serializable transaction to prevent race conditions on concurrent imports
+        const { record, isUpdate, previousStatus, previousStartDate } =
+          await prisma.$transaction(async (tx) => {
+            const existing = await tx.onboardingRecord.findFirst({
+              where: {
+                name: { equals: item.name.trim(), mode: 'insensitive' },
+              },
+            })
+
+            if (existing) {
+              const updatedRecord = await tx.onboardingRecord.update({
+                where: { id: existing.id },
+                data: recordData,
+              })
+              return {
+                record: updatedRecord,
+                isUpdate: true,
+                previousStatus: existing.status,
+                previousStartDate: existing.startDate,
+              }
+            } else {
+              const newRecord = await tx.onboardingRecord.create({
+                data: recordData,
+              })
+              return {
+                record: newRecord,
+                isUpdate: false,
+                previousStatus: null,
+                previousStartDate: null,
+              }
+            }
           })
-          // Sync tasks when status changes on import update
-          if (status !== existing.status) {
-            await syncTasksToStatus(existing.id, status, {
-              role: updatedRecord.role,
-              location: updatedRecord.location,
-              startDate: updatedRecord.startDate,
+
+        if (isUpdate) {
+          if (status !== previousStatus) {
+            await syncTasksToStatus(record.id, status, {
+              role: record.role,
+              location: record.location,
+              startDate: record.startDate,
             })
           }
-          // Recalculate due dates when start date changes
           if (
-            updatedRecord.startDate &&
-            existing.startDate?.getTime() !== updatedRecord.startDate.getTime()
+            record.startDate &&
+            previousStartDate?.getTime() !== record.startDate.getTime()
           ) {
-            await recalculateTaskDueDates(existing.id, updatedRecord.startDate)
+            await recalculateTaskDueDates(record.id, record.startDate)
           }
           updated++
         } else {
-          const record = await prisma.onboardingRecord.create({
-            data: recordData,
-          })
           // Generate tasks for new records
           await generateOnboardingTasks(record.id, 'offer_accepted', {
             role: record.role,
