@@ -6,6 +6,7 @@ import {
   KeeperTestRecommendation,
   SalaryDeviationStatus,
 } from '@prisma/client'
+import type { OnboardingStatus } from '@prisma/client'
 import {
   sfBenchmark,
   locationFactor,
@@ -14,6 +15,7 @@ import {
   currencyData,
   SALARY_LEVEL_OPTIONS,
 } from '../src/lib/utils'
+import { getApplicableTemplates } from '../src/lib/onboarding-task-templates'
 
 const prisma = new PrismaClient()
 
@@ -112,6 +114,8 @@ const DEV_USER_EMAIL = 'dev@posthog.com'
 async function clearExistingData(): Promise<void> {
   console.log('Clearing existing data...')
 
+  await prisma.onboardingTask.deleteMany()
+  await prisma.onboardingRecord.deleteMany()
   await prisma.commissionBonus.deleteMany()
   await prisma.ashbyInterviewScore.deleteMany()
   await prisma.keeperTestFeedback.deleteMany()
@@ -875,6 +879,164 @@ async function generateCommissionBonuses(
   console.log(`Generated ${totalBonuses} commission bonuses.`)
 }
 
+async function generateOnboardingRecords() {
+  console.log('Generating onboarding records...')
+
+  const managerCandidates = await prisma.employee.findMany({
+    where: { deelEmployee: { directReports: { some: {} } } },
+    take: 10,
+  })
+
+  if (managerCandidates.length === 0) {
+    console.log('No manager candidates found, skipping onboarding records.')
+    return
+  }
+
+  function daysFromToday(days: number): Date {
+    const d = new Date()
+    d.setDate(d.getDate() + days)
+    d.setHours(9, 0, 0, 0)
+    return d
+  }
+
+  function addDays(date: Date, days: number): Date {
+    const result = new Date(date)
+    result.setDate(result.getDate() + days)
+    result.setHours(9, 0, 0, 0)
+    return result
+  }
+
+  const ONBOARDING_RECORDS: {
+    name: string
+    role: string
+    team: string
+    startDate: Date
+    location: string
+    quarter: string
+    referral: boolean
+    referredBy?: string
+    status: OnboardingStatus
+    notes?: string
+  }[] = [
+    {
+      name: 'Kenji Watanabe',
+      role: 'Full Stack Engineer',
+      team: 'Pipeline',
+      startDate: daysFromToday(21),
+      location: 'Tokyo, Japan (JST)',
+      quarter: '2026-Q2',
+      referral: true,
+      referredBy: 'Li Wei',
+      status: 'offer_accepted',
+      notes: 'Relocating from Osaka. Needs visa sponsorship confirmation.',
+    },
+    {
+      name: 'Elena Vasquez',
+      role: 'Product Manager',
+      team: 'Feature Success',
+      startDate: daysFromToday(10),
+      location: 'Mexico City, Mexico (CST)',
+      quarter: '2026-Q2',
+      referral: false,
+      status: 'contract_sent',
+      notes: 'Awaiting DocuSign from Tim.',
+    },
+    {
+      name: 'Marcus Chen',
+      role: 'Site Reliability Engineer',
+      team: 'Infrastructure',
+      startDate: daysFromToday(3),
+      location: 'San Francisco, US (PST)',
+      quarter: '2026-Q1',
+      referral: false,
+      status: 'contract_signed',
+    },
+    {
+      name: 'Fatima Al-Rashid',
+      role: 'Data Scientist',
+      team: 'Product Analytics',
+      startDate: daysFromToday(-2),
+      location: 'London, UK (GMT)',
+      quarter: '2026-Q1',
+      referral: true,
+      referredBy: 'James Hawkins',
+      status: 'provisioned',
+      notes: 'GitHub, Slack, and 1Password provisioned. Laptop shipped.',
+    },
+    {
+      name: 'Tomasz Nowak',
+      role: 'Growth Engineer',
+      team: 'Growth',
+      startDate: daysFromToday(-14),
+      location: 'Warsaw, Poland (CET)',
+      quarter: '2026-Q1',
+      referral: false,
+      status: 'started',
+      notes: 'Completed first week. Paired with Ben on onboarding project.',
+    },
+  ]
+
+  const STATUS_TRIGGERS: Record<string, ('offer_accepted' | 'contract_signed')[]> = {
+    offer_accepted: ['offer_accepted'],
+    contract_sent: ['offer_accepted'],
+    contract_signed: ['offer_accepted', 'contract_signed'],
+    provisioned: ['offer_accepted', 'contract_signed'],
+    started: ['offer_accepted', 'contract_signed'],
+  }
+
+  let totalTasks = 0
+
+  for (const data of ONBOARDING_RECORDS) {
+    const manager = faker.helpers.arrayElement(managerCandidates)
+
+    const record = await prisma.onboardingRecord.create({
+      data: {
+        ...data,
+        managerId: manager.id,
+      },
+    })
+
+    // Generate tasks from templates
+    const triggers = STATUS_TRIGGERS[data.status] ?? ['offer_accepted']
+    let recordTasks = 0
+
+    for (const trigger of triggers) {
+      const templates = getApplicableTemplates(trigger, data.role, data.location)
+      const tasks = templates.map((t) => ({
+        onboardingRecordId: record.id,
+        templateId: t.id,
+        description: t.description,
+        assigneeType: t.assigneeType,
+        dueDate: addDays(data.startDate, t.daysFromStart),
+      }))
+
+      if (tasks.length > 0) {
+        await prisma.onboardingTask.createMany({ data: tasks })
+        recordTasks += tasks.length
+      }
+    }
+
+    // Mark some tasks as completed for hires further along
+    if (data.status === 'started' || data.status === 'provisioned') {
+      const overdueTasks = await prisma.onboardingTask.findMany({
+        where: { onboardingRecordId: record.id, dueDate: { lt: new Date() } },
+        select: { id: true },
+      })
+      if (overdueTasks.length > 0) {
+        const toComplete = overdueTasks.slice(0, Math.ceil(overdueTasks.length * 0.75))
+        await prisma.onboardingTask.updateMany({
+          where: { id: { in: toComplete.map((t) => t.id) } },
+          data: { completed: true, completedAt: new Date() },
+        })
+      }
+    }
+
+    totalTasks += recordTasks
+  }
+
+  console.log(`Generated ${ONBOARDING_RECORDS.length} onboarding records with ${totalTasks} tasks.`)
+}
+
 async function generateDemoData() {
   const config = parseArgs()
 
@@ -921,6 +1083,9 @@ async function generateDemoData() {
     await generateCommissionBonuses(employees)
     console.log('')
 
+    await generateOnboardingRecords()
+    console.log('')
+
     const summary = {
       employees: await prisma.employee.count(),
       deelEmployees: await prisma.deelEmployee.count(),
@@ -930,6 +1095,8 @@ async function generateDemoData() {
       keeperTestFeedback: await prisma.keeperTestFeedback.count(),
       ashbyInterviewScores: await prisma.ashbyInterviewScore.count(),
       commissionBonuses: await prisma.commissionBonus.count(),
+      onboardingRecords: await prisma.onboardingRecord.count(),
+      onboardingTasks: await prisma.onboardingTask.count(),
     }
 
     console.log('=== Generation Complete ===')
@@ -942,6 +1109,8 @@ async function generateDemoData() {
     console.log(`  Keeper Test Feedback: ${summary.keeperTestFeedback}`)
     console.log(`  Ashby Interview Scores: ${summary.ashbyInterviewScores}`)
     console.log(`  Commission Bonuses: ${summary.commissionBonuses}`)
+    console.log(`  Onboarding Records: ${summary.onboardingRecords}`)
+    console.log(`  Onboarding Tasks: ${summary.onboardingTasks}`)
   } catch (error) {
     console.error('Error generating demo data:', error)
     throw error
