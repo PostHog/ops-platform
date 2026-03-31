@@ -21,8 +21,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { formatCurrency, getFullName } from '@/lib/utils'
-import { createAdminFn } from '@/lib/auth-middleware'
+import { formatCurrency, getFullName, getGrantType } from '@/lib/utils'
+import { createPayReviewFn } from '@/lib/auth-middleware'
+import { ROLES } from '@/lib/consts'
 import { TableFilters } from '@/components/TableFilters'
 import { createToast } from 'vercel-toast'
 import { MoreHorizontal, ExternalLink } from 'lucide-react'
@@ -58,10 +59,13 @@ type EquityRefreshSalary = Prisma.SalaryGetPayload<{
   }
 }>
 
-const getEquityRefreshes = createAdminFn({
+const getEquityRefreshes = createPayReviewFn({
   method: 'GET',
-}).handler(async () => {
-  return await prisma.salary.findMany({
+}).handler(async ({ context }) => {
+  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+  const { managedEmployeeIds } = context.managerInfo
+
+  const salaries = await prisma.salary.findMany({
     where: {
       equityRefreshAmount: {
         gt: 0,
@@ -69,6 +73,7 @@ const getEquityRefreshes = createAdminFn({
       timestamp: {
         gte: new Date(new Date().setMonth(new Date().getMonth() - 3)),
       },
+      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
     },
     include: {
       employee: {
@@ -85,46 +90,104 @@ const getEquityRefreshes = createAdminFn({
       timestamp: 'desc',
     },
   })
+
+  const sharePrice =
+    Number(process.env.CURRENT_VALUATION) /
+    Number(process.env.FULLY_DILUTED_SHARES)
+
+  return { salaries, sharePrice }
 })
 
-const updateEquityGranted = createAdminFn({
+const updateEquityGranted = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; granted: boolean }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+    const { managedEmployeeIds } = context.managerInfo
+
+    if (isBlitzscale) {
+      const salary = await prisma.salary.findUnique({
+        where: { id: data.id },
+        select: { employeeId: true },
+      })
+      if (!salary || !managedEmployeeIds.includes(salary.employeeId)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     return await prisma.salary.update({
       where: { id: data.id },
       data: { equityRefreshGranted: data.granted },
     })
   })
 
-const markMultipleAsGranted = createAdminFn({
+const markMultipleAsGranted = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { ids: string[] }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+    const { managedEmployeeIds } = context.managerInfo
+
+    if (isBlitzscale) {
+      const salaries = await prisma.salary.findMany({
+        where: { id: { in: data.ids } },
+        select: { employeeId: true },
+      })
+      if (salaries.some((s) => !managedEmployeeIds.includes(s.employeeId))) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     return await prisma.salary.updateMany({
       where: { id: { in: data.ids } },
       data: { equityRefreshGranted: true },
     })
   })
 
-const updateEquityCommunicated = createAdminFn({
+const updateEquityCommunicated = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; communicated: boolean }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+    const { managedEmployeeIds } = context.managerInfo
+
+    if (isBlitzscale) {
+      const salary = await prisma.salary.findUnique({
+        where: { id: data.id },
+        select: { employeeId: true },
+      })
+      if (!salary || !managedEmployeeIds.includes(salary.employeeId)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     return await prisma.salary.update({
       where: { id: data.id },
       data: { communicated: data.communicated },
     })
   })
 
-const markMultipleAsCommunicated = createAdminFn({
+const markMultipleAsCommunicated = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { ids: string[] }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+    const { managedEmployeeIds } = context.managerInfo
+
+    if (isBlitzscale) {
+      const salaries = await prisma.salary.findMany({
+        where: { id: { in: data.ids } },
+        select: { employeeId: true },
+      })
+      if (salaries.some((s) => !managedEmployeeIds.includes(s.employeeId))) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     return await prisma.salary.updateMany({
       where: { id: { in: data.ids } },
       data: { communicated: true },
@@ -173,7 +236,10 @@ function processEquityTemplate(
 }
 
 function App() {
-  const equityRefreshes: Array<EquityRefreshSalary> = Route.useLoaderData()
+  const { salaries: equityRefreshes, sharePrice } = Route.useLoaderData() as {
+    salaries: Array<EquityRefreshSalary>
+    sharePrice: number
+  }
   const router = useRouter()
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -345,6 +411,45 @@ function App() {
         ),
       },
       {
+        accessorKey: 'country',
+        header: 'Country',
+        filterFn: (
+          row: Row<EquityRefreshSalary>,
+          _: string,
+          filterValue: string,
+        ) => customFilterFns.containsText(row.original.country, _, filterValue),
+        cell: ({ row }) => <div>{row.original.country || '-'}</div>,
+      },
+      {
+        id: 'numberOfOptions',
+        header: '# Options',
+        enableColumnFilter: false,
+        cell: ({ row }) => {
+          const amount = row.original.equityRefreshAmount
+          const options = amount ? Math.round(amount / sharePrice) : 0
+          return <div>{options.toLocaleString()}</div>
+        },
+      },
+      {
+        id: 'grantType',
+        header: 'Grant Type',
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'ISO', value: 'ISO' },
+            { label: 'EMI', value: 'EMI' },
+            { label: 'NSO', value: 'NSO' },
+          ],
+        },
+        accessorFn: (row) => getGrantType(row.country),
+        filterFn: (
+          row: Row<EquityRefreshSalary>,
+          _: string,
+          filterValue: string[],
+        ) => filterValue.includes(getGrantType(row.original.country)),
+        cell: ({ row }) => <div>{getGrantType(row.original.country)}</div>,
+      },
+      {
         accessorKey: 'actualSalary',
         header: 'Total Salary ($)',
         meta: {
@@ -508,6 +613,11 @@ function App() {
             : '',
           refreshPercentage: `${(salary.equityRefreshPercentage * 100).toFixed(2)}%`,
           refreshAmount: formatCurrency(salary.equityRefreshAmount),
+          country: salary.country,
+          numberOfOptions: salary.equityRefreshAmount
+            ? Math.round(salary.equityRefreshAmount / sharePrice)
+            : 0,
+          grantType: getGrantType(salary.country),
           totalSalary: formatCurrency(salary.actualSalary),
           reviewer: getFullName(
             salary.employee.deelEmployee?.topLevelManager?.firstName,

@@ -103,7 +103,7 @@ model Salary {
   employmentArea          String?
   notes                   String
   employeeId              String
-  synced                  Boolean   @default(true)
+  synced                  Boolean   @default(false)
   communicated            Boolean   @default(false)
   employee                Employee  @relation(fields: [employeeId], references: [id])
 }
