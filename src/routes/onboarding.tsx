@@ -1353,12 +1353,13 @@ function OnboardingSection({
   })
 
   // Sync expanded state from parent
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- table is a new object every render; including it causes an infinite loop
   useEffect(() => {
     table.getRowModel().rows.forEach((row) => {
       const shouldExpand = row.original.id === expandedRecordId
       if (row.getIsExpanded() !== shouldExpand) row.toggleExpanded()
     })
-  }, [expandedRecordId, table, data])
+  }, [expandedRecordId, data])
 
   if (data.length === 0) {
     return (
