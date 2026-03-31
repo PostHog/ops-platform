@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Papa from 'papaparse'
+import { formatQuarter } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -100,17 +101,15 @@ function parseQuarter(
   startDate: string | null,
 ): string | null {
   if (!value) return null
-  const q = value.trim().toUpperCase()
-  if (!q.match(/^Q[1-4]/)) return null
+  const trimmed = value.trim().toUpperCase()
+  const match = trimmed.match(/^Q([1-4])/)
+  if (!match) return null
 
-  // Derive year from start date if available, otherwise current year
-  let year: number
-  if (startDate) {
-    year = new Date(startDate).getFullYear() % 100
-  } else {
-    year = new Date().getFullYear() % 100
-  }
-  return `${q.substring(0, 2)} ${year}`
+  const quarterNum = Number(match[1])
+  const year = startDate
+    ? new Date(startDate).getFullYear()
+    : new Date().getFullYear()
+  return formatQuarter(quarterNum, year)
 }
 
 type ParsedRow = {

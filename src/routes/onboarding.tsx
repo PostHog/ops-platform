@@ -60,7 +60,7 @@ import {
 import { OnboardingTaskPanel } from '@/components/OnboardingTaskPanel'
 import { OnboardingImportPanel } from '@/components/OnboardingImportPanel'
 import { createAdminFn, createOrgChartFn } from '@/lib/auth-middleware'
-import { getQuarterOptions, getFullName } from '@/lib/utils'
+import { getQuarterOptions, getCurrentQuarter, getFullName } from '@/lib/utils'
 import {
   getPhase,
   formatDate,
@@ -899,12 +899,6 @@ function ExpandedRowDetail({
 
 // ─── Add hire dialog ──────────────────────────────────────────────────────────
 
-function getCurrentQuarter(): string {
-  const now = new Date()
-  const q = Math.ceil((now.getMonth() + 1) / 3)
-  const y = now.getFullYear() % 100
-  return `Q${q} ${y}`
-}
 
 function AddHireDialog({
   onSuccess,

@@ -7,16 +7,25 @@ export function cn(...inputs: Array<ClassValue>) {
   return twMerge(clsx(inputs))
 }
 
+export function formatQuarter(q: number, year: number): string {
+  return `Q${q} ${year % 100}`
+}
+
+export function getCurrentQuarter(): string {
+  const now = new Date()
+  const q = Math.ceil((now.getMonth() + 1) / 3)
+  return formatQuarter(q, now.getFullYear())
+}
+
 export function getQuarterOptions(): Array<{ label: string; value: string }> {
   const now = new Date()
   const currentQ = Math.ceil((now.getMonth() + 1) / 3)
-  const currentYear = now.getFullYear() % 100
   const startQ = currentQ - 2
   const quarters: Array<{ label: string; value: string }> = []
   for (let i = 0; i < 8; i++) {
     const q = ((((startQ - 1 + i) % 4) + 4) % 4) + 1
-    const y = currentYear + Math.floor((startQ - 1 + i) / 4)
-    const label = `Q${q} ${y}`
+    const y = now.getFullYear() + Math.floor((startQ - 1 + i) / 4)
+    const label = formatQuarter(q, y)
     quarters.push({ label, value: label })
   }
   return quarters
