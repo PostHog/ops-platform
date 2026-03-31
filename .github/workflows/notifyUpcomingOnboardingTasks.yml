@@ -1,0 +1,26 @@
+name: Notify upcoming onboarding tasks
+permissions: {}
+on:
+  schedule:
+    - cron: '45 12 * * 1-5' # Runs at 12:45 PM UTC, Monday through Friday (after Deel sync at 12:00)
+  workflow_dispatch:
+
+jobs:
+  notifyUpcomingOnboardingTasks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call notifyUpcomingOnboardingTasks endpoint
+        id: notifyUpcomingOnboardingTasks
+        uses: fjogeleit/http-request-action@c0b95d02a088b47c1f2f4db04fd8af8bd19eee54 # v1
+        with:
+          url: '${{ vars.BASE_URL }}/notifyUpcomingOnboardingTasks'
+          method: 'POST'
+          customHeaders: '{"Authorization": "Bearer ${{ secrets.SYNC_ENDPOINT_KEY }}"}'
+          timeout: 30000
+      - name: Show Response
+        env:
+          RESPONSE_STATUS: ${{ steps.notifyUpcomingOnboardingTasks.outputs.status }}
+          RESPONSE_BODY: ${{ steps.notifyUpcomingOnboardingTasks.outputs.response }}
+        run: |
+          echo "$RESPONSE_STATUS"
+          echo "$RESPONSE_BODY"
