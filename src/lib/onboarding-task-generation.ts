@@ -23,11 +23,11 @@ async function resolveAssigneeEmail(
   if (assigneeType === 'new_hire') return null
 
   if (assigneeType === 'manager' && managerId) {
-    const manager = await prisma.deelEmployee.findUnique({
+    const manager = await prisma.employee.findUnique({
       where: { id: managerId },
-      select: { workEmail: true },
+      select: { email: true },
     })
-    return manager?.workEmail ?? null
+    return manager?.email ?? null
   }
 
   return ASSIGNEE_EMAILS[assigneeType] ?? null

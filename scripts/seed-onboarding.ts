@@ -120,11 +120,23 @@ async function main() {
     console.log(`🗑️  Removed ${deletedRecords.count} existing seed record(s)`)
   }
 
-  // Upsert the fake manager (needed for the manager relation)
+  // Upsert the fake DeelEmployee and Employee (needed for the manager relation)
   await prisma.deelEmployee.upsert({
     where: { id: FAKE_MANAGER.id },
     update: {},
     create: FAKE_MANAGER,
+  })
+  const fakeEmployee = await prisma.employee.upsert({
+    where: { email: FAKE_MANAGER.personalEmail },
+    update: {},
+    create: {
+      email: FAKE_MANAGER.personalEmail,
+      priority: 'medium',
+      reviewed: false,
+      checkIn30DaysScheduled: false,
+      checkIn60DaysScheduled: false,
+      checkIn80DaysScheduled: false,
+    },
   })
   console.log(
     `✓ Fake manager: ${FAKE_MANAGER.firstName} ${FAKE_MANAGER.lastName}\n`,
@@ -136,7 +148,7 @@ async function main() {
     await prisma.onboardingRecord.create({
       data: {
         ...record,
-        managerId: FAKE_MANAGER.id,
+        managerId: fakeEmployee.id,
       },
     })
     const statusLabel = record.status.replace(/_/g, ' ')

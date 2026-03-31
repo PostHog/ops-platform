@@ -86,7 +86,7 @@ export const Route = createFileRoute('/onboarding')({
 
 type OnboardingRecord = Prisma.OnboardingRecordGetPayload<{
   include: {
-    manager: true
+    manager: { include: { deelEmployee: true } }
     tasks: { select: { id: true; completed: true; dueDate: true } }
   }
 }>
@@ -98,14 +98,14 @@ const getOnboardingRecords = createOrgChartFn({
 }).handler(async () => {
   return await prisma.onboardingRecord.findMany({
     include: {
-      manager: true,
+      manager: { include: { deelEmployee: true } },
       tasks: { select: { id: true, completed: true, dueDate: true } },
     },
     orderBy: { createdAt: 'desc' },
   })
 })
 
-const getDeelManagersForPicker = createOrgChartFn({
+const getManagersForPicker = createOrgChartFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.deelEmployee.findMany({
@@ -116,6 +116,7 @@ const getDeelManagersForPicker = createOrgChartFn({
       lastName: true,
       title: true,
       team: true,
+      employee: { select: { id: true } },
     },
     orderBy: { firstName: 'asc' },
   })
@@ -132,7 +133,7 @@ const getDeelTeams = createOrgChartFn({
   return results.map((r) => r.team)
 })
 
-const getDeelEmployeesForPicker = createOrgChartFn({
+const getEmployeesForPicker = createOrgChartFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.deelEmployee.findMany({
@@ -183,7 +184,7 @@ const createOnboardingRecord = createAdminFn({
         notes: data.notes || undefined,
       },
       include: {
-        manager: true,
+        manager: { include: { deelEmployee: true } },
         tasks: { select: { id: true, completed: true, dueDate: true } },
       },
     })
@@ -326,11 +327,11 @@ const importOnboardingRecords = createAdminFn({
 
     for (const item of data.items) {
       try {
-        // Look up manager by name (full name if provided, first name as fallback)
+        // Look up manager by name → resolve to Employee ID
         let managerId: string | null = null
         if (item.managerName) {
           const parts = item.managerName.trim().split(/\s+/)
-          const manager =
+          const deelMatch =
             parts.length >= 2
               ? await prisma.deelEmployee.findFirst({
                   where: {
@@ -340,12 +341,12 @@ const importOnboardingRecords = createAdminFn({
                       mode: 'insensitive',
                     },
                   },
-                  select: { id: true },
+                  select: { employee: { select: { id: true } } },
                 })
               : null
           // Fall back to first-name-only match if full name didn't match
           const fallback =
-            !manager
+            !deelMatch?.employee
               ? await prisma.deelEmployee.findFirst({
                   where: {
                     firstName: {
@@ -353,10 +354,10 @@ const importOnboardingRecords = createAdminFn({
                       mode: 'insensitive',
                     },
                   },
-                  select: { id: true },
+                  select: { employee: { select: { id: true } } },
                 })
               : null
-          managerId = manager?.id ?? fallback?.id ?? null
+          managerId = deelMatch?.employee?.id ?? fallback?.employee?.id ?? null
         }
 
         // Map status string to enum
@@ -519,8 +520,8 @@ const columns: ColumnDef<OnboardingRecord>[] = [
     id: 'manager',
     header: 'Manager',
     accessorFn: (row) =>
-      row.manager
-        ? getFullName(row.manager.firstName, row.manager.lastName)
+      row.manager?.deelEmployee
+        ? getFullName(row.manager.deelEmployee.firstName, row.manager.deelEmployee.lastName)
         : '—',
     cell: ({ row, getValue }) => (
       <span className={row.getIsExpanded() ? '' : 'text-gray-700'}>
@@ -922,8 +923,8 @@ function AddHireDialog({
   const [teamSearch, setTeamSearch] = useState('')
 
   const { data: managers = [] } = useQuery({
-    queryKey: ['deel-managers-picker'],
-    queryFn: getDeelManagersForPicker,
+    queryKey: ['managers-picker'],
+    queryFn: getManagersForPicker,
     enabled: open,
   })
 
@@ -934,8 +935,8 @@ function AddHireDialog({
   })
 
   const { data: allEmployees = [] } = useQuery({
-    queryKey: ['deel-employees-picker'],
-    queryFn: getDeelEmployeesForPicker,
+    queryKey: ['employees-picker'],
+    queryFn: getEmployeesForPicker,
     enabled: open && referral,
   })
 
@@ -1124,9 +1125,9 @@ function AddHireDialog({
                       managerSearch ||
                       (form.managerId
                         ? getFullName(
-                            managers.find((m) => m.id === form.managerId)
+                            managers.find((m) => m.employee?.id === form.managerId)
                               ?.firstName,
-                            managers.find((m) => m.id === form.managerId)
+                            managers.find((m) => m.employee?.id === form.managerId)
                               ?.lastName,
                           )
                         : '')
@@ -1141,6 +1142,7 @@ function AddHireDialog({
                     <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border bg-white shadow-lg">
                       {managers
                         .filter((m) => {
+                          if (!m.employee?.id) return false
                           const name = getFullName(
                             m.firstName,
                             m.lastName,
@@ -1156,7 +1158,7 @@ function AddHireDialog({
                               type="button"
                               className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
                               onClick={() => {
-                                setForm((f) => ({ ...f, managerId: m.id }))
+                                setForm((f) => ({ ...f, managerId: m.employee!.id }))
                                 setManagerSearch('')
                               }}
                             >
@@ -1165,6 +1167,7 @@ function AddHireDialog({
                           )
                         })}
                       {managers.filter((m) =>
+                        m.employee?.id &&
                         getFullName(m.firstName, m.lastName)
                           .toLowerCase()
                           .includes(managerSearch.toLowerCase()),
