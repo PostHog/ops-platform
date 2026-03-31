@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useSensitiveDataHidden } from '@/components/SensitiveData'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { CartaOptionGrant } from '@prisma/client'
 import { useQuery } from '@tanstack/react-query'
 import { useLocalStorage } from 'usehooks-ts'
@@ -20,7 +21,7 @@ interface StockOptionsCalculatorProps {
   optionGrants: CartaOptionGrant[]
 }
 
-const getValuationAndShares = createInternalFn({
+export const getValuationAndShares = createInternalFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   if (!context.user.email.endsWith('@posthog.com')) {
@@ -59,10 +60,32 @@ export default function StockOptionsCalculator({
   const [newValuation, setNewValuation] = useState('')
   const isSensitiveHidden = useSensitiveDataHidden()
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['valuationAndShares'],
     queryFn: getValuationAndShares,
   })
+
+  if (isLoading) {
+    return (
+      <>
+        <div className="mt-2 flex flex-row items-center justify-between gap-2">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-8 w-52" />
+        </div>
+        <div className="mb-4 w-full rounded-lg border bg-gray-50 p-4">
+          <div className="space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex justify-between">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            ))}
+            <Skeleton className="mt-4 h-32 w-full" />
+          </div>
+        </div>
+      </>
+    )
+  }
 
   if (
     !data?.FULLY_DILUTED_SHARES ||
