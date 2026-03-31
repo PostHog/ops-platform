@@ -168,18 +168,18 @@ function handleSortToggle(column: Column<any, unknown>) {
 export const customFilterFns = {
   inDateRange: (
     row: Row<Employee>,
-    _: string,
+    columnId: string,
     filterValue: [string | undefined, string | undefined],
   ) => {
     const [minStr, maxStr] = filterValue
-    const date = new Date(row.original.salaries?.[0]?.timestamp)
-    const value = date.getTime()
+    const rawValue = row.getValue<number>(columnId)
+    if (!rawValue) return false
 
     const min = minStr ? new Date(minStr).getTime() : undefined
     const max = maxStr ? new Date(maxStr).getTime() : undefined
 
-    if (min !== undefined && value < min) return false
-    if (max !== undefined && value > max) return false
+    if (min !== undefined && rawValue < min) return false
+    if (max !== undefined && rawValue > max) return false
     return true
   },
   containsText: (value: string, _: string, filterValue: string) => {
@@ -317,6 +317,12 @@ function App() {
             ? new Date(row.deelEmployee.startDate).getTime()
             : 0,
         header: 'Start Date',
+        meta: {
+          filterVariant: 'dateRange',
+          filterLabel: 'Start Date',
+        },
+        enableColumnFilter: true,
+        filterFn: customFilterFns.inDateRange,
         cell: ({ row }) => {
           const startDate = row.original.deelEmployee?.startDate
           if (!startDate) return null
