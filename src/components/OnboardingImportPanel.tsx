@@ -43,9 +43,10 @@ function parseStatus(
 ): string {
   const cs = (contractSigned || '').toLowerCase().trim()
   if (cs.includes('revoked')) return '__skip__'
+  // Check started first — a hire can have a signed contract AND be started
+  if ((startedChecklist || '').toLowerCase().trim() === 'yes') return 'started'
   if (cs.includes('signed')) return 'contract_signed'
   if (cs.includes('sent')) return 'contract_sent'
-  if ((startedChecklist || '').toLowerCase().trim() === 'yes') return 'started'
   return 'offer_accepted'
 }
 
@@ -70,13 +71,8 @@ function parseDate(value: string | undefined): string | null {
   // Skip non-date text
   if (/offsite|f2f|amsterdam|tbc|n\/a/i.test(trimmed)) return null
 
-  // Try native Date parsing for formats like "April 6, 2026", "Apr 7, 2026"
-  const d = new Date(trimmed)
-  if (!isNaN(d.getTime()) && d.getFullYear() > 2000) {
-    return d.toISOString().split('T')[0]
-  }
-
-  // Try DD/MM/YYYY format (European dates like "18/02/2026")
+  // Try DD/MM/YYYY format first (European dates like "18/02/2026")
+  // Must come before new Date() which would misinterpret these as MM/DD
   const ddmmyyyy = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
   if (ddmmyyyy) {
     const [, day, month, year] = ddmmyyyy
@@ -84,13 +80,19 @@ function parseDate(value: string | undefined): string | null {
     if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0]
   }
 
-  // Try MM/DD/YY format
-  const mmddyy = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/)
-  if (mmddyy) {
-    const [, month, day, year] = mmddyy
+  // Try DD/MM/YY format
+  const ddmmyy = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/)
+  if (ddmmyy) {
+    const [, day, month, year] = ddmmyy
     const fullYear = Number(year) + 2000
     const parsed = new Date(fullYear, Number(month) - 1, Number(day))
     if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0]
+  }
+
+  // Fall back to native Date parsing for text formats like "April 6, 2026", "Apr 7, 2026"
+  const d = new Date(trimmed)
+  if (!isNaN(d.getTime()) && d.getFullYear() > 2000) {
+    return d.toISOString().split('T')[0]
   }
 
   return null

@@ -70,6 +70,7 @@ import {
 import {
   generateOnboardingTasks,
   syncTasksToStatus,
+  recalculateTaskDueDates,
 } from '@/lib/onboarding-task-generation'
 import { createToast } from 'vercel-toast'
 import prisma from '@/db'
@@ -254,10 +255,26 @@ const updateOnboardingRecord = createAdminFn({
       }
     }
 
-    return await prisma.onboardingRecord.update({
+    const record = await prisma.onboardingRecord.update({
       where: { id },
       data: updateData,
     })
+
+    // Recalculate task due dates when start date changes
+    if (fields.startDate !== undefined && record.startDate) {
+      await recalculateTaskDueDates(id, record.startDate)
+    }
+
+    // Re-sync conditional tasks when role or location changes
+    if (fields.role !== undefined || fields.location !== undefined) {
+      await syncTasksToStatus(id, record.status, {
+        role: record.role,
+        location: record.location,
+        startDate: record.startDate,
+      })
+    }
+
+    return record
   })
 
 const deleteOnboardingRecord = createAdminFn({
@@ -388,10 +405,25 @@ const importOnboardingRecords = createAdminFn({
         }
 
         if (existing) {
-          await prisma.onboardingRecord.update({
+          const updatedRecord = await prisma.onboardingRecord.update({
             where: { id: existing.id },
             data: recordData,
           })
+          // Sync tasks when status changes on import update
+          if (status !== existing.status) {
+            await syncTasksToStatus(existing.id, status, {
+              role: updatedRecord.role,
+              location: updatedRecord.location,
+              startDate: updatedRecord.startDate,
+            })
+          }
+          // Recalculate due dates when start date changes
+          if (
+            updatedRecord.startDate &&
+            existing.startDate?.getTime() !== updatedRecord.startDate.getTime()
+          ) {
+            await recalculateTaskDueDates(existing.id, updatedRecord.startDate)
+          }
           updated++
         } else {
           const record = await prisma.onboardingRecord.create({

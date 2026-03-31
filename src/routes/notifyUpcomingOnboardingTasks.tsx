@@ -25,7 +25,10 @@ export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
         const sevenDaysFromNow = new Date()
         sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
 
-        const tasks = await prisma.onboardingTask.findMany({
+        const oneDayAgo = new Date()
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1)
+
+        const allTasks = await prisma.onboardingTask.findMany({
           where: {
             completed: false,
             dueDate: { lte: sevenDaysFromNow },
@@ -35,6 +38,12 @@ export const Route = createFileRoute('/notifyUpcomingOnboardingTasks')({
           },
           orderBy: { dueDate: 'asc' },
         })
+
+        // Only notify tasks that haven't been notified in the last 24 hours
+        const tasks = allTasks.filter(
+          (t) =>
+            !t.lastNotificationSentAt || t.lastNotificationSentAt < oneDayAgo,
+        )
 
         if (tasks.length === 0) {
           return new Response(

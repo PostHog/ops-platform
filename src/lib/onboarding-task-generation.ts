@@ -148,15 +148,16 @@ export async function recalculateTaskDueDates(
     byOffset.set(template.daysFromStart, ids)
   }
 
-  let updated = 0
+  const entries = [...byOffset.entries()]
+  const updated = entries.reduce((sum, [, ids]) => sum + ids.length, 0)
+
   await prisma.$transaction(
-    [...byOffset.entries()].map(([offset, ids]) => {
-      updated += ids.length
-      return prisma.onboardingTask.updateMany({
+    entries.map(([offset, ids]) =>
+      prisma.onboardingTask.updateMany({
         where: { id: { in: ids } },
         data: { dueDate: addDays(newStartDate, offset) },
-      })
-    }),
+      }),
+    ),
   )
 
   return updated
