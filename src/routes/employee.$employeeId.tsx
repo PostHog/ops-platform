@@ -2253,64 +2253,78 @@ function EmployeeOverview() {
 
               return (
                 <>
-                  {benchmarkUpdated && hasPayReviewAccess && (
-                    <Alert variant="default">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>
-                        This employee is currently on an old benchmark factor.
-                      </AlertTitle>
-                      <AlertDescription>
-                        You can keep it that way by choosing `
-                        {employee.salaries[0].benchmark.replace(' (old)', '')}{' '}
-                        (old)` as the benchmark, or update it by choosing `
-                        {employee.salaries[0].benchmark.replace(' (old)', '')}`
-                        as the benchmark.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                  {benchmarkUpdated &&
+                    hasPayReviewAccess &&
+                    !isSensitiveHidden && (
+                      <Alert variant="default">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>
+                          This employee is currently on an old benchmark
+                          factor.
+                        </AlertTitle>
+                        <AlertDescription>
+                          You can keep it that way by choosing `
+                          {employee.salaries[0].benchmark.replace(
+                            ' (old)',
+                            '',
+                          )}{' '}
+                          (old)` as the benchmark, or update it by choosing `
+                          {employee.salaries[0].benchmark.replace(
+                            ' (old)',
+                            '',
+                          )}
+                          ` as the benchmark.
+                        </AlertDescription>
+                      </Alert>
+                    )}
 
-                  {locationFactorUpdated && hasPayReviewAccess && (
-                    <Alert variant="default">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>
-                        This employee is currently on an old location factor.
-                      </AlertTitle>
-                      <AlertDescription>
-                        The location factor will be updated on the next salary
-                        update.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                  {locationFactorUpdated &&
+                    hasPayReviewAccess &&
+                    !isSensitiveHidden && (
+                      <Alert variant="default">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>
+                          This employee is currently on an old location
+                          factor.
+                        </AlertTitle>
+                        <AlertDescription>
+                          The location factor will be updated on the next
+                          salary update.
+                        </AlertDescription>
+                      </Alert>
+                    )}
 
-                  {eligibleForEquityRefresh && hasPayReviewAccess && (
-                    <Alert variant="default">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>
-                        This employee is eligible for an equity refresh.
-                      </AlertTitle>
-                      <AlertDescription>
-                        {equityRefreshesReceived === 0 ? (
-                          <>
-                            This is their {yearsSinceStart}-year anniversary
-                            refresh (due{' '}
-                            {nextAnniversaryDate?.format('MMM D, YYYY')}).
-                          </>
-                        ) : (
-                          <>
-                            They have {equityRefreshesReceived} refresh
-                            {equityRefreshesReceived > 1 ? 'es' : ''} recorded
-                            but {yearsSinceStart} anniversary
-                            {yearsSinceStart > 1 ? 'ies have' : ' has'} passed.
-                            Next refresh due:{' '}
-                            {nextAnniversaryDate?.format('MMM D, YYYY')}.
-                          </>
-                        )}{' '}
-                        Enter an equity refresh percentage in the next salary
-                        update. In the majority of cases, this will be between
-                        18% and 25%.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                  {eligibleForEquityRefresh &&
+                    hasPayReviewAccess &&
+                    !isSensitiveHidden && (
+                      <Alert variant="default">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>
+                          This employee is eligible for an equity refresh.
+                        </AlertTitle>
+                        <AlertDescription>
+                          {equityRefreshesReceived === 0 ? (
+                            <>
+                              This is their {yearsSinceStart}-year anniversary
+                              refresh (due{' '}
+                              {nextAnniversaryDate?.format('MMM D, YYYY')}).
+                            </>
+                          ) : (
+                            <>
+                              They have {equityRefreshesReceived} refresh
+                              {equityRefreshesReceived > 1 ? 'es' : ''}{' '}
+                              recorded but {yearsSinceStart} anniversary
+                              {yearsSinceStart > 1 ? 'ies have' : ' has'}{' '}
+                              passed. Next refresh due:{' '}
+                              {nextAnniversaryDate?.format('MMM D, YYYY')}.
+                            </>
+                          )}{' '}
+                          Enter an equity refresh percentage in the next
+                          salary update. In the majority of cases, this will
+                          be between 18% and 25%.
+                        </AlertDescription>
+                      </Alert>
+                    )}
                 </>
               )
             })()}
