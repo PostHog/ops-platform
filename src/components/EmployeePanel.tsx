@@ -62,7 +62,7 @@ const EmployeePanel = ({
 }) => {
   const { data: session } = useSession()
   const user = session?.user
-  const canEdit = user?.role === ROLES.ADMIN || user?.role === ROLES.ORG_CHART
+  const canEdit = user?.role === ROLES.ADMIN || user?.role === ROLES.ORG_CHART || user?.role === ROLES.BLITZSCALE
   const employee = employees.find((employee) => employee.id === selectedNode)
   const isManagerOfEmployee =
     !!employee?.employee?.id &&
