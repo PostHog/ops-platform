@@ -81,8 +81,7 @@ const internalCheckMiddleware = createMiddleware({
 
   if (
     (user?.email && user?.email.endsWith('@posthog.com')) ||
-    user?.role === ROLES.ADMIN ||
-    user?.role === ROLES.BLITZSCALE
+    user?.role === ROLES.ADMIN
   ) {
     return await next()
   } else {
