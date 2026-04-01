@@ -71,14 +71,13 @@ export default function Header() {
   }
 
   const isImpersonating = !!session?.session?.impersonatedBy
-  const isAdmin = user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE
 
   if (!user) return null
 
   return (
     <header className="fixed top-0 right-0 left-0 flex h-10 justify-between gap-2 border-b border-gray-200 bg-white p-2 text-black">
       <nav className="flex flex-row items-center gap-2">
-        {isAdmin ? (
+        {user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">
@@ -106,7 +105,7 @@ export default function Header() {
           </DropdownMenu>
         ) : null}
         {user &&
-        (isAdmin || user?.role === ROLES.ORG_CHART) ? (
+        (user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE || user?.role === ROLES.ORG_CHART) ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">
@@ -138,7 +137,7 @@ export default function Header() {
             <Link to="/org-chart">Org chart</Link>
           </div>
         ) : null}
-        {isAdmin || user?.role === ROLES.ORG_CHART ? (
+        {user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE || user?.role === ROLES.ORG_CHART ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">
@@ -153,7 +152,7 @@ export default function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
-        {isAdmin ? (
+        {user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">
@@ -218,7 +217,7 @@ export default function Header() {
                 Stop Impersonating
               </Button>
             )}
-            {isAdmin && (
+            {user?.role === ROLES.ADMIN && (
               <Button
                 variant="ghost"
                 size="sm"
