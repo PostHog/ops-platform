@@ -35,7 +35,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { formatCurrency, getFullName } from '@/lib/utils'
 import { createBlitzscaleFn } from '@/lib/auth-middleware'
-import { ROLES } from '@/lib/consts'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
@@ -73,16 +72,7 @@ type Salary = Prisma.SalaryGetPayload<{
 const getUpdatedSalaries = createBlitzscaleFn({
   method: 'GET',
 }).handler(async ({ context }) => {
-  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-
-  let blitzscaleExcludeEmails: string[] = []
-  if (isBlitzscale) {
-    const { getBlitzscaleUserEmails } = await import('@/lib/auth-middleware')
-    const allBlitzscaleEmails = await getBlitzscaleUserEmails()
-    blitzscaleExcludeEmails = allBlitzscaleEmails.filter(
-      (e) => e !== context.user.email,
-    )
-  }
+  const { excludeEmails } = context.blitzscaleInfo
 
   return await prisma.salary.findMany({
     where: {
@@ -101,8 +91,8 @@ const getUpdatedSalaries = createBlitzscaleFn({
           },
         },
       ],
-      ...(blitzscaleExcludeEmails.length > 0
-        ? { employee: { email: { notIn: blitzscaleExcludeEmails } } }
+      ...(excludeEmails.length > 0
+        ? { employee: { email: { notIn: excludeEmails } } }
         : {}),
     },
     include: {

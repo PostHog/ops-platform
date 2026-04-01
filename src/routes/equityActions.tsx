@@ -23,7 +23,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { formatCurrency, getFullName, getGrantType } from '@/lib/utils'
 import { createBlitzscaleFn } from '@/lib/auth-middleware'
-import { ROLES } from '@/lib/consts'
 import { TableFilters } from '@/components/TableFilters'
 import { createToast } from 'vercel-toast'
 import { MoreHorizontal, ExternalLink } from 'lucide-react'
@@ -62,16 +61,7 @@ type EquityRefreshSalary = Prisma.SalaryGetPayload<{
 const getEquityRefreshes = createBlitzscaleFn({
   method: 'GET',
 }).handler(async ({ context }) => {
-  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-
-  let blitzscaleExcludeEmails: string[] = []
-  if (isBlitzscale) {
-    const { getBlitzscaleUserEmails } = await import('@/lib/auth-middleware')
-    const allBlitzscaleEmails = await getBlitzscaleUserEmails()
-    blitzscaleExcludeEmails = allBlitzscaleEmails.filter(
-      (e) => e !== context.user.email,
-    )
-  }
+  const { excludeEmails } = context.blitzscaleInfo
 
   const salaries = await prisma.salary.findMany({
     where: {
@@ -81,8 +71,8 @@ const getEquityRefreshes = createBlitzscaleFn({
       timestamp: {
         gte: new Date(new Date().setMonth(new Date().getMonth() - 3)),
       },
-      ...(blitzscaleExcludeEmails.length > 0
-        ? { employee: { email: { notIn: blitzscaleExcludeEmails } } }
+      ...(excludeEmails.length > 0
+        ? { employee: { email: { notIn: excludeEmails } } }
         : {}),
     },
     include: {

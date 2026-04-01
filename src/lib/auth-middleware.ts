@@ -5,14 +5,6 @@ import { auth } from './auth'
 import { ROLES } from './consts'
 import prisma from '@/db'
 
-export async function getBlitzscaleUserEmails(): Promise<string[]> {
-  const blitzscaleUsers = await prisma.user.findMany({
-    where: { role: ROLES.BLITZSCALE },
-    select: { email: true },
-  })
-  return blitzscaleUsers.map((u) => u.email)
-}
-
 const authMiddleware = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
     let user = null
@@ -190,6 +182,44 @@ const managerInfoMiddleware = createMiddleware({
   })
 })
 
+export type BlitzscaleInfo = {
+  excludeEmails: string[]
+}
+
+const blitzscaleInfoMiddleware = createMiddleware({
+  type: 'function',
+}).server(async ({ next, context }) => {
+  const user = (
+    context as unknown as { user?: { email?: string; role?: string } }
+  )?.user
+
+  let blitzscaleInfo: BlitzscaleInfo = {
+    excludeEmails: [],
+  }
+
+  if (user?.role === ROLES.BLITZSCALE && user.email) {
+    const otherBlitzscaleMembers = await prisma.deelEmployee.findMany({
+      where: {
+        team: 'Blitzscale',
+        workEmail: { not: user.email },
+      },
+      select: { workEmail: true },
+    })
+    blitzscaleInfo = {
+      excludeEmails: otherBlitzscaleMembers
+        .map((e) => e.workEmail)
+        .filter((email): email is string => email !== null),
+    }
+  }
+
+  return await next({
+    context: {
+      ...(context || {}),
+      blitzscaleInfo,
+    },
+  })
+})
+
 // admin-only (management, role changes, impersonation)
 export const createAdminFn = createServerFn().middleware([
   authMiddleware,
@@ -200,6 +230,7 @@ export const createAdminFn = createServerFn().middleware([
 export const createBlitzscaleFn = createServerFn().middleware([
   authMiddleware,
   blitzscaleCheckMiddleware,
+  blitzscaleInfoMiddleware,
 ])
 
 // blitzscale, org chart and admin users will be able to access this function

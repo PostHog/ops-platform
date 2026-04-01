@@ -28,7 +28,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { getFullName } from '@/lib/utils'
 import { createBlitzscaleFn } from '@/lib/auth-middleware'
-import { ROLES } from '@/lib/consts'
 import { TableFilters } from '@/components/TableFilters'
 import { fetchDeelEmployee } from './syncDeelEmployees'
 import { createToast } from 'vercel-toast'
@@ -112,24 +111,15 @@ type CommissionBonus = Prisma.CommissionBonusGetPayload<{
 const getCommissionBonuses = createBlitzscaleFn({
   method: 'GET',
 }).handler(async ({ context }) => {
-  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-
-  let blitzscaleExcludeEmails: string[] = []
-  if (isBlitzscale) {
-    const { getBlitzscaleUserEmails } = await import('@/lib/auth-middleware')
-    const allBlitzscaleEmails = await getBlitzscaleUserEmails()
-    blitzscaleExcludeEmails = allBlitzscaleEmails.filter(
-      (e) => e !== context.user.email,
-    )
-  }
+  const { excludeEmails } = context.blitzscaleInfo
 
   return await prisma.commissionBonus.findMany({
     where: {
       createdAt: {
         gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
       },
-      ...(blitzscaleExcludeEmails.length > 0
-        ? { employee: { email: { notIn: blitzscaleExcludeEmails } } }
+      ...(excludeEmails.length > 0
+        ? { employee: { email: { notIn: excludeEmails } } }
         : {}),
     },
     include: {
@@ -196,24 +186,15 @@ const updateCommissionBonusAttainment = createBlitzscaleFn({
 const exportCommissionBonusesForDeel = createBlitzscaleFn({
   method: 'POST',
 }).handler(async ({ context }) => {
-  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-
-  let blitzscaleExcludeEmails: string[] = []
-  if (isBlitzscale) {
-    const { getBlitzscaleUserEmails } = await import('@/lib/auth-middleware')
-    const allBlitzscaleEmails = await getBlitzscaleUserEmails()
-    blitzscaleExcludeEmails = allBlitzscaleEmails.filter(
-      (e) => e !== context.user.email,
-    )
-  }
+  const { excludeEmails } = context.blitzscaleInfo
 
   const bonuses = await prisma.commissionBonus.findMany({
     where: {
       createdAt: {
         gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
       },
-      ...(blitzscaleExcludeEmails.length > 0
-        ? { employee: { email: { notIn: blitzscaleExcludeEmails } } }
+      ...(excludeEmails.length > 0
+        ? { employee: { email: { notIn: excludeEmails } } }
         : {}),
     },
     include: {

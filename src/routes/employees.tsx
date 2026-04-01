@@ -42,7 +42,6 @@ import {
 import 'vercel-toast/dist/vercel-toast.css'
 import { reviewQueueAtom } from '@/atoms'
 import { createBlitzscaleFn } from '@/lib/auth-middleware'
-import { ROLES } from '@/lib/consts'
 import { EmployeeNameCell } from '@/components/EmployeeNameCell'
 import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
 import { LevelStepDisplay } from '@/components/LevelStepDisplay'
@@ -98,17 +97,7 @@ export const months = [
 const getEmployees = createBlitzscaleFn({
   method: 'GET',
 }).handler(async ({ context }) => {
-  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-
-  // For Blitzscale users: exclude employees whose User account also has the Blitzscale role
-  let blitzscaleExcludeEmails: string[] = []
-  if (isBlitzscale) {
-    const { getBlitzscaleUserEmails } = await import('@/lib/auth-middleware')
-    const allBlitzscaleEmails = await getBlitzscaleUserEmails()
-    blitzscaleExcludeEmails = allBlitzscaleEmails.filter(
-      (e) => e !== context.user.email,
-    )
-  }
+  const { excludeEmails } = context.blitzscaleInfo
 
   return await prisma.employee.findMany({
     include: {
@@ -131,8 +120,8 @@ const getEmployees = createBlitzscaleFn({
           lte: new Date(),
         },
       },
-      ...(blitzscaleExcludeEmails.length > 0
-        ? { email: { notIn: blitzscaleExcludeEmails } }
+      ...(excludeEmails.length > 0
+        ? { email: { notIn: excludeEmails } }
         : {}),
     },
     orderBy: {
