@@ -1777,6 +1777,22 @@ function EmployeeOverview() {
     managerHierarchyEmployeeIds,
   ])
 
+  // Blitzscale users cannot navigate to other blitzscale members' profiles
+  const nonClickableEmployeeIds = useMemo(() => {
+    if (user?.role !== ROLES.BLITZSCALE || !deelEmployees) return undefined
+    const ids = new Set<string>()
+    for (const emp of deelEmployees) {
+      if (emp.employee?.id && emp.employee.email !== user.email) {
+        const empUser = emp.employee as { id: string; email: string }
+        // Check if this employee's user has blitzscale role by matching team
+        if (emp.team === 'Blitzscale') {
+          ids.add(empUser.id)
+        }
+      }
+    }
+    return ids.size > 0 ? ids : undefined
+  }, [deelEmployees, user?.role, user?.email])
+
   // Combine reference employees with current employee (using form values if available)
   const combinedReferenceEmployees = useMemo(() => {
     const refs = referenceEmployees ?? []
@@ -2185,6 +2201,7 @@ function EmployeeOverview() {
                 onViewModeChange={(mode: 'manager' | 'team') =>
                   setManagerTreeViewMode(mode)
                 }
+                nonClickableEmployeeIds={nonClickableEmployeeIds}
               />
             </div>
           </div>
