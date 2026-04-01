@@ -74,11 +74,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import prisma from '@/db'
-import {
-  createAdminFn,
-  createInternalFn,
-  createPayReviewFn,
-} from '@/lib/auth-middleware'
+import { createInternalFn, createPayReviewFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
@@ -543,7 +539,7 @@ export const getDeelEmployees = createInternalFn({
   })
 })
 
-export const updateSalary = createAdminFn({
+export const updateSalary = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator(
@@ -573,7 +569,7 @@ export const updateSalary = createAdminFn({
     return salary
   })
 
-export const deleteSalary = createAdminFn({
+export const deleteSalary = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string }) => d)
@@ -627,7 +623,7 @@ export const deletePayReviewNote = createPayReviewFn({ method: 'POST' })
     })
   })
 
-export const saveSalaryDraft = createAdminFn({
+export const saveSalaryDraft = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator(
@@ -1299,9 +1295,7 @@ function EmployeeOverview() {
   const isSensitiveHidden = useSensitiveDataHidden()
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
-  const [showNewSalaryForm, setShowNewSalaryForm] = useState(
-    user?.role === ROLES.ADMIN,
-  )
+  const [showNewSalaryForm, setShowNewSalaryForm] = useState(hasPayReviewAccess)
   const [showOverrideMode, setShowOverrideMode] = useState(
     Boolean(employee.salaryDraft?.showOverride),
   )
@@ -2204,7 +2198,7 @@ function EmployeeOverview() {
                       : 'Show reference employees'}
                   </Button>
                 ) : null}
-                {user?.role === ROLES.ADMIN &&
+                {hasPayReviewAccess &&
                 !isSensitiveHidden &&
                 !showNewSalaryForm ? (
                   <Button
