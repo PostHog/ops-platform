@@ -41,7 +41,10 @@ import {
 } from '@/components/ui/select'
 import 'vercel-toast/dist/vercel-toast.css'
 import { reviewQueueAtom } from '@/atoms'
-import { createPayReviewFn } from '@/lib/auth-middleware'
+import {
+  createPayReviewFn,
+  getBlitzscaleUserEmails,
+} from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
 import { EmployeeNameCell } from '@/components/EmployeeNameCell'
 import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
@@ -98,8 +101,16 @@ export const months = [
 const getEmployees = createPayReviewFn({
   method: 'GET',
 }).handler(async ({ context }) => {
-  const isAdmin = context.user.role === ROLES.ADMIN
-  const { managedEmployeeIds } = context.managerInfo
+  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+
+  // For Blitzscale users: exclude employees whose User account also has the Blitzscale role
+  let blitzscaleExcludeEmails: string[] = []
+  if (isBlitzscale) {
+    const allBlitzscaleEmails = await getBlitzscaleUserEmails()
+    blitzscaleExcludeEmails = allBlitzscaleEmails.filter(
+      (e) => e !== context.user.email,
+    )
+  }
 
   return await prisma.employee.findMany({
     include: {
@@ -122,11 +133,8 @@ const getEmployees = createPayReviewFn({
           lte: new Date(),
         },
       },
-      ...(!isAdmin
-        ? {
-            id: { in: managedEmployeeIds },
-            NOT: { email: context.user.email },
-          }
+      ...(blitzscaleExcludeEmails.length > 0
+        ? { email: { notIn: blitzscaleExcludeEmails } }
         : {}),
     },
     orderBy: {
@@ -141,13 +149,8 @@ const updateEmployeePriority = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { employeeId: string; priority: string }) => d)
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     if (!data.priority) return
-    const isAdmin = context.user.role === ROLES.ADMIN
-    const { managedEmployeeIds } = context.managerInfo
-    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
-      throw new Error('Unauthorized')
-    }
     return await prisma.employee.update({
       where: { id: data.employeeId },
       data: { priority: data.priority as Priority },

@@ -63,7 +63,15 @@ const getEquityRefreshes = createPayReviewFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-  const { managedEmployeeIds } = context.managerInfo
+
+  let blitzscaleExcludeEmails: string[] = []
+  if (isBlitzscale) {
+    const { getBlitzscaleUserEmails } = await import('@/lib/auth-middleware')
+    const allBlitzscaleEmails = await getBlitzscaleUserEmails()
+    blitzscaleExcludeEmails = allBlitzscaleEmails.filter(
+      (e) => e !== context.user.email,
+    )
+  }
 
   const salaries = await prisma.salary.findMany({
     where: {
@@ -73,7 +81,9 @@ const getEquityRefreshes = createPayReviewFn({
       timestamp: {
         gte: new Date(new Date().setMonth(new Date().getMonth() - 3)),
       },
-      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
+      ...(blitzscaleExcludeEmails.length > 0
+        ? { employee: { email: { notIn: blitzscaleExcludeEmails } } }
+        : {}),
     },
     include: {
       employee: {
@@ -102,20 +112,7 @@ const updateEquityGranted = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; granted: boolean }) => d)
-  .handler(async ({ data, context }) => {
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-    const { managedEmployeeIds } = context.managerInfo
-
-    if (isBlitzscale) {
-      const salary = await prisma.salary.findUnique({
-        where: { id: data.id },
-        select: { employeeId: true },
-      })
-      if (!salary || !managedEmployeeIds.includes(salary.employeeId)) {
-        throw new Error('Unauthorized')
-      }
-    }
-
+  .handler(async ({ data }) => {
     return await prisma.salary.update({
       where: { id: data.id },
       data: { equityRefreshGranted: data.granted },
@@ -126,20 +123,7 @@ const markMultipleAsGranted = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { ids: string[] }) => d)
-  .handler(async ({ data, context }) => {
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-    const { managedEmployeeIds } = context.managerInfo
-
-    if (isBlitzscale) {
-      const salaries = await prisma.salary.findMany({
-        where: { id: { in: data.ids } },
-        select: { employeeId: true },
-      })
-      if (salaries.some((s) => !managedEmployeeIds.includes(s.employeeId))) {
-        throw new Error('Unauthorized')
-      }
-    }
-
+  .handler(async ({ data }) => {
     return await prisma.salary.updateMany({
       where: { id: { in: data.ids } },
       data: { equityRefreshGranted: true },
@@ -150,20 +134,7 @@ const updateEquityCommunicated = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; communicated: boolean }) => d)
-  .handler(async ({ data, context }) => {
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-    const { managedEmployeeIds } = context.managerInfo
-
-    if (isBlitzscale) {
-      const salary = await prisma.salary.findUnique({
-        where: { id: data.id },
-        select: { employeeId: true },
-      })
-      if (!salary || !managedEmployeeIds.includes(salary.employeeId)) {
-        throw new Error('Unauthorized')
-      }
-    }
-
+  .handler(async ({ data }) => {
     return await prisma.salary.update({
       where: { id: data.id },
       data: { communicated: data.communicated },
@@ -174,20 +145,7 @@ const markMultipleAsCommunicated = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { ids: string[] }) => d)
-  .handler(async ({ data, context }) => {
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-    const { managedEmployeeIds } = context.managerInfo
-
-    if (isBlitzscale) {
-      const salaries = await prisma.salary.findMany({
-        where: { id: { in: data.ids } },
-        select: { employeeId: true },
-      })
-      if (salaries.some((s) => !managedEmployeeIds.includes(s.employeeId))) {
-        throw new Error('Unauthorized')
-      }
-    }
-
+  .handler(async ({ data }) => {
     return await prisma.salary.updateMany({
       where: { id: { in: data.ids } },
       data: { communicated: true },

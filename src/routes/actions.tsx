@@ -74,7 +74,15 @@ const getUpdatedSalaries = createPayReviewFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-  const { managedEmployeeIds } = context.managerInfo
+
+  let blitzscaleExcludeEmails: string[] = []
+  if (isBlitzscale) {
+    const { getBlitzscaleUserEmails } = await import('@/lib/auth-middleware')
+    const allBlitzscaleEmails = await getBlitzscaleUserEmails()
+    blitzscaleExcludeEmails = allBlitzscaleEmails.filter(
+      (e) => e !== context.user.email,
+    )
+  }
 
   return await prisma.salary.findMany({
     where: {
@@ -93,7 +101,9 @@ const getUpdatedSalaries = createPayReviewFn({
           },
         },
       ],
-      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
+      ...(blitzscaleExcludeEmails.length > 0
+        ? { employee: { email: { notIn: blitzscaleExcludeEmails } } }
+        : {}),
     },
     include: {
       employee: {
@@ -117,20 +127,7 @@ const updateCommunicated = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; communicated: boolean }) => d)
-  .handler(async ({ data, context }) => {
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-    const { managedEmployeeIds } = context.managerInfo
-
-    if (isBlitzscale) {
-      const salary = await prisma.salary.findUnique({
-        where: { id: data.id },
-        select: { employeeId: true },
-      })
-      if (!salary || !managedEmployeeIds.includes(salary.employeeId)) {
-        throw new Error('Unauthorized')
-      }
-    }
-
+  .handler(async ({ data }) => {
     return await prisma.salary.update({
       where: { id: data.id },
       data: { communicated: data.communicated },

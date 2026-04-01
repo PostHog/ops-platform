@@ -4,3 +4,6 @@ export const ROLES = {
   ORG_CHART: 'org-chart',
   USER: 'user',
 }
+
+export const hasAdminAccess = (role: string | null | undefined): boolean =>
+  role === ROLES.ADMIN || role === ROLES.BLITZSCALE

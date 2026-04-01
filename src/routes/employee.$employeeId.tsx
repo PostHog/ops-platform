@@ -76,7 +76,7 @@ import {
 import prisma from '@/db'
 import { createInternalFn, createPayReviewFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
-import { ROLES } from '@/lib/consts'
+import { ROLES, hasAdminAccess } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
 import { ManagerHierarchyTree } from '@/components/ManagerHierarchyTree'
 import type { HierarchyNode } from '@/lib/types'
@@ -198,25 +198,41 @@ const getEmployeeById = createInternalFn({
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin = hasAdminAccess(context.user.role)
     const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
-    const isBlitzscaleManager =
-      isBlitzscale && managedEmployeeIds.includes(data.employeeId)
-    const hasAdminAccess = isAdmin || isBlitzscaleManager
-    const isManager =
-      !isAdmin && !isBlitzscale && managedEmployeeIds.includes(data.employeeId)
+    const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
+
+    // Blitzscale users cannot view other Blitzscale users' profiles
+    if (isBlitzscale) {
+      const targetEmployee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (targetEmployee?.email) {
+        const targetUser = await prisma.user.findUnique({
+          where: { email: targetEmployee.email },
+          select: { role: true },
+        })
+        if (
+          targetUser?.role === ROLES.BLITZSCALE &&
+          targetEmployee.email !== context.user.email
+        ) {
+          throw new Error('Unauthorized')
+        }
+      }
+    }
 
     const employee = await prisma.employee.findUnique({
       where: {
         id: data.employeeId,
-        ...(!hasAdminAccess && !isManager ? { email: context.user.email } : {}),
+        ...(!isAdmin && !isManager ? { email: context.user.email } : {}),
       },
       select: {
         id: true,
         email: true,
-        // Admin-level fields (admin and blitzscale for managed employees)
-        ...(hasAdminAccess
+        // Admin-level fields
+        ...(isAdmin
           ? {
               priority: true,
               reviewed: true,
@@ -226,7 +242,7 @@ const getEmployeeById = createInternalFn({
           : {}),
         // Keeper tests: available to admin/blitzscale and managers
         // Managers only see tests from the last 12 months
-        ...(hasAdminAccess || isManager
+        ...(isAdmin || isManager
           ? {
               keeperTestFeedback: {
                 ...(isManager
@@ -252,11 +268,11 @@ const getEmployeeById = createInternalFn({
             }
           : {}),
         // Option grants: only visible to admin/blitzscale or the employee themselves (not managers)
-        ...(hasAdminAccess || !isManager
+        ...(isAdmin || !isManager
           ? { cartaOptionGrants: true, previousEquityRefreshes: true }
           : {}),
         // Performance programs: admin/blitzscale and managers (not visible to employees viewing their own profile)
-        ...(hasAdminAccess || isManager
+        ...(isAdmin || isManager
           ? {
               performancePrograms: {
                 ...(isManager
@@ -329,7 +345,7 @@ const getEmployeeById = createInternalFn({
           orderBy: {
             timestamp: 'desc',
           },
-          ...(hasAdminAccess
+          ...(isAdmin
             ? {}
             : isManager
               ? {
@@ -376,7 +392,7 @@ const getEmployeeById = createInternalFn({
         },
         // Commission bonuses: visible to admin/blitzscale, managers (last 12 months), and employees (their own)
         commissionBonuses: {
-          ...(isManager && !hasAdminAccess
+          ...(isManager && !isAdmin
             ? {
                 where: {
                   createdAt: {
@@ -390,7 +406,7 @@ const getEmployeeById = createInternalFn({
           },
         },
         // Interview scores: visible to admin/blitzscale and managers, but not to employees themselves
-        ...(hasAdminAccess || isManager
+        ...(isAdmin || isManager
           ? {
               ashbyInterviewScoresReceived: {
                 ...(isManager
@@ -430,11 +446,7 @@ const getEmployeeById = createInternalFn({
       },
     })
 
-    if (
-      !hasAdminAccess &&
-      !isManager &&
-      employee?.email !== context.user.email
-    ) {
+    if (!isAdmin && !isManager && employee?.email !== context.user.email) {
       throw new Error('Unauthorized')
     }
 
@@ -639,7 +651,7 @@ export const updateSalary = createPayReviewFn({
     ) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin = hasAdminAccess(context.user.role)
     const { managedEmployeeIds } = context.managerInfo
     if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
       throw new Error('Unauthorized')
@@ -675,7 +687,7 @@ export const deleteSalary = createPayReviewFn({
       throw new Error('Salary not found')
     }
 
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin = hasAdminAccess(context.user.role)
     const { managedEmployeeIds } = context.managerInfo
     if (!isAdmin && !managedEmployeeIds.includes(existingSalary.employeeId)) {
       throw new Error('Unauthorized')
@@ -696,12 +708,7 @@ export const deleteSalary = createPayReviewFn({
 
 export const savePayReviewNote = createPayReviewFn({ method: 'POST' })
   .inputValidator((d: { employeeId: string; note: string }) => d)
-  .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
-    const { managedEmployeeIds } = context.managerInfo
-    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
-      throw new Error('Unauthorized')
-    }
+  .handler(async ({ data }) => {
     return await prisma.employee.update({
       where: { id: data.employeeId },
       data: { payReviewNote: data.note },
@@ -710,12 +717,7 @@ export const savePayReviewNote = createPayReviewFn({ method: 'POST' })
 
 export const deletePayReviewNote = createPayReviewFn({ method: 'POST' })
   .inputValidator((d: { employeeId: string }) => d)
-  .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
-    const { managedEmployeeIds } = context.managerInfo
-    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
-      throw new Error('Unauthorized')
-    }
+  .handler(async ({ data }) => {
     return await prisma.employee.update({
       where: { id: data.employeeId },
       data: { payReviewNote: null },
@@ -744,7 +746,7 @@ export const saveSalaryDraft = createPayReviewFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin = hasAdminAccess(context.user.role)
     const { managedEmployeeIds } = context.managerInfo
     if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
       throw new Error('Unauthorized')
@@ -762,7 +764,7 @@ export const createPerformanceProgram = createInternalFn({
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin = hasAdminAccess(context.user.role)
     const { managedEmployeeIds } = context.managerInfo
     const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
 
@@ -904,7 +906,7 @@ export const updateChecklistItem = createInternalFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin = hasAdminAccess(context.user.role)
     const { managedEmployeeIds } = context.managerInfo
 
     const checklistItem =
@@ -970,7 +972,7 @@ export const addProgramFeedback = createInternalFn({
     (d: { programId: string; feedback: string; createdAt?: string }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin = hasAdminAccess(context.user.role)
     const { managedEmployeeIds } = context.managerInfo
 
     const program = await prisma.performanceProgram.findUnique({
@@ -1049,7 +1051,7 @@ export const resolvePerformanceProgram = createInternalFn({
 })
   .inputValidator((d: { programId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin = hasAdminAccess(context.user.role)
     const { managedEmployeeIds } = context.managerInfo
 
     const program = await prisma.performanceProgram.findUnique({
@@ -1137,7 +1139,7 @@ export const getProofFileUploadUrl = createInternalFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin = hasAdminAccess(context.user.role)
     const { managedEmployeeIds } = context.managerInfo
 
     if (!data.checklistItemId && !data.programId) {
@@ -1239,7 +1241,7 @@ export const createProofFileRecord = createInternalFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin = hasAdminAccess(context.user.role)
     const { managedEmployeeIds } = context.managerInfo
 
     if (!data.checklistItemId && !data.feedbackId) {
@@ -1296,7 +1298,7 @@ export const getProofFileUrl = createInternalFn({
 })
   .inputValidator((d: { proofFileId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin = hasAdminAccess(context.user.role)
     const { managedEmployeeIds } = context.managerInfo
 
     const proofFile = await prisma.file.findUnique({
@@ -1344,7 +1346,7 @@ export const deleteProofFile = createInternalFn({
 })
   .inputValidator((d: { proofFileId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin = hasAdminAccess(context.user.role)
     const { managedEmployeeIds } = context.managerInfo
 
     const proofFile = await prisma.file.findUnique({
@@ -1650,7 +1652,7 @@ function EmployeeOverview() {
     }
 
     // For non-admins, start from manager's DeelEmployee
-    if (user?.role !== ROLES.ADMIN && managerDeelEmployeeId) {
+    if (!hasAdminAccess(user?.role) && managerDeelEmployeeId) {
       const managerEmployee = deelEmployees.find(
         (e) => e.id === managerDeelEmployeeId,
       )
@@ -1749,7 +1751,7 @@ function EmployeeOverview() {
   const filteredDeelEmployees = useMemo(() => {
     if (!deelEmployees) return null
     // For admins, show all employees
-    if (user?.role === ROLES.ADMIN) return deelEmployees
+    if (hasAdminAccess(user?.role)) return deelEmployees
     // For team mode, filter to only employees in the manager's hierarchy
     if (managerTreeViewMode === 'team') {
       return deelEmployees.filter((emp) => {

@@ -4,7 +4,7 @@ import { signOut, useSession, stopImpersonating } from '@/lib/auth-client'
 import { createInternalFn } from '@/lib/auth-middleware'
 import prisma from '@/db'
 import { useQuery } from '@tanstack/react-query'
-import { ROLES } from '@/lib/consts'
+import { ROLES, hasAdminAccess } from '@/lib/consts'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,7 +77,7 @@ export default function Header() {
   return (
     <header className="fixed top-0 right-0 left-0 flex h-10 justify-between gap-2 border-b border-gray-200 bg-white p-2 text-black">
       <nav className="flex flex-row items-center gap-2">
-        {user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE ? (
+        {hasAdminAccess(user?.role) ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">
@@ -105,9 +105,7 @@ export default function Header() {
           </DropdownMenu>
         ) : null}
         {user &&
-        (user?.role === ROLES.ADMIN ||
-          user?.role === ROLES.ORG_CHART ||
-          user?.role === ROLES.BLITZSCALE) ? (
+        (hasAdminAccess(user?.role) || user?.role === ROLES.ORG_CHART) ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">
@@ -139,9 +137,7 @@ export default function Header() {
             <Link to="/org-chart">Org chart</Link>
           </div>
         ) : null}
-        {user?.role === ROLES.ADMIN ||
-        user?.role === ROLES.ORG_CHART ||
-        user?.role === ROLES.BLITZSCALE ? (
+        {hasAdminAccess(user?.role) || user?.role === ROLES.ORG_CHART ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">
@@ -156,7 +152,7 @@ export default function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
-        {user?.role === ROLES.ADMIN ? (
+        {hasAdminAccess(user?.role) ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">
@@ -165,9 +161,11 @@ export default function Header() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem asChild>
-                <Link to="/management">Management</Link>
-              </DropdownMenuItem>
+              {user?.role === ROLES.ADMIN && (
+                <DropdownMenuItem asChild>
+                  <Link to="/management">Management</Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link to="/equity-vesting-audit">Equity vesting audit</Link>
               </DropdownMenuItem>
@@ -219,7 +217,7 @@ export default function Header() {
                 Stop Impersonating
               </Button>
             )}
-            {user?.role === ROLES.ADMIN && (
+            {hasAdminAccess(user?.role) && (
               <Button
                 variant="ghost"
                 size="sm"

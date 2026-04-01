@@ -113,14 +113,24 @@ const getCommissionBonuses = createPayReviewFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-  const { managedEmployeeIds } = context.managerInfo
+
+  let blitzscaleExcludeEmails: string[] = []
+  if (isBlitzscale) {
+    const { getBlitzscaleUserEmails } = await import('@/lib/auth-middleware')
+    const allBlitzscaleEmails = await getBlitzscaleUserEmails()
+    blitzscaleExcludeEmails = allBlitzscaleEmails.filter(
+      (e) => e !== context.user.email,
+    )
+  }
 
   return await prisma.commissionBonus.findMany({
     where: {
       createdAt: {
         gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
       },
-      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
+      ...(blitzscaleExcludeEmails.length > 0
+        ? { employee: { email: { notIn: blitzscaleExcludeEmails } } }
+        : {}),
     },
     include: {
       employee: {
@@ -139,7 +149,7 @@ const updateCommissionBonusAttainment = createPayReviewFn({
   method: 'POST',
 })
   .inputValidator((data: { bonusId: string; attainment: number }) => data)
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const { bonusId, attainment } = data
 
     // Get the existing bonus to calculate derived values
@@ -149,15 +159,6 @@ const updateCommissionBonusAttainment = createPayReviewFn({
 
     if (!existingBonus) {
       throw new Error('Commission bonus not found')
-    }
-
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-    const { managedEmployeeIds } = context.managerInfo
-    if (
-      isBlitzscale &&
-      !managedEmployeeIds.includes(existingBonus.employeeId)
-    ) {
-      throw new Error('Unauthorized')
     }
 
     // Recalculate derived values based on commission type
@@ -196,14 +197,24 @@ const exportCommissionBonusesForDeel = createPayReviewFn({
   method: 'POST',
 }).handler(async ({ context }) => {
   const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-  const { managedEmployeeIds } = context.managerInfo
+
+  let blitzscaleExcludeEmails: string[] = []
+  if (isBlitzscale) {
+    const { getBlitzscaleUserEmails } = await import('@/lib/auth-middleware')
+    const allBlitzscaleEmails = await getBlitzscaleUserEmails()
+    blitzscaleExcludeEmails = allBlitzscaleEmails.filter(
+      (e) => e !== context.user.email,
+    )
+  }
 
   const bonuses = await prisma.commissionBonus.findMany({
     where: {
       createdAt: {
         gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
       },
-      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
+      ...(blitzscaleExcludeEmails.length > 0
+        ? { employee: { email: { notIn: blitzscaleExcludeEmails } } }
+        : {}),
     },
     include: {
       employee: {
