@@ -197,18 +197,13 @@ const blitzscaleInfoMiddleware = createMiddleware({
     excludeEmails: [],
   }
 
-  if (user?.role === ROLES.BLITZSCALE && user.email) {
-    const otherBlitzscaleMembers = await prisma.deelEmployee.findMany({
-      where: {
-        team: 'Blitzscale',
-        workEmail: { not: user.email },
-      },
-      select: { workEmail: true },
+  if (user?.role === ROLES.BLITZSCALE) {
+    const blitzscaleUsers = await prisma.user.findMany({
+      where: { role: ROLES.BLITZSCALE },
+      select: { email: true },
     })
     blitzscaleInfo = {
-      excludeEmails: otherBlitzscaleMembers
-        .map((e) => e.workEmail)
-        .filter((email): email is string => email !== null),
+      excludeEmails: blitzscaleUsers.map((u) => u.email),
     }
   }
 

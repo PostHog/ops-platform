@@ -205,17 +205,23 @@ const getEmployeeById = createInternalFn({
     const { managedEmployeeIds } = context.managerInfo
     const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
 
-    // Blitzscale users cannot view other Blitzscale team members' profiles
+    // Blitzscale users cannot view other Blitzscale users' profiles
     if (isBlitzscale) {
-      const targetDeelEmployee = await prisma.deelEmployee.findFirst({
-        where: { employee: { id: data.employeeId } },
-        select: { team: true, workEmail: true },
+      const targetEmployee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
       })
-      if (
-        targetDeelEmployee?.team === 'Blitzscale' &&
-        targetDeelEmployee.workEmail !== context.user.email
-      ) {
-        throw new Error('Unauthorized')
+      if (targetEmployee?.email) {
+        const targetUser = await prisma.user.findUnique({
+          where: { email: targetEmployee.email },
+          select: { role: true },
+        })
+        if (
+          targetUser?.role === ROLES.BLITZSCALE &&
+          targetEmployee.email !== context.user.email
+        ) {
+          throw new Error('Unauthorized')
+        }
       }
     }
 
