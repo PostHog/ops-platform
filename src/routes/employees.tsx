@@ -229,7 +229,21 @@ function PriorityCell({ row }: { row: Row<Employee> }) {
 
 function App() {
   const router = useRouter()
-  const [sorting, setSorting] = useState<SortingState>([])
+  const [sorting, setSortingRaw] = useState<SortingState>(() => {
+    try {
+      const stored = localStorage.getItem('employees.sorting')
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
+    }
+  })
+  const setSorting = useCallback<typeof setSortingRaw>((updater) => {
+    setSortingRaw((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      localStorage.setItem('employees.sorting', JSON.stringify(next))
+      return next
+    })
+  }, [])
   const [columnFilters, setColumnFiltersRaw] = useState<ColumnFiltersState>(
     () => {
       try {
