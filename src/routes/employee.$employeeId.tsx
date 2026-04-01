@@ -74,7 +74,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import prisma from '@/db'
-import { createInternalFn, createPayReviewFn } from '@/lib/auth-middleware'
+import { createInternalFn, createBlitzscaleFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
@@ -544,7 +544,7 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
-export const getReferenceEmployees = createPayReviewFn({
+export const getReferenceEmployees = createBlitzscaleFn({
   method: 'GET',
 })
   .inputValidator(
@@ -639,7 +639,7 @@ export const getDeelEmployees = createInternalFn({
   })
 })
 
-export const updateSalary = createPayReviewFn({
+export const updateSalary = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator(
@@ -669,7 +669,7 @@ export const updateSalary = createPayReviewFn({
     return salary
   })
 
-export const deleteSalary = createPayReviewFn({
+export const deleteSalary = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string }) => d)
@@ -695,7 +695,7 @@ export const deleteSalary = createPayReviewFn({
     return { success: true }
   })
 
-export const savePayReviewNote = createPayReviewFn({ method: 'POST' })
+export const savePayReviewNote = createBlitzscaleFn({ method: 'POST' })
   .inputValidator((d: { employeeId: string; note: string }) => d)
   .handler(async ({ data }) => {
     return await prisma.employee.update({
@@ -704,7 +704,7 @@ export const savePayReviewNote = createPayReviewFn({ method: 'POST' })
     })
   })
 
-export const deletePayReviewNote = createPayReviewFn({ method: 'POST' })
+export const deletePayReviewNote = createBlitzscaleFn({ method: 'POST' })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data }) => {
     return await prisma.employee.update({
@@ -713,7 +713,7 @@ export const deletePayReviewNote = createPayReviewFn({ method: 'POST' })
     })
   })
 
-export const saveSalaryDraft = createPayReviewFn({
+export const saveSalaryDraft = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator(

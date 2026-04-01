@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, getFullName } from '@/lib/utils'
-import { createPayReviewFn } from '@/lib/auth-middleware'
+import { createBlitzscaleFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -70,7 +70,7 @@ type Salary = Prisma.SalaryGetPayload<{
   }
 }>
 
-const getUpdatedSalaries = createPayReviewFn({
+const getUpdatedSalaries = createBlitzscaleFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   const isBlitzscale = context.user.role === ROLES.BLITZSCALE
@@ -123,7 +123,7 @@ const getUpdatedSalaries = createPayReviewFn({
   })
 })
 
-const updateCommunicated = createPayReviewFn({
+const updateCommunicated = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; communicated: boolean }) => d)

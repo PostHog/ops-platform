@@ -51,7 +51,7 @@ const adminCheckMiddleware = createMiddleware({
 }).server(async ({ next, context }) => {
   const user = (context as unknown as { user?: { role?: string } })?.user
 
-  if (user?.role !== ROLES.ADMIN && user?.role !== ROLES.BLITZSCALE) {
+  if (user?.role !== ROLES.ADMIN) {
     throw redirect({
       to: '/error',
       search: { message: 'You are not authorized to access this page' },
@@ -61,13 +61,12 @@ const adminCheckMiddleware = createMiddleware({
   }
 })
 
-// Strictly admin-only (not blitzscale) — for management, role changes, impersonation
-const strictAdminCheckMiddleware = createMiddleware({
+const blitzscaleCheckMiddleware = createMiddleware({
   type: 'function',
 }).server(async ({ next, context }) => {
   const user = (context as unknown as { user?: { role?: string } })?.user
 
-  if (user?.role !== ROLES.ADMIN) {
+  if (user?.role !== ROLES.ADMIN && user?.role !== ROLES.BLITZSCALE) {
     throw redirect({
       to: '/error',
       search: { message: 'You are not authorized to access this page' },
@@ -182,26 +181,19 @@ const managerInfoMiddleware = createMiddleware({
   })
 })
 
-// admin and blitzscale users will be able to access this function
+// admin-only (management, role changes, impersonation)
 export const createAdminFn = createServerFn().middleware([
   authMiddleware,
   adminCheckMiddleware,
 ])
 
-// admin and blitzscale users will be able to access this function (includes manager info)
-export const createPayReviewFn = createServerFn().middleware([
+// admin and blitzscale users
+export const createBlitzscaleFn = createServerFn().middleware([
   authMiddleware,
-  adminCheckMiddleware,
-  managerInfoMiddleware,
+  blitzscaleCheckMiddleware,
 ])
 
-// strictly admin-only (management, role changes, impersonation)
-export const createStrictAdminFn = createServerFn().middleware([
-  authMiddleware,
-  strictAdminCheckMiddleware,
-])
-
-// org chart and admin users will be able to access this function
+// blitzscale, org chart and admin users will be able to access this function
 export const createOrgChartFn = createServerFn().middleware([
   authMiddleware,
   orgChartCheckMiddleware,

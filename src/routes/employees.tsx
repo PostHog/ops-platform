@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/select'
 import 'vercel-toast/dist/vercel-toast.css'
 import { reviewQueueAtom } from '@/atoms'
-import { createPayReviewFn } from '@/lib/auth-middleware'
+import { createBlitzscaleFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
 import { EmployeeNameCell } from '@/components/EmployeeNameCell'
 import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
@@ -95,7 +95,7 @@ export const months = [
   'December',
 ]
 
-const getEmployees = createPayReviewFn({
+const getEmployees = createBlitzscaleFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   const isBlitzscale = context.user.role === ROLES.BLITZSCALE
@@ -143,7 +143,7 @@ const getEmployees = createPayReviewFn({
   })
 })
 
-const updateEmployeePriority = createPayReviewFn({
+const updateEmployeePriority = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { employeeId: string; priority: string }) => d)

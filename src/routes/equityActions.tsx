@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, getFullName, getGrantType } from '@/lib/utils'
-import { createPayReviewFn } from '@/lib/auth-middleware'
+import { createBlitzscaleFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
 import { TableFilters } from '@/components/TableFilters'
 import { createToast } from 'vercel-toast'
@@ -59,7 +59,7 @@ type EquityRefreshSalary = Prisma.SalaryGetPayload<{
   }
 }>
 
-const getEquityRefreshes = createPayReviewFn({
+const getEquityRefreshes = createBlitzscaleFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   const isBlitzscale = context.user.role === ROLES.BLITZSCALE
@@ -108,7 +108,7 @@ const getEquityRefreshes = createPayReviewFn({
   return { salaries, sharePrice }
 })
 
-const updateEquityGranted = createPayReviewFn({
+const updateEquityGranted = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; granted: boolean }) => d)
@@ -119,7 +119,7 @@ const updateEquityGranted = createPayReviewFn({
     })
   })
 
-const markMultipleAsGranted = createPayReviewFn({
+const markMultipleAsGranted = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { ids: string[] }) => d)
@@ -130,7 +130,7 @@ const markMultipleAsGranted = createPayReviewFn({
     })
   })
 
-const updateEquityCommunicated = createPayReviewFn({
+const updateEquityCommunicated = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; communicated: boolean }) => d)
@@ -141,7 +141,7 @@ const updateEquityCommunicated = createPayReviewFn({
     })
   })
 
-const markMultipleAsCommunicated = createPayReviewFn({
+const markMultipleAsCommunicated = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { ids: string[] }) => d)

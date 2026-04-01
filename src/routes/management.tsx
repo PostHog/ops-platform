@@ -61,7 +61,7 @@ import {
 import { renderToStaticMarkup } from 'react-dom/server'
 import { fetchDeelEmployees } from './syncDeelEmployees'
 import type { KeeperTestJobPayload } from './runScheduledJobs'
-import { createStrictAdminFn } from '@/lib/auth-middleware'
+import { createAdminFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
 import { CommissionImportPanel } from '@/components/CommissionImportPanel'
 import { getQuarterStartDate } from '@/lib/commission-calculator'
@@ -76,7 +76,7 @@ export const Route = createFileRoute('/management')({
   component: RouteComponent,
 })
 
-const getUsers = createStrictAdminFn({
+const getUsers = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.user.findMany({
@@ -86,7 +86,7 @@ const getUsers = createStrictAdminFn({
   })
 })
 
-const updateUserRole = createStrictAdminFn({
+const updateUserRole = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; role: string }) => d)
@@ -124,7 +124,7 @@ const updateUserRole = createStrictAdminFn({
     return updatedUser
   })
 
-const startReviewCycle = createStrictAdminFn({
+const startReviewCycle = createAdminFn({
   method: 'POST',
 }).handler(async () => {
   return await prisma.employee.updateMany({
@@ -134,7 +134,7 @@ const startReviewCycle = createStrictAdminFn({
   })
 })
 
-const populateInitialEmployeeSalaries = createStrictAdminFn({
+const populateInitialEmployeeSalaries = createAdminFn({
   method: 'POST',
 }).handler(async () => {
   const employees = await prisma.deelEmployee.findMany({
@@ -540,7 +540,7 @@ function RouteComponent() {
   )
 }
 
-export const scheduleKeeperTests = createStrictAdminFn({
+export const scheduleKeeperTests = createAdminFn({
   method: 'POST',
 }).handler(async () => {
   const employees = await prisma.employee.findMany({
@@ -631,7 +631,7 @@ export const scheduleKeeperTests = createStrictAdminFn({
   }
 })
 
-const scheduleKeeperTestForEmployee = createStrictAdminFn({
+const scheduleKeeperTestForEmployee = createAdminFn({
   method: 'POST',
 })
   .inputValidator((d: { employeeId: string }) => d)
@@ -870,7 +870,7 @@ function KeeperTestManagement() {
 }
 
 // Get employees for Carta import matching
-export const getEmployeesForCartaImport = createStrictAdminFn({
+export const getEmployeesForCartaImport = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.employee.findMany({
@@ -904,7 +904,7 @@ const importCartaOptionGrantsSchema = z.object({
   ),
 })
 
-export const importCartaOptionGrants = createStrictAdminFn({
+export const importCartaOptionGrants = createAdminFn({
   method: 'POST',
 })
   .inputValidator(importCartaOptionGrantsSchema)
@@ -999,7 +999,7 @@ const importCommissionBonusesSchema = z.object({
   ),
 })
 
-export const importCommissionBonuses = createStrictAdminFn({
+export const importCommissionBonuses = createAdminFn({
   method: 'POST',
 })
   .inputValidator(importCommissionBonusesSchema)
@@ -1095,7 +1095,7 @@ export const importCommissionBonuses = createStrictAdminFn({
   })
 
 // Get employees for matching during import
-export const getEmployeesForImport = createStrictAdminFn({
+export const getEmployeesForImport = createAdminFn({
   method: 'GET',
 }).handler(async () => {
   return await prisma.employee.findMany({
