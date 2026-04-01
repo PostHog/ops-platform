@@ -2,7 +2,7 @@ import { createMiddleware, createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { redirect } from '@tanstack/react-router'
 import { auth } from './auth'
-import { ROLES, hasAdminAccess } from './consts'
+import { ROLES } from './consts'
 import prisma from '@/db'
 
 export async function getBlitzscaleUserEmails(): Promise<string[]> {
@@ -51,7 +51,7 @@ const adminCheckMiddleware = createMiddleware({
 }).server(async ({ next, context }) => {
   const user = (context as unknown as { user?: { role?: string } })?.user
 
-  if (!hasAdminAccess(user?.role)) {
+  if (user?.role !== ROLES.ADMIN && user?.role !== ROLES.BLITZSCALE) {
     throw redirect({
       to: '/error',
       search: { message: 'You are not authorized to access this page' },
@@ -82,7 +82,7 @@ const orgChartCheckMiddleware = createMiddleware({
 }).server(async ({ next, context }) => {
   const user = (context as unknown as { user?: { role?: string } })?.user
 
-  if (user?.role !== ROLES.ORG_CHART && !hasAdminAccess(user?.role)) {
+  if (user?.role !== ROLES.ORG_CHART && user?.role !== ROLES.ADMIN && user?.role !== ROLES.BLITZSCALE) {
     throw redirect({
       to: '/error',
       search: { message: 'You are not authorized to access this page' },
@@ -101,7 +101,7 @@ const internalCheckMiddleware = createMiddleware({
 
   if (
     (user?.email && user?.email.endsWith('@posthog.com')) ||
-    hasAdminAccess(user?.role)
+    user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE
   ) {
     return await next()
   } else {
@@ -154,7 +154,7 @@ const managerInfoMiddleware = createMiddleware({
     managedEmployeeIds: [],
   }
 
-  if (user?.email && !hasAdminAccess(user.role)) {
+  if (user?.email && user.role !== ROLES.ADMIN && user.role !== ROLES.BLITZSCALE) {
     // Get the user's DeelEmployee ID to check if they're a manager
     const userDeelEmployee = await prisma.deelEmployee.findUnique({
       where: { workEmail: user.email },

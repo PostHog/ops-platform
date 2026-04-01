@@ -41,10 +41,7 @@ import {
 } from '@/components/ui/select'
 import 'vercel-toast/dist/vercel-toast.css'
 import { reviewQueueAtom } from '@/atoms'
-import {
-  createPayReviewFn,
-  getBlitzscaleUserEmails,
-} from '@/lib/auth-middleware'
+import { createPayReviewFn } from '@/lib/auth-middleware'
 import { ROLES } from '@/lib/consts'
 import { EmployeeNameCell } from '@/components/EmployeeNameCell'
 import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
@@ -106,6 +103,7 @@ const getEmployees = createPayReviewFn({
   // For Blitzscale users: exclude employees whose User account also has the Blitzscale role
   let blitzscaleExcludeEmails: string[] = []
   if (isBlitzscale) {
+    const { getBlitzscaleUserEmails } = await import('@/lib/auth-middleware')
     const allBlitzscaleEmails = await getBlitzscaleUserEmails()
     blitzscaleExcludeEmails = allBlitzscaleEmails.filter(
       (e) => e !== context.user.email,
