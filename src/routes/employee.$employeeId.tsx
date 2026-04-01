@@ -83,6 +83,7 @@ import type { HierarchyNode } from '@/lib/types'
 import { getDeelEmployeesAndProposedHires } from './org-chart'
 import { PerformanceProgramPanel } from '@/components/PerformanceProgramPanel'
 import { useSensitiveDataHidden } from '@/components/SensitiveData'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -103,6 +104,7 @@ dayjs.extend(relativeTime)
 
 export const Route = createFileRoute('/employee/$employeeId')({
   component: EmployeeOverview,
+  pendingComponent: EmployeeOverviewSkeleton,
   loader: async ({ params, context }) => {
     context.queryClient.prefetchQuery({
       queryKey: ['valuationAndShares'],
@@ -111,6 +113,85 @@ export const Route = createFileRoute('/employee/$employeeId')({
     return await getEmployeeById({ data: { employeeId: params.employeeId } })
   },
 })
+
+function EmployeeOverviewSkeleton() {
+  return (
+    <div className="flex h-full flex-col items-center gap-5 overflow-hidden pt-4">
+      <div className="flex h-full w-full gap-5 2xl:max-w-[2000px]">
+        <div className="flex w-full min-w-0 flex-1 flex-col gap-5 overflow-y-auto px-4">
+          {/* Back button */}
+          <div className="flex w-full items-center justify-between">
+            <Skeleton className="h-9 w-40" />
+          </div>
+
+          {/* Employee name and metadata */}
+          <div className="flex flex-row items-center justify-between">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-7 w-56" />
+              <div className="flex gap-4">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-36" />
+              </div>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-row items-center gap-2">
+            <Skeleton className="h-9 w-48" />
+            <Skeleton className="h-9 w-48" />
+          </div>
+
+          {/* Timeline grid */}
+          <div className="w-full flex-grow">
+            <div className="mb-8">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Salary history column */}
+                <div className="space-y-0">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={`salary-skeleton-${i}`}>
+                      <div className="flex items-center border border-gray-200 px-3 py-1.5 first:rounded-t-md">
+                        <Skeleton className="h-4 w-32" />
+                        <span className="mx-2 text-gray-300">·</span>
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                      <div className="border border-t-0 border-gray-200 p-4">
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-4 w-1/2" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Feedback column */}
+                <div className="space-y-0">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={`feedback-skeleton-${i}`}>
+                      <div className="flex items-center border border-gray-200 px-3 py-1.5 first:rounded-t-md">
+                        <Skeleton className="h-4 w-32" />
+                        <span className="mx-2 text-gray-300">·</span>
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                      <div className="border border-t-0 border-gray-200 p-4">
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-2/3" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const getEmployeeById = createInternalFn({
   method: 'GET',
