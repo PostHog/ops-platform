@@ -156,7 +156,7 @@ export default function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
-        {user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE ? (
+        {user?.role === ROLES.ADMIN ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">
@@ -165,11 +165,9 @@ export default function Header() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              {user?.role === ROLES.ADMIN && (
-                <DropdownMenuItem asChild>
-                  <Link to="/management">Management</Link>
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem asChild>
+                <Link to="/management">Management</Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/equity-vesting-audit">Equity vesting audit</Link>
               </DropdownMenuItem>
