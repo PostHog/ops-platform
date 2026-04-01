@@ -198,32 +198,34 @@ const getEmployeeById = createInternalFn({
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin =
-      context.user.role === ROLES.ADMIN ||
-      context.user.role === ROLES.BLITZSCALE
     const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
-    const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
 
-    // Blitzscale users cannot view other Blitzscale users' profiles
+    // Check if blitzscale user is viewing their own profile or another blitzscale user
+    let isViewingSelf = false
     if (isBlitzscale) {
       const targetEmployee = await prisma.employee.findUnique({
         where: { id: data.employeeId },
         select: { email: true },
       })
-      if (targetEmployee?.email) {
+      if (targetEmployee?.email === context.user.email) {
+        isViewingSelf = true
+      } else if (targetEmployee?.email) {
         const targetUser = await prisma.user.findUnique({
           where: { email: targetEmployee.email },
           select: { role: true },
         })
-        if (
-          targetUser?.role === ROLES.BLITZSCALE &&
-          targetEmployee.email !== context.user.email
-        ) {
+        if (targetUser?.role === ROLES.BLITZSCALE) {
           throw new Error('Unauthorized')
         }
       }
     }
+
+    // Blitzscale users viewing their own profile are treated as regular users
+    const isAdmin =
+      (context.user.role === ROLES.ADMIN || context.user.role === ROLES.BLITZSCALE) &&
+      !isViewingSelf
+    const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
 
     const employee = await prisma.employee.findUnique({
       where: {
