@@ -58,7 +58,11 @@ const orgChartCheckMiddleware = createMiddleware({
 }).server(async ({ next, context }) => {
   const user = (context as unknown as { user?: { role?: string } })?.user
 
-  if (user?.role !== ROLES.ORG_CHART && user?.role !== ROLES.ADMIN) {
+  if (
+    user?.role !== ROLES.ORG_CHART &&
+    user?.role !== ROLES.ADMIN &&
+    user?.role !== ROLES.BLITZSCALE
+  ) {
     throw redirect({
       to: '/error',
       search: { message: 'You are not authorized to access this page' },

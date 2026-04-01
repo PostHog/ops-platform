@@ -417,7 +417,8 @@ export default function OrgChart() {
   const { data: session } = useSession()
   const canEditOrgChart =
     session?.user?.role === ROLES.ADMIN ||
-    session?.user?.role === ROLES.ORG_CHART
+    session?.user?.role === ROLES.ORG_CHART ||
+    session?.user?.role === ROLES.BLITZSCALE
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const [autoZoomingEnabled] = useAtom(orgChartAutozoomingEnabledAtom)
   const [viewMode, setViewMode] = useLocalStorage<OrgChartMode>(
