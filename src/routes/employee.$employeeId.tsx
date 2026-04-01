@@ -198,7 +198,9 @@ const getEmployeeById = createInternalFn({
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN || context.user.role === ROLES.BLITZSCALE
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
     const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
@@ -748,7 +750,9 @@ export const createPerformanceProgram = createInternalFn({
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN || context.user.role === ROLES.BLITZSCALE
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
     const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
 
@@ -890,7 +894,9 @@ export const updateChecklistItem = createInternalFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN || context.user.role === ROLES.BLITZSCALE
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const checklistItem =
@@ -956,7 +962,9 @@ export const addProgramFeedback = createInternalFn({
     (d: { programId: string; feedback: string; createdAt?: string }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN || context.user.role === ROLES.BLITZSCALE
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const program = await prisma.performanceProgram.findUnique({
@@ -1035,7 +1043,9 @@ export const resolvePerformanceProgram = createInternalFn({
 })
   .inputValidator((d: { programId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN || context.user.role === ROLES.BLITZSCALE
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const program = await prisma.performanceProgram.findUnique({
@@ -1123,7 +1133,9 @@ export const getProofFileUploadUrl = createInternalFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN || context.user.role === ROLES.BLITZSCALE
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     if (!data.checklistItemId && !data.programId) {
@@ -1225,7 +1237,9 @@ export const createProofFileRecord = createInternalFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN || context.user.role === ROLES.BLITZSCALE
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     if (!data.checklistItemId && !data.feedbackId) {
@@ -1282,7 +1296,9 @@ export const getProofFileUrl = createInternalFn({
 })
   .inputValidator((d: { proofFileId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN || context.user.role === ROLES.BLITZSCALE
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const proofFile = await prisma.file.findUnique({
@@ -1330,7 +1346,9 @@ export const deleteProofFile = createInternalFn({
 })
   .inputValidator((d: { proofFileId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN || context.user.role === ROLES.BLITZSCALE
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const proofFile = await prisma.file.findUnique({

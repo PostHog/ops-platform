@@ -81,7 +81,11 @@ const orgChartCheckMiddleware = createMiddleware({
 }).server(async ({ next, context }) => {
   const user = (context as unknown as { user?: { role?: string } })?.user
 
-  if (user?.role !== ROLES.ORG_CHART && user?.role !== ROLES.ADMIN && user?.role !== ROLES.BLITZSCALE) {
+  if (
+    user?.role !== ROLES.ORG_CHART &&
+    user?.role !== ROLES.ADMIN &&
+    user?.role !== ROLES.BLITZSCALE
+  ) {
     throw redirect({
       to: '/error',
       search: { message: 'You are not authorized to access this page' },
@@ -100,7 +104,8 @@ const internalCheckMiddleware = createMiddleware({
 
   if (
     (user?.email && user?.email.endsWith('@posthog.com')) ||
-    user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE
+    user?.role === ROLES.ADMIN ||
+    user?.role === ROLES.BLITZSCALE
   ) {
     return await next()
   } else {
@@ -153,7 +158,11 @@ const managerInfoMiddleware = createMiddleware({
     managedEmployeeIds: [],
   }
 
-  if (user?.email && user.role !== ROLES.ADMIN && user.role !== ROLES.BLITZSCALE) {
+  if (
+    user?.email &&
+    user.role !== ROLES.ADMIN &&
+    user.role !== ROLES.BLITZSCALE
+  ) {
     // Get the user's DeelEmployee ID to check if they're a manager
     const userDeelEmployee = await prisma.deelEmployee.findUnique({
       where: { workEmail: user.email },
