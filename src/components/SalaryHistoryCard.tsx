@@ -46,7 +46,8 @@ export function SalaryHistoryCard({
     salary.benchmarkFactor > previousSalary.benchmarkFactor &&
     salary.benchmark === previousSalary.benchmark
   const hasLevelOrStepChange = previousSalary
-    ? salary.step !== previousSalary.step || salary.level !== previousSalary.level
+    ? salary.step !== previousSalary.step ||
+      salary.level !== previousSalary.level
     : false
   const levelOrStepDirection = previousSalary
     ? salary.step < previousSalary.step || salary.level < previousSalary.level
