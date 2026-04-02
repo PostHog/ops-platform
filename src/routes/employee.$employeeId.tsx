@@ -222,21 +222,21 @@ const getEmployeeById = createInternalFn({
     }
 
     // Blitzscale users viewing their own profile are treated as regular users
-    const isAdmin =
+    const hasAdminAccess =
       (context.user.role === ROLES.ADMIN || context.user.role === ROLES.BLITZSCALE) &&
       !isViewingSelf
-    const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
+    const isManager = !hasAdminAccess && managedEmployeeIds.includes(data.employeeId)
 
     const employee = await prisma.employee.findUnique({
       where: {
         id: data.employeeId,
-        ...(!isAdmin && !isManager ? { email: context.user.email } : {}),
+        ...(!hasAdminAccess && !isManager ? { email: context.user.email } : {}),
       },
       select: {
         id: true,
         email: true,
         // Admin-level fields
-        ...(isAdmin
+        ...(hasAdminAccess
           ? {
               priority: true,
               reviewed: true,
@@ -246,7 +246,7 @@ const getEmployeeById = createInternalFn({
           : {}),
         // Keeper tests: available to admin/blitzscale and managers
         // Managers only see tests from the last 12 months
-        ...(isAdmin || isManager
+        ...(hasAdminAccess || isManager
           ? {
               keeperTestFeedback: {
                 ...(isManager
@@ -272,11 +272,11 @@ const getEmployeeById = createInternalFn({
             }
           : {}),
         // Option grants: only visible to admin/blitzscale or the employee themselves (not managers)
-        ...(isAdmin || !isManager
+        ...(hasAdminAccess || !isManager
           ? { cartaOptionGrants: true, previousEquityRefreshes: true }
           : {}),
         // Performance programs: admin/blitzscale and managers (not visible to employees viewing their own profile)
-        ...(isAdmin || isManager
+        ...(hasAdminAccess || isManager
           ? {
               performancePrograms: {
                 ...(isManager
@@ -349,7 +349,7 @@ const getEmployeeById = createInternalFn({
           orderBy: {
             timestamp: 'desc',
           },
-          ...(isAdmin
+          ...(hasAdminAccess
             ? {}
             : isManager
               ? {
@@ -396,7 +396,7 @@ const getEmployeeById = createInternalFn({
         },
         // Commission bonuses: visible to admin/blitzscale, managers (last 12 months), and employees (their own)
         commissionBonuses: {
-          ...(isManager && !isAdmin
+          ...(isManager && !hasAdminAccess
             ? {
                 where: {
                   createdAt: {
@@ -410,7 +410,7 @@ const getEmployeeById = createInternalFn({
           },
         },
         // Interview scores: visible to admin/blitzscale and managers, but not to employees themselves
-        ...(isAdmin || isManager
+        ...(hasAdminAccess || isManager
           ? {
               ashbyInterviewScoresReceived: {
                 ...(isManager
@@ -450,7 +450,7 @@ const getEmployeeById = createInternalFn({
       },
     })
 
-    if (!isAdmin && !isManager && employee?.email !== context.user.email) {
+    if (!hasAdminAccess && !isManager && employee?.email !== context.user.email) {
       throw new Error('Unauthorized')
     }
 
