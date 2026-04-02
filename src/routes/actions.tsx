@@ -799,6 +799,14 @@ function App() {
           <DialogFooter>
             <Button
               variant="outline"
+              onClick={() => setTemplateInput(defaultTemplate)}
+              disabled={templateInput === defaultTemplate}
+            >
+              Reset to default
+            </Button>
+            <div className="flex-1" />
+            <Button
+              variant="outline"
               onClick={() => {
                 setTemplateInput(template)
                 setIsTemplateDialogOpen(false)
