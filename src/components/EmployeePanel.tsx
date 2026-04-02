@@ -54,11 +54,13 @@ const EmployeePanel = ({
   employees,
   proposedHires,
   managedEmployeeIds,
+  blitzscaleUserEmails,
 }: {
   selectedNode: string | null
   employees: Array<DeelEmployee>
   proposedHires: Array<ProposedHire>
   managedEmployeeIds: Array<string>
+  blitzscaleUserEmails?: string[]
 }) => {
   const { data: session } = useSession()
   const user = session?.user
@@ -70,6 +72,9 @@ const EmployeePanel = ({
   const isManagerOfEmployee =
     !!employee?.employee?.id &&
     managedEmployeeIds.includes(employee.employee.id)
+  const isBlitzscaleEmployee =
+    !!employee?.workEmail &&
+    !!blitzscaleUserEmails?.includes(employee.workEmail)
   const proposedHire = proposedHires.find(
     (proposedHire) => proposedHire.id === selectedNode,
   )
@@ -204,7 +209,11 @@ const EmployeePanel = ({
             </div>
           </div>
           <div className="mt-2 flex flex-col gap-2">
-            {employee && (user?.role === ROLES.ADMIN || isManagerOfEmployee) ? (
+            {employee &&
+            !isBlitzscaleEmployee &&
+            (user?.role === ROLES.ADMIN ||
+              user?.role === ROLES.BLITZSCALE ||
+              isManagerOfEmployee) ? (
               <Link
                 to="/employee/$employeeId"
                 params={{ employeeId: employee.employee?.id ?? '' }}
