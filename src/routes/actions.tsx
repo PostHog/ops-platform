@@ -248,14 +248,18 @@ function processTemplate(template: string, salary: Salary): string {
     benchmarkIncrease: hasBenchmarkIncrease,
     levelStepIncrease:
       hasPreviousSalary &&
-      (level > previousLevel || step > previousStep),
+      (level > previousLevel || step > previousStep) &&
+      level >= previousLevel &&
+      step >= previousStep,
     levelStepSame:
       hasPreviousSalary &&
       level === previousLevel &&
       step === previousStep,
     levelStepDecrease:
       hasPreviousSalary &&
-      (level < previousLevel || step < previousStep),
+      (level < previousLevel || step < previousStep) &&
+      level <= previousLevel &&
+      step <= previousStep,
     locationFactorIncrease:
       hasPreviousSalary &&
       locationFactor > previousLocationFactor,
