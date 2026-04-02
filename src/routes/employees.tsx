@@ -489,6 +489,32 @@ function App() {
         enableHiding: false,
       },
       {
+        id: 'reviewNote',
+        accessorFn: (row) => !!row.payReviewNote,
+        header: 'Note',
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'Has note', value: true },
+            { label: 'No note', value: false },
+          ],
+        },
+        filterFn: (row: Row<Employee>, _: string, filterValue: boolean[]) => {
+          return filterValue.includes(!!row.original.payReviewNote)
+        },
+        cell: ({ row }) => {
+          if (row.original.payReviewNote) {
+            return (
+              <div className="flex items-center gap-2 text-gray-700">
+                <Check className="h-4 w-4 text-green-600" />
+                <span>added</span>
+              </div>
+            )
+          }
+          return <span className="text-gray-400">—</span>
+        },
+      },
+      {
         accessorKey: 'reviewed',
         header: 'Status',
         meta: {
@@ -507,30 +533,6 @@ function App() {
             employeeId={row.original.id}
           />
         ),
-      },
-      {
-        id: 'reviewNote',
-        accessorFn: (row) => !!row.payReviewNote,
-        header: 'Note',
-        meta: {
-          filterVariant: 'select',
-          filterOptions: [
-            { label: 'Has note', value: true },
-            { label: 'No note', value: false },
-          ],
-        },
-        filterFn: (row: Row<Employee>, _: string, filterValue: boolean[]) => {
-          return filterValue.includes(!!row.original.payReviewNote)
-        },
-        cell: ({ row }) => {
-          if (!row.original.payReviewNote) return null
-          return (
-            <div className="flex items-center gap-2 text-gray-700">
-              <Check className="h-4 w-4 text-green-600" />
-              <span>added</span>
-            </div>
-          )
-        },
       },
       {
         id: 'changePercentage',
