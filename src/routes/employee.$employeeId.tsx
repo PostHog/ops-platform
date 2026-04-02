@@ -1456,11 +1456,14 @@ export const deleteProofFile = createInternalFn({
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
-  const hasPayReviewAccess =
-    user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE
   const isSensitiveHidden = useSensitiveDataHidden()
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
+  const isViewingSelf =
+    user?.role === ROLES.BLITZSCALE && employee.email === user?.email
+  const hasPayReviewAccess =
+    (user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE) &&
+    !isViewingSelf
   const [showNewSalaryForm, setShowNewSalaryForm] = useState(hasPayReviewAccess)
   const [showOverrideMode, setShowOverrideMode] = useState(
     Boolean(employee.salaryDraft?.showOverride),
