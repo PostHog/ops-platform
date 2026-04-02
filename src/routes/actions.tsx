@@ -144,14 +144,14 @@ export const Route = createFileRoute('/actions')({
 
 const defaultTemplate = `Hey {firstName}! I just wanted to let you know that we're giving you a raise of {changePercentage}%, which works out to a {changeAmountLocal} increase for a total salary of {salaryLocal}.
 
-For this round we've increased the engineering benchmark to reflect our focus on raising the bar for engineering at PostHog even higher.
+For this round we've increased the benchmark for your role to reflect our focus on raising the bar at PostHog even higher.
 
 {#if benchmarkChanged && levelOrStepIncreased}
-Receiving a pay increase after a benchmark update isn't guaranteed for all engineers and depends on performance. We all agreed that your contributions have justified an increase, as well as an additional step increase for performing above even the new benchmark expectations.
+Receiving a pay increase after a benchmark update isn't guaranteed and depends on performance. We all agreed that your contributions have justified an increase, as well as an additional step increase for performing above even the new benchmark expectations.
 {/if}
 
 {#if benchmarkChanged && levelOrStepSame}
-Receiving a pay increase after a benchmark update isn't guaranteed for all engineers and depends on performance. We all agreed that your contributions have justified an increase. You won't see a change in your level or step, but that's because the expectations for those have changed, and we agreed that you're still meeting the bar for that new expectation. Though level and step stay the same, this is very much a performance raise!
+Receiving a pay increase after a benchmark update isn't guaranteed and depends on performance. We all agreed that your contributions have justified an increase. You won't see a change in your level or step, but that's because the expectations for those have changed, and we agreed that you're still meeting the bar for that new expectation. Though level and step stay the same, this is very much a performance raise!
 {/if}
 
 {#if benchmarkChanged && levelOrStepDecreased}
