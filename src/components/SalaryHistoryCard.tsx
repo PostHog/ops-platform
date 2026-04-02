@@ -53,8 +53,8 @@ export function SalaryHistoryCard({
       ? ('decrease' as const)
       : ('increase' as const)
     : null
-  const hasLocationFactorChange =
-    previousSalary && salary.locationFactor !== previousSalary.locationFactor
+  const hasLocationFactorIncrease =
+    previousSalary && salary.locationFactor > previousSalary.locationFactor
   const isFullBenchmarkIncrease =
     hasBenchmarkIncrease &&
     previousSalary &&
@@ -256,7 +256,7 @@ export function SalaryHistoryCard({
                 This happened in addition to a level or step increase.
               </div>
             )}
-          {hasLocationFactorChange && (
+          {hasLocationFactorIncrease && (
             <div className="mb-1 text-xs text-gray-500 italic">
               There was a location factor change to remain competitive in that
               market.
