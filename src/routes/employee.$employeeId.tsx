@@ -1459,11 +1459,11 @@ function EmployeeOverview() {
   const isSensitiveHidden = useSensitiveDataHidden()
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
+  const isBlitzscaleOrAdmin =
+    user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE
   const isViewingSelf =
     user?.role === ROLES.BLITZSCALE && employee.email === user?.email
-  const hasPayReviewAccess =
-    (user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE) &&
-    !isViewingSelf
+  const hasPayReviewAccess = isBlitzscaleOrAdmin && !isViewingSelf
   const [showNewSalaryForm, setShowNewSalaryForm] = useState(hasPayReviewAccess)
   const [showOverrideMode, setShowOverrideMode] = useState(
     Boolean(employee.salaryDraft?.showOverride),
@@ -2112,8 +2112,6 @@ function EmployeeOverview() {
 
   const isManager =
     (deelEmployeesAndProposedHiresData?.managedEmployeeIds?.length ?? 0) > 0
-  const isBlitzscaleOrAdmin =
-    user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE
   const showEmployeeTree =
     managerHierarchy && (isBlitzscaleOrAdmin || isManager)
 
