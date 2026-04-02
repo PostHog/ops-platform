@@ -496,6 +496,45 @@ function App() {
         ),
       },
       {
+        accessorKey: 'equityRefreshGranted',
+        header: 'Granted',
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'Yes', value: true },
+            { label: 'No', value: false },
+          ],
+        },
+        filterFn: (
+          row: Row<EquityRefreshSalary>,
+          _: string,
+          filterValue: boolean[],
+        ) => {
+          return filterValue.includes(row.original.equityRefreshGranted)
+        },
+        cell: ({ row }) => (
+          <div>
+            <span>{row.original.equityRefreshGranted ? 'Yes' : 'No'}</span>
+            <Button
+              variant="outline"
+              className="ml-2"
+              size="sm"
+              onClick={async () => {
+                await updateEquityGranted({
+                  data: {
+                    id: row.original.id,
+                    granted: !row.original.equityRefreshGranted,
+                  },
+                })
+                router.invalidate()
+              }}
+            >
+              Toggle
+            </Button>
+          </div>
+        ),
+      },
+      {
         accessorKey: 'communicated',
         header: 'Communicated',
         meta: {
@@ -559,20 +598,6 @@ function App() {
               >
                 Copy template text
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={async () => {
-                  await updateEquityGranted({
-                    data: {
-                      id: row.original.id,
-                      granted: true,
-                    },
-                  })
-                  createToast('Marked as granted')
-                  router.invalidate()
-                }}
-              >
-                Mark as granted
-              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
                   to="/employee/$employeeId"
@@ -626,6 +651,7 @@ function App() {
             salary.employee.deelEmployee?.topLevelManager?.lastName,
           ),
           notes: salary.notes,
+          granted: salary.equityRefreshGranted ? 'Yes' : 'No',
           communicated: salary.communicated ? 'Yes' : 'No',
         }
       }),
