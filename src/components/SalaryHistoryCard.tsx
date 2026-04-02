@@ -215,7 +215,9 @@ export function SalaryHistoryCard({
           )}
           {stepDecreasedDueToBenchmark && (
             <div className="mb-1 text-xs text-gray-500 italic">
-	      There was a benchmark increase during this round of reviews, which means everyone was re-leveled against this new benchmark. This might explain a step or level decrease. 
+              There was a benchmark increase during this round of reviews, which
+              means everyone was re-leveled against this new benchmark. This
+              might explain a step or level decrease.
             </div>
           )}
         </div>

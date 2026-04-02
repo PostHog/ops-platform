@@ -1980,7 +1980,7 @@ function EmployeeOverview() {
         (a, b) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       )
-    const map = new Map<string, typeof salaries[number]>()
+    const map = new Map<string, (typeof salaries)[number]>()
     for (let i = 0; i < salaries.length - 1; i++) {
       map.set(salaries[i].id, salaries[i + 1])
     }
@@ -2595,7 +2595,9 @@ function EmployeeOverview() {
                                   <SalaryHistoryCard
                                     key={`salary-${item.data.id}`}
                                     salary={item.data}
-                                    previousSalary={previousSalaryMap.get(item.data.id)}
+                                    previousSalary={previousSalaryMap.get(
+                                      item.data.id,
+                                    )}
                                     isAdmin={hasPayReviewAccess}
                                     onDelete={handleDeleteSalary}
                                     lastTableItem={lastTableItem}
