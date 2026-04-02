@@ -1556,6 +1556,8 @@ function EmployeeOverview() {
   const proposedHires = deelEmployeesAndProposedHiresData?.proposedHires || []
   const managerDeelEmployeeId =
     deelEmployeesAndProposedHiresData?.managerDeelEmployeeId
+  const blitzscaleUserEmails =
+    deelEmployeesAndProposedHiresData?.blitzscaleUserEmails || []
 
   // Build hierarchy tree from flat list
   const managerHierarchy = useMemo(() => {
@@ -1779,19 +1781,16 @@ function EmployeeOverview() {
 
   // Blitzscale users cannot navigate to other blitzscale members' profiles
   const nonClickableEmployeeIds = useMemo(() => {
-    if (user?.role !== ROLES.BLITZSCALE || !deelEmployees) return undefined
+    if (blitzscaleUserEmails.length === 0 || !deelEmployees) return undefined
+    const emailSet = new Set(blitzscaleUserEmails)
     const ids = new Set<string>()
     for (const emp of deelEmployees) {
-      if (emp.employee?.id && emp.employee.email !== user.email) {
-        const empUser = emp.employee as { id: string; email: string }
-        // Check if this employee's user has blitzscale role by matching team
-        if (emp.team === 'Blitzscale') {
-          ids.add(empUser.id)
-        }
+      if (emp.employee?.id && emp.workEmail && emailSet.has(emp.workEmail)) {
+        ids.add(emp.employee.id)
       }
     }
     return ids.size > 0 ? ids : undefined
-  }, [deelEmployees, user?.role, user?.email])
+  }, [deelEmployees, blitzscaleUserEmails])
 
   // Combine reference employees with current employee (using form values if available)
   const combinedReferenceEmployees = useMemo(() => {
