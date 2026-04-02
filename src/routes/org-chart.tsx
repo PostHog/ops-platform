@@ -181,7 +181,13 @@ export const getDeelEmployeesAndProposedHires = createInternalFn({
     (e: string) => e !== context.user.email,
   )
 
-  return { employees, proposedHires, managerDeelEmployeeId, managedEmployeeIds, blitzscaleUserEmails }
+  return {
+    employees,
+    proposedHires,
+    managerDeelEmployeeId,
+    managedEmployeeIds,
+    blitzscaleUserEmails,
+  }
 })
 
 export const Route = createFileRoute('/org-chart')({

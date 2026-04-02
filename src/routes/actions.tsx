@@ -124,7 +124,10 @@ const updateCommunicated = createBlitzscaleFn({
         where: { id: data.id },
         include: { employee: { select: { email: true } } },
       })
-      if (salary?.employee?.email && excludeEmails.includes(salary.employee.email)) {
+      if (
+        salary?.employee?.email &&
+        excludeEmails.includes(salary.employee.email)
+      ) {
         throw new Error('Unauthorized')
       }
     }

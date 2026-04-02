@@ -120,9 +120,7 @@ const getEmployees = createBlitzscaleFn({
           lte: new Date(),
         },
       },
-      ...(excludeEmails.length > 0
-        ? { email: { notIn: excludeEmails } }
-        : {}),
+      ...(excludeEmails.length > 0 ? { email: { notIn: excludeEmails } } : {}),
     },
     orderBy: {
       deelEmployee: {

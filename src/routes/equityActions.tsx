@@ -109,7 +109,10 @@ const updateEquityGranted = createBlitzscaleFn({
         where: { id: data.id },
         include: { employee: { select: { email: true } } },
       })
-      if (salary?.employee?.email && excludeEmails.includes(salary.employee.email)) {
+      if (
+        salary?.employee?.email &&
+        excludeEmails.includes(salary.employee.email)
+      ) {
         throw new Error('Unauthorized')
       }
     }
@@ -130,7 +133,11 @@ const markMultipleAsGranted = createBlitzscaleFn({
         where: { id: { in: data.ids } },
         include: { employee: { select: { email: true } } },
       })
-      if (salaries.some((s) => s.employee?.email && excludeEmails.includes(s.employee.email))) {
+      if (
+        salaries.some(
+          (s) => s.employee?.email && excludeEmails.includes(s.employee.email),
+        )
+      ) {
         throw new Error('Unauthorized')
       }
     }
@@ -151,7 +158,10 @@ const updateEquityCommunicated = createBlitzscaleFn({
         where: { id: data.id },
         include: { employee: { select: { email: true } } },
       })
-      if (salary?.employee?.email && excludeEmails.includes(salary.employee.email)) {
+      if (
+        salary?.employee?.email &&
+        excludeEmails.includes(salary.employee.email)
+      ) {
         throw new Error('Unauthorized')
       }
     }
@@ -172,7 +182,11 @@ const markMultipleAsCommunicated = createBlitzscaleFn({
         where: { id: { in: data.ids } },
         include: { employee: { select: { email: true } } },
       })
-      if (salaries.some((s) => s.employee?.email && excludeEmails.includes(s.employee.email))) {
+      if (
+        salaries.some(
+          (s) => s.employee?.email && excludeEmails.includes(s.employee.email),
+        )
+      ) {
         throw new Error('Unauthorized')
       }
     }

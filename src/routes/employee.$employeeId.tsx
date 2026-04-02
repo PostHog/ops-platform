@@ -223,9 +223,11 @@ const getEmployeeById = createInternalFn({
 
     // Blitzscale users viewing their own profile are treated as regular users
     const hasAdminAccess =
-      (context.user.role === ROLES.ADMIN || context.user.role === ROLES.BLITZSCALE) &&
+      (context.user.role === ROLES.ADMIN ||
+        context.user.role === ROLES.BLITZSCALE) &&
       !isViewingSelf
-    const isManager = !hasAdminAccess && managedEmployeeIds.includes(data.employeeId)
+    const isManager =
+      !hasAdminAccess && managedEmployeeIds.includes(data.employeeId)
 
     const employee = await prisma.employee.findUnique({
       where: {
@@ -450,7 +452,11 @@ const getEmployeeById = createInternalFn({
       },
     })
 
-    if (!hasAdminAccess && !isManager && employee?.email !== context.user.email) {
+    if (
+      !hasAdminAccess &&
+      !isManager &&
+      employee?.email !== context.user.email
+    ) {
       throw new Error('Unauthorized')
     }
 
@@ -698,7 +704,11 @@ export const deleteSalary = createBlitzscaleFn({
     }
 
     const { excludeEmails } = context.blitzscaleInfo
-    if (excludeEmails.length > 0 && existingSalary.employee?.email && excludeEmails.includes(existingSalary.employee.email)) {
+    if (
+      excludeEmails.length > 0 &&
+      existingSalary.employee?.email &&
+      excludeEmails.includes(existingSalary.employee.email)
+    ) {
       throw new Error('Unauthorized')
     }
 

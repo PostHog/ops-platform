@@ -153,7 +153,11 @@ const updateCommissionBonusAttainment = createBlitzscaleFn({
     }
 
     const { excludeEmails } = context.blitzscaleInfo
-    if (excludeEmails.length > 0 && existingBonus.employee?.email && excludeEmails.includes(existingBonus.employee.email)) {
+    if (
+      excludeEmails.length > 0 &&
+      existingBonus.employee?.email &&
+      excludeEmails.includes(existingBonus.employee.email)
+    ) {
       throw new Error('Unauthorized')
     }
 

@@ -180,7 +180,9 @@ function TreeNode({
     }
   }
 
-  const isNonClickable = !!(node.employeeId && nonClickableEmployeeIds?.has(node.employeeId))
+  const isNonClickable = !!(
+    node.employeeId && nonClickableEmployeeIds?.has(node.employeeId)
+  )
 
   const canNavigate =
     !disableNavigation &&
