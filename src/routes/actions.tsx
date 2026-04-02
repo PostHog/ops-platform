@@ -508,34 +508,6 @@ function App() {
         ),
       },
       {
-        id: 'templateText',
-        header: 'Template Text',
-        enableColumnFilter: false,
-        cell: ({ row }) => {
-          const text = processTemplate(template, row.original)
-          return (
-            <div className="max-w-xs">
-              <div className="whitespace-pre-line text-xs text-gray-600">
-                {text}
-              </div>
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-xs"
-                onClick={() => {
-                  navigator.clipboard.writeText(text)
-                  createToast('Template text copied to clipboard', {
-                    timeout: 3000,
-                  })
-                }}
-              >
-                Copy
-              </Button>
-            </div>
-          )
-        },
-      },
-      {
         id: 'actions',
         enableColumnFilter: false,
         enableHiding: false,
