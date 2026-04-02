@@ -598,21 +598,7 @@ function App() {
               >
                 Copy template text
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={async () => {
-                  await updateEquityGranted({
-                    data: {
-                      id: row.original.id,
-                      granted: true,
-                    },
-                  })
-                  createToast('Marked as granted')
-                  router.invalidate()
-                }}
-              >
-                Mark as granted
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
+<DropdownMenuItem asChild>
                 <Link
                   to="/employee/$employeeId"
                   params={{ employeeId: row.original.employee.id }}
