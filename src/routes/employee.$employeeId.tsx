@@ -242,7 +242,6 @@ const getEmployeeById = createInternalFn({
           ? {
               priority: true,
               reviewed: true,
-              salaryDraft: true,
               payReviewNote: true,
             }
           : {}),
@@ -485,7 +484,6 @@ type Employee = Prisma.EmployeeGetPayload<{
       }
     }
     cartaOptionGrants: true
-    salaryDraft: true
     performancePrograms: {
       include: {
         checklistItems: {
@@ -679,9 +677,6 @@ export const updateSalary = createBlitzscaleFn({
           ...data,
         },
       }),
-      prisma.salaryDraft.deleteMany({
-        where: { employeeId: data.employeeId },
-      }),
       prisma.employee.update({
         where: { id: data.employeeId },
         data: { reviewed: true },
@@ -762,46 +757,6 @@ export const deletePayReviewNote = createBlitzscaleFn({ method: 'POST' })
     return await prisma.employee.update({
       where: { id: data.employeeId },
       data: { payReviewNote: null },
-    })
-  })
-
-export const saveSalaryDraft = createBlitzscaleFn({
-  method: 'POST',
-})
-  .inputValidator(
-    (d: {
-      employeeId: string
-      country: string
-      area: string
-      level: number
-      step: number
-      benchmark: string
-      employmentCountry?: string
-      employmentArea?: string
-      amountTakenInOptions: number
-      equityRefreshPercentage: number
-      notes: string
-      showOverride: boolean
-      totalSalaryOverride?: number
-      bonusPercentageOverride?: number
-    }) => d,
-  )
-  .handler(async ({ data, context }) => {
-    const { excludeEmails } = context.blitzscaleInfo
-    if (excludeEmails.length > 0) {
-      const employee = await prisma.employee.findUnique({
-        where: { id: data.employeeId },
-        select: { email: true },
-      })
-      if (employee?.email && excludeEmails.includes(employee.email)) {
-        throw new Error('Unauthorized')
-      }
-    }
-    const { employeeId, ...draftData } = data
-    return await prisma.salaryDraft.upsert({
-      where: { employeeId },
-      create: { employeeId, ...draftData },
-      update: draftData,
     })
   })
 
@@ -1566,9 +1521,7 @@ function EmployeeOverview() {
     user?.role === ROLES.BLITZSCALE && employee.email === user?.email
   const hasPayReviewAccess = isBlitzscaleOrAdmin && !isViewingSelf
   const [showNewSalaryForm, setShowNewSalaryForm] = useState(hasPayReviewAccess)
-  const [showOverrideMode, setShowOverrideMode] = useState(
-    Boolean(employee.salaryDraft?.showOverride),
-  )
+  const [showOverrideMode, setShowOverrideMode] = useState(false)
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByLevel, setFilterByLevel] = useState(true)
@@ -1594,8 +1547,8 @@ function EmployeeOverview() {
   )
 
   useEffect(() => {
-    setShowOverrideMode(Boolean(employee.salaryDraft?.showOverride))
-  }, [employee.id, employee.salaryDraft?.showOverride])
+    setShowOverrideMode(false)
+  }, [employee.id])
 
   useEffect(() => {
     setPayReviewNoteDraft(employee.payReviewNote ?? '')
@@ -2648,7 +2601,6 @@ function EmployeeOverview() {
                   showBonusPercentage={showBonusPercentage}
                   eligibleForEquityRefresh={eligibleForEquityRefresh}
                   nextAnniversaryDate={nextAnniversaryDate?.toDate()}
-                  salaryDraft={employee.salaryDraft ?? null}
                 />
               )}
               {hasPayReviewAccess && !isSensitiveHidden && (
