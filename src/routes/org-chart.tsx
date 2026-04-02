@@ -177,15 +177,9 @@ export const getDeelEmployeesAndProposedHires = createInternalFn({
     },
   })
 
-  // For blitzscale users, return emails of other blitzscale users so the UI can disable navigation
-  let blitzscaleUserEmails: string[] = []
-  if (context.user.role === ROLES.BLITZSCALE) {
-    const blitzscaleUsers = await prisma.user.findMany({
-      where: { role: ROLES.BLITZSCALE, email: { not: context.user.email } },
-      select: { email: true },
-    })
-    blitzscaleUserEmails = blitzscaleUsers.map((u) => u.email)
-  }
+  const blitzscaleUserEmails = context.blitzscaleInfo.excludeEmails.filter(
+    (e: string) => e !== context.user.email,
+  )
 
   return { employees, proposedHires, managerDeelEmployeeId, managedEmployeeIds, blitzscaleUserEmails }
 })

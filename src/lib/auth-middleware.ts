@@ -239,4 +239,5 @@ export const createInternalFn = createServerFn().middleware([
   authMiddleware,
   internalCheckMiddleware,
   managerInfoMiddleware,
+  blitzscaleInfoMiddleware,
 ])
