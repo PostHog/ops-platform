@@ -59,6 +59,7 @@ type ManagerHierarchyTreeProps = {
   onViewModeChange?: (mode: ViewMode) => void
   disableNavigation?: boolean
   onNodeClick?: (employeeId: string) => void
+  nonClickableEmployeeIds?: Set<string>
 }
 
 function TreeNode({
@@ -73,6 +74,7 @@ function TreeNode({
   proposedHiresMap,
   disableNavigation = false,
   onNodeClick,
+  nonClickableEmployeeIds,
 }: {
   node: HierarchyNode
   level: number
@@ -85,6 +87,7 @@ function TreeNode({
   proposedHiresMap?: Map<string, ProposedHire>
   disableNavigation?: boolean
   onNodeClick?: (employeeId: string) => void
+  nonClickableEmployeeIds?: Set<string>
 }) {
   const [isExpanded, setIsExpanded] = useLocalStorage<boolean>(
     `manager-tree.expanded.${node.id}`,
@@ -151,6 +154,7 @@ function TreeNode({
 
   const handleEmployeeClick = (e: React.MouseEvent) => {
     e.stopPropagation()
+    if (isNonClickable) return
     // If navigation is disabled but we have a callback, call it
     if (
       disableNavigation &&
@@ -176,15 +180,21 @@ function TreeNode({
     }
   }
 
+  const isNonClickable = !!(
+    node.employeeId && nonClickableEmployeeIds?.has(node.employeeId)
+  )
+
   const canNavigate =
     !disableNavigation &&
     !isTeamNode &&
+    !isNonClickable &&
     node.employeeId &&
     node.employeeId !== currentEmployeeId
 
   const canClick =
     (canNavigate || (disableNavigation && onNodeClick)) &&
     !isTeamNode &&
+    !isNonClickable &&
     node.employeeId &&
     node.employeeId !== currentEmployeeId
 
@@ -327,6 +337,7 @@ function TreeNode({
               proposedHiresMap={proposedHiresMap}
               disableNavigation={disableNavigation}
               onNodeClick={onNodeClick}
+              nonClickableEmployeeIds={nonClickableEmployeeIds}
             />
           ))}
         </div>
@@ -705,6 +716,7 @@ export function ManagerHierarchyTree({
   viewMode = 'manager',
   disableNavigation = false,
   onNodeClick,
+  nonClickableEmployeeIds,
 }: ManagerHierarchyTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -757,6 +769,7 @@ export function ManagerHierarchyTree({
             proposedHiresMap={proposedHiresMap}
             disableNavigation={disableNavigation}
             onNodeClick={onNodeClick}
+            nonClickableEmployeeIds={nonClickableEmployeeIds}
           />
         ))}
       </div>

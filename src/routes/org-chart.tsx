@@ -108,6 +108,8 @@ export const getDeelEmployeesAndProposedHires = createInternalFn({
   method: 'GET',
 }).handler(async ({ context }) => {
   const isAdmin = context.user.role === ROLES.ADMIN
+  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
+  const { excludeEmails } = context.blitzscaleInfo
 
   const { managedEmployeeIds, managerDeelEmployeeId } = context.managerInfo
 
@@ -119,7 +121,7 @@ export const getDeelEmployeesAndProposedHires = createInternalFn({
         select: {
           id: true,
           email: true,
-          ...(isAdmin || isManager
+          ...(isAdmin || isBlitzscale || isManager
             ? {
                 performancePrograms: {
                   where: {
@@ -128,6 +130,14 @@ export const getDeelEmployeesAndProposedHires = createInternalFn({
                       ? {
                           employeeId: {
                             in: Array.from(managedEmployeeIds),
+                          },
+                        }
+                      : {}),
+                    // Blitzscale users should not see performance programs for other blitzscale users
+                    ...(isBlitzscale && excludeEmails.length > 0
+                      ? {
+                          employee: {
+                            email: { notIn: excludeEmails },
                           },
                         }
                       : {}),
@@ -177,7 +187,17 @@ export const getDeelEmployeesAndProposedHires = createInternalFn({
     },
   })
 
-  return { employees, proposedHires, managerDeelEmployeeId, managedEmployeeIds }
+  const blitzscaleUserEmails = context.blitzscaleInfo.excludeEmails.filter(
+    (e: string) => e !== context.user.email,
+  )
+
+  return {
+    employees,
+    proposedHires,
+    managerDeelEmployeeId,
+    managedEmployeeIds,
+    blitzscaleUserEmails,
+  }
 })
 
 export const Route = createFileRoute('/org-chart')({

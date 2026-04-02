@@ -106,8 +106,8 @@ export default function Header() {
         ) : null}
         {user &&
         (user?.role === ROLES.ADMIN ||
-          user?.role === ROLES.ORG_CHART ||
-          user?.role === ROLES.BLITZSCALE) ? (
+          user?.role === ROLES.BLITZSCALE ||
+          user?.role === ROLES.ORG_CHART) ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">
@@ -140,8 +140,8 @@ export default function Header() {
           </div>
         ) : null}
         {user?.role === ROLES.ADMIN ||
-        user?.role === ROLES.ORG_CHART ||
-        user?.role === ROLES.BLITZSCALE ? (
+        user?.role === ROLES.BLITZSCALE ||
+        user?.role === ROLES.ORG_CHART ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 px-2 font-bold hover:opacity-80">

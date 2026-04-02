@@ -41,8 +41,7 @@ import {
 } from '@/components/ui/select'
 import 'vercel-toast/dist/vercel-toast.css'
 import { reviewQueueAtom } from '@/atoms'
-import { createPayReviewFn } from '@/lib/auth-middleware'
-import { ROLES } from '@/lib/consts'
+import { createBlitzscaleFn } from '@/lib/auth-middleware'
 import { EmployeeNameCell } from '@/components/EmployeeNameCell'
 import { SalaryChangeDisplay } from '@/components/SalaryChangeDisplay'
 import { LevelStepDisplay } from '@/components/LevelStepDisplay'
@@ -95,11 +94,10 @@ export const months = [
   'December',
 ]
 
-const getEmployees = createPayReviewFn({
+const getEmployees = createBlitzscaleFn({
   method: 'GET',
 }).handler(async ({ context }) => {
-  const isAdmin = context.user.role === ROLES.ADMIN
-  const { managedEmployeeIds } = context.managerInfo
+  const { excludeEmails } = context.blitzscaleInfo
 
   return await prisma.employee.findMany({
     include: {
@@ -122,12 +120,7 @@ const getEmployees = createPayReviewFn({
           lte: new Date(),
         },
       },
-      ...(!isAdmin
-        ? {
-            id: { in: managedEmployeeIds },
-            NOT: { email: context.user.email },
-          }
-        : {}),
+      ...(excludeEmails.length > 0 ? { email: { notIn: excludeEmails } } : {}),
     },
     orderBy: {
       deelEmployee: {
@@ -137,16 +130,21 @@ const getEmployees = createPayReviewFn({
   })
 })
 
-const updateEmployeePriority = createPayReviewFn({
+const updateEmployeePriority = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { employeeId: string; priority: string }) => d)
   .handler(async ({ data, context }) => {
     if (!data.priority) return
-    const isAdmin = context.user.role === ROLES.ADMIN
-    const { managedEmployeeIds } = context.managerInfo
-    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
-      throw new Error('Unauthorized')
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (employee?.email && excludeEmails.includes(employee.email)) {
+        throw new Error('Unauthorized')
+      }
     }
     return await prisma.employee.update({
       where: { id: data.employeeId },

@@ -340,7 +340,7 @@ function RouteComponent() {
               <SelectContent>
                 <SelectItem value={ROLES.ADMIN}>Admin (full access)</SelectItem>
                 <SelectItem value={ROLES.BLITZSCALE}>
-                  Blitzscale (pay reviews for managed employees)
+                  Blitzscale (full access, cannot view other Blitzscale users)
                 </SelectItem>
                 <SelectItem value={ROLES.ORG_CHART}>
                   Org Chart (access the org chart and proposed hires)

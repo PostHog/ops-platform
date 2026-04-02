@@ -74,7 +74,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import prisma from '@/db'
-import { createInternalFn, createPayReviewFn } from '@/lib/auth-middleware'
+import { createInternalFn, createBlitzscaleFn } from '@/lib/auth-middleware'
 import { useSession } from '@/lib/auth-client'
 import { ROLES } from '@/lib/consts'
 import { NewSalaryForm } from '@/components/NewSalaryForm'
@@ -198,14 +198,36 @@ const getEmployeeById = createInternalFn({
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
     const isBlitzscale = context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
-    const isBlitzscaleManager =
-      isBlitzscale && managedEmployeeIds.includes(data.employeeId)
-    const hasAdminAccess = isAdmin || isBlitzscaleManager
+
+    // Check if blitzscale user is viewing their own profile or another blitzscale user
+    let isViewingSelf = false
+    if (isBlitzscale) {
+      const targetEmployee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (targetEmployee?.email === context.user.email) {
+        isViewingSelf = true
+      } else if (targetEmployee?.email) {
+        const targetUser = await prisma.user.findUnique({
+          where: { email: targetEmployee.email },
+          select: { role: true },
+        })
+        if (targetUser?.role === ROLES.BLITZSCALE) {
+          throw new Error('Unauthorized')
+        }
+      }
+    }
+
+    // Blitzscale users viewing their own profile are treated as regular users
+    const hasAdminAccess =
+      (context.user.role === ROLES.ADMIN ||
+        context.user.role === ROLES.BLITZSCALE) &&
+      !isViewingSelf
     const isManager =
-      !isAdmin && !isBlitzscale && managedEmployeeIds.includes(data.employeeId)
+      !hasAdminAccess && managedEmployeeIds.includes(data.employeeId)
 
     const employee = await prisma.employee.findUnique({
       where: {
@@ -215,7 +237,7 @@ const getEmployeeById = createInternalFn({
       select: {
         id: true,
         email: true,
-        // Admin-level fields (admin and blitzscale for managed employees)
+        // Admin-level fields
         ...(hasAdminAccess
           ? {
               priority: true,
@@ -532,7 +554,7 @@ type Employee = Prisma.EmployeeGetPayload<{
   }
 }>
 
-export const getReferenceEmployees = createPayReviewFn({
+export const getReferenceEmployees = createBlitzscaleFn({
   method: 'GET',
 })
   .inputValidator(
@@ -546,7 +568,8 @@ export const getReferenceEmployees = createPayReviewFn({
       topLevelManagerId?: string | null
     }) => d,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { excludeEmails } = context.blitzscaleInfo
     const whereClause: Prisma.EmployeeWhereInput = {
       salaries: {
         some: {
@@ -565,6 +588,7 @@ export const getReferenceEmployees = createPayReviewFn({
               isNot: null,
             }),
       },
+      ...(excludeEmails.length > 0 ? { email: { notIn: excludeEmails } } : {}),
     }
 
     const employees = await prisma.employee.findMany({
@@ -627,7 +651,7 @@ export const getDeelEmployees = createInternalFn({
   })
 })
 
-export const updateSalary = createPayReviewFn({
+export const updateSalary = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator(
@@ -639,10 +663,15 @@ export const updateSalary = createPayReviewFn({
     ) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
-    const { managedEmployeeIds } = context.managerInfo
-    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
-      throw new Error('Unauthorized')
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (employee?.email && excludeEmails.includes(employee.email)) {
+        throw new Error('Unauthorized')
+      }
     }
     const [salary] = await prisma.$transaction([
       prisma.salary.create({
@@ -662,22 +691,26 @@ export const updateSalary = createPayReviewFn({
     return salary
   })
 
-export const deleteSalary = createPayReviewFn({
+export const deleteSalary = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data, context }) => {
     const existingSalary = await prisma.salary.findUnique({
       where: { id: data.id },
+      include: { employee: { select: { email: true } } },
     })
 
     if (!existingSalary) {
       throw new Error('Salary not found')
     }
 
-    const isAdmin = context.user.role === ROLES.ADMIN
-    const { managedEmployeeIds } = context.managerInfo
-    if (!isAdmin && !managedEmployeeIds.includes(existingSalary.employeeId)) {
+    const { excludeEmails } = context.blitzscaleInfo
+    if (
+      excludeEmails.length > 0 &&
+      existingSalary.employee?.email &&
+      excludeEmails.includes(existingSalary.employee.email)
+    ) {
       throw new Error('Unauthorized')
     }
 
@@ -694,13 +727,18 @@ export const deleteSalary = createPayReviewFn({
     return { success: true }
   })
 
-export const savePayReviewNote = createPayReviewFn({ method: 'POST' })
+export const savePayReviewNote = createBlitzscaleFn({ method: 'POST' })
   .inputValidator((d: { employeeId: string; note: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
-    const { managedEmployeeIds } = context.managerInfo
-    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
-      throw new Error('Unauthorized')
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (employee?.email && excludeEmails.includes(employee.email)) {
+        throw new Error('Unauthorized')
+      }
     }
     return await prisma.employee.update({
       where: { id: data.employeeId },
@@ -708,13 +746,18 @@ export const savePayReviewNote = createPayReviewFn({ method: 'POST' })
     })
   })
 
-export const deletePayReviewNote = createPayReviewFn({ method: 'POST' })
+export const deletePayReviewNote = createBlitzscaleFn({ method: 'POST' })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
-    const { managedEmployeeIds } = context.managerInfo
-    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
-      throw new Error('Unauthorized')
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (employee?.email && excludeEmails.includes(employee.email)) {
+        throw new Error('Unauthorized')
+      }
     }
     return await prisma.employee.update({
       where: { id: data.employeeId },
@@ -722,7 +765,7 @@ export const deletePayReviewNote = createPayReviewFn({ method: 'POST' })
     })
   })
 
-export const saveSalaryDraft = createPayReviewFn({
+export const saveSalaryDraft = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator(
@@ -744,10 +787,15 @@ export const saveSalaryDraft = createPayReviewFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
-    const { managedEmployeeIds } = context.managerInfo
-    if (!isAdmin && !managedEmployeeIds.includes(data.employeeId)) {
-      throw new Error('Unauthorized')
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (employee?.email && excludeEmails.includes(employee.email)) {
+        throw new Error('Unauthorized')
+      }
     }
     const { employeeId, ...draftData } = data
     return await prisma.salaryDraft.upsert({
@@ -762,12 +810,25 @@ export const createPerformanceProgram = createInternalFn({
 })
   .inputValidator((d: { employeeId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
     const isManager = !isAdmin && managedEmployeeIds.includes(data.employeeId)
 
     if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
+    }
+
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
     }
     const existingProgram = await prisma.performanceProgram.findFirst({
       where: {
@@ -904,7 +965,9 @@ export const updateChecklistItem = createInternalFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const checklistItem =
@@ -917,6 +980,17 @@ export const updateChecklistItem = createInternalFn({
 
     if (!checklistItem) {
       throw new Error('Checklist item not found')
+    }
+
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: checklistItem.program.employeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
     }
 
     // Check authorization: admins can update any checklist item, managers can only update items for their reports
@@ -970,7 +1044,9 @@ export const addProgramFeedback = createInternalFn({
     (d: { programId: string; feedback: string; createdAt?: string }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const program = await prisma.performanceProgram.findUnique({
@@ -979,6 +1055,17 @@ export const addProgramFeedback = createInternalFn({
 
     if (!program) {
       throw new Error('Performance program not found')
+    }
+
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: program.employeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
     }
 
     // Check authorization: admins can add feedback to any program, managers can only add feedback to programs for their reports
@@ -1028,6 +1115,17 @@ export const updateProgramFeedback = createInternalFn({
       throw new Error('Cannot edit feedback on a resolved program')
     }
 
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: existing.program.employeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     // Only the author can edit their own feedback
     if (existing.givenByUserId !== context.user.id) {
       throw new Error('Unauthorized')
@@ -1049,7 +1147,9 @@ export const resolvePerformanceProgram = createInternalFn({
 })
   .inputValidator((d: { programId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const program = await prisma.performanceProgram.findUnique({
@@ -1061,6 +1161,17 @@ export const resolvePerformanceProgram = createInternalFn({
 
     if (!program) {
       throw new Error('Performance program not found')
+    }
+
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: program.employeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
     }
 
     // Check authorization: admins can resolve any program, managers can only resolve programs for their reports
@@ -1137,7 +1248,9 @@ export const getProofFileUploadUrl = createInternalFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     if (!data.checklistItemId && !data.programId) {
@@ -1205,6 +1318,17 @@ export const getProofFileUploadUrl = createInternalFn({
       fileKey = `performance-programs/${programId}/feedback/${timestamp}-${sanitizedFileName}`
     }
 
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: programEmployeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     // Check authorization: admins can upload files for any program, managers can only upload files for programs for their reports
     const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
     if (!isAdmin && !isManager) {
@@ -1239,7 +1363,9 @@ export const createProofFileRecord = createInternalFn({
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     if (!data.checklistItemId && !data.feedbackId) {
@@ -1269,6 +1395,17 @@ export const createProofFileRecord = createInternalFn({
       programEmployeeId = feedback.program.employeeId
     }
 
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: programEmployeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     // Check authorization: admins can create file records for any program, managers can only create records for programs for their reports
     const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
     if (!isAdmin && !isManager) {
@@ -1296,7 +1433,9 @@ export const getProofFileUrl = createInternalFn({
 })
   .inputValidator((d: { proofFileId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const proofFile = await prisma.file.findUnique({
@@ -1324,6 +1463,17 @@ export const getProofFileUrl = createInternalFn({
 
     if (!programEmployeeId) {
       throw new Error('Unable to determine program employee')
+    }
+
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: programEmployeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
     }
 
     // Check authorization: admins can get file URLs for any program, managers can only get URLs for programs for their reports
@@ -1344,7 +1494,9 @@ export const deleteProofFile = createInternalFn({
 })
   .inputValidator((d: { proofFileId: string }) => d)
   .handler(async ({ data, context }) => {
-    const isAdmin = context.user.role === ROLES.ADMIN
+    const isAdmin =
+      context.user.role === ROLES.ADMIN ||
+      context.user.role === ROLES.BLITZSCALE
     const { managedEmployeeIds } = context.managerInfo
 
     const proofFile = await prisma.file.findUnique({
@@ -1372,6 +1524,17 @@ export const deleteProofFile = createInternalFn({
 
     if (!programEmployeeId) {
       throw new Error('Unable to determine program employee')
+    }
+
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: programEmployeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
     }
 
     // Check authorization: admins can delete files for any program, managers can only delete files for programs for their reports
@@ -1394,11 +1557,14 @@ export const deleteProofFile = createInternalFn({
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
-  const hasPayReviewAccess =
-    user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE
   const isSensitiveHidden = useSensitiveDataHidden()
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
+  const isBlitzscaleOrAdmin =
+    user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE
+  const isViewingSelf =
+    user?.role === ROLES.BLITZSCALE && employee.email === user?.email
+  const hasPayReviewAccess = isBlitzscaleOrAdmin && !isViewingSelf
   const [showNewSalaryForm, setShowNewSalaryForm] = useState(hasPayReviewAccess)
   const [showOverrideMode, setShowOverrideMode] = useState(
     Boolean(employee.salaryDraft?.showOverride),
@@ -1550,6 +1716,8 @@ function EmployeeOverview() {
   const proposedHires = deelEmployeesAndProposedHiresData?.proposedHires || []
   const managerDeelEmployeeId =
     deelEmployeesAndProposedHiresData?.managerDeelEmployeeId
+  const blitzscaleUserEmails =
+    deelEmployeesAndProposedHiresData?.blitzscaleUserEmails || []
 
   // Build hierarchy tree from flat list
   const managerHierarchy = useMemo(() => {
@@ -1650,7 +1818,7 @@ function EmployeeOverview() {
     }
 
     // For non-admins, start from manager's DeelEmployee
-    if (user?.role !== ROLES.ADMIN && managerDeelEmployeeId) {
+    if (!isBlitzscaleOrAdmin && managerDeelEmployeeId) {
       const managerEmployee = deelEmployees.find(
         (e) => e.id === managerDeelEmployeeId,
       )
@@ -1749,7 +1917,7 @@ function EmployeeOverview() {
   const filteredDeelEmployees = useMemo(() => {
     if (!deelEmployees) return null
     // For admins, show all employees
-    if (user?.role === ROLES.ADMIN) return deelEmployees
+    if (isBlitzscaleOrAdmin) return deelEmployees
     // For team mode, filter to only employees in the manager's hierarchy
     if (managerTreeViewMode === 'team') {
       return deelEmployees.filter((emp) => {
@@ -1770,6 +1938,19 @@ function EmployeeOverview() {
     managerDeelEmployeeId,
     managerHierarchyEmployeeIds,
   ])
+
+  // Blitzscale users cannot navigate to other blitzscale members' profiles
+  const nonClickableEmployeeIds = useMemo(() => {
+    if (blitzscaleUserEmails.length === 0 || !deelEmployees) return undefined
+    const emailSet = new Set(blitzscaleUserEmails)
+    const ids = new Set<string>()
+    for (const emp of deelEmployees) {
+      if (emp.employee?.id && emp.workEmail && emailSet.has(emp.workEmail)) {
+        ids.add(emp.employee.id)
+      }
+    }
+    return ids.size > 0 ? ids : undefined
+  }, [deelEmployees, blitzscaleUserEmails])
 
   // Combine reference employees with current employee (using form values if available)
   const combinedReferenceEmployees = useMemo(() => {
@@ -2032,7 +2213,8 @@ function EmployeeOverview() {
 
   const isManager =
     (deelEmployeesAndProposedHiresData?.managedEmployeeIds?.length ?? 0) > 0
-  const showEmployeeTree = managerHierarchy && (hasPayReviewAccess || isManager)
+  const showEmployeeTree =
+    managerHierarchy && (isBlitzscaleOrAdmin || isManager)
 
   return (
     <div className="flex h-full flex-col items-center gap-5 overflow-hidden pt-4">
@@ -2088,7 +2270,13 @@ function EmployeeOverview() {
                           <CommandEmpty>No employee found.</CommandEmpty>
                           <CommandGroup>
                             {allHierarchyEmployees
-                              .filter((node) => node.employeeId)
+                              .filter(
+                                (node) =>
+                                  node.employeeId &&
+                                  !nonClickableEmployeeIds?.has(
+                                    node.employeeId,
+                                  ),
+                              )
                               .map((node) => (
                                 <CommandItem
                                   key={node.id}
@@ -2179,6 +2367,7 @@ function EmployeeOverview() {
                 onViewModeChange={(mode: 'manager' | 'team') =>
                   setManagerTreeViewMode(mode)
                 }
+                nonClickableEmployeeIds={nonClickableEmployeeIds}
               />
             </div>
           </div>
