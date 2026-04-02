@@ -225,15 +225,23 @@ function processTemplate(template: string, salary: Salary): string {
   const benchmark = salary.benchmark
   const locationFactor = salary.locationFactor
   const hasPreviousSalary = salary.employee.salaries.length > 1
-  const previousSalary = salary.employee.salaries[1]
-  const previousStep = previousSalary.step
-  const previousLevel = previousSalary.level
-  const previousBenchmark = previousSalary.benchmark
-  const previousLocationFactor = previousSalary.locationFactor
+  const previousSalary = hasPreviousSalary
+    ? salary.employee.salaries[1]
+    : null
+  const previousStep = previousSalary?.step ?? 0
+  const previousLevel = previousSalary?.level ?? 0
+  const previousBenchmark = previousSalary?.benchmark ?? ''
+  const previousLocationFactor = previousSalary?.locationFactor ?? 0
+  const previousBenchmarkFactor = previousSalary?.benchmarkFactor ?? 0
 
   // Computed boolean conditions for {#if} blocks
+  // Match the same logic used in SalaryHistoryCard.tsx
+  const hasBenchmarkIncrease =
+    hasPreviousSalary &&
+    salary.benchmarkFactor > previousBenchmarkFactor &&
+    benchmark === previousBenchmark
   const conditions: Record<string, boolean> = {
-    benchmarkChanged: hasPreviousSalary && benchmark !== previousBenchmark,
+    benchmarkChanged: hasBenchmarkIncrease,
     levelOrStepIncreased:
       hasPreviousSalary &&
       (level > previousLevel || step > previousStep),
@@ -250,6 +258,11 @@ function processTemplate(template: string, salary: Salary): string {
     locationFactorChanged:
       hasPreviousSalary &&
       locationFactor !== previousLocationFactor,
+    fullBenchmarkIncrease:
+      hasBenchmarkIncrease &&
+      level === previousLevel &&
+      step === previousStep &&
+      locationFactor === previousLocationFactor,
   }
 
   // First process conditionals, then replace variables
@@ -751,7 +764,8 @@ function App() {
                   {[
                     {
                       key: 'benchmarkChanged',
-                      label: 'Benchmark differs from previous',
+                      label:
+                        'Benchmark factor increased (same role)',
                     },
                     {
                       key: 'levelOrStepIncreased',
@@ -772,6 +786,11 @@ function App() {
                     {
                       key: 'locationFactorChanged',
                       label: 'Location factor changed',
+                    },
+                    {
+                      key: 'fullBenchmarkIncrease',
+                      label:
+                        'Benchmark increased, level/step/location unchanged',
                     },
                   ].map((condition) => (
                     <TooltipProvider key={condition.key}>
