@@ -187,11 +187,15 @@ function evaluateCondition(
 ): boolean {
   // Handle && (all must be true)
   if (expr.includes('&&')) {
-    return expr.split('&&').every((part) => evaluateCondition(part.trim(), conditions))
+    return expr
+      .split('&&')
+      .every((part) => evaluateCondition(part.trim(), conditions))
   }
   // Handle || (any must be true)
   if (expr.includes('||')) {
-    return expr.split('||').some((part) => evaluateCondition(part.trim(), conditions))
+    return expr
+      .split('||')
+      .some((part) => evaluateCondition(part.trim(), conditions))
   }
   // Handle negation
   if (expr.startsWith('!')) {
@@ -229,8 +233,15 @@ function processTemplate(template: string, salary: Salary): string {
   // Find the chronologically previous salary (the most recent one before this entry)
   const previousSalary =
     salary.employee.salaries
-      .filter((s) => new Date(s.timestamp).getTime() < new Date(salary.timestamp).getTime())
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0] ?? null
+      .filter(
+        (s) =>
+          new Date(s.timestamp).getTime() <
+          new Date(salary.timestamp).getTime(),
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      )[0] ?? null
   const hasPreviousSalary = previousSalary !== null
   const previousStep = previousSalary?.step ?? 0
   const previousLevel = previousSalary?.level ?? 0
@@ -247,17 +258,13 @@ function processTemplate(template: string, salary: Salary): string {
   const conditions: Record<string, boolean> = {
     benchmarkIncrease: hasBenchmarkIncrease,
     levelStepIncrease:
-      hasPreviousSalary &&
-      level * step > previousLevel * previousStep,
+      hasPreviousSalary && level * step > previousLevel * previousStep,
     levelStepSame:
-      hasPreviousSalary &&
-      level * step === previousLevel * previousStep,
+      hasPreviousSalary && level * step === previousLevel * previousStep,
     levelStepDecrease:
-      hasPreviousSalary &&
-      level * step < previousLevel * previousStep,
+      hasPreviousSalary && level * step < previousLevel * previousStep,
     locationFactorIncrease:
-      hasPreviousSalary &&
-      locationFactor > previousLocationFactor,
+      hasPreviousSalary && locationFactor > previousLocationFactor,
   }
 
   // First process conditionals, then replace variables
@@ -750,17 +757,17 @@ function App() {
                   <code className="bg-muted rounded px-1 py-0.5">
                     {'{#if condition}'}...{'{/if}'}
                   </code>{' '}
-                  to show text only when a condition is true. Combine
-                  with <code className="bg-muted rounded px-1 py-0.5">{'&&'}</code>,{' '}
-                  <code className="bg-muted rounded px-1 py-0.5">{'||'}</code>, or{' '}
-                  <code className="bg-muted rounded px-1 py-0.5">{'!'}</code>.
+                  to show text only when a condition is true. Combine with{' '}
+                  <code className="bg-muted rounded px-1 py-0.5">{'&&'}</code>,{' '}
+                  <code className="bg-muted rounded px-1 py-0.5">{'||'}</code>,
+                  or <code className="bg-muted rounded px-1 py-0.5">{'!'}</code>
+                  .
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {[
                     {
                       key: 'benchmarkIncrease',
-                      label:
-                        'Benchmark factor increased (same role)',
+                      label: 'Benchmark factor increased (same role)',
                     },
                     {
                       key: 'levelStepIncrease',
