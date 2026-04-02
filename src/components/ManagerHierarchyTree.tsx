@@ -154,6 +154,7 @@ function TreeNode({
 
   const handleEmployeeClick = (e: React.MouseEvent) => {
     e.stopPropagation()
+    if (isNonClickable) return
     // If navigation is disabled but we have a callback, call it
     if (
       disableNavigation &&
