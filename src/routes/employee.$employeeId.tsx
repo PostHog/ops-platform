@@ -654,7 +654,17 @@ export const updateSalary = createBlitzscaleFn({
       >,
     ) => d,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (employee?.email && excludeEmails.includes(employee.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
     const [salary] = await prisma.$transaction([
       prisma.salary.create({
         data: {
@@ -677,13 +687,19 @@ export const deleteSalary = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const existingSalary = await prisma.salary.findUnique({
       where: { id: data.id },
+      include: { employee: { select: { email: true } } },
     })
 
     if (!existingSalary) {
       throw new Error('Salary not found')
+    }
+
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0 && existingSalary.employee?.email && excludeEmails.includes(existingSalary.employee.email)) {
+      throw new Error('Unauthorized')
     }
 
     const hoursSinceCreation =
@@ -701,7 +717,17 @@ export const deleteSalary = createBlitzscaleFn({
 
 export const savePayReviewNote = createBlitzscaleFn({ method: 'POST' })
   .inputValidator((d: { employeeId: string; note: string }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (employee?.email && excludeEmails.includes(employee.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
     return await prisma.employee.update({
       where: { id: data.employeeId },
       data: { payReviewNote: data.note },
@@ -710,7 +736,17 @@ export const savePayReviewNote = createBlitzscaleFn({ method: 'POST' })
 
 export const deletePayReviewNote = createBlitzscaleFn({ method: 'POST' })
   .inputValidator((d: { employeeId: string }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (employee?.email && excludeEmails.includes(employee.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
     return await prisma.employee.update({
       where: { id: data.employeeId },
       data: { payReviewNote: null },
@@ -738,7 +774,17 @@ export const saveSalaryDraft = createBlitzscaleFn({
       bonusPercentageOverride?: number
     }) => d,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (employee?.email && excludeEmails.includes(employee.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
     const { employeeId, ...draftData } = data
     return await prisma.salaryDraft.upsert({
       where: { employeeId },
