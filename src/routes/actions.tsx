@@ -144,21 +144,23 @@ export const Route = createFileRoute('/actions')({
 
 const defaultTemplate = `Hey {firstName}! I just wanted to let you know that we're giving you a raise of {changePercentage}%, which works out to a {changeAmountLocal} increase for a total salary of {salaryLocal}.
 
+{#if benchmarkIncrease}
 For this round we've increased the benchmark for your role to reflect our focus on raising the bar at PostHog even higher.
+{/if}
 
-{#if benchmarkChanged && levelOrStepIncreased}
+{#if benchmarkIncrease && levelStepIncrease}
 Receiving a pay increase after a benchmark update isn't guaranteed and depends on performance. We all agreed that your contributions have justified an increase, as well as an additional step increase for performing above even the new benchmark expectations.
 {/if}
 
-{#if benchmarkChanged && levelOrStepSame}
+{#if benchmarkIncrease && levelStepSame}
 Receiving a pay increase after a benchmark update isn't guaranteed and depends on performance. We all agreed that your contributions have justified an increase. You won't see a change in your level or step, but that's because the expectations for those have changed, and we agreed that you're still meeting the bar for that new expectation. Though level and step stay the same, this is very much a performance raise!
 {/if}
 
-{#if benchmarkChanged && levelOrStepDecreased}
+{#if benchmarkIncrease && levelStepDecrease}
 The new benchmark represents a change in our expectations for any given level or step - basically the bar for the same level/step has increased. Your performance justifies an increase for the old benchmark, so we're excited about giving you this raise. You may see your level/step numbers change due to the benchmark change updating our expectations, but this isn't a bad sign - it just gives more wiggle room for growth down the line :)
 {/if}
 
-{#if locationFactorIncreased}
+{#if locationFactorIncrease}
 We've also increased the location factor for where you live, to make sure we stay competitive in that market.
 {/if}
 
@@ -224,10 +226,12 @@ function processTemplate(template: string, salary: Salary): string {
   const level = salary.level
   const benchmark = salary.benchmark
   const locationFactor = salary.locationFactor
-  const hasPreviousSalary = salary.employee.salaries.length > 1
-  const previousSalary = hasPreviousSalary
-    ? salary.employee.salaries[1]
-    : null
+  // Find the chronologically previous salary (the most recent one before this entry)
+  const previousSalary =
+    salary.employee.salaries
+      .filter((s) => new Date(s.timestamp).getTime() < new Date(salary.timestamp).getTime())
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0] ?? null
+  const hasPreviousSalary = previousSalary !== null
   const previousStep = previousSalary?.step ?? 0
   const previousLevel = previousSalary?.level ?? 0
   const previousBenchmark = previousSalary?.benchmark ?? ''
@@ -241,28 +245,20 @@ function processTemplate(template: string, salary: Salary): string {
     salary.benchmarkFactor > previousBenchmarkFactor &&
     benchmark === previousBenchmark
   const conditions: Record<string, boolean> = {
-    benchmarkChanged: hasBenchmarkIncrease,
-    levelOrStepIncreased:
+    benchmarkIncrease: hasBenchmarkIncrease,
+    levelStepIncrease:
       hasPreviousSalary &&
       (level > previousLevel || step > previousStep),
-    levelOrStepSame:
+    levelStepSame:
       hasPreviousSalary &&
       level === previousLevel &&
       step === previousStep,
-    levelOrStepDecreased:
+    levelStepDecrease:
       hasPreviousSalary &&
       (level < previousLevel || step < previousStep),
-    locationFactorIncreased:
+    locationFactorIncrease:
       hasPreviousSalary &&
       locationFactor > previousLocationFactor,
-    locationFactorChanged:
-      hasPreviousSalary &&
-      locationFactor !== previousLocationFactor,
-    fullBenchmarkIncrease:
-      hasBenchmarkIncrease &&
-      level === previousLevel &&
-      step === previousStep &&
-      locationFactor === previousLocationFactor,
   }
 
   // First process conditionals, then replace variables
@@ -511,6 +507,34 @@ function App() {
             <span>{row.original.synced ? 'Yes' : 'No'}</span>
           </div>
         ),
+      },
+      {
+        id: 'templateText',
+        header: 'Template Text',
+        enableColumnFilter: false,
+        cell: ({ row }) => {
+          const text = processTemplate(template, row.original)
+          return (
+            <div className="max-w-xs">
+              <div className="whitespace-pre-line text-xs text-gray-600">
+                {text}
+              </div>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs"
+                onClick={() => {
+                  navigator.clipboard.writeText(text)
+                  createToast('Template text copied to clipboard', {
+                    timeout: 3000,
+                  })
+                }}
+              >
+                Copy
+              </Button>
+            </div>
+          )
+        },
       },
       {
         id: 'actions',
@@ -763,34 +787,25 @@ function App() {
                 <div className="flex flex-wrap gap-1">
                   {[
                     {
-                      key: 'benchmarkChanged',
+                      key: 'benchmarkIncrease',
                       label:
                         'Benchmark factor increased (same role)',
                     },
                     {
-                      key: 'levelOrStepIncreased',
+                      key: 'levelStepIncrease',
                       label: 'Level or step went up',
                     },
                     {
-                      key: 'levelOrStepSame',
+                      key: 'levelStepSame',
                       label: 'Level and step unchanged',
                     },
                     {
-                      key: 'levelOrStepDecreased',
+                      key: 'levelStepDecrease',
                       label: 'Level or step went down',
                     },
                     {
-                      key: 'locationFactorIncreased',
+                      key: 'locationFactorIncrease',
                       label: 'Location factor went up',
-                    },
-                    {
-                      key: 'locationFactorChanged',
-                      label: 'Location factor changed',
-                    },
-                    {
-                      key: 'fullBenchmarkIncrease',
-                      label:
-                        'Benchmark increased, level/step/location unchanged',
                     },
                   ].map((condition) => (
                     <TooltipProvider key={condition.key}>
