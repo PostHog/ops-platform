@@ -139,16 +139,22 @@ const updateCommissionBonusAttainment = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((data: { bonusId: string; attainment: number }) => data)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { bonusId, attainment } = data
 
     // Get the existing bonus to calculate derived values
     const existingBonus = await prisma.commissionBonus.findUnique({
       where: { id: bonusId },
+      include: { employee: { select: { email: true } } },
     })
 
     if (!existingBonus) {
       throw new Error('Commission bonus not found')
+    }
+
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0 && existingBonus.employee?.email && excludeEmails.includes(existingBonus.employee.email)) {
+      throw new Error('Unauthorized')
     }
 
     // Recalculate derived values based on commission type

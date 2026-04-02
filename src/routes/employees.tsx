@@ -136,8 +136,18 @@ const updateEmployeePriority = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { employeeId: string; priority: string }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     if (!data.priority) return
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (employee?.email && excludeEmails.includes(employee.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
     return await prisma.employee.update({
       where: { id: data.employeeId },
       data: { priority: data.priority as Priority },

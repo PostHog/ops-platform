@@ -117,7 +117,17 @@ const updateCommunicated = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; communicated: boolean }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const salary = await prisma.salary.findUnique({
+        where: { id: data.id },
+        include: { employee: { select: { email: true } } },
+      })
+      if (salary?.employee?.email && excludeEmails.includes(salary.employee.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
     return await prisma.salary.update({
       where: { id: data.id },
       data: { communicated: data.communicated },
