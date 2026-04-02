@@ -236,7 +236,7 @@ export function SalaryHistoryCard({
             <div className="mb-1 text-xs text-gray-500 italic">
               There was a benchmark increase during this round of reviews, which
               means everyone was re-leveled against this new benchmark. This
-              might explain a step or level decrease.
+              might explain a level or step decrease.
             </div>
           )}
           {hasBenchmarkIncrease &&
@@ -245,7 +245,7 @@ export function SalaryHistoryCard({
               <div className="mb-1 text-xs text-gray-500 italic">
                 There was a benchmark increase during this round of reviews,
                 which means everyone was re-leveled against this new benchmark.
-                This happened in addition to a step or level increase.
+                This happened in addition to a level or step increase.
               </div>
             )}
           {hasLocationFactorChange && (
