@@ -201,9 +201,11 @@ const blitzscaleInfoMiddleware = createMiddleware({
       where: { role: ROLES.BLITZSCALE },
       select: { email: true },
     })
-    blitzscaleInfo = {
-      excludeEmails: blitzscaleUsers.map((u) => u.email),
+    const excludeEmails = blitzscaleUsers.map((u) => u.email)
+    if (excludeEmails.length === 0) {
+      throw new Error('Blitzscale user not found in exclude list')
     }
+    blitzscaleInfo = { excludeEmails }
   }
 
   return await next({
