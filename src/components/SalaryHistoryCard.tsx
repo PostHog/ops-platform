@@ -17,6 +17,7 @@ import type { Salary } from '@prisma/client'
 
 interface SalaryHistoryCardProps {
   salary: Salary
+  previousSalary?: Salary | null
   isAdmin: boolean
   onDelete?: (salaryId: string) => Promise<void>
   lastTableItem?: boolean
@@ -24,6 +25,7 @@ interface SalaryHistoryCardProps {
 
 export function SalaryHistoryCard({
   salary,
+  previousSalary,
   isAdmin,
   onDelete,
   lastTableItem = false,
@@ -35,6 +37,12 @@ export function SalaryHistoryCard({
   const hoursSinceCreation =
     (Date.now() - salary.timestamp.getTime()) / (1000 * 60 * 60)
   const isDeletable = hoursSinceCreation <= 24
+
+  // Detect step decrease due to benchmark increase (releveling)
+  const stepDecreasedDueToBenchmark =
+    previousSalary &&
+    salary.step < previousSalary.step &&
+    salary.benchmarkFactor > previousSalary.benchmarkFactor
 
   return (
     <TooltipProvider>
@@ -203,6 +211,11 @@ export function SalaryHistoryCard({
             <div className="mb-1 flex text-xs whitespace-pre-line text-gray-700 italic">
               <PencilLine className="mr-2 h-4 w-4 text-gray-500" />
               {salary.notes}
+            </div>
+          )}
+          {stepDecreasedDueToBenchmark && (
+            <div className="mb-1 text-xs text-gray-500 italic">
+	      There was a benchmark increase during this round of reviews, which means everyone was re-leveled against this new benchmark. This might explain a step or level decrease. 
             </div>
           )}
         </div>

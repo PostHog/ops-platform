@@ -1971,6 +1971,22 @@ function EmployeeOverview() {
       .filter((monthGroup) => monthGroup.items.length > 0)
   }, [timelineByMonth])
 
+  // Build a map of salary id -> previous salary (chronologically before it)
+  // Salaries are sorted newest-first, so the "previous" is the next one in the list
+  const previousSalaryMap = useMemo(() => {
+    const salaries = employee.salaries
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      )
+    const map = new Map<string, typeof salaries[number]>()
+    for (let i = 0; i < salaries.length - 1; i++) {
+      map.set(salaries[i].id, salaries[i + 1])
+    }
+    return map
+  }, [employee.salaries])
+
   const feedbackTimelineByMonth = useMemo(() => {
     return timelineByMonth
       .map((monthGroup) => ({
@@ -2579,6 +2595,7 @@ function EmployeeOverview() {
                                   <SalaryHistoryCard
                                     key={`salary-${item.data.id}`}
                                     salary={item.data}
+                                    previousSalary={previousSalaryMap.get(item.data.id)}
                                     isAdmin={hasPayReviewAccess}
                                     onDelete={handleDeleteSalary}
                                     lastTableItem={lastTableItem}
