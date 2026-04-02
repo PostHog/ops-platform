@@ -27,8 +27,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { getFullName } from '@/lib/utils'
-import { createPayReviewFn } from '@/lib/auth-middleware'
-import { ROLES } from '@/lib/consts'
+import { createBlitzscaleFn } from '@/lib/auth-middleware'
 import { TableFilters } from '@/components/TableFilters'
 import { fetchDeelEmployee } from './syncDeelEmployees'
 import { createToast } from 'vercel-toast'
@@ -109,18 +108,19 @@ type CommissionBonus = Prisma.CommissionBonusGetPayload<{
   }
 }>
 
-const getCommissionBonuses = createPayReviewFn({
+const getCommissionBonuses = createBlitzscaleFn({
   method: 'GET',
 }).handler(async ({ context }) => {
-  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-  const { managedEmployeeIds } = context.managerInfo
+  const { excludeEmails } = context.blitzscaleInfo
 
   return await prisma.commissionBonus.findMany({
     where: {
       createdAt: {
         gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
       },
-      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
+      ...(excludeEmails.length > 0
+        ? { employee: { email: { notIn: excludeEmails } } }
+        : {}),
     },
     include: {
       employee: {
@@ -135,7 +135,7 @@ const getCommissionBonuses = createPayReviewFn({
   })
 })
 
-const updateCommissionBonusAttainment = createPayReviewFn({
+const updateCommissionBonusAttainment = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((data: { bonusId: string; attainment: number }) => data)
@@ -145,17 +145,18 @@ const updateCommissionBonusAttainment = createPayReviewFn({
     // Get the existing bonus to calculate derived values
     const existingBonus = await prisma.commissionBonus.findUnique({
       where: { id: bonusId },
+      include: { employee: { select: { email: true } } },
     })
 
     if (!existingBonus) {
       throw new Error('Commission bonus not found')
     }
 
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-    const { managedEmployeeIds } = context.managerInfo
+    const { excludeEmails } = context.blitzscaleInfo
     if (
-      isBlitzscale &&
-      !managedEmployeeIds.includes(existingBonus.employeeId)
+      excludeEmails.length > 0 &&
+      existingBonus.employee?.email &&
+      excludeEmails.includes(existingBonus.employee.email)
     ) {
       throw new Error('Unauthorized')
     }
@@ -192,18 +193,19 @@ const updateCommissionBonusAttainment = createPayReviewFn({
     })
   })
 
-const exportCommissionBonusesForDeel = createPayReviewFn({
+const exportCommissionBonusesForDeel = createBlitzscaleFn({
   method: 'POST',
 }).handler(async ({ context }) => {
-  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-  const { managedEmployeeIds } = context.managerInfo
+  const { excludeEmails } = context.blitzscaleInfo
 
   const bonuses = await prisma.commissionBonus.findMany({
     where: {
       createdAt: {
         gte: new Date(new Date().setDate(new Date().getDate() - 30)), // Last 30 days
       },
-      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
+      ...(excludeEmails.length > 0
+        ? { employee: { email: { notIn: excludeEmails } } }
+        : {}),
     },
     include: {
       employee: {

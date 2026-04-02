@@ -5,10 +5,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import MarkdownComponent from '@/lib/MarkdownComponent'
-import { createPayReviewFn } from '@/lib/auth-middleware'
+import { createBlitzscaleFn } from '@/lib/auth-middleware'
 import prisma from '@/db'
 
-const getProcessDocument = createPayReviewFn({
+const getProcessDocument = createBlitzscaleFn({
   method: 'GET',
 }).handler(async () => {
   const document = await prisma.processDocument.findUnique({
@@ -17,7 +17,7 @@ const getProcessDocument = createPayReviewFn({
   return document?.content || ''
 })
 
-const saveProcessDocument = createPayReviewFn({
+const saveProcessDocument = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { content: string }) => d)
