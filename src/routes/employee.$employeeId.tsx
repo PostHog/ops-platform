@@ -1456,13 +1456,12 @@ export const deleteProofFile = createInternalFn({
 function EmployeeOverview() {
   const { data: session } = useSession()
   const user = session?.user
-  const isAdmin = user?.role === ROLES.ADMIN
   const hasPayReviewAccess =
     user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE
   const isSensitiveHidden = useSensitiveDataHidden()
   const router = useRouter()
   const employee: Employee = Route.useLoaderData()
-  const [showNewSalaryForm, setShowNewSalaryForm] = useState(isAdmin)
+  const [showNewSalaryForm, setShowNewSalaryForm] = useState(hasPayReviewAccess)
   const [showOverrideMode, setShowOverrideMode] = useState(
     Boolean(employee.salaryDraft?.showOverride),
   )
@@ -2362,12 +2361,12 @@ function EmployeeOverview() {
             </div>
           ) : null}
 
-          {(isAdmin ||
+          {(hasPayReviewAccess ||
             (employee.cartaOptionGrants &&
               employee.cartaOptionGrants.length > 0)) && (
             <div className="mt-2 flex flex-row items-center justify-between gap-2">
               <div className="flex gap-2">
-                {isAdmin && !isSensitiveHidden ? (
+                {hasPayReviewAccess && !isSensitiveHidden ? (
                   <Button
                     type="button"
                     variant="outline"
@@ -2380,7 +2379,7 @@ function EmployeeOverview() {
                       : 'Show reference employees'}
                   </Button>
                 ) : null}
-                {isAdmin &&
+                {hasPayReviewAccess &&
                 !isSensitiveHidden &&
                 !showNewSalaryForm ? (
                   <Button
@@ -2431,7 +2430,7 @@ function EmployeeOverview() {
               return (
                 <>
                   {benchmarkUpdated &&
-                    isAdmin &&
+                    hasPayReviewAccess &&
                     !isSensitiveHidden && (
                       <Alert variant="default">
                         <AlertCircle className="h-4 w-4" />
@@ -2449,7 +2448,7 @@ function EmployeeOverview() {
                     )}
 
                   {locationFactorUpdated &&
-                    isAdmin &&
+                    hasPayReviewAccess &&
                     !isSensitiveHidden && (
                       <Alert variant="default">
                         <AlertCircle className="h-4 w-4" />
@@ -2464,7 +2463,7 @@ function EmployeeOverview() {
                     )}
 
                   {eligibleForEquityRefresh &&
-                    isAdmin &&
+                    hasPayReviewAccess &&
                     !isSensitiveHidden && (
                       <Alert variant="default">
                         <AlertCircle className="h-4 w-4" />
@@ -2498,7 +2497,7 @@ function EmployeeOverview() {
               )
             })()}
 
-          {isAdmin &&
+          {hasPayReviewAccess &&
           !isSensitiveHidden &&
           showReferenceEmployees ? (
             <ReferenceEmployeesTable
@@ -2515,7 +2514,7 @@ function EmployeeOverview() {
 
           <div className="w-full flex-grow">
             <div className="mb-8">
-              {isAdmin && showNewSalaryForm && !isSensitiveHidden && (
+              {showNewSalaryForm && !isSensitiveHidden && (
                 <NewSalaryForm
                   employeeId={employee.id}
                   showOverride={showOverrideMode}
@@ -2540,7 +2539,7 @@ function EmployeeOverview() {
                   salaryDraft={employee.salaryDraft ?? null}
                 />
               )}
-              {isAdmin && !isSensitiveHidden && (
+              {hasPayReviewAccess && !isSensitiveHidden && (
                 <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 px-4 py-3">
                   <div className="mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">
                     Pay Review Note
@@ -2658,7 +2657,7 @@ function EmployeeOverview() {
                                   <SalaryHistoryCard
                                     key={`salary-${item.data.id}`}
                                     salary={item.data}
-                                    isAdmin={isAdmin}
+                                    isAdmin={hasPayReviewAccess}
                                     onDelete={handleDeleteSalary}
                                     lastTableItem={lastTableItem}
                                   />
