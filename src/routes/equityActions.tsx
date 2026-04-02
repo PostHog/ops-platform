@@ -598,7 +598,7 @@ function App() {
               >
                 Copy template text
               </DropdownMenuItem>
-<DropdownMenuItem asChild>
+              <DropdownMenuItem asChild>
                 <Link
                   to="/employee/$employeeId"
                   params={{ employeeId: row.original.employee.id }}
