@@ -1521,9 +1521,7 @@ function EmployeeOverview() {
     user?.role === ROLES.BLITZSCALE && employee.email === user?.email
   const hasPayReviewAccess = isBlitzscaleOrAdmin && !isViewingSelf
   const [showNewSalaryForm, setShowNewSalaryForm] = useState(hasPayReviewAccess)
-  const [showOverrideMode, setShowOverrideMode] = useState(
-    false,
-  )
+  const [showOverrideMode, setShowOverrideMode] = useState(false)
   const [showReferenceEmployees, setShowReferenceEmployees] = useState(false)
   const [filterByExec, setFilterByExec] = useState(false)
   const [filterByLevel, setFilterByLevel] = useState(true)
