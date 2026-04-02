@@ -2436,7 +2436,8 @@ function EmployeeOverview() {
                   type="button"
                   onClick={handleMoveToNextEmployee}
                 >
-                  Move to next employee
+                  Move to next employee ({reviewQueue.indexOf(employee.id) + 1}/
+                  {reviewQueue.length})
                 </Button>
               ) : null}
               {'performancePrograms' in employee &&
