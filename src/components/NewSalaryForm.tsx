@@ -12,7 +12,7 @@ import {
   roleType,
 } from '@/lib/utils'
 import { updateSalary } from '@/routes/employee.$employeeId'
-import { Salary, SalaryDraft } from '@prisma/client'
+import { Salary } from '@prisma/client'
 import { AnyFormApi, useForm, useStore } from '@tanstack/react-form'
 import { MoreVertical } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -50,7 +50,6 @@ export function NewSalaryForm({
   showBonusPercentage,
   eligibleForEquityRefresh,
   nextAnniversaryDate,
-  salaryDraft,
 }: {
   employeeId: string
   showOverride: boolean
@@ -66,46 +65,37 @@ export function NewSalaryForm({
   showBonusPercentage: boolean
   eligibleForEquityRefresh?: boolean
   nextAnniversaryDate?: Date
-  salaryDraft: SalaryDraft | null
 }) {
   const getDefaultValues = () => ({
-    country: salaryDraft?.country ?? latestSalary?.country ?? 'United States',
-    area:
-      salaryDraft?.area ?? latestSalary?.area ?? 'San Francisco, California',
+    country: latestSalary?.country ?? 'United States',
+    area: latestSalary?.area ?? 'San Francisco, California',
     locationFactor: latestSalary?.locationFactor ?? 0,
-    level: salaryDraft?.level ?? latestSalary?.level ?? 1,
-    step: salaryDraft?.step ?? latestSalary?.step ?? 1,
-    benchmark:
-      salaryDraft?.benchmark ?? latestSalary?.benchmark ?? 'Product Engineer',
+    level: latestSalary?.level ?? 1,
+    step: latestSalary?.step ?? 1,
+    benchmark: latestSalary?.benchmark ?? 'Product Engineer',
     benchmarkFactor: latestSalary?.benchmarkFactor ?? 0,
-    bonusPercentage:
-      salaryDraft?.bonusPercentageOverride ??
-      latestSalary?.bonusPercentage ??
-      0,
+    bonusPercentage: latestSalary?.bonusPercentage ?? 0,
     bonusAmount: 0,
-    totalSalary:
-      salaryDraft?.totalSalaryOverride ?? latestSalary?.totalSalary ?? 0,
+    totalSalary: latestSalary?.totalSalary ?? 0,
     changePercentage: 0, // Always 0 for new entries
     changeAmount: 0, // Always 0 for new entries
     localCurrency: latestSalary?.localCurrency ?? 'USD',
     exchangeRate: latestSalary?.exchangeRate ?? 1,
     totalSalaryLocal: latestSalary?.totalSalaryLocal ?? 0,
-    amountTakenInOptions: salaryDraft?.amountTakenInOptions ?? 0,
+    amountTakenInOptions: 0,
     actualSalary: latestSalary?.actualSalary ?? 0,
     actualSalaryLocal: latestSalary?.actualSalaryLocal ?? 0,
-    equityRefreshPercentage: salaryDraft?.equityRefreshPercentage ?? 0,
+    equityRefreshPercentage: 0,
     equityRefreshAmount: 0,
     employmentCountry:
-      salaryDraft?.employmentCountry ??
       latestSalary?.employmentCountry ??
       latestSalary?.country ??
       'United States',
     employmentArea:
-      salaryDraft?.employmentArea ??
       latestSalary?.employmentArea ??
       latestSalary?.area ??
       'San Francisco, California',
-    notes: salaryDraft?.notes ?? '',
+    notes: '',
     employeeId: employeeId,
   })
 

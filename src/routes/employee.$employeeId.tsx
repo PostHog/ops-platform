@@ -2601,7 +2601,6 @@ function EmployeeOverview() {
                   showBonusPercentage={showBonusPercentage}
                   eligibleForEquityRefresh={eligibleForEquityRefresh}
                   nextAnniversaryDate={nextAnniversaryDate?.toDate()}
-                  salaryDraft={null}
                 />
               )}
               {hasPayReviewAccess && !isSensitiveHidden && (
