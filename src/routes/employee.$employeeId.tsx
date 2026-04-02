@@ -568,7 +568,8 @@ export const getReferenceEmployees = createBlitzscaleFn({
       topLevelManagerId?: string | null
     }) => d,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { excludeEmails } = context.blitzscaleInfo
     const whereClause: Prisma.EmployeeWhereInput = {
       salaries: {
         some: {
@@ -587,6 +588,9 @@ export const getReferenceEmployees = createBlitzscaleFn({
               isNot: null,
             }),
       },
+      ...(excludeEmails.length > 0
+        ? { email: { notIn: excludeEmails } }
+        : {}),
     }
 
     const employees = await prisma.employee.findMany({
