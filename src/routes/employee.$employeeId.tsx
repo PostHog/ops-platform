@@ -803,26 +803,6 @@ export const saveSalaryDraft = createBlitzscaleFn({
     })
   })
 
-/** Throws if a blitzscale user is trying to act on another blitzscale user's data. */
-async function assertBlitzscaleNotTargetingBlitzscale(
-  userRole: string | null | undefined,
-  targetEmployeeId: string,
-) {
-  if (userRole !== ROLES.BLITZSCALE) return
-  const targetEmployee = await prisma.employee.findUnique({
-    where: { id: targetEmployeeId },
-    select: { email: true },
-  })
-  if (!targetEmployee?.email) return
-  const targetUser = await prisma.user.findUnique({
-    where: { email: targetEmployee.email },
-    select: { role: true },
-  })
-  if (targetUser?.role === ROLES.BLITZSCALE) {
-    throw new Error('Unauthorized')
-  }
-}
-
 export const createPerformanceProgram = createInternalFn({
   method: 'POST',
 })
@@ -837,10 +817,6 @@ export const createPerformanceProgram = createInternalFn({
     if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
-    await assertBlitzscaleNotTargetingBlitzscale(
-      context.user.role,
-      data.employeeId,
-    )
     const existingProgram = await prisma.performanceProgram.findFirst({
       where: {
         employeeId: data.employeeId,
@@ -999,10 +975,6 @@ export const updateChecklistItem = createInternalFn({
     if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
-    await assertBlitzscaleNotTargetingBlitzscale(
-      context.user.role,
-      checklistItem.program.employeeId,
-    )
 
     const updated = await prisma.performanceProgramChecklistItem.update({
       where: { id: data.checklistItemId },
@@ -1067,10 +1039,6 @@ export const addProgramFeedback = createInternalFn({
     if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
-    await assertBlitzscaleNotTargetingBlitzscale(
-      context.user.role,
-      program.employeeId,
-    )
 
     const feedback = await prisma.performanceProgramFeedback.create({
       data: {
@@ -1155,10 +1123,6 @@ export const resolvePerformanceProgram = createInternalFn({
     if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
-    await assertBlitzscaleNotTargetingBlitzscale(
-      context.user.role,
-      program.employeeId,
-    )
 
     if (program.status !== 'ACTIVE') {
       throw new Error('Program is not active')
@@ -1302,10 +1266,6 @@ export const getProofFileUploadUrl = createInternalFn({
     if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
-    await assertBlitzscaleNotTargetingBlitzscale(
-      context.user.role,
-      programEmployeeId,
-    )
 
     // Generate presigned upload URL
     const { getPresignedUploadUrl } = await import('@/lib/s3')
@@ -1372,10 +1332,6 @@ export const createProofFileRecord = createInternalFn({
     if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
-    await assertBlitzscaleNotTargetingBlitzscale(
-      context.user.role,
-      programEmployeeId,
-    )
 
     // Create database record
     const proofFile = await prisma.file.create({
@@ -1435,10 +1391,6 @@ export const getProofFileUrl = createInternalFn({
     if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
-    await assertBlitzscaleNotTargetingBlitzscale(
-      context.user.role,
-      programEmployeeId,
-    )
 
     // Generate presigned download URL
     const { getPresignedDownloadUrl } = await import('@/lib/s3')
@@ -1489,10 +1441,6 @@ export const deleteProofFile = createInternalFn({
     if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
-    await assertBlitzscaleNotTargetingBlitzscale(
-      context.user.role,
-      programEmployeeId,
-    )
 
     // Delete from database (cascade will handle relations)
     await prisma.file.delete({
