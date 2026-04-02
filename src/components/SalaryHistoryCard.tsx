@@ -38,11 +38,23 @@ export function SalaryHistoryCard({
     (Date.now() - salary.timestamp.getTime()) / (1000 * 60 * 60)
   const isDeletable = hoursSinceCreation <= 24
 
-  // Detect step decrease due to benchmark increase (releveling)
-  const stepDecreasedDueToBenchmark =
+  // Detect changes relative to previous salary for explainer notes
+  const hasBenchmarkIncrease =
+    previousSalary && salary.benchmarkFactor > previousSalary.benchmarkFactor
+  const hasStepOrLevelDecrease =
     previousSalary &&
-    salary.step < previousSalary.step &&
-    salary.benchmarkFactor > previousSalary.benchmarkFactor
+    (salary.step < previousSalary.step || salary.level < previousSalary.level)
+  const hasStepOrLevelIncrease =
+    previousSalary &&
+    (salary.step > previousSalary.step || salary.level > previousSalary.level)
+  const hasLocationFactorChange =
+    previousSalary && salary.locationFactor !== previousSalary.locationFactor
+  const isFullBenchmarkIncrease =
+    hasBenchmarkIncrease &&
+    previousSalary &&
+    salary.step === previousSalary.step &&
+    salary.level === previousSalary.level &&
+    salary.locationFactor === previousSalary.locationFactor
 
   return (
     <TooltipProvider>
@@ -213,11 +225,33 @@ export function SalaryHistoryCard({
               {salary.notes}
             </div>
           )}
-          {stepDecreasedDueToBenchmark && (
+          {isFullBenchmarkIncrease && (
+            <div className="mb-1 text-xs text-gray-500 italic">
+              There was a benchmark increase during this round of reviews, which
+              means everyone was re-leveled against this new benchmark. This
+              might explain why the level and step haven't changed.
+            </div>
+          )}
+          {hasBenchmarkIncrease && hasStepOrLevelDecrease && (
             <div className="mb-1 text-xs text-gray-500 italic">
               There was a benchmark increase during this round of reviews, which
               means everyone was re-leveled against this new benchmark. This
               might explain a step or level decrease.
+            </div>
+          )}
+          {hasBenchmarkIncrease &&
+            hasStepOrLevelIncrease &&
+            !isFullBenchmarkIncrease && (
+              <div className="mb-1 text-xs text-gray-500 italic">
+                There was a benchmark increase during this round of reviews,
+                which means everyone was re-leveled against this new benchmark.
+                This happened in addition to a step or level increase.
+              </div>
+            )}
+          {hasLocationFactorChange && (
+            <div className="mb-1 text-xs text-gray-500 italic">
+              There was a location factor change to remain competitive in that
+              market.
             </div>
           )}
         </div>
