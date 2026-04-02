@@ -1717,7 +1717,7 @@ function EmployeeOverview() {
     }
 
     // For non-admins, start from manager's DeelEmployee
-    if (!hasPayReviewAccess && managerDeelEmployeeId) {
+    if (!isBlitzscaleOrAdmin && managerDeelEmployeeId) {
       const managerEmployee = deelEmployees.find(
         (e) => e.id === managerDeelEmployeeId,
       )
@@ -1816,7 +1816,7 @@ function EmployeeOverview() {
   const filteredDeelEmployees = useMemo(() => {
     if (!deelEmployees) return null
     // For admins, show all employees
-    if (hasPayReviewAccess) return deelEmployees
+    if (isBlitzscaleOrAdmin) return deelEmployees
     // For team mode, filter to only employees in the manager's hierarchy
     if (managerTreeViewMode === 'team') {
       return deelEmployees.filter((emp) => {
@@ -2112,7 +2112,10 @@ function EmployeeOverview() {
 
   const isManager =
     (deelEmployeesAndProposedHiresData?.managedEmployeeIds?.length ?? 0) > 0
-  const showEmployeeTree = managerHierarchy && (hasPayReviewAccess || isManager)
+  const isBlitzscaleOrAdmin =
+    user?.role === ROLES.ADMIN || user?.role === ROLES.BLITZSCALE
+  const showEmployeeTree =
+    managerHierarchy && (isBlitzscaleOrAdmin || isManager)
 
   return (
     <div className="flex h-full flex-col items-center gap-5 overflow-hidden pt-4">
