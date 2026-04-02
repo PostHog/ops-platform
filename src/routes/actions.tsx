@@ -224,31 +224,31 @@ function processTemplate(template: string, salary: Salary): string {
   const level = salary.level
   const benchmark = salary.benchmark
   const locationFactor = salary.locationFactor
+  const hasPreviousSalary = salary.employee.salaries.length > 1
   const previousSalary = salary.employee.salaries[1]
-  const previousStep = previousSalary?.step
-  const previousLevel = previousSalary?.level
-  const previousBenchmark = previousSalary?.benchmark
-  const previousLocationFactor = previousSalary?.locationFactor
+  const previousStep = previousSalary.step
+  const previousLevel = previousSalary.level
+  const previousBenchmark = previousSalary.benchmark
+  const previousLocationFactor = previousSalary.locationFactor
 
   // Computed boolean conditions for {#if} blocks
   const conditions: Record<string, boolean> = {
-    benchmarkChanged: !!previousBenchmark && benchmark !== previousBenchmark,
+    benchmarkChanged: hasPreviousSalary && benchmark !== previousBenchmark,
     levelOrStepIncreased:
-      (previousLevel != null && level > previousLevel) ||
-      (previousStep != null && step > previousStep),
+      hasPreviousSalary &&
+      (level > previousLevel || step > previousStep),
     levelOrStepSame:
-      previousLevel != null &&
-      previousStep != null &&
+      hasPreviousSalary &&
       level === previousLevel &&
       step === previousStep,
     levelOrStepDecreased:
-      (previousLevel != null && level < previousLevel) ||
-      (previousStep != null && step < previousStep),
+      hasPreviousSalary &&
+      (level < previousLevel || step < previousStep),
     locationFactorIncreased:
-      previousLocationFactor != null &&
+      hasPreviousSalary &&
       locationFactor > previousLocationFactor,
     locationFactorChanged:
-      previousLocationFactor != null &&
+      hasPreviousSalary &&
       locationFactor !== previousLocationFactor,
   }
 
@@ -269,10 +269,10 @@ function processTemplate(template: string, salary: Salary): string {
     .replace(/\{level\}/g, level.toString())
     .replace(/\{benchmark\}/g, benchmark)
     .replace(/\{locationFactor\}/g, locationFactor.toString())
-    .replace(/\{previousStep\}/g, previousStep?.toString() ?? '')
-    .replace(/\{previousLevel\}/g, previousLevel?.toString() ?? '')
-    .replace(/\{previousBenchmark\}/g, previousBenchmark ?? '')
-    .replace(/\{previousLocationFactor\}/g, previousLocationFactor?.toString() ?? '')
+    .replace(/\{previousStep\}/g, previousStep.toString())
+    .replace(/\{previousLevel\}/g, previousLevel.toString())
+    .replace(/\{previousBenchmark\}/g, previousBenchmark)
+    .replace(/\{previousLocationFactor\}/g, previousLocationFactor.toString())
 
   // Clean up extra blank lines left by removed conditional blocks
   result = result.replace(/\n{3,}/g, '\n\n').trim()
