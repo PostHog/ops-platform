@@ -142,7 +142,67 @@ export const Route = createFileRoute('/actions')({
   loader: async () => await getUpdatedSalaries(),
 })
 
-const defaultTemplate = `Hey {firstName}! I just wanted to let you know that we're giving you a raise of {changePercentage}%, which works out to a {changeAmountLocal} increase for a total salary of {salaryLocal}. Thanks for the hard work you do for PostHog, and let me know if you have any questions!`
+const defaultTemplate = `Hey {firstName}! I just wanted to let you know that we're giving you a raise of {changePercentage}%, which works out to a {changeAmountLocal} increase for a total salary of {salaryLocal}.
+
+{#if benchmarkIncrease}
+For this round we've increased the benchmark for your role to reflect our focus on raising the bar at PostHog even higher.
+{/if}
+
+{#if benchmarkIncrease && levelStepIncrease}
+Receiving a pay increase after a benchmark update isn't guaranteed and depends on performance. We all agreed that your contributions have justified an increase, as well as an additional step increase for performing above even the new benchmark expectations.
+{/if}
+
+{#if benchmarkIncrease && levelStepSame}
+Receiving a pay increase after a benchmark update isn't guaranteed and depends on performance. We all agreed that your contributions have justified an increase. You won't see a change in your level or step, but that's because the expectations for those have changed, and we agreed that you're still meeting the bar for that new expectation. Though level and step stay the same, this is very much a performance raise!
+{/if}
+
+{#if benchmarkIncrease && levelStepDecrease}
+The new benchmark represents a change in our expectations for any given level or step - basically the bar for the same level/step has increased. Your performance justifies an increase for the old benchmark, so we're excited about giving you this raise. You may see your level/step numbers change due to the benchmark change updating our expectations, but this isn't a bad sign - it just gives more wiggle room for growth down the line :)
+{/if}
+
+{#if locationFactorIncrease}
+We've also increased the location factor for where you live, to make sure we stay competitive in that market.
+{/if}
+
+Thank you for the work you do for PostHog!`
+
+function processConditionals(
+  template: string,
+  conditions: Record<string, boolean>,
+): string {
+  // Process {#if expr}...{/if} blocks
+  // Supports: conditionName, !conditionName, a && b, a || b
+  return template.replace(
+    /\{#if\s+(.+?)\}([\s\S]*?)\{\/if\}/g,
+    (_match, expr: string, body: string) => {
+      const result = evaluateCondition(expr.trim(), conditions)
+      return result ? body : ''
+    },
+  )
+}
+
+function evaluateCondition(
+  expr: string,
+  conditions: Record<string, boolean>,
+): boolean {
+  // Handle && (all must be true)
+  if (expr.includes('&&')) {
+    return expr
+      .split('&&')
+      .every((part) => evaluateCondition(part.trim(), conditions))
+  }
+  // Handle || (any must be true)
+  if (expr.includes('||')) {
+    return expr
+      .split('||')
+      .some((part) => evaluateCondition(part.trim(), conditions))
+  }
+  // Handle negation
+  if (expr.startsWith('!')) {
+    return !conditions[expr.slice(1).trim()]
+  }
+  return !!conditions[expr]
+}
 
 function processTemplate(template: string, salary: Salary): string {
   const name = getFullName(
@@ -170,12 +230,47 @@ function processTemplate(template: string, salary: Salary): string {
   const level = salary.level
   const benchmark = salary.benchmark
   const locationFactor = salary.locationFactor
-  const previousStep = salary.employee.salaries[1]?.step
-  const previousLevel = salary.employee.salaries[1]?.level
-  const previousBenchmark = salary.employee.salaries[1]?.benchmark
-  const previousLocationFactor = salary.employee.salaries[1]?.locationFactor
+  // Find the chronologically previous salary (the most recent one before this entry)
+  const previousSalary =
+    salary.employee.salaries
+      .filter(
+        (s) =>
+          new Date(s.timestamp).getTime() <
+          new Date(salary.timestamp).getTime(),
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      )[0] ?? null
+  const hasPreviousSalary = previousSalary !== null
+  const previousStep = previousSalary?.step ?? 0
+  const previousLevel = previousSalary?.level ?? 0
+  const previousBenchmark = previousSalary?.benchmark ?? ''
+  const previousLocationFactor = previousSalary?.locationFactor ?? 0
+  const previousBenchmarkFactor = previousSalary?.benchmarkFactor ?? 0
 
-  return template
+  // Computed boolean conditions for {#if} blocks
+  // Match the same logic used in SalaryHistoryCard.tsx
+  const hasBenchmarkIncrease =
+    hasPreviousSalary &&
+    salary.benchmarkFactor > previousBenchmarkFactor &&
+    benchmark === previousBenchmark
+  const conditions: Record<string, boolean> = {
+    benchmarkIncrease: hasBenchmarkIncrease,
+    levelStepIncrease:
+      hasPreviousSalary && level * step > previousLevel * previousStep,
+    levelStepSame:
+      hasPreviousSalary && level * step === previousLevel * previousStep,
+    levelStepDecrease:
+      hasPreviousSalary && level * step < previousLevel * previousStep,
+    locationFactorIncrease:
+      hasPreviousSalary && locationFactor > previousLocationFactor,
+  }
+
+  // First process conditionals, then replace variables
+  let result = processConditionals(template, conditions)
+
+  result = result
     .replace(/\{name\}/g, name)
     .replace(/\{firstName\}/g, firstName)
     .replace(/\{changePercentage\}/g, changePercentage)
@@ -193,6 +288,11 @@ function processTemplate(template: string, salary: Salary): string {
     .replace(/\{previousLevel\}/g, previousLevel.toString())
     .replace(/\{previousBenchmark\}/g, previousBenchmark)
     .replace(/\{previousLocationFactor\}/g, previousLocationFactor.toString())
+
+  // Clean up extra blank lines left by removed conditional blocks
+  result = result.replace(/\n{3,}/g, '\n\n').trim()
+
+  return result
 }
 
 function App() {
@@ -598,7 +698,7 @@ function App() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Template</DialogTitle>
           </DialogHeader>
@@ -639,15 +739,79 @@ function App() {
                     { key: 'benchmark', label: 'Benchmark' },
                     { key: 'locationFactor', label: 'Location factor' },
                   ].map((placeholder) => (
-                    <code className="bg-muted rounded px-1 py-0.5">
+                    <code
+                      key={placeholder.key}
+                      className="bg-muted rounded px-1 py-0.5"
+                    >
                       {`{${placeholder.key}}`}
                     </code>
                   ))}
                 </div>
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Conditional Blocks</Label>
+              <div className="text-muted-foreground space-y-2 text-sm">
+                <p>
+                  Use{' '}
+                  <code className="bg-muted rounded px-1 py-0.5">
+                    {'{#if condition}'}...{'{/if}'}
+                  </code>{' '}
+                  to show text only when a condition is true. Combine with{' '}
+                  <code className="bg-muted rounded px-1 py-0.5">{'&&'}</code>,{' '}
+                  <code className="bg-muted rounded px-1 py-0.5">{'||'}</code>,
+                  or <code className="bg-muted rounded px-1 py-0.5">{'!'}</code>
+                  .
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {[
+                    {
+                      key: 'benchmarkIncrease',
+                      label: 'Benchmark factor increased (same role)',
+                    },
+                    {
+                      key: 'levelStepIncrease',
+                      label: 'Level or step went up',
+                    },
+                    {
+                      key: 'levelStepSame',
+                      label: 'Level and step unchanged',
+                    },
+                    {
+                      key: 'levelStepDecrease',
+                      label: 'Level or step went down',
+                    },
+                    {
+                      key: 'locationFactorIncrease',
+                      label: 'Location factor went up',
+                    },
+                  ].map((condition) => (
+                    <TooltipProvider key={condition.key}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <code className="bg-muted cursor-help rounded px-1 py-0.5">
+                            {condition.key}
+                          </code>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{condition.label}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setTemplateInput(defaultTemplate)}
+              disabled={templateInput === defaultTemplate}
+            >
+              Reset to default
+            </Button>
+            <div className="flex-1" />
             <Button
               variant="outline"
               onClick={() => {

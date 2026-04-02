@@ -45,22 +45,25 @@ export function SalaryHistoryCard({
     previousSalary &&
     salary.benchmarkFactor > previousSalary.benchmarkFactor &&
     salary.benchmark === previousSalary.benchmark
-  const hasLevelOrStepChange = previousSalary
-    ? salary.step !== previousSalary.step ||
-      salary.level !== previousSalary.level
-    : false
+  const levelStepMultiple = salary.level * salary.step
+  const previousLevelStepMultiple = previousSalary
+    ? previousSalary.level * previousSalary.step
+    : levelStepMultiple
+  const hasLevelOrStepChange =
+    previousSalary && levelStepMultiple !== previousLevelStepMultiple
   const levelOrStepDirection = previousSalary
-    ? salary.step < previousSalary.step || salary.level < previousSalary.level
+    ? levelStepMultiple < previousLevelStepMultiple
       ? ('decrease' as const)
-      : ('increase' as const)
+      : levelStepMultiple > previousLevelStepMultiple
+        ? ('increase' as const)
+        : null
     : null
   const hasLocationFactorIncrease =
     previousSalary && salary.locationFactor > previousSalary.locationFactor
   const isFullBenchmarkIncrease =
     hasBenchmarkIncrease &&
     previousSalary &&
-    salary.step === previousSalary.step &&
-    salary.level === previousSalary.level &&
+    levelStepMultiple === previousLevelStepMultiple &&
     salary.locationFactor === previousSalary.locationFactor
 
   return (
