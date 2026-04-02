@@ -2169,7 +2169,13 @@ function EmployeeOverview() {
                           <CommandEmpty>No employee found.</CommandEmpty>
                           <CommandGroup>
                             {allHierarchyEmployees
-                              .filter((node) => node.employeeId)
+                              .filter(
+                                (node) =>
+                                  node.employeeId &&
+                                  !nonClickableEmployeeIds?.has(
+                                    node.employeeId,
+                                  ),
+                              )
                               .map((node) => (
                                 <CommandItem
                                   key={node.id}
