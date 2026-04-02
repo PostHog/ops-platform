@@ -53,6 +53,21 @@ const adminCheckMiddleware = createMiddleware({
   }
 })
 
+const blitzscaleCheckMiddleware = createMiddleware({
+  type: 'function',
+}).server(async ({ next, context }) => {
+  const user = (context as unknown as { user?: { role?: string } })?.user
+
+  if (user?.role !== ROLES.ADMIN && user?.role !== ROLES.BLITZSCALE) {
+    throw redirect({
+      to: '/error',
+      search: { message: 'You are not authorized to access this page' },
+    })
+  } else {
+    return await next()
+  }
+})
+
 const orgChartCheckMiddleware = createMiddleware({
   type: 'function',
 }).server(async ({ next, context }) => {
@@ -134,7 +149,11 @@ const managerInfoMiddleware = createMiddleware({
     managedEmployeeIds: [],
   }
 
-  if (user?.email && user.role !== ROLES.ADMIN) {
+  if (
+    user?.email &&
+    user.role !== ROLES.ADMIN &&
+    user.role !== ROLES.BLITZSCALE
+  ) {
     // Get the user's DeelEmployee ID to check if they're a manager
     const userDeelEmployee = await prisma.deelEmployee.findUnique({
       where: { workEmail: user.email },
@@ -162,35 +181,55 @@ const managerInfoMiddleware = createMiddleware({
   })
 })
 
-const payReviewCheckMiddleware = createMiddleware({
+export type BlitzscaleInfo = {
+  excludeEmails: string[]
+}
+
+const blitzscaleInfoMiddleware = createMiddleware({
   type: 'function',
 }).server(async ({ next, context }) => {
-  const user = (context as unknown as { user?: { role?: string } })?.user
+  const user = (
+    context as unknown as { user?: { email?: string; role?: string } }
+  )?.user
 
-  if (user?.role !== ROLES.ADMIN && user?.role !== ROLES.BLITZSCALE) {
-    throw redirect({
-      to: '/error',
-      search: { message: 'You are not authorized to access this page' },
-    })
-  } else {
-    return await next()
+  let blitzscaleInfo: BlitzscaleInfo = {
+    excludeEmails: [],
   }
+
+  if (user?.role === ROLES.BLITZSCALE) {
+    const blitzscaleUsers = await prisma.user.findMany({
+      where: { role: ROLES.BLITZSCALE },
+      select: { email: true },
+    })
+    const excludeEmails = blitzscaleUsers.map((u) => u.email)
+    if (excludeEmails.length === 0) {
+      throw new Error('Blitzscale user not found in exclude list')
+    }
+    blitzscaleInfo = { excludeEmails }
+  }
+
+  return await next({
+    context: {
+      ...(context || {}),
+      blitzscaleInfo,
+    },
+  })
 })
 
-// only admins will be able to access this function
+// admin-only (management, role changes, impersonation)
 export const createAdminFn = createServerFn().middleware([
   authMiddleware,
   adminCheckMiddleware,
 ])
 
-// admin and blitzscale users will be able to access this function (includes manager info)
-export const createPayReviewFn = createServerFn().middleware([
+// admin and blitzscale users
+export const createBlitzscaleFn = createServerFn().middleware([
   authMiddleware,
-  payReviewCheckMiddleware,
-  managerInfoMiddleware,
+  blitzscaleCheckMiddleware,
+  blitzscaleInfoMiddleware,
 ])
 
-// org chart and admin users will be able to access this function
+// blitzscale, org chart and admin users will be able to access this function
 export const createOrgChartFn = createServerFn().middleware([
   authMiddleware,
   orgChartCheckMiddleware,
@@ -201,4 +240,5 @@ export const createInternalFn = createServerFn().middleware([
   authMiddleware,
   internalCheckMiddleware,
   managerInfoMiddleware,
+  blitzscaleInfoMiddleware,
 ])

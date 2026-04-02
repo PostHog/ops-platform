@@ -22,8 +22,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, getFullName, getGrantType } from '@/lib/utils'
-import { createPayReviewFn } from '@/lib/auth-middleware'
-import { ROLES } from '@/lib/consts'
+import { createBlitzscaleFn } from '@/lib/auth-middleware'
 import { TableFilters } from '@/components/TableFilters'
 import { createToast } from 'vercel-toast'
 import { MoreHorizontal, ExternalLink } from 'lucide-react'
@@ -59,11 +58,10 @@ type EquityRefreshSalary = Prisma.SalaryGetPayload<{
   }
 }>
 
-const getEquityRefreshes = createPayReviewFn({
+const getEquityRefreshes = createBlitzscaleFn({
   method: 'GET',
 }).handler(async ({ context }) => {
-  const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-  const { managedEmployeeIds } = context.managerInfo
+  const { excludeEmails } = context.blitzscaleInfo
 
   const salaries = await prisma.salary.findMany({
     where: {
@@ -73,7 +71,9 @@ const getEquityRefreshes = createPayReviewFn({
       timestamp: {
         gte: new Date(new Date().setMonth(new Date().getMonth() - 3)),
       },
-      ...(isBlitzscale ? { employeeId: { in: managedEmployeeIds } } : {}),
+      ...(excludeEmails.length > 0
+        ? { employee: { email: { notIn: excludeEmails } } }
+        : {}),
     },
     include: {
       employee: {
@@ -98,96 +98,98 @@ const getEquityRefreshes = createPayReviewFn({
   return { salaries, sharePrice }
 })
 
-const updateEquityGranted = createPayReviewFn({
+const updateEquityGranted = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; granted: boolean }) => d)
   .handler(async ({ data, context }) => {
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-    const { managedEmployeeIds } = context.managerInfo
-
-    if (isBlitzscale) {
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
       const salary = await prisma.salary.findUnique({
         where: { id: data.id },
-        select: { employeeId: true },
+        include: { employee: { select: { email: true } } },
       })
-      if (!salary || !managedEmployeeIds.includes(salary.employeeId)) {
+      if (
+        salary?.employee?.email &&
+        excludeEmails.includes(salary.employee.email)
+      ) {
         throw new Error('Unauthorized')
       }
     }
-
     return await prisma.salary.update({
       where: { id: data.id },
       data: { equityRefreshGranted: data.granted },
     })
   })
 
-const markMultipleAsGranted = createPayReviewFn({
+const markMultipleAsGranted = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { ids: string[] }) => d)
   .handler(async ({ data, context }) => {
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-    const { managedEmployeeIds } = context.managerInfo
-
-    if (isBlitzscale) {
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
       const salaries = await prisma.salary.findMany({
         where: { id: { in: data.ids } },
-        select: { employeeId: true },
+        include: { employee: { select: { email: true } } },
       })
-      if (salaries.some((s) => !managedEmployeeIds.includes(s.employeeId))) {
+      if (
+        salaries.some(
+          (s) => s.employee?.email && excludeEmails.includes(s.employee.email),
+        )
+      ) {
         throw new Error('Unauthorized')
       }
     }
-
     return await prisma.salary.updateMany({
       where: { id: { in: data.ids } },
       data: { equityRefreshGranted: true },
     })
   })
 
-const updateEquityCommunicated = createPayReviewFn({
+const updateEquityCommunicated = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { id: string; communicated: boolean }) => d)
   .handler(async ({ data, context }) => {
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-    const { managedEmployeeIds } = context.managerInfo
-
-    if (isBlitzscale) {
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
       const salary = await prisma.salary.findUnique({
         where: { id: data.id },
-        select: { employeeId: true },
+        include: { employee: { select: { email: true } } },
       })
-      if (!salary || !managedEmployeeIds.includes(salary.employeeId)) {
+      if (
+        salary?.employee?.email &&
+        excludeEmails.includes(salary.employee.email)
+      ) {
         throw new Error('Unauthorized')
       }
     }
-
     return await prisma.salary.update({
       where: { id: data.id },
       data: { communicated: data.communicated },
     })
   })
 
-const markMultipleAsCommunicated = createPayReviewFn({
+const markMultipleAsCommunicated = createBlitzscaleFn({
   method: 'POST',
 })
   .inputValidator((d: { ids: string[] }) => d)
   .handler(async ({ data, context }) => {
-    const isBlitzscale = context.user.role === ROLES.BLITZSCALE
-    const { managedEmployeeIds } = context.managerInfo
-
-    if (isBlitzscale) {
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
       const salaries = await prisma.salary.findMany({
         where: { id: { in: data.ids } },
-        select: { employeeId: true },
+        include: { employee: { select: { email: true } } },
       })
-      if (salaries.some((s) => !managedEmployeeIds.includes(s.employeeId))) {
+      if (
+        salaries.some(
+          (s) => s.employee?.email && excludeEmails.includes(s.employee.email),
+        )
+      ) {
         throw new Error('Unauthorized')
       }
     }
-
     return await prisma.salary.updateMany({
       where: { id: { in: data.ids } },
       data: { communicated: true },
