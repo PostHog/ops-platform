@@ -21,7 +21,7 @@ import type {
 } from '@tanstack/react-table'
 import type { Priority, Prisma } from '@prisma/client'
 import { useCallback } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -507,6 +507,30 @@ function App() {
             employeeId={row.original.id}
           />
         ),
+      },
+      {
+        id: 'reviewNote',
+        accessorFn: (row) => !!row.payReviewNote,
+        header: 'Note',
+        meta: {
+          filterVariant: 'select',
+          filterOptions: [
+            { label: 'Has note', value: true },
+            { label: 'No note', value: false },
+          ],
+        },
+        filterFn: (row: Row<Employee>, _: string, filterValue: boolean[]) => {
+          return filterValue.includes(!!row.original.payReviewNote)
+        },
+        cell: ({ row }) => {
+          if (!row.original.payReviewNote) return null
+          return (
+            <div className="flex items-center gap-2 text-gray-700">
+              <Check className="h-4 w-4 text-green-600" />
+              <span>added</span>
+            </div>
+          )
+        },
       },
       {
         id: 'changePercentage',
