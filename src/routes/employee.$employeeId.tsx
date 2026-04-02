@@ -1548,6 +1548,9 @@ function EmployeeOverview() {
 
   useEffect(() => {
     setShowOverrideMode(false)
+    setLevel(employee.salaries[0]?.level ?? 1)
+    setStep(employee.salaries[0]?.step ?? 1)
+    setBenchmark(employee.salaries[0]?.benchmark ?? 'Product Engineer')
   }, [employee.id])
 
   useEffect(() => {
