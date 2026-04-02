@@ -817,6 +817,17 @@ export const createPerformanceProgram = createInternalFn({
     if (!isAdmin && !isManager) {
       throw new Error('Unauthorized')
     }
+
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: data.employeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
     const existingProgram = await prisma.performanceProgram.findFirst({
       where: {
         employeeId: data.employeeId,
@@ -969,6 +980,17 @@ export const updateChecklistItem = createInternalFn({
       throw new Error('Checklist item not found')
     }
 
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: checklistItem.program.employeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     // Check authorization: admins can update any checklist item, managers can only update items for their reports
     const isManager =
       !isAdmin && managedEmployeeIds.includes(checklistItem.program.employeeId)
@@ -1033,6 +1055,17 @@ export const addProgramFeedback = createInternalFn({
       throw new Error('Performance program not found')
     }
 
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: program.employeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     // Check authorization: admins can add feedback to any program, managers can only add feedback to programs for their reports
     const isManager =
       !isAdmin && managedEmployeeIds.includes(program.employeeId)
@@ -1080,6 +1113,17 @@ export const updateProgramFeedback = createInternalFn({
       throw new Error('Cannot edit feedback on a resolved program')
     }
 
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: existing.program.employeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     // Only the author can edit their own feedback
     if (existing.givenByUserId !== context.user.id) {
       throw new Error('Unauthorized')
@@ -1115,6 +1159,17 @@ export const resolvePerformanceProgram = createInternalFn({
 
     if (!program) {
       throw new Error('Performance program not found')
+    }
+
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: program.employeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
     }
 
     // Check authorization: admins can resolve any program, managers can only resolve programs for their reports
@@ -1261,6 +1316,17 @@ export const getProofFileUploadUrl = createInternalFn({
       fileKey = `performance-programs/${programId}/feedback/${timestamp}-${sanitizedFileName}`
     }
 
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: programEmployeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     // Check authorization: admins can upload files for any program, managers can only upload files for programs for their reports
     const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
     if (!isAdmin && !isManager) {
@@ -1327,6 +1393,17 @@ export const createProofFileRecord = createInternalFn({
       programEmployeeId = feedback.program.employeeId
     }
 
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: programEmployeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     // Check authorization: admins can create file records for any program, managers can only create records for programs for their reports
     const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
     if (!isAdmin && !isManager) {
@@ -1386,6 +1463,17 @@ export const getProofFileUrl = createInternalFn({
       throw new Error('Unable to determine program employee')
     }
 
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: programEmployeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
+    }
+
     // Check authorization: admins can get file URLs for any program, managers can only get URLs for programs for their reports
     const isManager = !isAdmin && managedEmployeeIds.includes(programEmployeeId)
     if (!isAdmin && !isManager) {
@@ -1434,6 +1522,17 @@ export const deleteProofFile = createInternalFn({
 
     if (!programEmployeeId) {
       throw new Error('Unable to determine program employee')
+    }
+
+    const { excludeEmails } = context.blitzscaleInfo
+    if (excludeEmails.length > 0) {
+      const emp = await prisma.employee.findUnique({
+        where: { id: programEmployeeId },
+        select: { email: true },
+      })
+      if (emp?.email && excludeEmails.includes(emp.email)) {
+        throw new Error('Unauthorized')
+      }
     }
 
     // Check authorization: admins can delete files for any program, managers can only delete files for programs for their reports
