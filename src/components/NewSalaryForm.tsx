@@ -11,12 +11,11 @@ import {
   roleTypeOptions,
   roleType,
 } from '@/lib/utils'
-import { updateSalary, saveSalaryDraft } from '@/routes/employee.$employeeId'
+import { updateSalary } from '@/routes/employee.$employeeId'
 import { Salary, SalaryDraft } from '@prisma/client'
 import { AnyFormApi, useForm, useStore } from '@tanstack/react-form'
-import { useServerFn } from '@tanstack/react-start'
-import { Loader2, MoreVertical } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { MoreVertical } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { createToast } from 'vercel-toast'
 import { TimelineItemBadge } from './TimelineItemBadge'
 import { Button } from './ui/button'
@@ -69,13 +68,6 @@ export function NewSalaryForm({
   nextAnniversaryDate?: Date
   salaryDraft: SalaryDraft | null
 }) {
-  const saveDraft = useServerFn(saveSalaryDraft)
-
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>(
-    'idle',
-  )
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   const getDefaultValues = () => ({
     country: salaryDraft?.country ?? latestSalary?.country ?? 'United States',
     area:
@@ -247,69 +239,9 @@ export function NewSalaryForm({
     )
   }
 
-  const scheduleDraftSave = useCallback(
-    (formApi: AnyFormApi) => {
-      if (formApi.state.isSubmitting) {
-        return
-      }
-
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-      }
-      setSaveStatus('saving')
-      debounceTimerRef.current = setTimeout(async () => {
-        debounceTimerRef.current = null
-        try {
-          const values = formApi.state.values
-          await saveDraft({
-            data: {
-              employeeId,
-              country: values.country,
-              area: values.area,
-              level: values.level,
-              step: values.step,
-              benchmark: values.benchmark,
-              employmentCountry: values.employmentCountry,
-              employmentArea: values.employmentArea,
-              amountTakenInOptions: values.amountTakenInOptions,
-              equityRefreshPercentage: values.equityRefreshPercentage,
-              notes: values.notes,
-              showOverride,
-              totalSalaryOverride: showOverride
-                ? values.totalSalary
-                : undefined,
-              bonusPercentageOverride: showOverride
-                ? values.bonusPercentage
-                : undefined,
-            },
-          })
-          setSaveStatus('saved')
-        } catch {
-          setSaveStatus('idle')
-        }
-      }, 2000)
-    },
-    [employeeId, saveDraft, showOverride],
-  )
-
-  // Cleanup debounce timer on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-        debounceTimerRef.current = null
-      }
-    }
-  }, [])
-
   const form = useForm({
     defaultValues: getDefaultValues(),
     onSubmit: async ({ value }) => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-        debounceTimerRef.current = null
-      }
-
       // Add equityRefreshDate if there's an equity refresh amount
       const dataToSubmit = {
         ...value,
@@ -349,7 +281,6 @@ export function NewSalaryForm({
         ) {
           updateFormFields(formApi)
         }
-        scheduleDraftSave(formApi)
       },
     },
   })
@@ -419,12 +350,6 @@ export function NewSalaryForm({
           <div className="mb-2 flex items-start justify-between">
             <TimelineItemBadge type="new salary" />
             <div className="flex items-center gap-2">
-              {saveStatus === 'saving' && (
-                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-              )}
-              {saveStatus === 'saved' && (
-                <span className="text-xs text-gray-400">Draft saved</span>
-              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
