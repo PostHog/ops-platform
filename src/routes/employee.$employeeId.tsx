@@ -588,9 +588,7 @@ export const getReferenceEmployees = createBlitzscaleFn({
               isNot: null,
             }),
       },
-      ...(excludeEmails.length > 0
-        ? { email: { notIn: excludeEmails } }
-        : {}),
+      ...(excludeEmails.length > 0 ? { email: { notIn: excludeEmails } } : {}),
     }
 
     const employees = await prisma.employee.findMany({
