@@ -215,7 +215,8 @@ async function generateDevUser() {
     ],
   })
 
-  // Dev user salary: USD, San Francisco
+  // Dev user salaries: USD, San Francisco
+  // First salary (older)
   await prisma.salary.create({
     data: {
       employeeId: devEmployee.id,
@@ -244,6 +245,41 @@ async function generateDevUser() {
       employmentCountry: 'United States',
       employmentArea: 'San Francisco, California',
       notes: 'Initial salary',
+      synced: true,
+      communicated: true,
+    },
+  })
+
+  // Second salary: benchmark increased (1.0 -> 1.15), step decreased (0.8 -> 0.6)
+  // but total salary still went up — demonstrates the releveling scenario
+  await prisma.salary.create({
+    data: {
+      employeeId: devEmployee.id,
+      timestamp: new Date('2025-03-01'),
+      country: 'United States',
+      area: 'San Francisco, California',
+      locationFactor: 1.0,
+      level: 7,
+      step: 0.6,
+      benchmark: 'Product Engineer',
+      benchmarkFactor: 1.15,
+      totalSalary: 265000,
+      bonusPercentage: 0,
+      bonusAmount: 0,
+      changePercentage: 0.06,
+      changeAmount: 15000,
+      exchangeRate: 1.0,
+      localCurrency: 'USD',
+      totalSalaryLocal: 265000,
+      amountTakenInOptions: 0,
+      actualSalary: 265000,
+      actualSalaryLocal: 265000,
+      equityRefreshPercentage: 0.1,
+      equityRefreshAmount: 26500,
+      equityRefreshGranted: false,
+      employmentCountry: 'United States',
+      employmentArea: 'San Francisco, California',
+      notes: 'Benchmark increase with releveling',
       synced: true,
       communicated: true,
     },
