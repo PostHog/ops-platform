@@ -39,10 +39,22 @@ export function getPhase(startDate: Date): Phase {
       badgeClass: 'bg-orange-100 text-orange-800',
       sortOrder: 4,
     }
+  if (diff >= -90)
+    return {
+      label: 'First 90 Days',
+      badgeClass: 'bg-purple-100 text-purple-800',
+      sortOrder: 5,
+    }
+  if (diff >= -180)
+    return {
+      label: 'First 6 Months',
+      badgeClass: 'bg-teal-100 text-teal-800',
+      sortOrder: 6,
+    }
   return {
-    label: 'First 90 Days',
-    badgeClass: 'bg-purple-100 text-purple-800',
-    sortOrder: 5,
+    label: 'Active',
+    badgeClass: 'bg-green-100 text-green-800',
+    sortOrder: 7,
   }
 }
 

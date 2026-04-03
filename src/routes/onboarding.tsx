@@ -629,6 +629,18 @@ const columns: ColumnDef<OnboardingRecord>[] = [
     enableHiding: true,
     filterFn: 'equals',
   },
+  {
+    id: 'quarterFilter',
+    accessorKey: 'quarter',
+    enableHiding: true,
+    filterFn: 'equals',
+  },
+  {
+    id: 'roleFilter',
+    accessorKey: 'role',
+    enableHiding: true,
+    filterFn: 'equals',
+  },
 ]
 
 // ─── Expanded row detail ─────────────────────────────────────────────────────
@@ -1393,6 +1405,12 @@ const SECTION_EXPAND_COLORS: Record<string, ExpandColors> = {
     text: 'text-lime-700',
     bgHalf: 'bg-lime-50/50',
   },
+  '#059669': {
+    bg: 'bg-emerald-50',
+    border: 'border-l-emerald-600',
+    text: 'text-emerald-700',
+    bgHalf: 'bg-emerald-50/50',
+  },
 }
 
 function OnboardingSection({
@@ -1430,7 +1448,7 @@ function OnboardingSection({
 }) {
   const ec = SECTION_EXPAND_COLORS[color] ?? SECTION_EXPAND_COLORS['#006FDC']
   const [sorting, setSorting] = useState<SortingState>([
-    { id: 'startDate', desc: false },
+    { id: 'startDate', desc: true },
   ])
 
   const table = useReactTable({
@@ -1438,7 +1456,7 @@ function OnboardingSection({
     columns,
     state: { sorting, globalFilter, columnFilters },
     onSortingChange: setSorting,
-    initialState: { columnVisibility: { statusFilter: false } },
+    initialState: { columnVisibility: { statusFilter: false, quarterFilter: false, roleFilter: false } },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -1832,6 +1850,10 @@ function OnboardingPage() {
             label: 'First 90 Days',
             badgeClass: 'bg-purple-100 text-purple-800 font-semibold',
           },
+          {
+            label: 'First 6 Months',
+            badgeClass: 'bg-teal-100 text-teal-800 font-semibold',
+          },
         ].map(({ label, badgeClass }) => {
           const count = phaseCounts[label] ?? 0
           if (count === 0) return null
@@ -1885,6 +1907,58 @@ function OnboardingPage() {
           </Select>
           <Select
             value={
+              (columnFilters.find((f) => f.id === 'roleFilter')?.value as string) ??
+              'all'
+            }
+            onValueChange={(v) => {
+              setColumnFilters((prev) => [
+                ...prev.filter((f) => f.id !== 'roleFilter'),
+                ...(v !== 'all' ? [{ id: 'roleFilter', value: v }] : []),
+              ])
+            }}
+          >
+            <SelectTrigger className="h-9 w-40 text-xs">
+              <SelectValue placeholder="All roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">
+                All roles
+              </SelectItem>
+              {[...new Set(records.map((r) => r.role))].sort().map((r) => (
+                <SelectItem key={r} value={r} className="text-xs">
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={
+              (columnFilters.find((f) => f.id === 'quarterFilter')?.value as string) ??
+              'all'
+            }
+            onValueChange={(v) => {
+              setColumnFilters((prev) => [
+                ...prev.filter((f) => f.id !== 'quarterFilter'),
+                ...(v !== 'all' ? [{ id: 'quarterFilter', value: v }] : []),
+              ])
+            }}
+          >
+            <SelectTrigger className="h-9 w-40 text-xs">
+              <SelectValue placeholder="All quarters" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">
+                All quarters
+              </SelectItem>
+              {[...new Set(records.map((r) => r.quarter).filter(Boolean))].sort().map((q) => (
+                <SelectItem key={q!} value={q!} className="text-xs">
+                  {q}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={
               (columnFilters.find((f) => f.id === 'phase')?.value as string) ??
               'all'
             }
@@ -1920,32 +1994,12 @@ function OnboardingPage() {
               <SelectItem value="First 90 Days" className="text-xs">
                 First 90 Days
               </SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={
-              (columnFilters.find((f) => f.id === 'statusFilter')
-                ?.value as string) ?? 'all'
-            }
-            onValueChange={(v) => {
-              setColumnFilters((prev) => [
-                ...prev.filter((f) => f.id !== 'statusFilter'),
-                ...(v !== 'all' ? [{ id: 'statusFilter', value: v }] : []),
-              ])
-            }}
-          >
-            <SelectTrigger className="h-9 w-40 text-xs">
-              <SelectValue placeholder="All statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">
-                All statuses
+              <SelectItem value="First 6 Months" className="text-xs">
+                First 6 Months
               </SelectItem>
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} value={s} className="text-xs">
-                  {STATUS_CONFIG[s].label}
-                </SelectItem>
-              ))}
+              <SelectItem value="Active" className="text-xs">
+                Active
+              </SelectItem>
             </SelectContent>
           </Select>
           {(globalFilter || columnFilters.length > 0) && (
@@ -2008,14 +2062,16 @@ function OnboardingPage() {
             },
             {
               title: 'Started',
-              color: '#78A700',
+              color: '#059669',
               data: records.filter((r) => {
                 if (!r.startDate) return false
                 const phase = getPhase(r.startDate).label
                 return (
                   phase === 'First 30 Days' ||
                   phase === 'First 60 Days' ||
-                  phase === 'First 90 Days'
+                  phase === 'First 90 Days' ||
+                  phase === 'First 6 Months' ||
+                  phase === 'Active'
                 )
               }),
             },
