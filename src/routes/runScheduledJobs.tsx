@@ -858,7 +858,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
             notification: (typeof overdueNotifications)[number],
           ) =>
             notification.type === 'keeper_test'
-              ? `${notification.managerName} hasn't submitted ${notification.title} for ${notification.employeeName} within ${notification.daysSinceCreation} days.`
+              ? `${notification.managerName} hasn't submitted ${notification.title} feedback for ${notification.employeeName} within ${notification.daysSinceCreation} days.`
               : `${notification.employeeName} hasn't submitted ${notification.title} for ${notification.managerName} within ${notification.daysSinceCreation} days.`
 
           const postSlackMessage = async (text: string, threadTs?: string) => {
