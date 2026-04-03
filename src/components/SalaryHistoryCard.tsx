@@ -79,7 +79,7 @@ export function SalaryHistoryCard({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span
-                      className={`cursor-help font-bold ${salary.changePercentage > 0 ? 'text-green-600' : salary.changePercentage < 0 ? 'text-red-600' : ''}`}
+                      className={`cursor-help font-bold ${salary.changePercentage > 0.01 ? 'text-green-600' : salary.changePercentage < 0 ? 'text-red-600' : ''}`}
                     >
                       {salary.changePercentage >= 0 ? '+' : ''}
                       {(salary.changePercentage * 100).toFixed(2)}%

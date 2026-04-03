@@ -375,9 +375,8 @@ export function NewSalaryForm({
                             ] ?? 0)
                         const denominator = locationFactor * level * bf
                         if (denominator > 0) {
-                          const newStep = Number(
-                            (latestSalary.totalSalary / denominator).toFixed(3),
-                          )
+                          const raw = latestSalary.totalSalary / denominator
+                          const newStep = Math.ceil(raw * 1000) / 1000
                           form.setFieldValue('step', newStep)
                         }
                       }}
@@ -702,7 +701,7 @@ export function NewSalaryForm({
               <div>
                 <div className="mb-2 flex items-center gap-2 text-base">
                   <span
-                    className={`font-bold ${changePercentage > 0 ? 'text-green-600' : changePercentage < 0 ? 'text-red-600' : ''}`}
+                    className={`font-bold ${changePercentage > 0.01 ? 'text-green-600' : changePercentage < 0 ? 'text-red-600' : ''}`}
                   >
                     {changePercentage > 0 ? '+' : ''}
                     {(changePercentage * 100).toFixed(2)}%
