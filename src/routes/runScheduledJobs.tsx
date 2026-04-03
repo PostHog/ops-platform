@@ -483,6 +483,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
 
         const overdueNotifications: Array<{
           type: 'keeper_test' | 'manager_feedback'
+          title: string
           managerName: string
           employeeName: string
           daysSinceCreation: number
@@ -638,7 +639,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
               } else if (
                 job.queue_name === 'receive_manager_feedback_results'
               ) {
-                const { thread_id, manager, employee } = JSON.parse(
+                const { thread_id, manager, employee, title } = JSON.parse(
                   job.data as string,
                 ) as KeeperTestJobPayload
 
@@ -715,6 +716,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 if (daysSinceCreation >= 3) {
                   overdueNotifications.push({
                     type: 'manager_feedback',
+                    title,
                     employeeName: getFullName(
                       employee.firstName,
                       employee.lastName,
@@ -737,7 +739,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   },
                 })
               } else if (job.queue_name === 'receive_keeper_test_results') {
-                const { thread_id, manager, employee } = JSON.parse(
+                const { thread_id, manager, employee, title } = JSON.parse(
                   job.data as string,
                 ) as KeeperTestJobPayload
 
@@ -814,6 +816,7 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 if (daysSinceCreation >= 3) {
                   overdueNotifications.push({
                     type: 'keeper_test',
+                    title,
                     managerName: getFullName(
                       manager.firstName,
                       manager.lastName,
@@ -855,8 +858,8 @@ export const Route = createFileRoute('/runScheduledJobs')({
             notification: (typeof overdueNotifications)[number],
           ) =>
             notification.type === 'keeper_test'
-              ? `${notification.managerName} hasn't submitted feedback for ${notification.employeeName} within ${notification.daysSinceCreation} days.`
-              : `${notification.employeeName} hasn't submitted manager feedback for ${notification.managerName} within ${notification.daysSinceCreation} days.`
+              ? `${notification.managerName} hasn't submitted ${notification.title} feedback for ${notification.employeeName} within ${notification.daysSinceCreation} days.`
+              : `${notification.employeeName} hasn't submitted ${notification.title} for ${notification.managerName} within ${notification.daysSinceCreation} days.`
 
           const postSlackMessage = async (text: string, threadTs?: string) => {
             const res = await fetch('https://slack.com/api/chat.postMessage', {
