@@ -178,7 +178,7 @@ export const bonusPercentage: Record<string, number> = {
 }
 
 export const sfBenchmark: Record<string, number> = {
-  'Product Engineer': 285000,
+  'Product Engineer': 325000,
   'Account Executive (OTE)': 300000,
   'Backend Engineer': 285000,
   'Billing Support Specialist': 154619,
