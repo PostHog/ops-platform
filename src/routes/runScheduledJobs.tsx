@@ -639,6 +639,18 @@ export const Route = createFileRoute('/runScheduledJobs')({
               } else if (
                 job.queue_name === 'receive_manager_feedback_results'
               ) {
+                const daysSinceCreation = Math.floor(
+                  (Date.now() - new Date(job.created).getTime()) /
+                    (1000 * 60 * 60 * 24),
+                )
+                if (daysSinceCreation >= 14) {
+                  await prisma.cyclotronJob.update({
+                    where: { id: job.id },
+                    data: { state: 'cancelled', lock_id: null },
+                  })
+                  return
+                }
+
                 const { thread_id, manager, employee, title } = JSON.parse(
                   job.data as string,
                 ) as KeeperTestJobPayload
@@ -709,10 +721,6 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   )
                 }
 
-                const daysSinceCreation = Math.floor(
-                  (Date.now() - new Date(job.created).getTime()) /
-                    (1000 * 60 * 60 * 24),
-                )
                 if (daysSinceCreation >= 3) {
                   overdueNotifications.push({
                     type: 'manager_feedback',
@@ -742,6 +750,18 @@ export const Route = createFileRoute('/runScheduledJobs')({
                 const { thread_id, manager, employee, title } = JSON.parse(
                   job.data as string,
                 ) as KeeperTestJobPayload
+
+                const daysSinceCreation = Math.floor(
+                  (Date.now() - new Date(job.created).getTime()) /
+                    (1000 * 60 * 60 * 24),
+                )
+                if (daysSinceCreation >= 14 && title === 'Keeper test') {
+                  await prisma.cyclotronJob.update({
+                    where: { id: job.id },
+                    data: { state: 'cancelled', lock_id: null },
+                  })
+                  return
+                }
 
                 const deelEmployee = await prisma.deelEmployee.findFirst({
                   where: { workEmail: employee.email },
@@ -809,10 +829,6 @@ export const Route = createFileRoute('/runScheduledJobs')({
                   )
                 }
 
-                const daysSinceCreation = Math.floor(
-                  (Date.now() - new Date(job.created).getTime()) /
-                    (1000 * 60 * 60 * 24),
-                )
                 if (daysSinceCreation >= 3) {
                   overdueNotifications.push({
                     type: 'keeper_test',
