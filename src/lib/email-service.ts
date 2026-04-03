@@ -14,7 +14,7 @@ export async function sendEmail({
   to,
   subject,
   html,
-  from = `${process.env.COMMISSION_PAYOUT_EMAIL_SENDER} <commission-confirmation@ops.posthog.dev>`,
+  from = `${process.env.COMMISSION_PAYOUT_EMAIL_SENDER} <commission@mail.ops.posthog.dev>`,
   cc,
 }: SendEmailOptions): Promise<{ success: boolean; error?: string }> {
   try {
