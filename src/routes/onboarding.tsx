@@ -1456,7 +1456,13 @@ function OnboardingSection({
     columns,
     state: { sorting, globalFilter, columnFilters },
     onSortingChange: setSorting,
-    initialState: { columnVisibility: { statusFilter: false, quarterFilter: false, roleFilter: false } },
+    initialState: {
+      columnVisibility: {
+        statusFilter: false,
+        quarterFilter: false,
+        roleFilter: false,
+      },
+    },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -1907,8 +1913,8 @@ function OnboardingPage() {
           </Select>
           <Select
             value={
-              (columnFilters.find((f) => f.id === 'roleFilter')?.value as string) ??
-              'all'
+              (columnFilters.find((f) => f.id === 'roleFilter')
+                ?.value as string) ?? 'all'
             }
             onValueChange={(v) => {
               setColumnFilters((prev) => [
@@ -1933,8 +1939,8 @@ function OnboardingPage() {
           </Select>
           <Select
             value={
-              (columnFilters.find((f) => f.id === 'quarterFilter')?.value as string) ??
-              'all'
+              (columnFilters.find((f) => f.id === 'quarterFilter')
+                ?.value as string) ?? 'all'
             }
             onValueChange={(v) => {
               setColumnFilters((prev) => [
@@ -1950,11 +1956,13 @@ function OnboardingPage() {
               <SelectItem value="all" className="text-xs">
                 All quarters
               </SelectItem>
-              {[...new Set(records.map((r) => r.quarter).filter(Boolean))].sort().map((q) => (
-                <SelectItem key={q!} value={q!} className="text-xs">
-                  {q}
-                </SelectItem>
-              ))}
+              {[...new Set(records.map((r) => r.quarter).filter(Boolean))]
+                .sort()
+                .map((q) => (
+                  <SelectItem key={q!} value={q!} className="text-xs">
+                    {q}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
           <Select
